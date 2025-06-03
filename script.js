@@ -1381,6 +1381,56 @@ async function processCustomCommand(command) {
         return;
     }
 
+    // Check for basic movement patterns as fallback
+    const basicMovementPatterns = [
+        /(?:go|move|travel|head|journey|visit)\s+(?:to\s+)?(?:the\s+)?(.+)/i,
+        /(?:enter|go\s+into)\s+(?:the\s+)?(.+)/i,
+        /(?:leave|exit)\s+(?:the\s+)?(.+?)(?:\s+and\s+(?:go|head)\s+(?:to\s+)?(.+))?/i
+    ];
+
+    let isMovement = false;
+    let destination = null;
+
+    for (const pattern of basicMovementPatterns) {
+        const match = command.match(pattern);
+        if (match) {
+            isMovement = true;
+            destination = match[2] || match[1]; // Use second capture group if available, otherwise first
+            break;
+        }
+    }
+
+    if (isMovement && destination) {
+        // Clean up the destination name
+        destination = destination.replace(/^(the|a|an)\s+/i, '').trim();
+        destination = destination.replace(/\s+(and|then|,).*$/i, '').trim();
+
+        // Capitalize properly
+        destination = destination.replace(/\b\w/g, letter => letter.toUpperCase());
+
+        if (destination && !['Alone', 'Him', 'Her', 'Them', 'Person', 'Npc'].includes(destination)) {
+            const oldLocation = player.currentLocation;
+            player.currentLocation = destination;
+            
+            // Generate AI response for the movement
+            const movementPrompt = `${player.name} travels from ${oldLocation} to ${destination}. Describe the journey and arrival in 1-2 sentences.`;
+            const movementResponse = await callGeminiAPI(movementPrompt, 0.7, 300, true);
+            
+            if (movementResponse) {
+                displayMessage(movementResponse);
+                addToConversationHistory('assistant', movementResponse);
+            }
+            
+            displayMessage(`You leave ${oldLocation} and arrive at ${destination}.`, 'success');
+            LocationManager.saveLocationToHistory(destination, player.name);
+            updatePlayerStatsDisplay(); // Ensure UI is updated
+            
+            if (Math.random() < 0.3) checkRandomEncounter();
+            saveConversationHistory();
+            return;
+        }
+    }
+
     // For non-movement commands, use the existing system
     const actionAnalysis = GameActions.analyzeCommand(command, player);
     actionAnalysis.originalCommand = command; // Ensure original command is preserved
