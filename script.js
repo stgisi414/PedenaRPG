@@ -2402,39 +2402,3 @@ async function talkToNPC(npcName) {
     }
 }
 
-async function processCustomCommand(command) {
-    if (!command.trim()) {
-        displayMessage("Please enter a command.", 'error');
-        return;
-    }
-
-    displayMessage(`> ${command}`, 'info');
-    addToConversationHistory('user', command);
-    displayMessage("Processing your command...", 'info');
-
-    if (command.includes('explore') || command.includes('search')) {
-        await explore();
-    } else if (command.includes('talk to') || command.includes('speak with')) {
-            const npcMatch = command.match(/(?:talk to|speak with)\s+(.+)/i);
-            if (npcMatch) {
-                const npcName = npcMatch[1].trim();
-                await talkToNPC(npcName);
-            } else {
-                // Generate a random NPC to talk to if none specified
-                const randomNPC = QuestCharacterGenerator.generateRandomCharacter();
-                displayMessage(`You look around and spot ${randomNPC} nearby. Try "talk to ${randomNPC}" to start a conversation.`, 'info');
-            }
-        }
-
-    // Other actions can be added similarly
-    else {
-        const aiResponse = await callGeminiAPI(command, 0.8, 500, true); // Generic AI response
-        if (aiResponse) {
-            displayMessage(aiResponse);
-            addToConversationHistory('assistant', aiResponse);
-        } else {
-            displayMessage("Nothing happens.", 'info');
-        }
-    }
-    saveConversationHistory();
-}
