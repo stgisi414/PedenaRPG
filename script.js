@@ -1044,6 +1044,12 @@ function displayShop() {
 
     shopItemsDisplay.innerHTML = '';
 
+    // Add gold display at top first
+    const goldDisplay = document.createElement('div');
+    goldDisplay.classList.add('parchment-box', 'p-4', 'mb-6', 'text-center', 'bg-amber-100', 'border-2', 'border-amber-600');
+    goldDisplay.innerHTML = `<p class="font-bold text-2xl text-amber-900">Your Gold: ${player.gold}</p>`;
+    shopItemsDisplay.appendChild(goldDisplay);
+
     // Create shop items with markup prices
     const shopItems = items.filter(item => item.id !== 'gold_coin').map(item => ({
         ...item,
@@ -1055,7 +1061,7 @@ function displayShop() {
         'Weapons': shopItems.filter(item => item.type === 'weapon'),
         'Armor & Shields': shopItems.filter(item => item.type === 'armor'),
         'Consumables': shopItems.filter(item => item.type === 'consumable'),
-        'Tools & Utilities': shopItems.filter(item => item.type === 'tool'),
+        'Tools & Utilities': shopItems.filter(item => item.type === 'tool' || item.type === 'ammunition'),
         'Magical Items': shopItems.filter(item => ['magical', 'scroll'].includes(item.type)),
         'Jewelry': shopItems.filter(item => item.type === 'jewelry'),
         'Rare Items': shopItems.filter(item => ['rare', 'luxury', 'treasure'].includes(item.type))
@@ -1063,64 +1069,75 @@ function displayShop() {
 
     Object.entries(categories).forEach(([categoryName, categoryItems]) => {
         if (categoryItems.length > 0) {
-            const categoryHeader = document.createElement('h5');
-            categoryHeader.classList.add('font-bold', 'text-lg', 'mb-3', 'mt-4', 'text-amber-900', 'border-b', 'border-amber-700');
-            categoryHeader.textContent = categoryName;
-            shopItemsDisplay.appendChild(categoryHeader);
+            // Create category container
+            const categoryContainer = document.createElement('div');
+            categoryContainer.classList.add('mb-8');
 
+            // Category header
+            const categoryHeader = document.createElement('h5');
+            categoryHeader.classList.add('font-bold', 'text-xl', 'mb-4', 'text-amber-900', 'border-b-2', 'border-amber-700', 'pb-2');
+            categoryHeader.textContent = categoryName;
+            categoryContainer.appendChild(categoryHeader);
+
+            // Items grid
             const categoryGrid = document.createElement('div');
-            categoryGrid.classList.add('grid', 'grid-cols-1', 'md:grid-cols-2', 'gap-3', 'mb-4');
+            categoryGrid.classList.add('grid', 'grid-cols-1', 'md:grid-cols-2', 'lg:grid-cols-3', 'gap-4');
 
             categoryItems.forEach(item => {
                 const itemDiv = document.createElement('div');
-                itemDiv.classList.add('parchment-box', 'p-3');
+                itemDiv.classList.add('parchment-box', 'p-4', 'flex', 'flex-col', 'h-full');
 
+                // Item content
+                const itemContent = document.createElement('div');
+                itemContent.classList.add('flex-grow');
+                
                 let itemDetails = `
-                    <p class="font-bold">${item.name}</p>
-                    <p class="text-sm text-amber-700">${item.description}</p>
-                    <p class="text-sm"><strong>Price:</strong> ${item.price} gold</p>
+                    <h6 class="font-bold text-lg text-amber-900 mb-2">${item.name}</h6>
+                    <p class="text-sm text-amber-700 mb-3 leading-relaxed">${item.description}</p>
+                    <div class="space-y-1 mb-3">
+                        <p class="text-sm font-semibold text-green-700">Price: ${item.price} gold</p>
                 `;
 
                 // Add type-specific information
                 if (item.damage) {
-                    itemDetails += `<p class="text-sm"><strong>Damage:</strong> ${item.damage}</p>`;
+                    itemDetails += `<p class="text-sm text-red-600">Damage: ${item.damage}</p>`;
                 }
                 if (item.defense) {
-                    itemDetails += `<p class="text-sm"><strong>Defense:</strong> +${item.defense}</p>`;
+                    itemDetails += `<p class="text-sm text-blue-600">Defense: +${item.defense}</p>`;
                 }
                 if (item.effect) {
-                    itemDetails += `<p class="text-sm"><strong>Effect:</strong> ${item.effect.type}</p>`;
+                    itemDetails += `<p class="text-sm text-purple-600">Effect: ${item.effect.type}</p>`;
                 }
                 if (item.slot) {
-                    itemDetails += `<p class="text-sm"><strong>Slot:</strong> ${item.slot}</p>`;
+                    itemDetails += `<p class="text-sm text-gray-600">Slot: ${item.slot}</p>`;
                 }
+                
+                itemDetails += `</div>`;
+                itemContent.innerHTML = itemDetails;
+                itemDiv.appendChild(itemContent);
 
-                itemDiv.innerHTML = itemDetails;
-
+                // Buy button at bottom
                 const buyBtn = document.createElement('button');
-                buyBtn.classList.add('btn-parchment', 'text-sm', 'mt-2', 'px-3', 'py-1', 'w-full');
-                buyBtn.textContent = `Buy for ${item.price} gold`;
-                buyBtn.onclick = () => buyItem(item);
-
-                // Disable if player can't afford
-                if (player.gold < item.price) {
-                    buyBtn.disabled = true;
+                buyBtn.classList.add('btn-parchment', 'text-sm', 'mt-auto', 'py-2', 'w-full');
+                
+                if (player.gold >= item.price) {
+                    buyBtn.textContent = `Buy for ${item.price} gold`;
+                    buyBtn.onclick = () => buyItem(item);
+                    buyBtn.classList.add('bg-green-600', 'hover:bg-green-700', 'text-white');
+                } else {
                     buyBtn.textContent = 'Too Expensive';
+                    buyBtn.disabled = true;
+                    buyBtn.classList.add('bg-gray-400', 'text-gray-700', 'cursor-not-allowed');
                 }
 
                 itemDiv.appendChild(buyBtn);
                 categoryGrid.appendChild(itemDiv);
             });
 
-            shopItemsDisplay.appendChild(categoryGrid);
+            categoryContainer.appendChild(categoryGrid);
+            shopItemsDisplay.appendChild(categoryContainer);
         }
     });
-
-    // Add gold display at top
-    const goldDisplay = document.createElement('div');
-    goldDisplay.classList.add('parchment-box', 'p-3', 'mb-4', 'text-center', 'sticky', 'top-0', 'bg-amber-100', 'border-2', 'border-amber-600');
-    goldDisplay.innerHTML = `<p class="font-bold text-xl">Your Gold: ${player.gold}</p>`;
-    shopItemsDisplay.insertBefore(goldDisplay, shopItemsDisplay.firstChild);
 }
 
 function buyItem(item) {
