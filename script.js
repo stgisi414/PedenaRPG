@@ -1170,6 +1170,7 @@ async function generateQuest() {
         displayMessage(questMessage, 'success');
         addToConversationHistory('assistant', questMessage);
         updateQuestButton(); // Update button after adding quest
+        saveGame(); // Auto-save after quest creation
     } else {
         const fallbackMessage = "No one seems to have any tasks for you right now.";
         displayMessage(fallbackMessage);
@@ -1255,6 +1256,7 @@ function displayQuests() {
         newQuestButton.innerHTML = '<i class="gi gi-scroll-unfurled mr-2"></i>Seek New Quest';
         newQuestButton.onclick = () => {
             questInterface.classList.add('hidden');
+            updateQuestButton(); // Update the main quest button
             generateQuest();
         };
         questListDisplay.appendChild(newQuestButton);
