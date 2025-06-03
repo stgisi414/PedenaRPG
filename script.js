@@ -1505,7 +1505,7 @@ function displayQuests() {
             questDiv.innerHTML = `
                 <p class="font-bold text-green-800 mb-2">Quest ${quest.id}</p>
                 <p class="text-sm leading-relaxed mb-3">${quest.description}</p>
-                <        <div class="flex gap-2">
+                <div class="flex gap-2">
                     <button onclick="markQuestComplete(${quest.id})" class="btn-parchment text-sm px-3 py-1 bg-green-600 text-white">
                         Mark Complete
                     </button>
@@ -1664,8 +1664,13 @@ function displayCharacterProgression() {
 
     progressionInterface.classList.remove('hidden');
 
-
     const progression = CharacterManager.getCharacterProgression(player);
+    const progressionContent = document.getElementById('progression-content');
+
+    if (!progressionContent) {
+        displayMessage("Error: Could not find progression content element.", 'error');
+        return;
+    }
 
     progressionContent.innerHTML = `
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1687,7 +1692,7 @@ function displayCharacterProgression() {
                 ${progression.abilities.map(ability =>
                     `<div class="mb-2">
                         <p class="font-semibold">${ability.name}</p>
-                        <p class="text-sm text-amber-700">${ability.definition.description}</p>
+                        <p class="text-sm text-amber-700">${ability.definition ? ability.definition.description : 'No description available'}</p>
                     </div>`
                 ).join('')}
             </div>
@@ -1697,7 +1702,7 @@ function displayCharacterProgression() {
                 ${progression.feats.map(feat =>
                     `<div class="mb-2">
                         <p class="font-semibold">${feat.name}</p>
-                        <p class="text-sm text-amber-700">${feat.definition.description}</p>
+                        <p class="text-sm text-amber-700">${feat.definition ? feat.definition.description : 'No description available'}</p>
                     </div>`
                 ).join('')}
             </div>
@@ -1707,8 +1712,8 @@ function displayCharacterProgression() {
                 <h5 class="font-bold mb-2">Known Spells</h5>
                 ${progression.spells.known.map(spell =>
                     `<div class="mb-2">
-                        <p class="font-semibold">${spell.name} (Level ${spell.definition.level})</p>
-                        <p class="text-sm text-amber-700">${spell.definition.description}</p>
+                        <p class="font-semibold">${spell.name} (Level ${spell.definition ? spell.definition.level : 'Unknown'})</p>
+                        <p class="text-sm text-amber-700">${spell.definition ? spell.definition.description : 'No description available'}</p>
                     </div>`
                 ).join('')}
             </div>
@@ -1720,7 +1725,7 @@ function displayCharacterProgression() {
                 ${progression.cantrips.map(cantrip =>
                     `<div class="mb-2">
                         <p class="font-semibold">${cantrip.name}</p>
-                        <p class="text-sm text-amber-700">${cantrip.definition.description}</p>
+                        <p class="text-sm text-amber-700">${cantrip.definition ? cantrip.definition.description : 'No description available'}</p>
                     </div>`
                 ).join('')}
             </div>
