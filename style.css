@@ -110,6 +110,13 @@ h1, h2, h3, h4 {
     box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.2);
 }
 
+/* Specific styling for the background textarea */
+#char-background {
+    min-height: 120px;
+    resize: vertical;
+    line-height: 1.5;
+}
+
 .input-parchment::placeholder {
     color: #A0522D; /* Sienna placeholder */
     opacity: 0.8;
