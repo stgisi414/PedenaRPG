@@ -1392,7 +1392,15 @@ customCommandInput.addEventListener('keypress', (e) => {
 
 // Game Action Event Listeners
 saveGameBtn.addEventListener('click', saveGame);
-newQuestBtn.addEventListener('click', generateQuest);
+newQuestBtn.addEventListener('click', () => {
+    // Check if we should show quests or generate new quest
+    const activeQuests = player.quests.filter(q => !q.completed);
+    if (activeQuests.length > 0) {
+        displayQuests();
+    } else {
+        generateQuest();
+    }
+});
 showInventoryBtn.addEventListener('click', displayInventory);
 showShopBtn.addEventListener('click', displayShop);
 showBackgroundBtn.addEventListener('click', displayBackground);
@@ -1468,11 +1476,9 @@ function updateQuestButton() {
     const activeQuests = player.quests.filter(q => !q.completed);
     if (activeQuests.length > 0) {
         newQuestBtn.textContent = `View Quests (${activeQuests.length})`;
-        newQuestBtn.onclick = displayQuests;
         console.log('Button set to View Quest mode');
     } else {
         newQuestBtn.textContent = 'New Quest';
-        newQuestBtn.onclick = generateQuest;
         console.log('Button set to New Quest mode');
     }
 }
