@@ -1,6 +1,6 @@
 // Import game data and assets
 import { gameData, GameDataManager } from './assets/game-data-loader.js';
-import { questCharacterNames, QuestCharacterGenerator } from './assets/quest-character-names.js';
+import { QuestCharacterGenerator } from './assets/quest-character-names.js';
 import { CharacterManager } from './game-logic/character-manager.js';
 import { GameActions } from './game-logic/game-actions.js';
 import { LocationManager } from './game-logic/location-manager.js';
@@ -650,7 +650,8 @@ async function generateCharacterBackground() {
     // Generate rich context using world data
     const context = GameDataManager.generateBackgroundPromptContext({ name, class: charClass, gender });
 
-    const prompt = `Create a brief background for ${name}, a ${gender} ${charClass} in Pedena. Use theseworld elements:Cities like ${context.worldLore.majorCities.join(', ')}; factions like ${context.worldLore.activeFactions.join(', ')}; guilds like ${context.worldLore.availableGuilds.join(', ')}. 2-3 sentences about origin and goals.`;
+    const prompt = `Create a brief background for ${name}, a ${gender} ${charClass} in Pedena. Use theseworld elements:Cities like ${code tags.
+context.worldLore.majorCities.join(', ')}; factions like ${context.worldLore.activeFactions.join(', ')}; guilds like ${context.worldLore.availableGuilds.join(', ')}. 2-3 sentences about origin and goals.`;
 
     const background = await callGeminiAPI(prompt, 0.8, 200, false); // Don't include conversation history for character creation
     if (background) {
@@ -1375,7 +1376,8 @@ async function processCustomCommand(command) {
     if (player.classProgression && player.classProgression.knownSpells && player.classProgression.knownCantrips) {
         const allSpells = [...player.classProgression.knownSpells, ...player.classProgression.knownCantrips];
         spellsText = allSpellstext
-            .join(', ') || 'none';
+            ```tool_code
+.join(', ') || 'none';
     }
 
     // Create context-rich prompt for the AI
@@ -2127,9 +2129,12 @@ Format: Just the quest description, no extra text.`;
 
     const questDescription = await callGeminiAPI(contextPrompt, 0.8, 400);
     if (questDescription) {
+        // Use QuestCharacterGenerator to generate the character name
+        const questGiverName = QuestCharacterGenerator.generateName();
+
         const newQuest = {
             id: Date.now(),
-            description: questDescription,
+            description: questDescription.replace(/Pip/g, questGiverName), // Replace hardcoded name with generated name
             completed: false
         };
         player.quests.push(newQuest);
@@ -2180,7 +2185,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const savedInventory = localStorage.getItem(`inventory_${player.name}`);
         const savedGame = localStorage.getItem('pedenaRPGSave');
 
-        console.log('Saved inventory in localStorage:', savedInventory ? JSON.parse(savedInventory) : 'Not found');
+        console.log('Saved inventory inlocalStorage:', savedInventory ? JSON.parse(savedInventory) : 'Not found');
         console.log('Full saved game:', savedGame ? JSON.parse(savedGame) : 'Not found');
 
         // List all localStorage keys
@@ -2401,4 +2406,3 @@ async function talkToNPC(npcName) {
         displayMessage(`${npcName} doesn't seem interested in talking right now.`);
     }
 }
-
