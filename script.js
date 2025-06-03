@@ -119,6 +119,7 @@ const saveGameBtn = document.getElementById('save-game-btn');
 const newQuestBtn = document.getElementById('new-quest-btn');
 const showInventoryBtn = document.getElementById('show-inventory-btn');
 const showShopBtn = document.getElementById('show-shop-btn');
+const showBackgroundBtn = document.getElementById('show-background-btn');
 
 const combatInterface = document.getElementById('combat-interface');
 const enemyInfoDisplay = document.getElementById('enemy-info');
@@ -140,6 +141,10 @@ const exitSkillsBtn = document.getElementById('exit-skills-btn');
 const questInterface = document.getElementById('quest-interface');
 const questListDisplay = document.getElementById('quest-list');
 const exitQuestsBtn = document.getElementById('exit-quests-btn');
+
+const backgroundInterface = document.getElementById('background-interface');
+const backgroundContentDisplay = document.getElementById('background-content');
+const exitBackgroundBtn = document.getElementById('exit-background-btn');
 
 // Game Dynamics Data Structures (Examples - these would be much more extensive)
 const classes = {
@@ -743,6 +748,7 @@ function displayInventory() {
     skillsInterface.classList.add('hidden');
     questInterface.classList.add('hidden');
     combatInterface.classList.add('hidden');
+    backgroundInterface.classList.add('hidden');
     inventoryInterface.classList.remove('hidden');
 
     displayMessage("Opening your inventory...", 'info');
@@ -850,6 +856,7 @@ function displaySkills() {
     inventoryInterface.classList.add('hidden');
     questInterface.classList.add('hidden');
     combatInterface.classList.add('hidden');
+    backgroundInterface.classList.add('hidden');
     skillsInterface.classList.remove('hidden');
 
     skillsListDisplay.innerHTML = '';
@@ -871,6 +878,7 @@ function displayShop() {
     skillsInterface.classList.add('hidden');
     questInterface.classList.add('hidden');
     combatInterface.classList.add('hidden');
+    backgroundInterface.classList.add('hidden');
     shopInterface.classList.remove('hidden');
 
     displayMessage("Welcome to the merchant's shop!", 'info');
@@ -1172,6 +1180,7 @@ function displayQuests() {
     inventoryInterface.classList.add('hidden');
     skillsInterface.classList.add('hidden');
     combatInterface.classList.add('hidden');
+    backgroundInterface.classList.add('hidden');
     questInterface.classList.remove('hidden');
 
     questListDisplay.innerHTML = '';
@@ -1186,6 +1195,47 @@ function displayQuests() {
         questDiv.innerHTML = `<p class="text-sm">${quest.description}</p>`;
         questListDisplay.appendChild(questDiv);
     });
+}
+
+function displayBackground() {
+    shopInterface.classList.add('hidden');
+    inventoryInterface.classList.add('hidden');
+    skillsInterface.classList.add('hidden');
+    combatInterface.classList.add('hidden');
+    questInterface.classList.add('hidden');
+    backgroundInterface.classList.remove('hidden');
+
+    displayMessage("Reviewing your character background...", 'info');
+
+    backgroundContentDisplay.innerHTML = `
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="parchment-box p-4">
+                <h5 class="font-bold text-lg mb-3 text-amber-900">Character Details</h5>
+                <p class="mb-2"><strong>Name:</strong> ${player.name || 'Unknown'}</p>
+                <p class="mb-2"><strong>Gender:</strong> ${player.gender || 'Unknown'}</p>
+                <p class="mb-2"><strong>Class:</strong> ${player.class || 'Unknown'}</p>
+                <p class="mb-2"><strong>Level:</strong> ${player.level || 1}</p>
+                <p class="mb-2"><strong>Current Location:</strong> ${player.currentLocation || 'Unknown'}</p>
+            </div>
+            
+            <div class="parchment-box p-4">
+                <h5 class="font-bold text-lg mb-3 text-amber-900">Character Stats</h5>
+                <p class="mb-1"><strong>Strength:</strong> ${player.stats.strength || 10}</p>
+                <p class="mb-1"><strong>Dexterity:</strong> ${player.stats.dexterity || 10}</p>
+                <p class="mb-1"><strong>Intelligence:</strong> ${player.stats.intelligence || 10}</p>
+                <p class="mb-1"><strong>Constitution:</strong> ${player.stats.constitution || 10}</p>
+                <p class="mb-1"><strong>Wisdom:</strong> ${player.stats.wisdom || 10}</p>
+                <p class="mb-1"><strong>Charisma:</strong> ${player.stats.charisma || 10}</p>
+            </div>
+        </div>
+        
+        <div class="parchment-box p-4 mt-4">
+            <h5 class="font-bold text-lg mb-3 text-amber-900">Background Story</h5>
+            <div class="text-sm leading-relaxed text-amber-800">
+                ${player.background || 'No background story available. Create a character to generate one!'}
+            </div>
+        </div>
+    `;
 }
 
 function restPlayer() {
@@ -1264,6 +1314,7 @@ saveGameBtn.addEventListener('click', saveGame);
 newQuestBtn.addEventListener('click', generateQuest);
 showInventoryBtn.addEventListener('click', displayInventory);
 showShopBtn.addEventListener('click', displayShop);
+showBackgroundBtn.addEventListener('click', displayBackground);
 document.getElementById('show-progression-btn').addEventListener('click', displayCharacterProgression);
 
 // Combat Event Listeners
@@ -1285,6 +1336,10 @@ exitSkillsBtn.addEventListener('click', () => {
 
 exitQuestsBtn.addEventListener('click', () => {
     questInterface.classList.add('hidden');
+});
+
+exitBackgroundBtn.addEventListener('click', () => {
+    backgroundInterface.classList.add('hidden');
 });
 
 // Initialize game
@@ -1335,6 +1390,7 @@ function displayCharacterProgression() {
     shopInterface.classList.add('hidden');
     questInterface.classList.add('hidden');
     combatInterface.classList.add('hidden');
+    backgroundInterface.classList.add('hidden');
 
     // Create progression interface
     let progressionInterface = document.getElementById('progression-interface');
