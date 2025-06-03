@@ -375,7 +375,7 @@ function rollDice(diceString) {
 }
 
 // AI Interaction Functions (Gemini API Calls)
-async function callGeminiAPI(prompt, temperature = 0.10, maxOutputTokens = 300, includeContext = true) {
+async function callGeminiAPI(prompt, temperature = 0.10, maxOutputTokens = 800, includeContext = true) {
     try {
         let fullPrompt = prompt;
         
@@ -1155,9 +1155,9 @@ async function generateQuest() {
     const randomGuild = GameDataManager.getRandomFrom(gameData.organizations.guilds);
     const randomBusiness = GameDataManager.getRandomFrom(gameData.economy.businesses);
 
-    const prompt = `Create a quest for ${player.name} (${player.class}, Level ${player.level}) in ${player.currentLocation}. Involve elements like ${randomFaction.name}, ${randomGuild.name}, or ${randomBusiness.name}. Include quest giver, objective, reward (2-3 sentences).`;
+    const prompt = `Create a complete quest for ${player.name} (${player.class}, Level ${player.level}) in ${player.currentLocation}. Include: Quest giver name, clear objective, and specific reward. Use factions like ${randomFaction.name} or ${randomGuild.name}. Keep to 4-5 sentences maximum.`;
 
-    const quest = await callGeminiAPI(prompt, 0.8, 250, true);
+    const quest = await callGeminiAPI(prompt, 0.8, 600, true);
     if (quest) {
         player.quests.push({
             id: Date.now(),
