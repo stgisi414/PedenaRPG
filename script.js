@@ -1364,7 +1364,9 @@ async function processCustomCommand(command) {
                     newLocationName = `${movementAnalysis.destination.name}, ${movementAnalysis.destination.parentLocation}`;
                 }
 
+                const oldLocation = player.currentLocation;
                 player.currentLocation = newLocationName;
+                displayMessage(`You leave ${oldLocation} and arrive at ${newLocationName}.`, 'success');
                 LocationManager.saveLocationToHistory(newLocationName, player.name);
                 updatePlayerStatsDisplay();
 
@@ -1681,8 +1683,9 @@ async function handleMovementAction(extractedData) {
         newLocation = newLocation.replace(/\s+(and|then|,).*$/i, '').trim();
 
         if (newLocation && !['alone', 'him', 'her', 'them', 'person', 'npc'].includes(newLocation.toLowerCase())) {
+            const oldLocation = player.currentLocation;
             player.currentLocation = newLocation;
-            displayMessage(`You travel to ${newLocation}.`);
+            displayMessage(`You leave ${oldLocation} and travel to ${newLocation}.`);
             LocationManager.saveLocationToHistory(newLocation, player.name);
             if (Math.random() < 0.3) checkRandomEncounter();
             updatePlayerStatsDisplay();
