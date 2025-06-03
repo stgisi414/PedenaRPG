@@ -47,6 +47,99 @@ let player = {
     quests: [],
     currentLocation: 'Pedena Town Square',
     currentEnemy: null // For combat
+
+// Utility function to validate and fix character stats
+function validateAndFixStats(player) {
+    const minStatValue = 10;
+    let statsFixed = false;
+    
+    // Ensure stats object exists
+    if (!player.stats) {
+        player.stats = {
+            strength: minStatValue,
+            dexterity: minStatValue,
+            intelligence: minStatValue,
+            constitution: minStatValue,
+            wisdom: minStatValue,
+            charisma: minStatValue
+        };
+        statsFixed = true;
+        console.log('Created missing stats object with default values');
+    } else {
+        // Check and fix each stat
+        const statNames = ['strength', 'dexterity', 'intelligence', 'constitution', 'wisdom', 'charisma'];
+        
+        statNames.forEach(statName => {
+            if (typeof player.stats[statName] !== 'number' || player.stats[statName] < minStatValue) {
+                const oldValue = player.stats[statName];
+                player.stats[statName] = minStatValue;
+                statsFixed = true;
+                console.log(`Fixed ${statName}: ${oldValue} -> ${minStatValue}`);
+            }
+        });
+    }
+    
+    return statsFixed;
+}
+
+// Auto-fix stats on game load and save
+function autoFixStatsInStorage() {
+    try {
+        // Check current player stats
+        if (player && validateAndFixStats(player)) {
+            console.log('Stats were fixed for current player');
+            updatePlayerStatsDisplay();
+        }
+        
+        // Check saved game data
+        const savedGame = localStorage.getItem('pedenaRPGSave');
+        if (savedGame) {
+            const saveData = JSON.parse(savedGame);
+            let saveDataModified = false;
+            
+            if (saveData.player) {
+                if (validateAndFixStats(saveData.player)) {
+                    saveDataModified = true;
+                    console.log('Fixed stats in saved game data');
+                }
+            } else if (saveData.stats) {
+                // Handle old save format
+                const tempPlayer = { stats: saveData.stats };
+                if (validateAndFixStats(tempPlayer)) {
+                    saveData.stats = tempPlayer.stats;
+                    saveDataModified = true;
+                    console.log('Fixed stats in old save format');
+                }
+            }
+            
+            if (saveDataModified) {
+                localStorage.setItem('pedenaRPGSave', JSON.stringify(saveData));
+                console.log('Updated saved game with fixed stats');
+            }
+        }
+        
+        // Check character progression data
+        if (player && player.name) {
+            const progressionData = localStorage.getItem(`progression_${player.name}`);
+            if (progressionData) {
+                const progData = JSON.parse(progressionData);
+                if (progData.stats) {
+                    const tempPlayer = { stats: progData.stats };
+                    if (validateAndFixStats(tempPlayer)) {
+                        progData.stats = tempPlayer.stats;
+                        localStorage.setItem(`progression_${player.name}`, JSON.stringify(progData));
+                        console.log('Fixed stats in character progression data');
+                    }
+                }
+            }
+        }
+        
+    } catch (error) {
+        console.error('Error during stats validation:', error);
+    }
+}
+
+
 };
 
 // NPC Persistence System
@@ -314,6 +407,11 @@ function saveGame() {
         return;
     }
 
+    // Validate and fix stats before saving
+    if (validateAndFixStats(player)) {
+        console.log("Fixed stats before saving");
+    }
+
     // Save character progression separately
     if (player.classProgression) {
         CharacterManager.saveProgression(player);
@@ -369,6 +467,12 @@ function loadGame() {
             player = saveData;
             loadConversationHistory();
             ItemManager.loadInventoryFromStorage(player);
+        }
+
+        // Validate and fix stats after loading
+        if (validateAndFixStats(player)) {
+            displayMessage("Character stats have been automatically corrected.", 'info');
+            saveGame(); // Save the corrected stats immediately
         }
 
         displayMessage("Game loaded!", 'success');
@@ -2050,6 +2154,9 @@ document.addEventListener('DOMContentLoaded', () => {
     if (localStorage.getItem('pedenaRPGSave')) {
         loadGameBtn.disabled = false;
     }
+
+    // Auto-fix any stat issues in storage
+    autoFixStatsInStorage();
 
     // Load conversation history if available
     loadConversationHistory();
