@@ -991,7 +991,7 @@ async function processCustomCommand(command) {
     displayMessage("Processing your command...", 'info');
 
     // Analyze action using GameActions module
-    const actionAnalysis = GameActions.analyzeAction(command, player, gameData);
+    const actionAnalysis = GameActions.analyzeCommand(command, player);
 
     // Handle immediate consequences based on action analysis
     await handleActionConsequences(actionAnalysis);
@@ -1338,6 +1338,165 @@ exitBackgroundBtn.addEventListener('click', () => {
     backgroundInterface.classList.add('hidden');
 });
 
+// Quest management functions
+function markQuestComplete(questId) {
+    const quest = player.quests.find(q => q.id === questId);
+    if (quest) {
+        quest.completed = true;
+        displayMessage(`Quest completed: ${quest.description.substring(0, 50)}...`, 'success');
+        player.exp += 50;
+        player.gold += 25;
+        updateQuestButton();
+        updatePlayerStatsDisplay();
+        checkLevelUp();
+    }
+}
+
+function abandonQuest(questId) {
+    if (confirm("Are you sure you want to abandon this quest?")) {
+        const questIndex = player.quests.findIndex(q => q.id === questId);
+        if (questIndex >= 0) {
+            const quest = player.quests[questIndex];
+            player.quests.splice(questIndex, 1);
+            displayMessage(`You abandoned the quest: ${quest.description.substring(0, 50)}...`, 'info');
+            updateQuestButton();
+            displayQuests(); // Refresh the quest display
+        }
+    }
+}
+
+function getActiveQuestsContext() {
+    const activeQuests = player.quests.filter(q => !q.completed);
+    if (activeQuests.length > 0) {
+        return `ACTIVE QUESTS: ${activeQuests.map(q => q.description.substring(0, 100)).join('; ')}\n`;
+    }
+    return '';
+}
+
+function updateQuestButton() {
+    console.log('updateQuestButton called - Total quests:', player.quests.length, 'Active quests:', player.quests.filter(q => !q.completed).length);
+    
+    const activeQuests = player.quests.filter(q => !q.completed);
+    if (activeQuests.length > 0) {
+        newQuestBtn.textContent = `View Quests (${activeQuests.length})`;
+        newQuestBtn.onclick = displayQuests;
+        console.log('Button set to View Quest mode');
+    } else {
+        newQuestBtn.textContent = 'New Quest';
+        newQuestBtn.onclick = generateQuest;
+        console.log('Button set to New Quest mode');
+    }
+}
+
+function displayQuests() {
+    inventoryInterface.classList.add('hidden');
+    shopInterface.classList.add('hidden');
+    skillsInterface.classList.add('hidden');
+    combatInterface.classList.add('hidden');
+    backgroundInterface.classList.add('hidden');
+    questInterface.classList.remove('hidden');
+
+    displayMessage("Reviewing your quests...", 'info');
+
+    questListDisplay.innerHTML = '';
+
+    if (player.quests.length === 0) {
+        questListDisplay.innerHTML = '<p class="text-center text-amber-800">You have no quests yet. Click "New Quest" to start an adventure!</p>';
+        return;
+    }
+
+    const activeQuests = player.quests.filter(q => !q.completed);
+    const completedQuests = player.quests.filter(q => q.completed);
+
+    if (activeQuests.length > 0) {
+        const activeHeader = document.createElement('h5');
+        activeHeader.classList.add('font-bold', 'text-lg', 'mb-3', 'text-green-700');
+        activeHeader.textContent = 'Active Quests';
+        questListDisplay.appendChild(activeHeader);
+
+        activeQuests.forEach(quest => {
+            const questDiv = document.createElement('div');
+            questDiv.classList.add('parchment-box', 'p-4', 'mb-3', 'border-l-4', 'border-green-600');
+            questDiv.innerHTML = `
+                <p class="font-bold text-green-800 mb-2">Quest ${quest.id}</p>
+                <p class="text-sm leading-relaxed mb-3">${quest.description}</p>
+                <div class="flex gap-2">
+                    <button onclick="markQuestComplete(${quest.id})" class="btn-parchment text-sm px-3 py-1 bg-green-600 text-white">
+                        Mark Complete
+                    </button>
+                    <button onclick="abandonQuest(${quest.id})" class="btn-parchment text-sm px-3 py-1 bg-red-600 text-white">
+                        Abandon Quest
+                    </button>
+                </div>
+            `;
+            questListDisplay.appendChild(questDiv);
+        });
+    }
+
+    if (completedQuests.length > 0) {
+        const completedHeader = document.createElement('h5');
+        completedHeader.classList.add('font-bold', 'text-lg', 'mb-3', 'mt-6', 'text-blue-700');
+        completedHeader.textContent = 'Completed Quests';
+        questListDisplay.appendChild(completedHeader);
+
+        completedQuests.forEach(quest => {
+            const questDiv = document.createElement('div');
+            questDiv.classList.add('parchment-box', 'p-4', 'mb-3', 'border-l-4', 'border-blue-600', 'opacity-75');
+            questDiv.innerHTML = `
+                <p class="font-bold text-blue-800 mb-2">Quest ${quest.id} ✓</p>
+                <p class="text-sm leading-relaxed text-blue-700">${quest.description}</p>
+            `;
+            questListDisplay.appendChild(questDiv);
+        });
+    }
+
+    // Add New Quest button at the bottom
+    const newQuestButton = document.createElement('button');
+    newQuestButton.classList.add('btn-parchment', 'w-full', 'mt-4');
+    newQuestButton.innerHTML = '<i class="gi gi-scroll-unfurled mr-2"></i>Generate New Quest';
+    newQuestButton.onclick = () => {
+        questInterface.classList.add('hidden');
+        generateQuest();
+    };
+    questListDisplay.appendChild(newQuestButton);
+}
+
+async function generateQuest() {
+    displayMessage("Seeking new adventures...", 'info');
+
+    const contextPrompt = `
+Generate a fantasy RPG quest for ${player.name} (${player.class}, Level ${player.level}) in ${player.currentLocation}. 
+Current context: HP ${player.hp}/${player.maxHp}, Gold ${player.gold}
+
+Create a quest that:
+1. Fits their level and class
+2. Has a clear objective
+3. Mentions specific rewards
+4. Is 2-3 sentences long
+5. Includes potential consequences for success/failure
+
+Format: Just the quest description, no extra text.`;
+
+    const questDescription = await callGeminiAPI(contextPrompt, 0.8, 400);
+    if (questDescription) {
+        const newQuest = {
+            id: Date.now(),
+            description: questDescription,
+            completed: false
+        };
+        player.quests.push(newQuest);
+        console.log('Quest added:', newQuest);
+        console.log('Total quests:', player.quests.length);
+        console.log('Active quests:', player.quests.filter(q => !q.completed).length);
+        
+        displayMessage(`New quest available: ${questDescription}`, 'success');
+        updateQuestButton();
+        saveGame(); // Auto-save when quest is generated
+    } else {
+        displayMessage("No new quests are available at this time.", 'info');
+    }
+}
+
 // Initialize game
 document.addEventListener('DOMContentLoaded', () => {
     // Check if there's a saved game to enable load button
@@ -1352,6 +1511,9 @@ document.addEventListener('DOMContentLoaded', () => {
     window.displayCharacterProgression = displayCharacterProgression;
     window.updateQuestButton = updateQuestButton;
     window.abandonQuest = abandonQuest;
+    window.markQuestComplete = markQuestComplete;
+    window.displayQuests = displayQuests;
+    window.generateQuest = generateQuest;
 });
 
 function displayLevelUpRewards(progression, oldLevel) {
