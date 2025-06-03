@@ -190,7 +190,7 @@ function rollDice(diceString) {
 }
 
 // AI Interaction Functions (Gemini API Calls)
-async function callGeminiAPI(prompt, temperature = 0.7, maxOutputTokens = 500) {
+async function callGeminiAPI(prompt, temperature = 0.7, maxOutputTokens = 800) {
     try {
         const response = await fetch(GEMINI_API_URL, {
             method: 'POST',
@@ -202,7 +202,27 @@ async function callGeminiAPI(prompt, temperature = 0.7, maxOutputTokens = 500) {
                 generationConfig: {
                     temperature: temperature,
                     maxOutputTokens: maxOutputTokens,
+                    topP: 0.8,
+                    topK: 40
                 },
+                safetySettings: [
+                    {
+                        category: "HARM_CATEGORY_HARASSMENT",
+                        threshold: "BLOCK_MEDIUM_AND_ABOVE"
+                    },
+                    {
+                        category: "HARM_CATEGORY_HATE_SPEECH", 
+                        threshold: "BLOCK_MEDIUM_AND_ABOVE"
+                    },
+                    {
+                        category: "HARM_CATEGORY_SEXUALLY_EXPLICIT",
+                        threshold: "BLOCK_MEDIUM_AND_ABOVE"
+                    },
+                    {
+                        category: "HARM_CATEGORY_DANGEROUS_CONTENT",
+                        threshold: "BLOCK_MEDIUM_AND_ABOVE"
+                    }
+                ]
             }),
         });
 
@@ -220,14 +240,20 @@ async function callGeminiAPI(prompt, temperature = 0.7, maxOutputTokens = 500) {
         }
 
         const data = await response.json();
-        if (data.candidates && data.candidates.length > 0 && 
-            data.candidates[0].content && data.candidates[0].content.parts && 
-            data.candidates[0].content.parts.length > 0) {
-            return data.candidates[0].content.parts[0].text;
-        } else {
-            console.error('Invalid API response structure:', data);
-            return null;
+        if (data.candidates && data.candidates.length > 0) {
+            const candidate = data.candidates[0];
+            // Check if content exists and has parts
+            if (candidate.content && candidate.content.parts && candidate.content.parts.length > 0) {
+                return candidate.content.parts[0].text;
+            }
+            // Handle case where content exists but parts might be missing
+            else if (candidate.content && candidate.content.role) {
+                console.log('API response received but no content parts found:', data);
+                return "I'm having trouble generating a response right now. Please try again.";
+            }
         }
+        console.error('Invalid API response structure:', data);
+        return null;
     } catch (error) {
         console.error('Network or API request error:', error);
         alert(`Network error during AI call: ${error.message}`);
