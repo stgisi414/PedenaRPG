@@ -1,3 +1,4 @@
+
 const GEMINI_API_KEY = 'AIzaSyDIFeql6HUpkZ8JJlr_kuN0WDFHUyOhijA'; // Replace with your actual Gemini API Key
 const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-thinking-exp-01-21:generateContent?key=${GEMINI_API_KEY}`;
 
@@ -86,7 +87,6 @@ const exitSkillsBtn = document.getElementById('exit-skills-btn');
 const questInterface = document.getElementById('quest-interface');
 const questListDisplay = document.getElementById('quest-list');
 const exitQuestsBtn = document.getElementById('exit-quests-btn');
-
 
 // Game Dynamics Data Structures (Examples - these would be much more extensive)
 const classes = {
@@ -190,7 +190,6 @@ function rollDice(diceString) {
 }
 
 // AI Interaction Functions (Gemini API Calls)
-
 async function callGeminiAPI(prompt, temperature = 0.7, maxOutputTokens = 500) {
     try {
         const response = await fetch(GEMINI_API_URL, {
@@ -210,7 +209,7 @@ async function callGeminiAPI(prompt, temperature = 0.7, maxOutputTokens = 500) {
         if (!response.ok) {
             const errorData = await response.json();
             console.error('Gemini API Error:', errorData);
-            displayMessage(`AI Error: ${errorData.error.message || response.statusText}`, 'error');
+            alert(`AI Error: ${errorData.error?.message || response.statusText}`);
             return null;
         }
 
@@ -219,7 +218,7 @@ async function callGeminiAPI(prompt, temperature = 0.7, maxOutputTokens = 500) {
         return generatedText;
     } catch (error) {
         console.error('Network or API request error:', error);
-        displayMessage(`Network error during AI call: ${error.message}`, 'error');
+        alert(`Network error during AI call: ${error.message}`);
         return null;
     }
 }
@@ -230,21 +229,24 @@ async function generateCharacterBackground() {
     const gender = Array.from(charGenderRadios).find(radio => radio.checked)?.value;
 
     if (!name || !charClass || !gender) {
-        displayMessage("Please fill in character name, class, and gender.", 'error');
+        alert("Please fill in character name, class, and gender.");
         return;
     }
 
-    displayMessage("Generating character background...", 'info');
+    charBackgroundTextarea.value = "Generating character background...";
+    generateBackgroundBtn.disabled = true;
+    
     const prompt = `Generate a concise and engaging fantasy RPG character background for a ${gender} ${charClass} named ${name} in the magical land of Pedena. The background should be about 3-4 sentences long and hint at their origin and motivation.`;
 
     const background = await callGeminiAPI(prompt, 0.8, 150);
     if (background) {
         charBackgroundTextarea.value = background;
         player.background = background;
-        displayMessage("Background generated!", 'success');
     } else {
         charBackgroundTextarea.value = "Failed to generate background. Please try again.";
     }
+    
+    generateBackgroundBtn.disabled = false;
 }
 
 async function generateWorldDescription(location) {
@@ -292,7 +294,6 @@ async function handleNPCInteraction() {
     const npcInfo = await callGeminiAPI(prompt, 0.8, 200);
     if (npcInfo) {
         displayMessage(`You encounter someone: ${npcInfo}`);
-        // Here you would add buttons for dialogue choices, etc.
     } else {
         displayMessage("You don't see anyone interesting to talk to right now.");
     }
@@ -354,7 +355,6 @@ async function enemyAttack() {
 
     if (player.hp <= 0) {
         displayMessage("You have been defeated! Game Over.", 'error');
-        // Implement game over logic (e.g., return to main menu, offer to load save)
         alert("Game Over!");
         location.reload(); // Simple reload for now
     }
@@ -406,10 +406,10 @@ async function levelUpAI() {
 }
 
 function displayInventory() {
-    shopInterface.classList.add('hidden'); // Ensure shop is hidden
-    skillsInterface.classList.add('hidden'); // Ensure skills are hidden
-    questInterface.classList.add('hidden'); // Ensure quests are hidden
-    combatInterface.classList.add('hidden'); // Ensure combat is hidden
+    shopInterface.classList.add('hidden');
+    skillsInterface.classList.add('hidden');
+    questInterface.classList.add('hidden');
+    combatInterface.classList.add('hidden');
     inventoryInterface.classList.remove('hidden');
     inventoryItemsDisplay.innerHTML = '';
     if (player.inventory.length === 0) {
