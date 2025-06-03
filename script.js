@@ -3,6 +3,7 @@ import { gameData, GameDataManager } from './assets/game-data-loader.js';
 import { CharacterManager } from './game-logic/character-manager.js';
 import { classProgression, spellDefinitions, abilityDefinitions } from './game-logic/class-progression.js';
 import { GameActions } from './game-logic/game-actions.js'; // Import GameActions
+import LocationManager from './game-logic/location-manager.js';
 
 const GEMINI_API_KEY = 'AIzaSyDIFeql6HUpkZ8JJlr_kuN0WDFHUyOhijA'; // Replace with your actual Gemini API Key
 const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`;
@@ -545,31 +546,22 @@ async function generateWorldDescription(location) {
     }
 }
 
-async function handleMovement() {
+async function handleMovement(command) {
     displayMessage("Considering your next move...", 'info');
 
-    // Get real locations from world data
-    const nearbyLocations = [
-        GameDataManager.getRandomFrom(gameData.world.cities),
-        GameDataManager.getRandomFrom(gameData.world.cities),
-        GameDataManager.getRandomFrom(gameData.world.regions)
-    ];
+    // Use LocationManager to get possible destinations
+    const possibleDestinations = LocationManager.getPossibleDestinations(player.currentLocation, command);
 
-    const locationNames = nearbyLocations.map(loc => loc.name);
-    const prompt = `Player ${player.name} (${player.class}, Level ${player.level}) is in ${player.currentLocation}. Here are nearby places: ${locationNames.join(', ')}. Suggest 3-4 travel destinations from these or similar locations in Pedena. Format as comma-separated list.`;
-
-    const directions = await callGeminiAPI(prompt, 0.9, 150);
-    if (directions) {
-        const choices = directions.split(',').map(s => s.trim()).filter(s => s !== '');
+    if (possibleDestinations && possibleDestinations.length > 0) {
         displayMessage("Where would you like to go?");
-        choices.forEach((choice, index) => {
+        possibleDestinations.forEach((destination, index) => {
             const button = document.createElement('button');
             button.classList.add('btn-parchment', 'w-full', 'mb-2');
-            button.textContent = choice;
+            button.textContent = destination;
             button.onclick = async () => {
-                player.currentLocation = choice;
-                displayMessage(`You travel to ${choice}.`);
-                await generateWorldDescription(choice);
+                player.currentLocation = destination;
+                displayMessage(`You travel to ${destination}.`);
+                await generateWorldDescription(destination);
                 // After moving, remove the movement choice buttons
                 document.querySelectorAll('.game-action-choice').forEach(btn => btn.remove());
                 checkRandomEncounter(); // Check for encounters after moving
@@ -1420,7 +1412,7 @@ function displayQuests() {
             questDiv.innerHTML = `
                 <p class="font-bold text-green-800 mb-2">Quest ${quest.id}</p>
                 <p class="text-sm leading-relaxed mb-3">${quest.description}</p>
-                <div class="flex gap-2">
+                <        <div class="flex gap-2">
                     <button onclick="markQuestComplete(${quest.id})" class="btn-parchment text-sm px-3 py-1 bg-green-600 text-white">
                         Mark Complete
                     </button>
@@ -1577,7 +1569,7 @@ function displayCharacterProgression() {
 
     progressionInterface.classList.remove('hidden');
 
-    
+
     const progression = CharacterManager.getCharacterProgression(player);
 
     progressionContent.innerHTML = `
