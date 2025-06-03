@@ -1,9 +1,10 @@
 // Import game data assets
 import { gameData, GameDataManager } from './assets/game-data-loader.js';
 import { CharacterManager } from './game-logic/character-manager.js';
+import { GameActions } from './game-logic/game-actions.js';
+import { LocationManager } from './game-logic/location-manager.js';
+import { QuestCharacterGenerator } from './assets/quest-character-names.js';
 import { classProgression, spellDefinitions, abilityDefinitions } from './game-logic/class-progression.js';
-import { GameActions } from './game-logic/game-actions.js'; // Import GameActions
-import LocationManager from './game-logic/location-manager.js';
 import { ItemGenerator, ItemManager, itemCategories, itemRarity, statusEffects } from './assets/world-items.js';
 
 const GEMINI_API_KEY = 'AIzaSyDIFeql6HUpkZ8JJlr_kuN0WDFHUyOhijA'; // Replace with your actual Gemini API Key
@@ -53,7 +54,7 @@ let player = {
 function validateAndFixStats(player) {
     const minStatValue = 10;
     let statsFixed = false;
-    
+
     // Ensure stats object exists
     if (!player.stats) {
         player.stats = {
@@ -69,7 +70,7 @@ function validateAndFixStats(player) {
     } else {
         // Check and fix each stat
         const statNames = ['strength', 'dexterity', 'intelligence', 'constitution', 'wisdom', 'charisma'];
-        
+
         statNames.forEach(statName => {
             if (typeof player.stats[statName] !== 'number' || player.stats[statName] < minStatValue) {
                 const oldValue = player.stats[statName];
@@ -79,7 +80,7 @@ function validateAndFixStats(player) {
             }
         });
     }
-    
+
     return statsFixed;
 }
 
@@ -91,13 +92,13 @@ function autoFixStatsInStorage() {
             console.log('Stats were fixed for current player');
             updatePlayerStatsDisplay();
         }
-        
+
         // Check saved game data
         const savedGame = localStorage.getItem('pedenaRPGSave');
         if (savedGame) {
             const saveData = JSON.parse(savedGame);
             let saveDataModified = false;
-            
+
             if (saveData.player) {
                 if (validateAndFixStats(saveData.player)) {
                     saveDataModified = true;
@@ -112,13 +113,13 @@ function autoFixStatsInStorage() {
                     console.log('Fixed stats in old save format');
                 }
             }
-            
+
             if (saveDataModified) {
                 localStorage.setItem('pedenaRPGSave', JSON.stringify(saveData));
                 console.log('Updated saved game with fixed stats');
             }
         }
-        
+
         // Check character progression data
         if (player && player.name) {
             const progressionData = localStorage.getItem(`progression_${player.name}`);
@@ -134,7 +135,7 @@ function autoFixStatsInStorage() {
                 }
             }
         }
-        
+
     } catch (error) {
         console.error('Error during stats validation:', error);
     }
@@ -356,14 +357,14 @@ const enemies = [
 function updateGold(amount, reason = '') {
     const oldGold = player.gold;
     player.gold = Math.max(0, player.gold + amount);
-    
+
     if (amount > 0) {
         displayMessage(`You gained ${amount} gold${reason ? ` (${reason})` : ''}!`, 'success');
     } else if (amount < 0) {
         const actualLoss = oldGold - player.gold;
         displayMessage(`You lost ${actualLoss} gold${reason ? ` (${reason})` : ''}.`, 'error');
     }
-    
+
     updatePlayerStatsDisplay();
     console.log(`Gold updated: ${oldGold} -> ${player.gold} (change: ${amount})`);
 }
@@ -649,7 +650,7 @@ async function generateCharacterBackground() {
     // Generate rich context using world data
     const context = GameDataManager.generateBackgroundPromptContext({ name, class: charClass, gender });
 
-    const prompt = `Create a brief background for ${name}, a ${gender} ${charClass} in Pedena. Use these world elements: Cities like ${context.worldLore.majorCities.join(', ')}; factions like ${context.worldLore.activeFactions.join(', ')}; guilds like ${context.worldLore.availableGuilds.join(', ')}. 2-3 sentences about origin and goals.`;
+    const prompt = `Create a brief background for ${name}, a ${gender} ${charClass} in Pedena. Use theseworld elements: Cities like ${context.worldLore.majorCities.join(', ')}; factions like ${context.worldLore.activeFactions.join(', ')}; guilds like ${context.worldLore.availableGuilds.join(', ')}. 2-3 sentences about origin and goals.`;
 
     const background = await callGeminiAPI(prompt, 0.8, 200, false); // Don't include conversation history for character creation
     if (background) {
@@ -721,19 +722,18 @@ async function handleNPCInteraction() {
         const context = GameDataManager.generateLocationContext(player.currentLocation);
         const randomFaction = GameDataManager.getRandomFrom(gameData.organizations.factions);
 
-        const prompt = `Create NPC in ${player.currentLocation}. Format: "Name: [name]. Appearance: [brief]. Says: [one line dialogue]"`;
+        // Use QuestCharacterGenerator to get a name
+        const npcName = QuestCharacterGenerator.generateName();
+
+        const prompt = `Create an NPC named ${npcName} in ${player.currentLocation}. Format: "Appearance: [brief]. Says: [one line dialogue]"`;
 
         const npcInfo = await callGeminiAPI(prompt, 0.8, 200, true);
         if (npcInfo) {
-            // Parse the NPC info to extract name
-            const nameMatch = npcInfo.match(/Name:\s*([^.]+)/);
-            const npcName = nameMatch ? nameMatch[1].trim() : "Mysterious Figure";
-
             const newNPC = createNPC(npcName, npcInfo, player.currentLocation);
             saveNPCToLocation(newNPC, player.currentLocation);
             gameWorld.lastNPCInteraction = newNPC.id;
 
-            const encounterMessage = `You encounter someone new: ${npcInfo}`;
+            const encounterMessage = `You encounter someone new: ${npcName}. ${npcInfo}`;
             displayMessage(encounterMessage);
             addToConversationHistory('assistant', encounterMessage);
         } else {
@@ -766,7 +766,7 @@ async function playerAttack() {
         player.exp += player.currentEnemy.expReward;
         updateGold(player.currentEnemy.goldDrop, 'combat victory');
         displayMessage(`You gained ${player.currentEnemy.expReward} EXP!`, 'success');
-        
+
         // Generate random loot using new system (30% chance)
         if (Math.random() < 0.3) {
             const lootItem = ItemGenerator.generateItem({
@@ -777,7 +777,7 @@ async function playerAttack() {
             ItemManager.addItemToInventory(player, lootItem);
             displayMessage(`You found loot: ${lootItem.name}!`, 'success');
         }
-        
+
         // Handle legacy loot system
         if (player.currentEnemy.loot) {
             player.currentEnemy.loot.forEach(lootItem => {
@@ -942,17 +942,17 @@ function displayInventory() {
         equippedItems.forEach(([slot, item]) => {
             const equipDiv = document.createElement('div');
             equipDiv.classList.add('flex', 'justify-between', 'items-center', 'mb-2', 'p-2', 'bg-amber-50', 'rounded');
-            
+
             const itemInfo = document.createElement('span');
             itemInfo.textContent = `${item.name} (${item.slot})`;
             equipDiv.appendChild(itemInfo);
-            
+
             const unequipBtn = document.createElement('button');
             unequipBtn.classList.add('btn-parchment', 'text-xs', 'px-2', 'py-1', 'bg-red-600', 'text-white', 'hover:bg-red-700');
             unequipBtn.innerHTML = '<i class="gi gi-cancel mr-1"></i>Unequip';
             unequipBtn.onclick = () => unequipItem(slot);
             equipDiv.appendChild(unequipBtn);
-            
+
             equippedDiv.appendChild(equipDiv);
         });
     } else {
@@ -973,12 +973,12 @@ function displayInventory() {
     player.inventory.forEach((item, index) => {
         const itemDiv = document.createElement('div');
         itemDiv.classList.add('parchment-box', 'p-3', 'mb-2');
-        
+
         // Add rarity styling
         const rarityData = itemRarity[item.rarity];
         const rarityStyle = rarityData ? `color: ${rarityData.color}; font-weight: bold;` : '';
         const rarityText = rarityData ? ` (${rarityData.name})` : '';
-        
+
         itemDiv.innerHTML = `
             <p class="font-bold" style="${rarityStyle}">${item.name}${rarityText}</p>
             <p class="text-sm text-amber-700">${item.description}</p>
@@ -1028,16 +1028,16 @@ function displayInventory() {
 
 function useItem(index) {
     const item = player.inventory[index];
-    
+
     // Handle language items with special reading functionality
     if (item.languageContent) {
         readLanguageItem(item);
         return;
     }
-    
+
     // Use the new ItemManager system
     const result = ItemManager.useItem(player, item.id);
-    
+
     if (result.success) {
         displayMessage(result.message, 'success');
         updatePlayerStatsDisplay();
@@ -1058,10 +1058,10 @@ function useItem(index) {
 
 function readLanguageItem(item) {
     const content = item.languageContent;
-    
+
     // Display the constructed language text first
     displayMessage(`You carefully examine ${item.name} and see the following ${content.script} text written in ${content.language}:`, 'info');
-    
+
     // Show the constructed language text in a special format
     const languageDiv = document.createElement('div');
     languageDiv.classList.add('parchment-box', 'p-4', 'my-3', 'border-2', 'border-purple-600', 'bg-purple-50');
@@ -1074,11 +1074,11 @@ function readLanguageItem(item) {
     `;
     gameOutput.appendChild(languageDiv);
     gameOutput.scrollTop = gameOutput.scrollHeight;
-    
+
     // Add to conversation history for AI context
     addToConversationHistory('user', `I read the ${item.name}`);
     addToConversationHistory('assistant', `The ${content.language} text reads: "${content.originalText}" which translates to: "${content.translation}"`);
-    
+
     // Apply any magical effects from reading
     if (item.effects && item.effects.length > 0) {
         const result = ItemManager.applyItemEffects(player, item);
@@ -1086,7 +1086,7 @@ function readLanguageItem(item) {
             displayMessage(`Reading the ${content.language} text has a magical effect: ${result.message}`, 'success');
         }
     }
-    
+
     // Remove single-use scrolls after reading
     if (item.singleUse) {
         const itemIndex = player.inventory.indexOf(item);
@@ -1097,7 +1097,7 @@ function readLanguageItem(item) {
             displayInventory(); // Refresh inventory display
         }
     }
-    
+
     updatePlayerStatsDisplay();
     saveConversationHistory();
 }
@@ -1143,22 +1143,22 @@ function sellItem(index) {
     }
 
     const sellPrice = Math.floor((item.value || 10) * 0.5); // Sell for 50% of item value
-    
+
     if (confirm(`Are you sure you want to sell ${item.name} for ${sellPrice} gold?`)) {
         // Remove item from inventory
         player.inventory.splice(index, 1);
-        
+
         // Add gold to player
         updateGold(sellPrice, `sold ${item.name}`);
-        
+
         displayMessage(`You sold ${item.name} for ${sellPrice} gold.`, 'success');
-        
+
         // Save inventory changes
         ItemManager.saveInventoryToStorage(player);
-        
+
         // Refresh inventory display
         displayInventory();
-        
+
         // Save game state
         saveGame();
     }
@@ -1244,7 +1244,7 @@ function displayShop() {
                 // Item content
                 const itemContent = document.createElement('div');
                 itemContent.classList.add('flex-grow');
-                
+
                 let itemDetails = `
                     <h6 class="font-bold text-lg text-amber-900 mb-2">${item.name}</h6>
                     <p class="text-sm text-amber-700 mb-3 leading-relaxed">${item.description}</p>
@@ -1265,7 +1265,7 @@ function displayShop() {
                 if (item.slot) {
                     itemDetails += `<p class="text-sm text-gray-600">Slot: ${item.slot}</p>`;
                 }
-                
+
                 itemDetails += `</div>`;
                 itemContent.innerHTML = itemDetails;
                 itemDiv.appendChild(itemContent);
@@ -1273,7 +1273,7 @@ function displayShop() {
                 // Buy button at bottom
                 const buyBtn = document.createElement('button');
                 buyBtn.classList.add('btn-parchment', 'text-sm', 'mt-auto', 'py-2', 'w-full');
-                
+
                 if (player.gold >= item.price) {
                     buyBtn.textContent = `Buy for ${item.price} gold`;
                     buyBtn.onclick = () => buyItem(item);
@@ -1327,36 +1327,36 @@ async function processCustomCommand(command) {
 
     // First check if this is a movement command using LocationManager
     const movementAnalysis = LocationManager.analyzeMovementCommand(command, player.currentLocation, player);
-    
+
     if (movementAnalysis.confidence > 0.6) {
         // Use advanced location processing
         const detailedPrompt = LocationManager.createDetailedMovementPrompt(movementAnalysis, player);
-        
+
         const response = await callGeminiAPI(detailedPrompt, 0.8, 1000, true);
         if (response) {
             displayMessage(response);
             addToConversationHistory('assistant', response);
-            
+
             // Apply movement results
             if (movementAnalysis.destination && movementAnalysis.destination.name) {
                 let newLocationName = movementAnalysis.destination.name;
-                
+
                 // Handle different destination types
                 if (movementAnalysis.destination.parentLocation) {
                     newLocationName = `${movementAnalysis.destination.name}, ${movementAnalysis.destination.parentLocation}`;
                 }
-                
+
                 player.currentLocation = newLocationName;
                 LocationManager.saveLocationToHistory(newLocationName, player.name);
                 updatePlayerStatsDisplay();
-                
+
                 // Check for encounters
                 if (Math.random() < movementAnalysis.encounterChance) {
                     checkRandomEncounter();
                 }
             }
         }
-        
+
         saveConversationHistory();
         return;
     }
@@ -1364,9 +1364,6 @@ async function processCustomCommand(command) {
     // For non-movement commands, use the existing system
     const actionAnalysis = GameActions.analyzeCommand(command, player);
     actionAnalysis.originalCommand = command; // Ensure original command is preserved
-
-    // Handle immediate consequences based on action analysis
-    await handleActionConsequences(actionAnalysis);
 
     // Get character abilities for context
     let abilitiesText = 'none';
@@ -1377,7 +1374,8 @@ async function processCustomCommand(command) {
     let spellsText = 'none';
     if (player.classProgression && player.classProgression.knownSpells && player.classProgression.knownCantrips) {
         const allSpells = [...player.classProgression.knownSpells, ...player.classProgression.knownCantrips];
-        spellsText = allSpells.join(', ') || 'none';
+        spellsText = allSpells```text
+.join(', ') || 'none';
     }
 
     // Create context-rich prompt for the AI
@@ -1422,7 +1420,7 @@ async function handleItemReceival(command) {
     // Determine if this is a quest-related or story item
     const isQuestItem = command.toLowerCase().includes('quest') || 
                        player.quests.some(q => !q.completed);
-    
+
     const context = {
         questContext: isQuestItem ? { 
             id: Date.now(), 
@@ -1436,15 +1434,15 @@ async function handleItemReceival(command) {
 
     // Generate contextual item using AI
     const itemPrompt = `Based on the player's action: "${command}"
-    
+
     Player: ${player.name} (Level ${player.level} ${player.class})
     Location: ${player.currentLocation}
-    
+
     Generate a specific item name and description that fits this scenario. The item should be meaningful to the story.
     Format: "Item Name: [name] | Description: [description] | Type: [scroll/book/magical/artifact] | Rarity: [COMMON/UNCOMMON/RARE/EPIC/LEGENDARY]"`;
 
     const aiResponse = await callGeminiAPI(itemPrompt, 0.8, 300, true);
-    
+
     if (aiResponse) {
         const generatedItem = parseAIItemResponse(aiResponse, context);
         if (generatedItem) {
@@ -1452,17 +1450,17 @@ async function handleItemReceival(command) {
             if (!player.inventory) {
                 player.inventory = [];
             }
-            
+
             // Add item to inventory
             player.inventory.push(generatedItem);
-            
+
             // Save to local storage immediately
             ItemManager.saveInventoryToStorage(player);
-            
+
             displayMessage(`You received: ${generatedItem.name}!`, 'success');
             displayMessage(`${generatedItem.description}`, 'info');
             displayMessage(`Item added to inventory. You now have ${player.inventory.length} items.`, 'info');
-            
+
             // Apply any immediate effects
             if (generatedItem.effects && generatedItem.effects.length > 0) {
                 const effectResult = ItemManager.applyItemEffects(player, generatedItem);
@@ -1470,10 +1468,10 @@ async function handleItemReceival(command) {
                     displayMessage(effectResult.message, 'success');
                 }
             }
-            
+
             updatePlayerStatsDisplay();
             saveGame();
-            
+
             // Log for debugging
             console.log('Item added to inventory:', generatedItem);
             console.log('Current inventory count:', player.inventory.length);
@@ -1493,28 +1491,28 @@ function parseAIItemResponse(aiResponse, context) {
         const descMatch = aiResponse.match(/Description:\s*([^|]+)/i);
         const typeMatch = aiResponse.match(/Type:\s*([^|]+)/i);
         const rarityMatch = aiResponse.match(/Rarity:\s*([^|]+)/i);
-        
+
         const itemName = nameMatch ? nameMatch[1].trim() : 'Mysterious Item';
         const description = descMatch ? descMatch[1].trim() : 'A mysterious item of unknown origin.';
         const type = typeMatch ? typeMatch[1].trim().toLowerCase() : 'magical';
         const rarity = rarityMatch ? rarityMatch[1].trim().toUpperCase() : 'UNCOMMON';
-        
+
         // Detect language type from item name and context
         const detectLanguageType = (name, desc) => {
             const lowerName = name.toLowerCase();
             const lowerDesc = desc.toLowerCase();
             const fullText = lowerName + ' ' + lowerDesc;
-            
+
             if (fullText.includes('succubus') || fullText.includes('demon') || fullText.includes('infernal')) return 'succubus';
             if (fullText.includes('elven') || fullText.includes('elf') || fullText.includes('elvish')) return 'elven';
             if (fullText.includes('dragon') || fullText.includes('draconic') || fullText.includes('wyrm')) return 'draconic';
             if (fullText.includes('demonic') || fullText.includes('fiend') || fullText.includes('abyss')) return 'demonic';
             if (fullText.includes('celestial') || fullText.includes('angel') || fullText.includes('divine')) return 'celestial';
             if (fullText.includes('orc') || fullText.includes('orcish') || fullText.includes('tribal')) return 'orcish';
-            
+
             return 'elven'; // Default
         };
-        
+
         // Check if this is a language-based item
         const isLanguageItem = itemName.toLowerCase().includes('language') || 
                               itemName.toLowerCase().includes('script') ||
@@ -1522,11 +1520,11 @@ function parseAIItemResponse(aiResponse, context) {
                               itemName.toLowerCase().includes('scroll') ||
                               type.includes('scroll') || 
                               type.includes('book');
-        
+
         if (isLanguageItem) {
             const languageType = detectLanguageType(itemName, description);
             const validRarity = Object.keys(itemRarity).includes(rarity) ? rarity : 'UNCOMMON';
-            
+
             // Generate appropriate language item
             if (type.includes('scroll')) {
                 return ItemGenerator.generateLanguageScroll(validRarity, languageType);
@@ -1534,14 +1532,14 @@ function parseAIItemResponse(aiResponse, context) {
                 return ItemGenerator.generateLanguageBook(validRarity, languageType);
             }
         }
-        
+
         // Map type to category for non-language items
         let category = itemCategories.MAGICAL;
         if (type.includes('scroll')) category = itemCategories.SCROLL;
         else if (type.includes('book') || type.includes('tome')) category = itemCategories.BOOK;
         else if (type.includes('artifact')) category = itemCategories.ARTIFACT;
         else if (type.includes('weapon')) category = itemCategories.WEAPON;
-        
+
         // Generate item using the ItemGenerator
         const generatedItem = ItemGenerator.generateItem({
             category: category,
@@ -1549,13 +1547,13 @@ function parseAIItemResponse(aiResponse, context) {
             questContext: context.questContext,
             locationContext: context.locationContext
         });
-        
+
         // Override with AI-generated details
         generatedItem.name = itemName;
         generatedItem.description = description;
-        
+
         return generatedItem;
-        
+
     } catch (error) {
         console.error('Error parsing AI item response:', error);
         // Fallback to basic item generation
@@ -1605,13 +1603,13 @@ async function handleActionConsequences(actionAnalysis) {
 
 async function handleMovementAction(extractedData) {
     const command = extractedData.originalCommand || extractedData.primary || '';
-    
+
     // Use LocationManager for advanced movement analysis
     const movementAnalysis = LocationManager.analyzeMovementCommand(command, player.currentLocation, player);
-    
+
     if (movementAnalysis.confidence > 0.5 && movementAnalysis.destination) {
         const destination = movementAnalysis.destination;
-        
+
         // Handle different movement types
         switch (movementAnalysis.movementType) {
             case 'city_travel':
@@ -1623,13 +1621,13 @@ async function handleMovementAction(extractedData) {
                 }
                 LocationManager.saveLocationToHistory(destination.name, player.name);
                 break;
-                
+
             case 'district_travel':
             case 'building_entry':
                 player.currentLocation = `${destination.name}, ${destination.parentLocation}`;
                 displayMessage(`You move to ${destination.name}.`);
                 break;
-                
+
             case 'directional_travel':
                 if (destination.possibleLocations && destination.possibleLocations.length > 0) {
                     const randomDestination = destination.possibleLocations[Math.floor(Math.random() * destination.possibleLocations.length)];
@@ -1640,25 +1638,25 @@ async function handleMovementAction(extractedData) {
                     displayMessage(`You head ${destination.direction} but don't find anything notable.`);
                 }
                 break;
-                
+
             case 'interpreted_travel':
                 player.currentLocation = destination.name;
                 displayMessage(`You travel to ${destination.name}.`);
                 LocationManager.saveLocationToHistory(destination.name, player.name);
                 break;
-                
+
             default:
                 displayMessage("You wander around but don't go anywhere specific.");
                 return;
         }
-        
+
         // Check for encounters based on calculated chance
         if (Math.random() < movementAnalysis.encounterChance) {
             checkRandomEncounter();
         }
-        
+
         updatePlayerStatsDisplay();
-        
+
     } else if (extractedData.primary) {
         // Fallback to simple movement
         let newLocation = extractedData.primary;
@@ -1775,7 +1773,7 @@ async function processActionResults(actionAnalysis, aiResponse) {
         if (match) {
             const goldAmount = parseInt(match[1]);
             const isLoss = /(?:lose|lost|spend|pay|cost)/i.test(aiResponse);
-            
+
             if (isLoss) {
                 player.gold = Math.max(0, player.gold - goldAmount);
                 displayMessage(`You lost ${goldAmount} gold.`, 'error');
@@ -1807,17 +1805,18 @@ function checkQuestCompletion(aiResponse) {
         // Mark first active quest as completed if AI indicates success
         activeQuests[0].completed = true;
         displayMessage("Quest completed!", 'success');
-        
+
         // Bonus rewards
         const expReward = 50;
         const goldReward = 25;
-        
+
         player.exp += expReward;
         player.gold += goldReward;
-        
+
         displayMessage(`Quest rewards: ${expReward} experience and ${goldReward} gold!`, 'success');
         updateQuestButton();
         updatePlayerStatsDisplay();
+        checkLevelUp();
     }
 }
 
@@ -2169,31 +2168,31 @@ document.addEventListener('DOMContentLoaded', () => {
     window.abandonQuest = abandonQuest;
     window.LocationManager = LocationManager;
     window.GameActions = GameActions;
-    
+
     // Debug functions for local storage
     window.debugInventory = function() {
         console.log('=== INVENTORY DEBUG ===');
         console.log('Player name:', player.name);
         console.log('Current inventory:', player.inventory);
         console.log('Inventory length:', player.inventory ? player.inventory.length : 'undefined');
-        
+
         // Check local storage
         const savedInventory = localStorage.getItem(`inventory_${player.name}`);
         const savedGame = localStorage.getItem('pedenaRPGSave');
-        
+
         console.log('Saved inventory in localStorage:', savedInventory ? JSON.parse(savedInventory) : 'Not found');
         console.log('Full saved game:', savedGame ? JSON.parse(savedGame) : 'Not found');
-        
+
         // List all localStorage keys
         console.log('All localStorage keys:', Object.keys(localStorage));
-        
+
         return {
             currentInventory: player.inventory,
             savedInventory: savedInventory ? JSON.parse(savedInventory) : null,
             localStorageKeys: Object.keys(localStorage)
         };
     };
-    
+
     window.fixInventory = function() {
         console.log('Attempting to fix inventory...');
         if (!player.inventory) {
