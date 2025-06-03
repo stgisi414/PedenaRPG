@@ -2130,7 +2130,7 @@ async function generateQuest() {
     displayMessage("Seeking new adventures...", 'info');
 
     // Generate the character name first
-    const questGiverName = QuestCharacterGenerator.generateRandomCharacter();
+    const questGiverName = QuestCharacterGenerator.generateQuestGiver();
     
     // Get some example names to provide to the AI
     const exampleNames = [
