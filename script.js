@@ -73,6 +73,7 @@ const executeCommandBtn = document.getElementById('execute-command-btn');
 const saveGameBtn = document.getElementById('save-game-btn');
 const newQuestBtn = document.getElementById('new-quest-btn');
 const showInventoryBtn = document.getElementById('show-inventory-btn');
+const showShopBtn = document.getElementById('show-shop-btn');
 
 const combatInterface = document.getElementById('combat-interface');
 const enemyInfoDisplay = document.getElementById('enemy-info');
@@ -124,9 +125,74 @@ const classes = {
 };
 
 const items = [
+    // Weapons
     { id: 'short_sword', name: 'Short Sword', type: 'weapon', slot: 'mainHand', damage: '1d6', value: 10, description: 'A basic, well-balanced short sword.' },
+    { id: 'long_sword', name: 'Long Sword', type: 'weapon', slot: 'mainHand', damage: '1d8', value: 25, description: 'A versatile blade favored by knights.' },
+    { id: 'battle_axe', name: 'Battle Axe', type: 'weapon', slot: 'mainHand', damage: '1d10', value: 30, description: 'Heavy two-handed axe for devastating attacks.' },
+    { id: 'dagger', name: 'Steel Dagger', type: 'weapon', slot: 'mainHand', damage: '1d4', value: 5, description: 'Quick and silent blade for rogues.' },
+    { id: 'war_hammer', name: 'War Hammer', type: 'weapon', slot: 'mainHand', damage: '1d8', value: 20, description: 'Blunt weapon that crushes armor.' },
+    { id: 'crossbow', name: 'Light Crossbow', type: 'weapon', slot: 'mainHand', damage: '1d8', value: 35, description: 'Ranged weapon with mechanical precision.' },
+    { id: 'staff', name: 'Mage Staff', type: 'weapon', slot: 'mainHand', damage: '1d6', value: 40, description: 'Enchanted staff that amplifies magical power.' },
+    { id: 'rapier', name: 'Elven Rapier', type: 'weapon', slot: 'mainHand', damage: '1d8', value: 45, description: 'Elegant blade with superior craftsmanship.' },
+    { id: 'mace', name: 'Holy Mace', type: 'weapon', slot: 'mainHand', damage: '1d6', value: 28, description: 'Blessed weapon effective against undead.' },
+    { id: 'scimitar', name: 'Curved Scimitar', type: 'weapon', slot: 'mainHand', damage: '1d6', value: 22, description: 'Desert blade with curved design.' },
+    
+    // Armor
     { id: 'leather_armor', name: 'Leather Armor', type: 'armor', slot: 'chest', defense: 3, value: 15, description: 'Flexible and light leather protection.' },
+    { id: 'chain_mail', name: 'Chain Mail', type: 'armor', slot: 'chest', defense: 5, value: 50, description: 'Interlocked metal rings provide solid defense.' },
+    { id: 'plate_armor', name: 'Plate Armor', type: 'armor', slot: 'chest', defense: 8, value: 150, description: 'Heavy metal plates offering maximum protection.' },
+    { id: 'robe', name: 'Mage Robes', type: 'armor', slot: 'chest', defense: 1, value: 30, description: 'Enchanted robes that enhance magical abilities.' },
+    { id: 'scale_mail', name: 'Scale Mail', type: 'armor', slot: 'chest', defense: 6, value: 75, description: 'Overlapping metal scales like dragon hide.' },
+    { id: 'studded_leather', name: 'Studded Leather', type: 'armor', slot: 'chest', defense: 4, value: 25, description: 'Leather reinforced with metal studs.' },
+    { id: 'steel_helm', name: 'Steel Helmet', type: 'armor', slot: 'head', defense: 2, value: 20, description: 'Protective metal headgear.' },
+    { id: 'leather_boots', name: 'Leather Boots', type: 'armor', slot: 'feet', defense: 1, value: 8, description: 'Sturdy boots for long journeys.' },
+    { id: 'steel_gauntlets', name: 'Steel Gauntlets', type: 'armor', slot: 'hands', defense: 1, value: 15, description: 'Metal gloves for hand protection.' },
+    { id: 'cloak', name: 'Traveler\'s Cloak', type: 'armor', slot: 'chest', defense: 1, value: 12, description: 'Weather-resistant cloak for adventurers.' },
+    
+    // Shields
+    { id: 'wooden_shield', name: 'Wooden Shield', type: 'armor', slot: 'offHand', defense: 2, value: 10, description: 'Simple round shield made of oak.' },
+    { id: 'steel_shield', name: 'Steel Shield', type: 'armor', slot: 'offHand', defense: 3, value: 30, description: 'Metal shield with reinforced rim.' },
+    { id: 'tower_shield', name: 'Tower Shield', type: 'armor', slot: 'offHand', defense: 4, value: 60, description: 'Large shield offering maximum coverage.' },
+    
+    // Consumables
     { id: 'healing_potion', name: 'Healing Potion', type: 'consumable', effect: { type: 'heal', amount: 30 }, value: 8, description: 'Restores a moderate amount of health.' },
+    { id: 'greater_healing', name: 'Greater Healing Potion', type: 'consumable', effect: { type: 'heal', amount: 60 }, value: 20, description: 'Powerful healing elixir.' },
+    { id: 'mana_potion', name: 'Mana Potion', type: 'consumable', effect: { type: 'mana', amount: 40 }, value: 12, description: 'Restores magical energy.' },
+    { id: 'antidote', name: 'Antidote', type: 'consumable', effect: { type: 'cure_poison' }, value: 15, description: 'Neutralizes poison and toxins.' },
+    { id: 'strength_elixir', name: 'Strength Elixir', type: 'consumable', effect: { type: 'buff_str', duration: 300 }, value: 25, description: 'Temporarily increases physical strength.' },
+    { id: 'invisibility_potion', name: 'Invisibility Potion', type: 'consumable', effect: { type: 'invisibility', duration: 180 }, value: 40, description: 'Grants temporary invisibility.' },
+    { id: 'fire_resistance', name: 'Fire Resistance Potion', type: 'consumable', effect: { type: 'resist_fire', duration: 600 }, value: 30, description: 'Protects against fire damage.' },
+    
+    // Jewelry & Accessories
+    { id: 'silver_ring', name: 'Silver Ring', type: 'jewelry', slot: 'ring1', value: 25, description: 'Simple silver band with minor enchantment.' },
+    { id: 'gold_amulet', name: 'Gold Amulet', type: 'jewelry', slot: 'amulet', value: 50, description: 'Ornate necklace that radiates protective magic.' },
+    { id: 'sapphire_ring', name: 'Sapphire Ring', type: 'jewelry', slot: 'ring1', value: 100, description: 'Precious ring that enhances magical abilities.' },
+    { id: 'iron_bracers', name: 'Iron Bracers', type: 'armor', slot: 'hands', defense: 1, value: 18, description: 'Metal arm guards for extra protection.' },
+    
+    // Tools & Utilities
+    { id: 'lockpicks', name: 'Thieves\' Tools', type: 'tool', value: 20, description: 'Set of picks and tools for opening locks.' },
+    { id: 'rope', name: 'Silk Rope', type: 'tool', value: 5, description: '50 feet of strong, lightweight rope.' },
+    { id: 'torch', name: 'Torch', type: 'tool', value: 1, description: 'Wooden torch that burns for hours.' },
+    { id: 'lantern', name: 'Brass Lantern', type: 'tool', value: 15, description: 'Reliable light source with oil reservoir.' },
+    { id: 'spyglass', name: 'Spyglass', type: 'tool', value: 35, description: 'Collapsible telescope for distant viewing.' },
+    { id: 'compass', name: 'Magnetic Compass', type: 'tool', value: 25, description: 'Never lose your way with this navigation aid.' },
+    { id: 'bedroll', name: 'Bedroll', type: 'tool', value: 3, description: 'Comfortable sleeping gear for camping.' },
+    { id: 'rations', name: 'Trail Rations', type: 'consumable', effect: { type: 'sustenance' }, value: 2, description: 'Preserved food for long journeys.' },
+    
+    // Spell Components & Magical Items
+    { id: 'scroll_fireball', name: 'Fireball Scroll', type: 'scroll', value: 60, description: 'Single-use scroll containing a fireball spell.' },
+    { id: 'scroll_heal', name: 'Healing Scroll', type: 'scroll', value: 40, description: 'Divine scroll that instantly heals wounds.' },
+    { id: 'crystal_orb', name: 'Crystal Orb', type: 'magical', value: 80, description: 'Scrying orb that reveals distant places.' },
+    { id: 'spell_components', name: 'Spell Components', type: 'magical', value: 10, description: 'Various herbs and minerals for spellcasting.' },
+    { id: 'enchanted_ink', name: 'Enchanted Ink', type: 'magical', value: 30, description: 'Magical ink for scribing powerful scrolls.' },
+    { id: 'phoenix_feather', name: 'Phoenix Feather', type: 'magical', value: 120, description: 'Rare component for fire-based enchantments.' },
+    { id: 'moonstone', name: 'Moonstone', type: 'magical', value: 75, description: 'Glowing stone that stores lunar energy.' },
+    
+    // Rare & Unique Items
+    { id: 'dragons_tooth', name: 'Dragon\'s Tooth', type: 'rare', value: 200, description: 'Legendary crafting material from an ancient wyrm.' },
+    { id: 'elven_wine', name: 'Elven Wine', type: 'luxury', value: 45, description: 'Exquisite vintage from the Sylvanmere vineyards.' },
+    { id: 'dwarven_ale', name: 'Dwarven Ale', type: 'consumable', effect: { type: 'courage_boost' }, value: 8, description: 'Strong ale that boosts confidence and morale.' },
+    { id: 'ancient_map', name: 'Ancient Map', type: 'treasure', value: 90, description: 'Mysterious map showing forgotten treasure locations.' },
     { id: 'gold_coin', name: 'Gold Coin', type: 'currency', value: 1, description: 'The standard currency of Pedena.' }
 ];
 
@@ -695,39 +761,100 @@ function displayShop() {
     combatInterface.classList.add('hidden');
     shopInterface.classList.remove('hidden');
     
-    shopItemsDisplay.innerHTML = '';
-    // Sample shop items
-    const shopItems = [
-        { ...items.find(item => item.id === 'short_sword'), price: 15 },
-        { ...items.find(item => item.id === 'leather_armor'), price: 25 },
-        { ...items.find(item => item.id === 'healing_potion'), price: 12 }
-    ];
+    displayMessage("Welcome to the merchant's shop!", 'info');
     
-    shopItems.forEach(item => {
-        const itemDiv = document.createElement('div');
-        itemDiv.classList.add('parchment-box', 'p-3');
-        itemDiv.innerHTML = `
-            <p class="font-bold">${item.name}</p>
-            <p class="text-sm text-amber-700">${item.description}</p>
-            <p class="text-sm">Price: ${item.price} gold</p>
-        `;
-        const buyBtn = document.createElement('button');
-        buyBtn.classList.add('btn-parchment', 'text-sm', 'mt-2', 'px-3', 'py-1');
-        buyBtn.textContent = 'Buy';
-        buyBtn.onclick = () => buyItem(item);
-        itemDiv.appendChild(buyBtn);
-        shopItemsDisplay.appendChild(itemDiv);
+    shopItemsDisplay.innerHTML = '';
+    
+    // Create shop items with markup prices
+    const shopItems = items.filter(item => item.id !== 'gold_coin').map(item => ({
+        ...item,
+        price: Math.ceil(item.value * 1.5) // 50% markup
+    }));
+    
+    // Group items by category
+    const categories = {
+        'Weapons': shopItems.filter(item => item.type === 'weapon'),
+        'Armor & Shields': shopItems.filter(item => item.type === 'armor'),
+        'Consumables': shopItems.filter(item => item.type === 'consumable'),
+        'Tools & Utilities': shopItems.filter(item => item.type === 'tool'),
+        'Magical Items': shopItems.filter(item => ['magical', 'scroll'].includes(item.type)),
+        'Jewelry': shopItems.filter(item => item.type === 'jewelry'),
+        'Rare Items': shopItems.filter(item => ['rare', 'luxury', 'treasure'].includes(item.type))
+    };
+    
+    Object.entries(categories).forEach(([categoryName, categoryItems]) => {
+        if (categoryItems.length > 0) {
+            const categoryHeader = document.createElement('h5');
+            categoryHeader.classList.add('font-bold', 'text-lg', 'mb-3', 'mt-4', 'text-amber-900', 'border-b', 'border-amber-700');
+            categoryHeader.textContent = categoryName;
+            shopItemsDisplay.appendChild(categoryHeader);
+            
+            const categoryGrid = document.createElement('div');
+            categoryGrid.classList.add('grid', 'grid-cols-1', 'md:grid-cols-2', 'gap-3', 'mb-4');
+            
+            categoryItems.forEach(item => {
+                const itemDiv = document.createElement('div');
+                itemDiv.classList.add('parchment-box', 'p-3');
+                
+                let itemDetails = `
+                    <p class="font-bold">${item.name}</p>
+                    <p class="text-sm text-amber-700">${item.description}</p>
+                    <p class="text-sm"><strong>Price:</strong> ${item.price} gold</p>
+                `;
+                
+                // Add type-specific information
+                if (item.damage) {
+                    itemDetails += `<p class="text-sm"><strong>Damage:</strong> ${item.damage}</p>`;
+                }
+                if (item.defense) {
+                    itemDetails += `<p class="text-sm"><strong>Defense:</strong> +${item.defense}</p>`;
+                }
+                if (item.effect) {
+                    itemDetails += `<p class="text-sm"><strong>Effect:</strong> ${item.effect.type}</p>`;
+                }
+                if (item.slot) {
+                    itemDetails += `<p class="text-sm"><strong>Slot:</strong> ${item.slot}</p>`;
+                }
+                
+                itemDiv.innerHTML = itemDetails;
+                
+                const buyBtn = document.createElement('button');
+                buyBtn.classList.add('btn-parchment', 'text-sm', 'mt-2', 'px-3', 'py-1', 'w-full');
+                buyBtn.textContent = `Buy for ${item.price} gold`;
+                buyBtn.onclick = () => buyItem(item);
+                
+                // Disable if player can't afford
+                if (player.gold < item.price) {
+                    buyBtn.disabled = true;
+                    buyBtn.textContent = 'Too Expensive';
+                }
+                
+                itemDiv.appendChild(buyBtn);
+                categoryGrid.appendChild(itemDiv);
+            });
+            
+            shopItemsDisplay.appendChild(categoryGrid);
+        }
     });
+    
+    // Add gold display at top
+    const goldDisplay = document.createElement('div');
+    goldDisplay.classList.add('parchment-box', 'p-3', 'mb-4', 'text-center', 'sticky', 'top-0', 'bg-amber-100', 'border-2', 'border-amber-600');
+    goldDisplay.innerHTML = `<p class="font-bold text-xl">Your Gold: ${player.gold}</p>`;
+    shopItemsDisplay.insertBefore(goldDisplay, shopItemsDisplay.firstChild);
 }
 
 function buyItem(item) {
     if (player.gold >= item.price) {
         player.gold -= item.price;
-        player.inventory.push({ ...item });
+        const purchasedItem = { ...item };
+        delete purchasedItem.price; // Remove price property from inventory item
+        player.inventory.push(purchasedItem);
         displayMessage(`You bought ${item.name} for ${item.price} gold!`, 'success');
         updatePlayerStatsDisplay();
+        displayShop(); // Refresh shop to update gold display and affordable items
     } else {
-        displayMessage(`You don't have enough gold to buy ${item.name}.`, 'error');
+        displayMessage(`You don't have enough gold to buy ${item.name}. You need ${item.price - player.gold} more gold.`, 'error');
     }
 }
 
@@ -941,6 +1068,7 @@ customCommandInput.addEventListener('keypress', (e) => {
 saveGameBtn.addEventListener('click', saveGame);
 newQuestBtn.addEventListener('click', generateQuest);
 showInventoryBtn.addEventListener('click', displayInventory);
+showShopBtn.addEventListener('click', displayShop);
 
 // Combat Event Listeners
 attackBtn.addEventListener('click', playerAttack);
