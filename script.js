@@ -1051,11 +1051,35 @@ async function handleCommandConsequences(command, aiResponse) {
         await handleNPCInteraction();
     }
 
-    // Enhanced movement detection - check for many movement keywords
-    if (lowerCommand.includes('go to') || lowerCommand.includes('travel') || lowerCommand.includes('move to') ||
-        lowerCommand.includes('leave') || lowerCommand.includes('exit') || lowerCommand.includes('enter') ||
+    // Enhanced movement detection - check for movement keywords but exclude NPC interactions
+    const isMovementCommand = (
+        lowerCommand.includes('go to') || lowerCommand.includes('travel') || lowerCommand.includes('move to') ||
         lowerCommand.includes('walk to') || lowerCommand.includes('head to') || lowerCommand.includes('journey to') ||
-        lowerCommand.includes('visit') || lowerCommand.includes('flee to') || lowerCommand.includes('escape to')) {
+        lowerCommand.includes('visit') || lowerCommand.includes('flee to') || lowerCommand.includes('escape to') ||
+        lowerCommand.includes('enter')
+    );
+
+    // Special handling for "leave" and "exit" - check if it's about NPCs or locations
+    const isLeaveCommand = lowerCommand.includes('leave') || lowerCommand.includes('exit');
+    const isNPCLeaveCommand = isLeaveCommand && (
+        lowerCommand.includes('alone') || 
+        lowerCommand.includes('npc') ||
+        lowerCommand.includes('him') || 
+        lowerCommand.includes('her') || 
+        lowerCommand.includes('them') ||
+        lowerCommand.includes('person') ||
+        lowerCommand.includes('merchant') ||
+        lowerCommand.includes('guard') ||
+        lowerCommand.includes('citizen') ||
+        lowerCommand.includes('stranger') ||
+        lowerCommand.includes('figure') ||
+        // Common names that might be NPCs
+        /leave\s+\w+\s+alone/i.test(lowerCommand) ||
+        /stop\s+(talking|bothering|pestering)/i.test(lowerCommand)
+    );
+
+    // Only trigger movement if it's a clear movement command and NOT an NPC interaction
+    if ((isMovementCommand || (isLeaveCommand && !isNPCLeaveCommand))) {
 
         // Try to extract location from command
         let newLocation = null;
@@ -1067,16 +1091,24 @@ async function handleCommandConsequences(command, aiResponse) {
             /(?:enter|go into)\s+(?:the\s+)?(.+)/i
         ];
 
-        for (const pattern of locationPatterns) {
-            const match = command.match(pattern);
-            if (match) {
-                newLocation = match[1].trim();
-                break;
+        // Only try to extract location if it's not an NPC leave command
+        if (!isNPCLeaveCommand) {
+            for (const pattern of locationPatterns) {
+                const match = command.match(pattern);
+                if (match) {
+                    newLocation = match[1].trim();
+                    // Don't treat common NPC-related words as locations
+                    if (!['alone', 'him', 'her', 'them', 'person', 'npc'].includes(newLocation.toLowerCase())) {
+                        break;
+                    } else {
+                        newLocation = null;
+                    }
+                }
             }
         }
 
-        // If no specific location found, use AI to determine movement
-        if (!newLocation && (lowerCommand.includes('leave') || lowerCommand.includes('exit'))) {
+        // If no specific location found and it's a clear area exit command
+        if (!newLocation && isLeaveCommand && !isNPCLeaveCommand) {
             // Generate a nearby location to move to
             const nearbyLocations = [
                 GameDataManager.getRandomFrom(gameData.world.cities),
