@@ -1,6 +1,8 @@
 
 // Import game data assets
 import { gameData, GameDataManager } from './assets/game-data-loader.js';
+import { CharacterManager } from './game-logic/character-manager.js';
+import { classProgression, spellDefinitions, abilityDefinitions } from './game-logic/class-progression.js';
 
 const GEMINI_API_KEY = 'AIzaSyDIFeql6HUpkZ8JJlr_kuN0WDFHUyOhijA'; // Replace with your actual Gemini API Key
 const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`;
@@ -238,6 +240,12 @@ function saveGame() {
     if (!confirm("Are you sure you want to save your game? This will overwrite any existing save.")) {
         return;
     }
+    
+    // Save character progression separately
+    if (player.classProgression) {
+        CharacterManager.saveProgression(player);
+    }
+    
     const saveData = {
         player: player,
         gameWorld: {
@@ -264,6 +272,10 @@ function loadGame() {
                 gameWorld.npcs = new Map(saveData.gameWorld.npcs);
                 gameWorld.locationMemory = new Map(saveData.gameWorld.locationMemory);
                 gameWorld.lastNPCInteraction = saveData.gameWorld.lastNPCInteraction;
+            }
+            // Load character progression if available
+            if (player.name) {
+                CharacterManager.loadProgression(player);
             }
         } else {
             // Old format - just player
@@ -605,13 +617,27 @@ function checkRandomEncounter() {
 
 function checkLevelUp() {
     while (player.exp >= player.expToNextLevel) {
+        const oldLevel = player.level;
         player.level++;
         player.exp -= player.expToNextLevel;
         player.expToNextLevel = Math.floor(player.expToNextLevel * 1.5); // Increase requirement
-        player.maxHp += 10; // Simple HP increase
-        player.hp = player.maxHp; // Heal to full
-        displayMessage(`Congratulations! You reached Level ${player.level}!`, 'success');
-        displayMessage(`Your Max HP increased to ${player.maxHp}. You feel rejuvenated!`, 'success');
+        
+        // Use new progression system for level up
+        if (player.classProgression && CharacterManager.levelUp(player)) {
+            displayMessage(`Congratulations! You reached Level ${player.level}!`, 'success');
+            displayMessage(`Your Max HP increased to ${player.maxHp}. You feel rejuvenated!`, 'success');
+            
+            // Show new abilities and features gained
+            const progression = CharacterManager.getCharacterProgression(player);
+            displayLevelUpRewards(progression, oldLevel);
+        } else {
+            // Fallback to old system
+            player.maxHp += 10;
+            player.hp = player.maxHp;
+            displayMessage(`Congratulations! You reached Level ${player.level}!`, 'success');
+            displayMessage(`Your Max HP increased to ${player.maxHp}. You feel rejuvenated!`, 'success');
+        }
+        
         // AI call for level up bonus/flavor text
         levelUpAI();
         updatePlayerStatsDisplay();
@@ -971,6 +997,189 @@ async function handleCommandConsequences(command, aiResponse) {
 }
 
 async function generateQuest() {
+
+
+function displayLevelUpRewards(progression, oldLevel) {
+    const newLevel = progression.level;
+    const levelData = classProgression[progression.class].levels[newLevel];
+    
+    if (levelData) {
+        if (levelData.features.length > 0) {
+            displayMessage(`New Features: ${levelData.features.join(', ')}`, 'success');
+        }
+        if (levelData.abilities.length > 0) {
+            displayMessage(`New Abilities: ${levelData.abilities.join(', ')}`, 'success');
+        }
+        if (levelData.spells.length > 0) {
+            displayMessage(`New Spells Available: ${levelData.spells.join(', ')}`, 'success');
+        }
+        if (levelData.cantrips.length > 0) {
+            displayMessage(`New Cantrips: ${levelData.cantrips.join(', ')}`, 'success');
+        }
+        if (levelData.feats.length > 0) {
+            displayMessage(`New Feats: ${levelData.feats.join(', ')}`, 'success');
+        }
+    }
+}
+
+function displayCharacterProgression() {
+    if (!player.classProgression) {
+        displayMessage("Character progression not available.", 'error');
+        return;
+    }
+    
+    skillsInterface.classList.add('hidden');
+    inventoryInterface.classList.add('hidden');
+    shopInterface.classList.add('hidden');
+    questInterface.classList.add('hidden');
+    combatInterface.classList.add('hidden');
+    
+    // Create progression interface
+    let progressionInterface = document.getElementById('progression-interface');
+    if (!progressionInterface) {
+        progressionInterface = document.createElement('div');
+        progressionInterface.id = 'progression-interface';
+        progressionInterface.classList.add('hidden', 'mt-6');
+        progressionInterface.innerHTML = `
+            <h4 class="text-2xl font-bold text-purple-700 mb-4 text-center">Character Progression</h4>
+            <div id="progression-content" class="parchment-box p-4 mb-4"></div>
+            <div class="text-center">
+                <button id="exit-progression-btn" class="btn-parchment bg-gray-600 hover:bg-gray-700 text-white">Close Progression</button>
+            </div>
+        `;
+        gamePlayScreen.appendChild(progressionInterface);
+        
+        document.getElementById('exit-progression-btn').addEventListener('click', () => {
+            progressionInterface.classList.add('hidden');
+        });
+    }
+    
+    progressionInterface.classList.remove('hidden');
+    
+    const progressionContent = document.getElementById('progression-content');
+    const progression = CharacterManager.getCharacterProgression(player);
+    
+    progressionContent.innerHTML = `
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="parchment-box p-3">
+                <h5 class="font-bold mb-2">Class Information</h5>
+                <p><strong>Class:</strong> ${progression.class}</p>
+                <p><strong>Level:</strong> ${progression.level}</p>
+                <p><strong>Hit Die:</strong> ${progression.hitDie}</p>
+                <p><strong>Primary Stats:</strong> ${progression.primaryStats.join(', ')}</p>
+            </div>
+            
+            <div class="parchment-box p-3">
+                <h5 class="font-bold mb-2">Features Unlocked</h5>
+                ${progression.features.map(feature => `<p>• ${feature}</p>`).join('')}
+            </div>
+            
+            <div class="parchment-box p-3">
+                <h5 class="font-bold mb-2">Class Abilities</h5>
+                ${progression.abilities.map(ability => 
+                    `<div class="mb-2">
+                        <p class="font-semibold">${ability.name}</p>
+                        <p class="text-sm text-amber-700">${ability.definition.description}</p>
+                        <button onclick="useCharacterAbility('${ability.name}')" class="btn-parchment text-xs px-2 py-1 mt-1">Use</button>
+                    </div>`
+                ).join('')}
+            </div>
+            
+            <div class="parchment-box p-3">
+                <h5 class="font-bold mb-2">Feats</h5>
+                ${progression.feats.map(feat => 
+                    `<div class="mb-2">
+                        <p class="font-semibold">${feat.name}</p>
+                        <p class="text-sm text-amber-700">${feat.definition.description}</p>
+                    </div>`
+                ).join('')}
+            </div>
+            
+            ${progression.spells.known.length > 0 ? `
+            <div class="parchment-box p-3">
+                <h5 class="font-bold mb-2">Known Spells</h5>
+                ${progression.spells.known.map(spell => 
+                    `<div class="mb-2">
+                        <p class="font-semibold">${spell.name} (Level ${spell.definition.level})</p>
+                        <p class="text-sm text-amber-700">${spell.definition.description}</p>
+                        <button onclick="castSpell('${spell.name}')" class="btn-parchment text-xs px-2 py-1 mt-1">Cast</button>
+                    </div>`
+                ).join('')}
+            </div>
+            ` : ''}
+            
+            ${progression.cantrips.length > 0 ? `
+            <div class="parchment-box p-3">
+                <h5 class="font-bold mb-2">Cantrips</h5>
+                ${progression.cantrips.map(cantrip => 
+                    `<div class="mb-2">
+                        <p class="font-semibold">${cantrip.name}</p>
+                        <p class="text-sm text-amber-700">${cantrip.definition.description}</p>
+                        <button onclick="castSpell('${cantrip.name}')" class="btn-parchment text-xs px-2 py-1 mt-1">Cast</button>
+                    </div>`
+                ).join('')}
+            </div>
+            ` : ''}
+        </div>
+    `;
+}
+
+function useCharacterAbility(abilityName) {
+    const result = CharacterManager.useAbility(player, abilityName);
+    displayMessage(result.message, result.success ? 'success' : 'error');
+    
+    if (result.success && result.effect) {
+        // Apply ability effects (this would be expanded based on ability type)
+        if (result.effect.damage) {
+            displayMessage(`Ability deals ${result.effect.damage} damage!`, 'combat');
+        }
+    }
+}
+
+function castSpell(spellName) {
+    const spell = spellDefinitions[spellName];
+    if (!spell) {
+        displayMessage("Unknown spell.", 'error');
+        return;
+    }
+    
+    if (!player.classProgression.knownSpells.includes(spellName) && 
+        !player.classProgression.knownCantrips.includes(spellName)) {
+        displayMessage("You don't know this spell.", 'error');
+        return;
+    }
+    
+    // For cantrips (level 0), no spell slot required
+    if (spell.level === 0) {
+        displayMessage(`You cast ${spellName}: ${spell.description}`, 'success');
+        if (spell.damage) {
+            const damage = rollDice(spell.damage);
+            displayMessage(`${spellName} deals ${damage} damage!`, 'combat');
+        }
+    } else {
+        // Check spell slots for higher level spells
+        const spellSlots = player.classProgression.spellSlots;
+        if (spellSlots[spell.level] && spellSlots[spell.level] > 0) {
+            spellSlots[spell.level]--;
+            displayMessage(`You cast ${spellName}: ${spell.description}`, 'success');
+            if (spell.damage) {
+                const damage = rollDice(spell.damage);
+                displayMessage(`${spellName} deals ${damage} damage!`, 'combat');
+            }
+        } else {
+            displayMessage(`No spell slots available for level ${spell.level} spells.`, 'error');
+        }
+    }
+}
+
+function learnNewSpell(spellName) {
+    const result = CharacterManager.learnSpell(player, spellName);
+    displayMessage(result.message, result.success ? 'success' : 'error');
+    if (result.success) {
+        displayCharacterProgression(); // Refresh display
+    }
+}
+
     if (!confirm("Are you sure you want to request a new quest?")) {
         return;
     }
@@ -1050,19 +1259,17 @@ createCharacterBtn.addEventListener('click', () => {
     player.gender = gender;
     player.background = background;
 
-    // Apply class bonuses
+    // Initialize character with new progression system
+    CharacterManager.initializeCharacter(player, charClass);
+    
+    // Apply class bonuses from old system for compatibility
     const classData = classes[charClass];
-    player.maxHp += classData.hpBonus;
-    player.hp = player.maxHp;
-    
-    // Set stats based on class
-    Object.entries(classData.statFocus).forEach(([stat, value]) => {
-        player.stats[stat] = 10 + value; // Base 10 + class bonus
-    });
-    
-    // Add starting skills and abilities
-    player.skills.push(classData.startingSkill);
-    player.abilities.push(classData.startingAbility);
+    if (classData) {
+        // Set stats based on class
+        Object.entries(classData.statFocus).forEach(([stat, value]) => {
+            player.stats[stat] = 10 + value; // Base 10 + class bonus
+        });
+    }
     
     // Add starting equipment
     if (charClass === 'warrior') {
@@ -1096,6 +1303,7 @@ saveGameBtn.addEventListener('click', saveGame);
 newQuestBtn.addEventListener('click', generateQuest);
 showInventoryBtn.addEventListener('click', displayInventory);
 showShopBtn.addEventListener('click', displayShop);
+document.getElementById('show-progression-btn').addEventListener('click', displayCharacterProgression);
 
 // Combat Event Listeners
 attackBtn.addEventListener('click', playerAttack);
