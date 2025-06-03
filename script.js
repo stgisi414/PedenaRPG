@@ -1277,7 +1277,7 @@ function displayQuests() {
     }
 }
 
-function abandonQuest(questId) {
+window.abandonQuest = function(questId) {
     if (!confirm("Are you sure you want to abandon this quest?")) {
         return;
     }
@@ -1449,7 +1449,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Make functions globally accessible
     window.displayCharacterProgression = displayCharacterProgression;
-    window.markQuestComplete = markQuestComplete;
     window.updateQuestButton = updateQuestButton;
     window.abandonQuest = abandonQuest;
 });
@@ -1490,7 +1489,7 @@ function displayCharacterProgression() {
     combatInterface.classList.add('hidden');
     backgroundInterface.classList.add('hidden');
 
-    // Create progression interface
+    // Create progression interface if it doesn't exist
     let progressionInterface = document.getElementById('progression-interface');
     if (!progressionInterface) {
         progressionInterface = document.createElement('div');
@@ -1505,7 +1504,9 @@ function displayCharacterProgression() {
         `;
         gamePlayScreen.appendChild(progressionInterface);
 
-        document.getElementById('exit-progression-btn').addEventListener('click', () => {
+        // Add event listener for the close button
+        const exitBtn = progressionInterface.querySelector('#exit-progression-btn');
+        exitBtn.addEventListener('click', () => {
             progressionInterface.classList.add('hidden');
         });
     }
