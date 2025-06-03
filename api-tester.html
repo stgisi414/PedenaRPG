@@ -172,7 +172,7 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         contents: [{ parts: [{ text: "Test" }] }],
-                        generationConfig: { maxOutputTokens: 10 }
+                        generationConfig: { maxOutputTokens: 10000 }
                     })
                 });
 
@@ -199,7 +199,7 @@
                         contents: [{ parts: [{ text: prompt }] }],
                         generationConfig: {
                             temperature: 0.1,
-                            maxOutputTokens: 50
+                            maxOutputTokens: 50000
                         }
                     })
                 });
@@ -251,7 +251,7 @@
                     body: JSON.stringify({
                         contents: [{ parts: [{ text: "Write a very long story about a magical kingdom with many characters and detailed descriptions" }] }],
                         generationConfig: {
-                            maxOutputTokens: 50, // Very low limit to trigger MAX_TOKENS
+                            maxOutputTokens: 50000, // Very low limit to trigger MAX_TOKENS
                             temperature: 0.7
                         }
                     })
@@ -289,7 +289,7 @@
                         contents: [{ parts: [{ text: "Write a brief fantasy RPG background for TestHero, a male warrior in Pedena. 2-3 sentences about origin and goals." }] }],
                         generationConfig: {
                             temperature: 0.8,
-                            maxOutputTokens: 100,
+                          maxOutputTokens: 64000,
                             topP: 0.8,
                             topK: 40
                         },
