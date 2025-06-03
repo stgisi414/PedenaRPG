@@ -1161,16 +1161,27 @@ async function generateQuest() {
 
     const quest = await callGeminiAPI(prompt, 0.8, 600, true);
     if (quest) {
-        player.quests.push({
+        const newQuest = {
             id: Date.now(),
             description: quest,
             completed: false
-        });
+        };
+        player.quests.push(newQuest);
         const questMessage = `New Quest Added: ${quest}`;
         displayMessage(questMessage, 'success');
         addToConversationHistory('assistant', questMessage);
-        updateQuestButton(); // Update button after adding quest
+        
+        // Force update quest button immediately
+        setTimeout(() => {
+            updateQuestButton();
+        }, 100);
+        
         saveGame(); // Auto-save after quest creation
+        
+        // Log for debugging
+        console.log('Quest added:', newQuest);
+        console.log('Total quests:', player.quests.length);
+        console.log('Active quests:', player.quests.filter(q => !q.completed).length);
     } else {
         const fallbackMessage = "No one seems to have any tasks for you right now.";
         displayMessage(fallbackMessage);
@@ -1181,12 +1192,16 @@ async function generateQuest() {
 
 function updateQuestButton() {
     const activeQuests = player.quests.filter(q => !q.completed);
+    console.log('updateQuestButton called - Total quests:', player.quests.length, 'Active quests:', activeQuests.length);
+    
     if (activeQuests.length > 0) {
         newQuestBtn.innerHTML = '<i class="gi gi-scroll-unfurled mr-2"></i>View Quest';
         newQuestBtn.onclick = displayQuests;
+        console.log('Button set to View Quest mode');
     } else {
         newQuestBtn.innerHTML = '<i class="gi gi-scroll-unfurled mr-2"></i>New Quest';
         newQuestBtn.onclick = generateQuest;
+        console.log('Button set to New Quest mode');
     }
 }
 
