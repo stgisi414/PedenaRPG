@@ -1,31 +1,37 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pedena RPG: A Text-Based Adventure</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Merriweather:wght@400;700&family=Old+Standard+TT:wght@400;700&display=swap" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Merriweather:wght@400;700&family=Old+Standard+TT:wght@400;700&display=swap"
+        rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@game-icons/font@5.0.0/dist/game-icons.min.css">
 </head>
+
 <body class="bg-stone-800 text-stone-100 font-merriweather">
     <div id="game-container" class="max-w-4xl mx-auto p-8 rounded-lg shadow-xl relative overflow-hidden">
         <div id="parchment-background" class="absolute inset-0 z-0"></div>
         <div class="relative z-10 p-6">
             <header class="text-center mb-8">
-                <h1 class="text-5xl font-bold font-old-standard-tt drop-shadow-lg">The Chronicles of Pedena</h1>
-                <p class="text-xl mt-2">A Text-Based RPG Adventure</p>
+                <h1 class="text-4xl font-bold font-old-standard-tt drop-shadow-lg">The Chronicles of Pedena</h1>
+                <p class="text-xl mt-2" style="color: #F5DEB3 !important;">A Text-Based RPG Adventure</p>
             </header>
 
             <main id="game-screen">
                 <section id="start-screen">
                     <h2 class="text-3xl font-bold mb-6 text-center">Welcome, Adventurer!</h2>
                     <div class="flex flex-col md:flex-row justify-center items-center gap-6">
-                        <button id="new-game-btn" class="btn-parchment"><i class="gi gi-person-pyromancer gi-2x mr-2"></i>New Game</button>
-                        <button id="load-game-btn" class="btn-parchment" disabled><i class="gi gi-book-cover gi-2x mr-2"></i>Load Game</button>
+                        <button id="new-game-btn" class="btn-parchment"><i
+                                class="gi gi-person-pyromancer gi-2x mr-2"></i>New Game</button>
+                        <button id="load-game-btn" class="btn-parchment" disabled><i
+                                class="gi gi-book-cover gi-2x mr-2"></i>Load Game</button>
                     </div>
                 </section>
 
@@ -34,7 +40,8 @@
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                         <div>
                             <label for="char-name" class="block text-lg mb-2">Character Name:</label>
-                            <input type="text" id="char-name" class="input-parchment" placeholder="Enter your hero's name">
+                            <input type="text" id="char-name" class="input-parchment"
+                                placeholder="Enter your hero's name">
                         </div>
                         <div>
                             <label for="char-class" class="block text-lg mb-2">Class:</label>
@@ -64,46 +71,57 @@
                     <div class="mb-6">
                         <label for="char-background" class="block text-lg mb-2">Background Story (AI Generated):</label>
                         <textarea id="char-background" class="input-parchment" readonly></textarea>
-                        <button id="generate-background-btn" class="btn-parchment mt-4 w-full">Generate Background</button>
+                        <button id="generate-background-btn" class="btn-parchment mt-4 w-full">Generate
+                            Background</button>
                     </div>
-                    <button id="create-character-btn" class="btn-parchment w-full"><i class="gi gi-crossed-swords mr-2"></i>Start Adventure!</button>
+                    <button id="create-character-btn" class="btn-parchment w-full"><i
+                            class="gi gi-crossed-swords mr-2"></i>Start Adventure!</button>
                 </section>
 
                 <section id="game-play-screen" class="hidden">
                     <div class="flex justify-between items-center mb-6">
                         <h3 id="player-name" class="text-2xl font-bold"></h3>
-                        <div>
+                        <div style="color: #F5DEB3 !important;">
                             <span id="player-level" class="text-xl mr-4"></span>
                             <span id="player-hp" class="text-xl"></span>
                         </div>
                     </div>
 
                     <div id="game-output" class="parchment-box mb-6 h-96 overflow-y-auto">
-                        </div>
+                    </div>
 
                     <div id="custom-command-section" class="mb-6">
-                        <label for="custom-command-input" class="block text-lg mb-2">Enter Command:</label>
+                        <label for="custom-command-input" class="block text-lg mb-2" style="color:#F5DEB3 !important;">Enter Command:</label>
                         <div class="flex gap-2">
-                            <input type="text" id="custom-command-input" class="input-parchment flex-1" placeholder="Type your action here (e.g., 'examine the mysterious door', 'talk to the merchant', 'cast fireball')...">
-                            <button id="execute-command-btn" class="btn-parchment"><i class="gi gi-lightning-bolt mr-2"></i>Execute</button>
+                            <input type="text" id="custom-command-input" class="input-parchment flex-1"
+                                placeholder="Type your action here (e.g., 'examine the mysterious door', 'talk to the merchant', 'cast fireball')...">
+                            <button id="execute-command-btn" class="btn-parchment"><i
+                                    class="gi gi-lightning-bolt mr-2"></i>Execute</button>
                         </div>
                     </div>
 
                     <div id="game-actions" class="grid grid-cols-2 md:grid-cols-6 gap-4">
-                        <button id="save-game-btn" class="btn-parchment"><i class="gi gi-save-arrow mr-2"></i>Save Game</button>
-                        <button id="new-quest-btn" class="btn-parchment"><i class="gi gi-scroll-unfurled mr-2"></i>New Quest</button>
-                        <button id="show-inventory-btn" class="btn-parchment"><i class="gi gi-knapsack mr-2"></i>Inventory</button>
+                        <button id="save-game-btn" class="btn-parchment"><i class="gi gi-save-arrow mr-2"></i>Save
+                            Game</button>
+                        <button id="new-quest-btn" class="btn-parchment"><i class="gi gi-scroll-unfurled mr-2"></i>New
+                            Quest</button>
+                        <button id="show-inventory-btn" class="btn-parchment"><i
+                                class="gi gi-knapsack mr-2"></i>Inventory</button>
                         <button id="show-shop-btn" class="btn-parchment"><i class="gi gi-shop mr-2"></i>Shop</button>
-                        <button id="show-progression-btn" class="btn-parchment"><i class="gi gi-level-up mr-2"></i>Progression</button>
-                        <button id="show-background-btn" class="btn-parchment"><i class="gi gi-book-cover mr-2"></i>Background</button>
+                        <button id="show-progression-btn" class="btn-parchment"><i
+                                class="gi gi-level-up mr-2"></i>Progression</button>
+                        <button id="show-background-btn" class="btn-parchment"><i
+                                class="gi gi-book-cover mr-2"></i>Background</button>
                     </div>
 
                     <div id="combat-interface" class="hidden mt-6">
                         <h4 class="text-2xl font-bold text-red-700 mb-4 text-center">Combat!</h4>
                         <div id="enemy-info" class="parchment-box p-4 mb-4 text-center"></div>
                         <div class="flex justify-center gap-4">
-                            <button id="attack-btn" class="btn-parchment bg-red-700 hover:bg-red-800 text-white"><i class="gi gi-sword-brandish mr-2"></i>Attack</button>
-                            <button id="flee-btn" class="btn-parchment bg-gray-600 hover:bg-gray-700 text-white"><i class="gi gi-run mr-2"></i>Flee</button>
+                            <button id="attack-btn" class="btn-parchment bg-red-700 hover:bg-red-800 text-white"><i
+                                    class="gi gi-sword-brandish mr-2"></i>Attack</button>
+                            <button id="flee-btn" class="btn-parchment bg-gray-600 hover:bg-gray-700 text-white"><i
+                                    class="gi gi-run mr-2"></i>Flee</button>
                         </div>
                     </div>
 
@@ -111,15 +129,18 @@
                         <h4 class="text-2xl font-bold text-green-700 mb-4 text-center">The Merchant's Stall</h4>
                         <div id="shop-items" class="parchment-box p-4 mb-4 grid grid-cols-1 md:grid-cols-2 gap-4"></div>
                         <div class="text-center">
-                            <button id="exit-shop-btn" class="btn-parchment bg-gray-600 hover:bg-gray-700 text-white">Exit Shop</button>
+                            <button id="exit-shop-btn"
+                                class="btn-parchment bg-gray-600 hover:bg-gray-700 text-white">Exit Shop</button>
                         </div>
                     </div>
 
                     <div id="inventory-interface" class="hidden mt-6">
                         <h4 class="text-2xl font-bold text-blue-700 mb-4 text-center">Your Inventory</h4>
-                        <div id="inventory-items" class="parchment-box p-4 mb-4 grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+                        <div id="inventory-items" class="parchment-box p-4 mb-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                        </div>
                         <div class="text-center">
-                            <button id="exit-inventory-btn" class="btn-parchment bg-gray-600 hover:bg-gray-700 text-white">Close Inventory</button>
+                            <button id="exit-inventory-btn"
+                                class="btn-parchment bg-gray-600 hover:bg-gray-700 text-white">Close Inventory</button>
                         </div>
                     </div>
 
@@ -127,7 +148,8 @@
                         <h4 class="text-2xl font-bold text-purple-700 mb-4 text-center">Your Skills & Abilities</h4>
                         <div id="skills-list" class="parchment-box p-4 mb-4"></div>
                         <div class="text-center">
-                            <button id="exit-skills-btn" class="btn-parchment bg-gray-600 hover:bg-gray-700 text-white">Close Skills</button>
+                            <button id="exit-skills-btn"
+                                class="btn-parchment bg-gray-600 hover:bg-gray-700 text-white">Close Skills</button>
                         </div>
                     </div>
 
@@ -135,7 +157,8 @@
                         <h4 class="text-2xl font-bold text-orange-700 mb-4 text-center">Active Quests</h4>
                         <div id="quest-list" class="parchment-box p-4 mb-4"></div>
                         <div class="text-center">
-                            <button id="exit-quests-btn" class="btn-parchment bg-gray-600 hover:bg-gray-700 text-white">Close Quests</button>
+                            <button id="exit-quests-btn"
+                                class="btn-parchment bg-gray-600 hover:bg-gray-700 text-white">Close Quests</button>
                         </div>
                     </div>
 
@@ -143,7 +166,9 @@
                         <h4 class="text-2xl font-bold text-purple-700 mb-4 text-center">Character Progression</h4>
                         <div id="progression-content" class="parchment-box p-4 mb-4"></div>
                         <div class="text-center">
-                            <button id="exit-progression-btn" class="btn-parchment bg-gray-600 hover:bg-gray-700 text-white">Close Progression</button>
+                            <button id="exit-progression-btn"
+                                class="btn-parchment bg-gray-600 hover:bg-gray-700 text-white">Close
+                                Progression</button>
                         </div>
                     </div>
 
@@ -151,18 +176,20 @@
                         <h4 class="text-2xl font-bold text-blue-700 mb-4 text-center">Character Background</h4>
                         <div id="background-content" class="parchment-box p-4 mb-4"></div>
                         <div class="text-center">
-                            <button id="exit-background-btn" class="btn-parchment bg-gray-600 hover:bg-gray-700 text-white">Close Background</button>
+                            <button id="exit-background-btn"
+                                class="btn-parchment bg-gray-600 hover:bg-gray-700 text-white">Close Background</button>
                         </div>
                     </div>
 
-                </main>
+            </main>
 
             <footer class="text-center mt-8 text-sm">
-                <p>&copy; 2025 Pedena RPG. Powered by Gemini API & the spirit of adventure.</p>
+                <p style="color: #F5DEB3 !important;">&copy; 2025 Pedena RPG. Powered by Gemini API & the spirit of adventure.</p>
             </footer>
         </div>
     </div>
 
     <script type="module" src="script.js"></script>
 </body>
+
 </html>
