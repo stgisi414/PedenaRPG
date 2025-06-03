@@ -1,4 +1,7 @@
 
+// Import game data assets
+import { gameData, GameDataManager } from './assets/game-data-loader.js';
+
 const GEMINI_API_KEY = 'AIzaSyDIFeql6HUpkZ8JJlr_kuN0WDFHUyOhijA'; // Replace with your actual Gemini API Key
 const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`;
 
@@ -274,7 +277,10 @@ async function generateCharacterBackground() {
     charBackgroundTextarea.value = "Generating character background...";
     generateBackgroundBtn.disabled = true;
     
-    const prompt = `Write a brief fantasy RPG background for ${name}, a ${gender} ${charClass} in Pedena. 2-3 sentences about origin and goals.`;
+    // Generate rich context using world data
+    const context = GameDataManager.generateBackgroundPromptContext({ name, class: charClass, gender });
+    
+    const prompt = `Create a brief background for ${name}, a ${gender} ${charClass} in Pedena. Use these world elements: Cities like ${context.worldLore.majorCities.join(', ')}; factions like ${context.worldLore.activeFactions.join(', ')}; guilds like ${context.worldLore.availableGuilds.join(', ')}. 2-3 sentences about origin and goals.`;
 
     const background = await callGeminiAPI(prompt, 0.8, 50);
     if (background) {
@@ -301,7 +307,17 @@ async function generateWorldDescription(location) {
 
 async function handleMovement() {
     displayMessage("Considering your next move...", 'info');
-    const prompt = `The player, ${player.name} (${player.class}, Level ${player.level}), is currently in ${player.currentLocation}. Suggest 3-5 distinct and interesting directions or nearby locations they could travel to within the magical land of Pedena. Format as a comma-separated list of locations.`;
+    
+    // Get real locations from world data
+    const nearbyLocations = [
+        GameDataManager.getRandomFrom(gameData.world.cities),
+        GameDataManager.getRandomFrom(gameData.world.cities),
+        GameDataManager.getRandomFrom(gameData.world.regions)
+    ];
+    
+    const locationNames = nearbyLocations.map(loc => loc.name);
+    const prompt = `Player ${player.name} (${player.class}, Level ${player.level}) is in ${player.currentLocation}. Here are nearby places: ${locationNames.join(', ')}. Suggest 3-4 travel destinations from these or similar locations in Pedena. Format as comma-separated list.`;
+    
     const directions = await callGeminiAPI(prompt, 0.9, 40);
     if (directions) {
         const choices = directions.split(',').map(s => s.trim()).filter(s => s !== '');
@@ -329,7 +345,14 @@ async function handleMovement() {
 
 async function handleNPCInteraction() {
     displayMessage("Looking for someone to talk to...", 'info');
-    const prompt = `In ${player.currentLocation}, describe a unique fantasy RPG NPC that ${player.name} (${player.class}) encounters. Give them a name, a brief appearance, and a short personality description (2-3 sentences). Also, generate one short dialogue line from them that hints at a potential quest, local gossip, or a problem.`;
+    
+    // Get context from world data
+    const context = GameDataManager.generateLocationContext(player.currentLocation);
+    const randomFaction = GameDataManager.getRandomFrom(gameData.organizations.factions);
+    const randomBusiness = GameDataManager.getRandomFrom(gameData.economy.businesses);
+    
+    const prompt = `In ${player.currentLocation}, create an NPC for ${player.name} (${player.class}). Consider local elements: ${randomFaction.name} faction, ${randomBusiness.name} business. Give name, appearance, and dialogue hint about quest/gossip (2-3 sentences).`;
+    
     const npcInfo = await callGeminiAPI(prompt, 0.8, 80);
     if (npcInfo) {
         displayMessage(`You encounter someone: ${npcInfo}`);
@@ -578,7 +601,14 @@ function buyItem(item) {
 
 async function generateQuest() {
     displayMessage("A mysterious figure approaches with a quest...", 'info');
-    const prompt = `Generate a short fantasy RPG quest for ${player.name} (${player.class}, Level ${player.level}) in ${player.currentLocation}. Include: quest giver name, quest objective, and reward. Keep it concise (2-3 sentences).`;
+    
+    // Use world data for quest context
+    const randomFaction = GameDataManager.getRandomFrom(gameData.organizations.factions);
+    const randomGuild = GameDataManager.getRandomFrom(gameData.organizations.guilds);
+    const randomBusiness = GameDataManager.getRandomFrom(gameData.economy.businesses);
+    
+    const prompt = `Create a quest for ${player.name} (${player.class}, Level ${player.level}) in ${player.currentLocation}. Involve elements like ${randomFaction.name}, ${randomGuild.name}, or ${randomBusiness.name}. Include quest giver, objective, reward (2-3 sentences).`;
+    
     const quest = await callGeminiAPI(prompt, 0.8, 60);
     if (quest) {
         player.quests.push({
