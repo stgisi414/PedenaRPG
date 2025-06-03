@@ -306,7 +306,7 @@ function rollDice(diceString) {
 }
 
 // AI Interaction Functions (Gemini API Calls)
-async function callGeminiAPI(prompt, temperature = 0.10, maxOutputTokens = 10100) {
+async function callGeminiAPI(prompt, temperature = 0.10, maxOutputTokens = 2000) {
     try {
         const response = await fetch(GEMINI_API_URL, {
             method: 'POST',
@@ -435,7 +435,7 @@ async function generateCharacterBackground() {
 
     const prompt = `Create a brief background for ${name}, a ${gender} ${charClass} in Pedena. Use these world elements: Cities like ${context.worldLore.majorCities.join(', ')}; factions like ${context.worldLore.activeFactions.join(', ')}; guilds like ${context.worldLore.availableGuilds.join(', ')}. 2-3 sentences about origin and goals.`;
 
-    const background = await callGeminiAPI(prompt, 0.8, 60);
+    const background = await callGeminiAPI(prompt, 0.8, 800);
     if (background) {
         charBackgroundTextarea.value = background;
         player.background = background;
@@ -450,7 +450,7 @@ async function generateCharacterBackground() {
 async function generateWorldDescription(location) {
     displayMessage(`Describing ${location}...`, 'info');
     const prompt = `Describe the fantasy RPG location of ${location} in the magical land of Pedena. Focus on key features, atmosphere, and potential points of interest in about 3-5 sentences. Consider if it's a town, forest, cave, or mountain.`;
-    const description = await callGeminiAPI(prompt, 0.7, 100);
+    const description = await callGeminiAPI(prompt, 0.7, 800);
     if (description) {
         displayMessage(`You are in ${location}. ${description}`);
     } else {
@@ -471,7 +471,7 @@ async function handleMovement() {
     const locationNames = nearbyLocations.map(loc => loc.name);
     const prompt = `Player ${player.name} (${player.class}, Level ${player.level}) is in ${player.currentLocation}. Here are nearby places: ${locationNames.join(', ')}. Suggest 3-4 travel destinations from these or similar locations in Pedena. Format as comma-separated list.`;
 
-    const directions = await callGeminiAPI(prompt, 0.9, 60);
+    const directions = await callGeminiAPI(prompt, 0.9, 800);
     if (directions) {
         const choices = directions.split(',').map(s => s.trim()).filter(s => s !== '');
         displayMessage("Where would you like to go?");
@@ -514,7 +514,7 @@ async function handleNPCInteraction() {
 
         const prompt = `Create NPC in ${player.currentLocation}. Format: "Name: [name]. Appearance: [brief]. Says: [one line dialogue]"`;
 
-        const npcInfo = await callGeminiAPI(prompt, 0.8, 50);
+        const npcInfo = await callGeminiAPI(prompt, 0.8, 800);
         if (npcInfo) {
             // Parse the NPC info to extract name
             const nameMatch = npcInfo.match(/Name:\s*([^.]+)/);
@@ -645,7 +645,7 @@ function checkLevelUp() {
 
 async function levelUpAI() {
     const prompt = `The player, ${player.name} (${player.class}), has just reached Level ${player.level}. Describe a brief, thematic benefit or insight they gain upon leveling up, related to their class or general growth.`;
-    const bonus = await callGeminiAPI(prompt, 0.7, 30);
+    const bonus = await callGeminiAPI(prompt, 0.7, 800);
     if (bonus) {
         displayMessage(`Upon leveling up, you feel: ${bonus}`, 'info');
     }
@@ -908,7 +908,7 @@ Player Command: "${command}"
 
 As the game master, interpret this command and provide a detailed response describing what happens. Focus on the immediate narrative result. If movement occurred, acknowledge the new location. Keep response to 2-3 sentences.`;
 
-    const response = await callGeminiAPI(contextPrompt, 0.8, 100);
+    const response = await callGeminiAPI(contextPrompt, 0.8, 1500);
     if (response) {
         displayMessage(response);
     } else {
@@ -1009,7 +1009,7 @@ async function generateQuest() {
 
     const prompt = `Create a quest for ${player.name} (${player.class}, Level ${player.level}) in ${player.currentLocation}. Involve elements like ${randomFaction.name}, ${randomGuild.name}, or ${randomBusiness.name}. Include quest giver, objective, reward (2-3 sentences).`;
 
-    const quest = await callGeminiAPI(prompt, 0.8, 80);
+    const quest = await callGeminiAPI(prompt, 0.8, 1200);
     if (quest) {
         player.quests.push({
             id: Date.now(),
