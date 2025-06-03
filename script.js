@@ -207,15 +207,27 @@ async function callGeminiAPI(prompt, temperature = 0.7, maxOutputTokens = 500) {
         });
 
         if (!response.ok) {
-            const errorData = await response.json();
-            console.error('Gemini API Error:', errorData);
-            alert(`AI Error: ${errorData.error?.message || response.statusText}`);
+            let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+            try {
+                const errorData = await response.json();
+                console.error('Gemini API Error:', errorData);
+                errorMessage = errorData.error?.message || errorMessage;
+            } catch (e) {
+                console.error('Could not parse error response:', e);
+            }
+            console.error(`AI Error: ${errorMessage}`);
             return null;
         }
 
         const data = await response.json();
-        const generatedText = data.candidates[0].content.parts[0].text;
-        return generatedText;
+        if (data.candidates && data.candidates.length > 0 && 
+            data.candidates[0].content && data.candidates[0].content.parts && 
+            data.candidates[0].content.parts.length > 0) {
+            return data.candidates[0].content.parts[0].text;
+        } else {
+            console.error('Invalid API response structure:', data);
+            return null;
+        }
     } catch (error) {
         console.error('Network or API request error:', error);
         alert(`Network error during AI call: ${error.message}`);
@@ -243,7 +255,8 @@ async function generateCharacterBackground() {
         charBackgroundTextarea.value = background;
         player.background = background;
     } else {
-        charBackgroundTextarea.value = "Failed to generate background. Please try again.";
+        charBackgroundTextarea.value = "Failed to generate background. You can write your own or try again later.";
+        player.background = "A mysterious adventurer with an unknown past.";
     }
     
     generateBackgroundBtn.disabled = false;
