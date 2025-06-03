@@ -4,6 +4,7 @@ import { CharacterManager } from './game-logic/character-manager.js';
 import { classProgression, spellDefinitions, abilityDefinitions } from './game-logic/class-progression.js';
 import { GameActions } from './game-logic/game-actions.js'; // Import GameActions
 import LocationManager from './game-logic/location-manager.js';
+import { ItemGenerator, ItemManager, itemCategories, itemRarity, statusEffects } from './assets/world-items.js';
 
 const GEMINI_API_KEY = 'AIzaSyDIFeql6HUpkZ8JJlr_kuN0WDFHUyOhijA'; // Replace with your actual Gemini API Key
 const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`;
@@ -339,10 +340,13 @@ function loadGame() {
             if (player.name) {
                 CharacterManager.loadProgression(player);
             }
+            // Load inventory and status effects from ItemManager
+            ItemManager.loadInventoryFromStorage(player);
         } else {
             // Old format - just player
             player = saveData;
             loadConversationHistory();
+            ItemManager.loadInventoryFromStorage(player);
         }
 
         displayMessage("Game loaded!", 'success');
@@ -638,7 +642,19 @@ async function playerAttack() {
         player.exp += player.currentEnemy.expReward;
         player.gold += player.currentEnemy.goldDrop;
         displayMessage(`You gained ${player.currentEnemy.expReward} EXP and ${player.currentEnemy.goldDrop} gold.`, 'success');
-        // Handle loot
+        
+        // Generate random loot using new system (30% chance)
+        if (Math.random() < 0.3) {
+            const lootItem = ItemGenerator.generateItem({
+                enemyContext: player.currentEnemy.name,
+                locationContext: player.currentLocation,
+                rarity: Math.random() < 0.9 ? 'COMMON' : 'UNCOMMON'
+            });
+            ItemManager.addItemToInventory(player, lootItem);
+            displayMessage(`You found loot: ${lootItem.name}!`, 'success');
+        }
+        
+        // Handle legacy loot system
         if (player.currentEnemy.loot) {
             player.currentEnemy.loot.forEach(lootItem => {
                 if (Math.random() < lootItem.chance) {
@@ -747,6 +763,9 @@ function displayInventory() {
 
     displayMessage("Opening your inventory...", 'info');
 
+    // Update status effects before displaying inventory
+    ItemManager.updateStatusEffects(player);
+
     inventoryItemsDisplay.innerHTML = '';
 
     // Show gold
@@ -754,6 +773,21 @@ function displayInventory() {
     goldDiv.classList.add('parchment-box', 'p-3', 'mb-4', 'text-center');
     goldDiv.innerHTML = `<p class="font-bold text-xl">Gold: ${player.gold}</p>`;
     inventoryItemsDisplay.appendChild(goldDiv);
+
+    // Show active status effects
+    if (player.statusEffects && player.statusEffects.length > 0) {
+        const effectsDiv = document.createElement('div');
+        effectsDiv.classList.add('parchment-box', 'p-3', 'mb-4');
+        effectsDiv.innerHTML = '<h4 class="font-bold mb-2">Active Effects:</h4>';
+        player.statusEffects.forEach(effect => {
+            const effectP = document.createElement('p');
+            effectP.classList.add('text-sm', effect.type === 'positive' ? 'text-green-700' : 'text-red-700');
+            const timeLeft = Math.max(0, Math.floor((effect.expiresAt - Date.now()) / 1000));
+            effectP.textContent = `${effect.name} (${timeLeft}s): ${effect.description}`;
+            effectsDiv.appendChild(effectP);
+        });
+        inventoryItemsDisplay.appendChild(effectsDiv);
+    }
 
     // Show equipped items
     const equippedDiv = document.createElement('div');
@@ -784,10 +818,17 @@ function displayInventory() {
     player.inventory.forEach((item, index) => {
         const itemDiv = document.createElement('div');
         itemDiv.classList.add('parchment-box', 'p-3', 'mb-2');
+        
+        // Add rarity styling
+        const rarityData = itemRarity[item.rarity];
+        const rarityStyle = rarityData ? `color: ${rarityData.color}; font-weight: bold;` : '';
+        const rarityText = rarityData ? ` (${rarityData.name})` : '';
+        
         itemDiv.innerHTML = `
-            <p class="font-bold">${item.name} (${item.type})</p>
+            <p class="font-bold" style="${rarityStyle}">${item.name}${rarityText}</p>
             <p class="text-sm text-amber-700">${item.description}</p>
-            <p class="text-sm">Value: ${item.value} gold</p>
+            <p class="text-sm">Value: ${item.value || 10} gold</p>
+            ${item.effects && item.effects.length > 0 ? `<p class="text-xs text-purple-600">Effects: ${item.effects.join(', ')}</p>` : ''}
         `;
 
         const buttonContainer = document.createElement('div');
@@ -816,14 +857,25 @@ function displayInventory() {
 
 function useItem(index) {
     const item = player.inventory[index];
-    if (item.type === 'consumable' && item.effect?.type === 'heal') {
-        player.hp = Math.min(player.maxHp, player.hp + item.effect.amount);
-        displayMessage(`You used ${item.name} and healed ${item.effect.amount} HP!`, 'success');
-        player.inventory.splice(index, 1); // Remove consumed item
+    
+    // Use the new ItemManager system
+    const result = ItemManager.useItem(player, item.id);
+    
+    if (result.success) {
+        displayMessage(result.message, 'success');
         updatePlayerStatsDisplay();
         displayInventory(); // Refresh inventory display
     } else {
-        displayMessage(`You cannot use ${item.name} at this time.`, 'info');
+        // Fallback to old system for legacy items
+        if (item.type === 'consumable' && item.effect?.type === 'heal') {
+            player.hp = Math.min(player.maxHp, player.hp + item.effect.amount);
+            displayMessage(`You used ${item.name} and healed ${item.effect.amount} HP!`, 'success');
+            player.inventory.splice(index, 1); // Remove consumed item
+            updatePlayerStatsDisplay();
+            displayInventory(); // Refresh inventory display
+        } else {
+            displayMessage(result.message || `You cannot use ${item.name} at this time.`, 'info');
+        }
     }
 }
 
@@ -982,6 +1034,14 @@ async function processCustomCommand(command) {
     addToConversationHistory('user', command);
     displayMessage("Processing your command...", 'info');
 
+    // Check if command mentions receiving an item (like "succubus language script")
+    if (command.toLowerCase().includes('receive') || command.toLowerCase().includes('get') || 
+        command.toLowerCase().includes('obtain') || command.toLowerCase().includes('script') ||
+        command.toLowerCase().includes('language') || command.toLowerCase().includes('tome') ||
+        command.toLowerCase().includes('book') || command.toLowerCase().includes('scroll')) {
+        await handleItemReceival(command);
+    }
+
     // First check if this is a movement command using LocationManager
     const movementAnalysis = LocationManager.analyzeMovementCommand(command, player.currentLocation, player);
     
@@ -1071,6 +1131,102 @@ As the game master, interpret this command and action analysis, and provide a de
         displayMessage(fallbackResponse);
         addToConversationHistory('assistant', fallbackResponse);
         saveConversationHistory();
+    }
+}
+
+// Item receival handler for story events
+async function handleItemReceival(command) {
+    // Determine if this is a quest-related or story item
+    const isQuestItem = command.toLowerCase().includes('quest') || 
+                       player.quests.some(q => !q.completed);
+    
+    const context = {
+        questContext: isQuestItem ? { 
+            id: Date.now(), 
+            importance: 'major',
+            description: command 
+        } : null,
+        locationContext: player.currentLocation,
+        playerLevel: player.level,
+        playerClass: player.class
+    };
+
+    // Generate contextual item using AI
+    const itemPrompt = `Based on the player's action: "${command}"
+    
+    Player: ${player.name} (Level ${player.level} ${player.class})
+    Location: ${player.currentLocation}
+    
+    Generate a specific item name and description that fits this scenario. The item should be meaningful to the story.
+    Format: "Item Name: [name] | Description: [description] | Type: [scroll/book/magical/artifact] | Rarity: [COMMON/UNCOMMON/RARE/EPIC/LEGENDARY]"`;
+
+    const aiResponse = await callGeminiAPI(itemPrompt, 0.8, 300, true);
+    
+    if (aiResponse) {
+        const generatedItem = parseAIItemResponse(aiResponse, context);
+        if (generatedItem) {
+            ItemManager.addItemToInventory(player, generatedItem);
+            displayMessage(`You received: ${generatedItem.name}!`, 'success');
+            displayMessage(`${generatedItem.description}`, 'info');
+            
+            // Apply any immediate effects
+            if (generatedItem.effects && generatedItem.effects.length > 0) {
+                const effectResult = ItemManager.applyItemEffects(player, generatedItem);
+                if (effectResult.success) {
+                    displayMessage(effectResult.message, 'success');
+                }
+            }
+            
+            updatePlayerStatsDisplay();
+            saveGame();
+        }
+    }
+}
+
+function parseAIItemResponse(aiResponse, context) {
+    try {
+        // Extract item details from AI response
+        const nameMatch = aiResponse.match(/Item Name:\s*([^|]+)/i);
+        const descMatch = aiResponse.match(/Description:\s*([^|]+)/i);
+        const typeMatch = aiResponse.match(/Type:\s*([^|]+)/i);
+        const rarityMatch = aiResponse.match(/Rarity:\s*([^|]+)/i);
+        
+        const itemName = nameMatch ? nameMatch[1].trim() : 'Mysterious Item';
+        const description = descMatch ? descMatch[1].trim() : 'A mysterious item of unknown origin.';
+        const type = typeMatch ? typeMatch[1].trim().toLowerCase() : 'magical';
+        const rarity = rarityMatch ? rarityMatch[1].trim().toUpperCase() : 'UNCOMMON';
+        
+        // Map type to category
+        let category = itemCategories.MAGICAL;
+        if (type.includes('scroll')) category = itemCategories.SCROLL;
+        else if (type.includes('book') || type.includes('tome')) category = itemCategories.BOOK;
+        else if (type.includes('artifact')) category = itemCategories.ARTIFACT;
+        else if (type.includes('weapon')) category = itemCategories.WEAPON;
+        
+        // Generate item using the ItemGenerator
+        const generatedItem = ItemGenerator.generateItem({
+            category: category,
+            rarity: Object.keys(itemRarity).includes(rarity) ? rarity : 'UNCOMMON',
+            questContext: context.questContext,
+            locationContext: context.locationContext
+        });
+        
+        // Override with AI-generated details
+        generatedItem.name = itemName;
+        generatedItem.description = description;
+        
+        // Add special properties for story items
+        if (itemName.toLowerCase().includes('language') || itemName.toLowerCase().includes('script')) {
+            generatedItem.effects = [...(generatedItem.effects || []), 'enchanted'];
+            generatedItem.specialProperty = 'language_learning';
+        }
+        
+        return generatedItem;
+        
+    } catch (error) {
+        console.error('Error parsing AI item response:', error);
+        // Fallback to basic item generation
+        return ItemGenerator.generateItem(context);
     }
 }
 
@@ -1200,9 +1356,19 @@ async function handleInteractionAction(extractedData) {
 async function handleExplorationAction(extractedData) {
     // 40% chance to find something when searching/exploring
     if (Math.random() < 0.4) {
-        const goldFound = Math.floor(Math.random() * 15) + 5;
-        player.gold += goldFound;
-        displayMessage(`You found ${goldFound} gold!`, 'success');
+        if (Math.random() < 0.3) {
+            // 30% chance for item, 70% chance for gold
+            const foundItem = ItemGenerator.generateItem({
+                locationContext: player.currentLocation,
+                rarity: Math.random() < 0.8 ? 'COMMON' : 'UNCOMMON'
+            });
+            ItemManager.addItemToInventory(player, foundItem);
+            displayMessage(`You found: ${foundItem.name}!`, 'success');
+        } else {
+            const goldFound = Math.floor(Math.random() * 15) + 5;
+            player.gold += goldFound;
+            displayMessage(`You found ${goldFound} gold!`, 'success');
+        }
         updatePlayerStatsDisplay();
     }
 }
