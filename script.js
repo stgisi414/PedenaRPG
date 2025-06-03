@@ -711,5 +711,3 @@ document.addEventListener('DOMContentLoaded', () => {
         loadGameBtn.disabled = false;
     }
 });
-
-// End of file
