@@ -1368,7 +1368,7 @@ async function processCustomCommand(command) {
                 player.currentLocation = newLocationName;
                 displayMessage(`You leave ${oldLocation} and arrive at ${newLocationName}.`, 'success');
                 LocationManager.saveLocationToHistory(newLocationName, player.name);
-                updatePlayerStatsDisplay();
+                updatePlayerStatsDisplay(); // Ensure UI is updated
 
                 // Check for encounters
                 if (Math.random() < movementAnalysis.encounterChance) {
@@ -1653,6 +1653,7 @@ async function handleMovementAction(extractedData) {
                     player.currentLocation = randomDestination;
                     displayMessage(`Traveling ${destination.direction}, you reach ${randomDestination}.`);
                     LocationManager.saveLocationToHistory(randomDestination, player.name);
+                    updatePlayerStatsDisplay();
                 } else {
                     displayMessage(`You head ${destination.direction} but don't find anything notable.`);
                 }
@@ -1662,6 +1663,7 @@ async function handleMovementAction(extractedData) {
                 player.currentLocation = destination.name;
                 displayMessage(`You travel to ${destination.name}.`);
                 LocationManager.saveLocationToHistory(destination.name, player.name);
+                updatePlayerStatsDisplay();
                 break;
 
             default:
