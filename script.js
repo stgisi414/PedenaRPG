@@ -366,6 +366,20 @@ function updateGold(amount, reason = '') {
     }
 
     updatePlayerStatsDisplay();
+    
+    // Refresh inventory display if it's currently open
+    if (!inventoryInterface.classList.contains('hidden')) {
+        displayInventory();
+    }
+    
+    // Refresh shop display if it's currently open (for updated affordable items)
+    if (!shopInterface.classList.contains('hidden')) {
+        displayShop();
+    }
+    
+    // Auto-save after gold changes
+    saveGame();
+    
     console.log(`Gold updated: ${oldGold} -> ${player.gold} (change: ${amount})`);
 }
 
@@ -1335,6 +1349,16 @@ async function processCustomCommand(command) {
     addToConversationHistory('user', command);
     displayMessage("Processing your command...", 'info');
 
+    // Check for direct gold giving commands
+    const goldGivePattern = /(?:give|hand|pay).*?(\d+)\s*gold/i;
+    const goldMatch = command.match(goldGivePattern);
+    if (goldMatch) {
+        const goldAmount = parseInt(goldMatch[1]);
+        if (player.gold >= goldAmount) {
+            updateGold(-goldAmount, 'given to NPC');
+        }
+    }
+
     // Check if command mentions receiving an item (like "succubus language script")
     if (command.toLowerCase().includes('receive') || command.toLowerCase().includes('get') ||
         command.toLowerCase().includes('obtain') || command.toLowerCase().includes('script') ||
@@ -1838,20 +1862,20 @@ async function processActionResults(actionAnalysis, aiResponse) {
         aiResponse.match(/(?:gain|find|receive|earn|get|obtain)\s*(\d+)\s*gold/i),
         aiResponse.match(/(\d+)\s*gold\s*(?:pieces?|coins?)?.*(?:gained|found|received|earned|obtained)/i),
         aiResponse.match(/(?:lose|lost|spend|pay|cost)\s*(\d+)\s*gold/i),
-        aiResponse.match(/(\d+)\s*gold.*(?:lost|spent|paid|costs?)/i)
+        aiResponse.match(/(\d+)\s*gold.*(?:lost|spent|paid|costs?)/i),
+        aiResponse.match(/(?:give|hand|pay)\s*.*?(\d+)\s*gold/i),
+        aiResponse.match(/(\d+)\s*gold.*(?:given|handed|paid)/i)
     ];
 
     for (const match of goldMatches) {
         if (match) {
             const goldAmount = parseInt(match[1]);
-            const isLoss = /(?:lose|lost|spend|pay|cost)/i.test(aiResponse);
+            const isLoss = /(?:lose|lost|spend|pay|cost|give|hand|paid|given|handed)/i.test(aiResponse);
 
             if (isLoss) {
-                player.gold = Math.max(0, player.gold - goldAmount);
-                displayMessage(`You lost ${goldAmount} gold.`, 'error');
+                updateGold(-goldAmount, 'transaction');
             } else {
-                player.gold += goldAmount;
-                displayMessage(`You gained ${goldAmount} gold!`, 'success');
+                updateGold(goldAmount, 'found');
             }
             gameStateChanged = true;
             break; // Only process the first gold match to avoid duplicates
