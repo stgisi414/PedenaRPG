@@ -370,7 +370,7 @@ function rollDice(diceString) {
 }
 
 // AI Interaction Functions (Gemini API Calls)
-async function callGeminiAPI(prompt, temperature = 0.10, maxOutputTokens = 800, includeContext = true) {
+async function callGeminiAPI(prompt, temperature = 0.10, maxOutputTokens = 300, includeContext = true) {
     try {
         let fullPrompt = prompt;
         
@@ -515,7 +515,7 @@ async function generateCharacterBackground() {
 
     const prompt = `Create a brief background for ${name}, a ${gender} ${charClass} in Pedena. Use these world elements: Cities like ${context.worldLore.majorCities.join(', ')}; factions like ${context.worldLore.activeFactions.join(', ')}; guilds like ${context.worldLore.availableGuilds.join(', ')}. 2-3 sentences about origin and goals.`;
 
-    const background = await callGeminiAPI(prompt, 0.8, 400, false); // Don't include conversation history for character creation
+    const background = await callGeminiAPI(prompt, 0.8, 200, false); // Don't include conversation history for character creation
     if (background) {
         charBackgroundTextarea.value = background;
         player.background = background;
@@ -530,7 +530,7 @@ async function generateCharacterBackground() {
 async function generateWorldDescription(location) {
     displayMessage(`Describing ${location}...`, 'info');
     const prompt = `Describe the fantasy RPG location of ${location} in the magical land of Pedena. Focus on key features, atmosphere, and potential points of interest in about 3-5 sentences. Consider if it's a town, forest, cave, or mountain.`;
-    const description = await callGeminiAPI(prompt, 0.7, 800);
+    const description = await callGeminiAPI(prompt, 0.7, 250);
     if (description) {
         displayMessage(`You are in ${location}. ${description}`);
     } else {
@@ -551,7 +551,7 @@ async function handleMovement() {
     const locationNames = nearbyLocations.map(loc => loc.name);
     const prompt = `Player ${player.name} (${player.class}, Level ${player.level}) is in ${player.currentLocation}. Here are nearby places: ${locationNames.join(', ')}. Suggest 3-4 travel destinations from these or similar locations in Pedena. Format as comma-separated list.`;
 
-    const directions = await callGeminiAPI(prompt, 0.9, 800);
+    const directions = await callGeminiAPI(prompt, 0.9, 150);
     if (directions) {
         const choices = directions.split(',').map(s => s.trim()).filter(s => s !== '');
         displayMessage("Where would you like to go?");
@@ -596,7 +596,7 @@ async function handleNPCInteraction() {
 
         const prompt = `Create NPC in ${player.currentLocation}. Format: "Name: [name]. Appearance: [brief]. Says: [one line dialogue]"`;
 
-        const npcInfo = await callGeminiAPI(prompt, 0.8, 400, true);
+        const npcInfo = await callGeminiAPI(prompt, 0.8, 200, true);
         if (npcInfo) {
             // Parse the NPC info to extract name
             const nameMatch = npcInfo.match(/Name:\s*([^.]+)/);
@@ -732,7 +732,7 @@ function checkLevelUp() {
 
 async function levelUpAI() {
     const prompt = `The player, ${player.name} (${player.class}), has just reached Level ${player.level}. Describe a brief, thematic benefit or insight they gain upon leveling up, related to their class or general growth.`;
-    const bonus = await callGeminiAPI(prompt, 0.7, 800);
+    const bonus = await callGeminiAPI(prompt, 0.7, 150);
     if (bonus) {
         displayMessage(`Upon leveling up, you feel: ${bonus}`, 'info');
     }
@@ -983,6 +983,18 @@ async function processCustomCommand(command) {
     // Check for movement first, before AI call
     await handleCommandConsequences(command, "");
 
+    // Get character abilities for context
+    let abilitiesText = 'none';
+    if (player.classProgression && player.classProgression.classAbilities) {
+        abilitiesText = player.classProgression.classAbilities.join(', ');
+    }
+    
+    let spellsText = 'none';
+    if (player.classProgression && player.classProgression.knownSpells && player.classProgression.knownCantrips) {
+        const allSpells = [...player.classProgression.knownSpells, ...player.classProgression.knownCantrips];
+        spellsText = allSpells.join(', ') || 'none';
+    }
+
     // Create context-rich prompt for the AI
     const contextPrompt = `
 CURRENT GAME STATE:
@@ -992,6 +1004,8 @@ HP: ${player.hp}/${player.maxHp}
 Gold: ${player.gold}
 Inventory: ${player.inventory.map(item => item.name).join(', ') || 'empty'}
 Equipped: ${Object.values(player.equipment).filter(item => item).map(item => item.name).join(', ') || 'nothing'}
+Class Abilities: ${abilitiesText}
+Known Spells/Cantrips: ${spellsText}
 
 NPCs in location: ${getNPCsInLocation(player.currentLocation).map(npc => npc.name).join(', ') || 'none'}
 
@@ -1072,6 +1086,35 @@ async function handleCommandConsequences(command, aiResponse) {
         }
     }
 
+    // Check for ability inquiry keywords
+    if (lowerCommand.includes('what abilities') || lowerCommand.includes('my abilities') || lowerCommand.includes('what spells') || lowerCommand.includes('my spells') || lowerCommand.includes('what can i do')) {
+        if (player.classProgression) {
+            let abilitiesMsg = `As a Level ${player.level} ${player.class}, you have:\n`;
+            
+            if (player.classProgression.classAbilities.length > 0) {
+                abilitiesMsg += `\nClass Abilities: ${player.classProgression.classAbilities.join(', ')}`;
+            }
+            
+            if (player.classProgression.knownCantrips.length > 0) {
+                abilitiesMsg += `\nCantrips: ${player.classProgression.knownCantrips.join(', ')}`;
+            }
+            
+            if (player.classProgression.knownSpells.length > 0) {
+                abilitiesMsg += `\nSpells: ${player.classProgression.knownSpells.join(', ')}`;
+            }
+            
+            if (player.classProgression.classFeats.length > 0) {
+                abilitiesMsg += `\nFeats: ${player.classProgression.classFeats.join(', ')}`;
+            }
+            
+            displayMessage(abilitiesMsg, 'info');
+            addToConversationHistory('assistant', abilitiesMsg);
+        } else {
+            displayMessage("Your character abilities haven't been initialized yet.", 'error');
+        }
+        return; // Don't send to AI for this query
+    }
+
     // Check for rest/healing keywords
     if (lowerCommand.includes('rest') || lowerCommand.includes('sleep') || lowerCommand.includes('heal')) {
         const healAmount = Math.floor(Math.random() * 20) + 10;
@@ -1106,7 +1149,7 @@ async function generateQuest() {
 
     const prompt = `Create a quest for ${player.name} (${player.class}, Level ${player.level}) in ${player.currentLocation}. Involve elements like ${randomFaction.name}, ${randomGuild.name}, or ${randomBusiness.name}. Include quest giver, objective, reward (2-3 sentences).`;
 
-    const quest = await callGeminiAPI(prompt, 0.8, 600, true);
+    const quest = await callGeminiAPI(prompt, 0.8, 250, true);
     if (quest) {
         player.quests.push({
             id: Date.now(),
