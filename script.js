@@ -724,8 +724,24 @@ async function handleNPCInteraction() {
 
         // Use QuestCharacterGenerator to get a name
         const npcName = QuestCharacterGenerator.generateRandomCharacter();
+        
+        // Get some example names to provide to the AI
+        const exampleNames = [
+            QuestCharacterGenerator.generateRandomCharacter(),
+            QuestCharacterGenerator.generateRandomCharacter(),
+            QuestCharacterGenerator.generateMerchant(),
+            QuestCharacterGenerator.generateInnkeeper()
+        ];
 
-        const prompt = `Create an NPC named ${npcName} in ${player.currentLocation}. Format: "Appearance: [brief]. Says: [one line dialogue]"`;
+        const prompt = `Create an NPC encounter in ${player.currentLocation}. 
+
+IMPORTANT: The NPC is named "${npcName}" - use this EXACT name, do NOT use generic names like "Elara" or "the villager".
+
+Character name examples from this world: ${exampleNames.join(', ')}
+
+Format: "You see ${npcName}. Appearance: [brief description]. ${npcName} says: [one line of dialogue]"
+
+Use the name "${npcName}" throughout the description.`;
 
         const npcInfo = await callGeminiAPI(prompt, 0.8, 200, true);
         if (npcInfo) {
@@ -733,7 +749,7 @@ async function handleNPCInteraction() {
             saveNPCToLocation(newNPC, player.currentLocation);
             gameWorld.lastNPCInteraction = newNPC.id;
 
-            const encounterMessage = `You encounter someone new: ${npcName}. ${npcInfo}`;
+            const encounterMessage = npcInfo;
             displayMessage(encounterMessage);
             addToConversationHistory('assistant', encounterMessage);
         } else {
@@ -1194,7 +1210,9 @@ function displayShop() {
     backgroundInterface.classList.add('hidden');
     shopInterface.classList.remove('hidden');
 
-    displayMessage("Welcome to the merchant's shop!", 'info');
+    // Generate a specific merchant name
+    const merchantName = QuestCharacterGenerator.generateMerchant();
+    displayMessage(`Welcome to ${merchantName}'s shop!`, 'info');
 
     shopItemsDisplay.innerHTML = '';
 
@@ -2111,27 +2129,42 @@ function displayQuests() {
 async function generateQuest() {
     displayMessage("Seeking new adventures...", 'info');
 
+    // Generate the character name first
+    const questGiverName = QuestCharacterGenerator.generateRandomCharacter();
+    
+    // Get some example names to provide to the AI
+    const exampleNames = [
+        QuestCharacterGenerator.generateRandomCharacter(),
+        QuestCharacterGenerator.generateRandomCharacter(),
+        QuestCharacterGenerator.generateRandomCharacter(),
+        QuestCharacterGenerator.generateMerchant(),
+        QuestCharacterGenerator.generateQuestGiver()
+    ];
+
     const contextPrompt = `
 Generate a fantasy RPG quest for ${player.name} (${player.class}, Level ${player.level}) in ${player.currentLocation}. 
 Current context: HP ${player.hp}/${player.maxHp}, Gold ${player.gold}
 
+IMPORTANT: Use the quest giver name "${questGiverName}" in the quest description. Do NOT use generic names like "Elara", "villager", or "merchant".
+
+Available character names you could reference include: ${exampleNames.join(', ')}
+
 Create a quest that:
 1. Fits their level and class
-2. Has a clear objective
+2. Has a clear objective that involves the quest giver "${questGiverName}"
 3. Mentions specific rewards
 4. Is 2-3 sentences long
 5. Includes potential consequences for success/failure
+6. Uses the specific name "${questGiverName}" instead of generic terms
 
-Format: Just the quest description, no extra text.`;
+Format: Just the quest description using the name "${questGiverName}", no extra text.`;
 
     const questDescription = await callGeminiAPI(contextPrompt, 0.8, 400);
     if (questDescription) {
-        // Use QuestCharacterGenerator to generate the character name
-        const questGiverName = QuestCharacterGenerator.generateRandomCharacter();
-
         const newQuest = {
             id: Date.now(),
-            description: questDescription.replace(/Pip/g, questGiverName), // Replace hardcoded name with generated name
+            description: questDescription,
+            questGiver: questGiverName,
             completed: false
         };
         player.quests.push(newQuest);
