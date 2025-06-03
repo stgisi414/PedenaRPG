@@ -218,7 +218,7 @@ function displayMessage(message, type = 'info') {
 }
 
 function updatePlayerStatsDisplay() {
-    playerNameDisplay.textContent = player.name;
+    playerNameDisplay.textContent = `${player.name} - ${player.currentLocation}`;
     playerLevelDisplay.textContent = `Level: ${player.level}`;
     playerHpDisplay.textContent = `HP: ${player.hp}/${player.maxHp}`;
 }
@@ -867,10 +867,13 @@ async function processCustomCommand(command) {
     displayMessage(`> ${command}`, 'info');
     displayMessage("Processing your command...", 'info');
 
+    // Check for movement first, before AI call
+    await handleCommandConsequences(command, "");
+
     // Create context-rich prompt for the AI
     const contextPrompt = `
 Player: ${player.name} (${player.class}, Level ${player.level})
-Location: ${player.currentLocation}
+Current Location: ${player.currentLocation}
 HP: ${player.hp}/${player.maxHp}
 Gold: ${player.gold}
 Inventory: ${player.inventory.map(item => item.name).join(', ') || 'empty'}
@@ -878,21 +881,11 @@ Equipped: ${Object.values(player.equipment).filter(item => item).map(item => ite
 
 Player Command: "${command}"
 
-As the game master, interpret this command and provide a detailed response describing what happens. Consider the player's stats, location, and inventory. If the command involves:
-- Combat: Create an encounter
-- Movement: Describe traveling to a new location
-- Interaction: Create NPCs or environmental interactions
-- Magic/Skills: Describe magical effects or skill usage
-- Inventory: Handle item usage or examination
+As the game master, interpret this command and provide a detailed response describing what happens. Focus on the immediate narrative result. If movement occurred, acknowledge the new location. Keep response to 2-3 sentences.`;
 
-Respond in 2-4 sentences describing the immediate result of the action.`;
-
-    const response = await callGeminiAPI(contextPrompt, 0.8, 150);
+    const response = await callGeminiAPI(contextPrompt, 0.8, 100);
     if (response) {
         displayMessage(response);
-        
-        // Check if the command might trigger special game mechanics
-        await handleCommandConsequences(command, response);
     } else {
         displayMessage("You attempt the action, but nothing notable happens.");
     }
@@ -913,12 +906,46 @@ async function handleCommandConsequences(command, aiResponse) {
         await handleNPCInteraction();
     }
     
-    // Check for movement keywords
-    if (lowerCommand.includes('go to') || lowerCommand.includes('travel') || lowerCommand.includes('move to')) {
-        const locationMatch = command.match(/(?:go to|travel to|move to)\s+(.+)/i);
-        if (locationMatch) {
-            const newLocation = locationMatch[1].trim();
+    // Enhanced movement detection - check for many movement keywords
+    if (lowerCommand.includes('go to') || lowerCommand.includes('travel') || lowerCommand.includes('move to') ||
+        lowerCommand.includes('leave') || lowerCommand.includes('exit') || lowerCommand.includes('enter') ||
+        lowerCommand.includes('walk to') || lowerCommand.includes('head to') || lowerCommand.includes('journey to') ||
+        lowerCommand.includes('visit') || lowerCommand.includes('flee to') || lowerCommand.includes('escape to')) {
+        
+        // Try to extract location from command
+        let newLocation = null;
+        
+        // Direct location patterns
+        const locationPatterns = [
+            /(?:go to|travel to|move to|walk to|head to|journey to|visit|flee to|escape to)\s+(.+)/i,
+            /(?:leave|exit)\s+(?:the\s+)?(.+?)(?:\s+and|\s+to|\s*$)/i,
+            /(?:enter|go into)\s+(?:the\s+)?(.+)/i
+        ];
+        
+        for (const pattern of locationPatterns) {
+            const match = command.match(pattern);
+            if (match) {
+                newLocation = match[1].trim();
+                break;
+            }
+        }
+        
+        // If no specific location found, use AI to determine movement
+        if (!newLocation && (lowerCommand.includes('leave') || lowerCommand.includes('exit'))) {
+            // Generate a nearby location to move to
+            const nearbyLocations = [
+                GameDataManager.getRandomFrom(gameData.world.cities),
+                GameDataManager.getRandomFrom(gameData.world.regions)
+            ];
+            newLocation = nearbyLocations[Math.floor(Math.random() * nearbyLocations.length)].name;
+            displayMessage(`You leave ${player.currentLocation} and head towards ${newLocation}.`);
+        }
+        
+        if (newLocation) {
+            // Clean up the location name
+            newLocation = newLocation.replace(/^(the|a|an)\s+/i, '').trim();
             player.currentLocation = newLocation;
+            displayMessage(`You are now in ${newLocation}.`);
             await generateWorldDescription(newLocation);
             if (Math.random() < 0.3) checkRandomEncounter();
         }
