@@ -723,7 +723,7 @@ async function handleNPCInteraction() {
         const randomFaction = GameDataManager.getRandomFrom(gameData.organizations.factions);
 
         // Use QuestCharacterGenerator to get a name
-        const npcName = QuestCharacterGenerator.generateName();
+        const npcName = QuestCharacterGenerator.generateRandomCharacter();
 
         const prompt = `Create an NPC named ${npcName} in ${player.currentLocation}. Format: "Appearance: [brief]. Says: [one line dialogue]"`;
 
@@ -2127,7 +2127,7 @@ Format: Just the quest description, no extra text.`;
     const questDescription = await callGeminiAPI(contextPrompt, 0.8, 400);
     if (questDescription) {
         // Use QuestCharacterGenerator to generate the character name
-        const questGiverName = QuestCharacterGenerator.generateName();
+        const questGiverName = QuestCharacterGenerator.generateRandomCharacter();
 
         const newQuest = {
             id: Date.now(),
