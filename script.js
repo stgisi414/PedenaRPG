@@ -1375,7 +1375,7 @@ function getActiveQuestsContext() {
 
 function updateQuestButton() {
     console.log('updateQuestButton called - Total quests:', player.quests.length, 'Active quests:', player.quests.filter(q => !q.completed).length);
-    
+
     const activeQuests = player.quests.filter(q => !q.completed);
     if (activeQuests.length > 0) {
         newQuestBtn.textContent = `View Quests (${activeQuests.length})`;
@@ -1414,7 +1414,9 @@ function displayQuests() {
         activeHeader.textContent = 'Active Quests';
         questListDisplay.appendChild(activeHeader);
 
-        activeQuests.forEach(quest => {
+        activeCorrecting runtime errors and making quest functions globally accessible.
+```javascript
+Quests.forEach(quest => {
             const questDiv = document.createElement('div');
             questDiv.classList.add('parchment-box', 'p-4', 'mb-3', 'border-l-4', 'border-green-600');
             questDiv.innerHTML = `
@@ -1488,7 +1490,7 @@ Format: Just the quest description, no extra text.`;
         console.log('Quest added:', newQuest);
         console.log('Total quests:', player.quests.length);
         console.log('Active quests:', player.quests.filter(q => !q.completed).length);
-        
+
         displayMessage(`New quest available: ${questDescription}`, 'success');
         updateQuestButton();
         saveGame(); // Auto-save when quest is generated
@@ -1510,10 +1512,11 @@ document.addEventListener('DOMContentLoaded', () => {
     // Make functions globally accessible
     window.displayCharacterProgression = displayCharacterProgression;
     window.updateQuestButton = updateQuestButton;
-    window.abandonQuest = abandonQuest;
     window.markQuestComplete = markQuestComplete;
     window.displayQuests = displayQuests;
     window.generateQuest = generateQuest;
+    window.learnNewSpell = learnNewSpell;
+    window.abandonQuest = abandonQuest;
 });
 
 function displayLevelUpRewards(progression, oldLevel) {
@@ -1577,8 +1580,6 @@ function displayCharacterProgression() {
     progressionInterface.classList.remove('hidden');
 
     const progressionContent = document.getElementById('progression-content');
-Action analysis and new action handling functions are integrated for better command processing.
-```javascript
     const progression = CharacterManager.getCharacterProgression(player);
 
     progressionContent.innerHTML = `
