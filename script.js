@@ -262,6 +262,21 @@ const enemies = [
 ];
 
 // Helper Functions
+function updateGold(amount, reason = '') {
+    const oldGold = player.gold;
+    player.gold = Math.max(0, player.gold + amount);
+    
+    if (amount > 0) {
+        displayMessage(`You gained ${amount} gold${reason ? ` (${reason})` : ''}!`, 'success');
+    } else if (amount < 0) {
+        const actualLoss = oldGold - player.gold;
+        displayMessage(`You lost ${actualLoss} gold${reason ? ` (${reason})` : ''}.`, 'error');
+    }
+    
+    updatePlayerStatsDisplay();
+    console.log(`Gold updated: ${oldGold} -> ${player.gold} (change: ${amount})`);
+}
+
 function displayMessage(message, type = 'info') {
     const p = document.createElement('p');
     p.classList.add('mb-2', 'pb-1', 'border-b', 'border-amber-700/50');
@@ -647,8 +662,8 @@ async function playerAttack() {
     if (player.currentEnemy.hp <= 0) {
         displayMessage(`You defeated the ${player.currentEnemy.name}!`, 'success');
         player.exp += player.currentEnemy.expReward;
-        player.gold += player.currentEnemy.goldDrop;
-        displayMessage(`You gained ${player.currentEnemy.expReward} EXP and ${player.currentEnemy.goldDrop} gold.`, 'success');
+        updateGold(player.currentEnemy.goldDrop, 'combat victory');
+        displayMessage(`You gained ${player.currentEnemy.expReward} EXP!`, 'success');
         
         // Generate random loot using new system (30% chance)
         if (Math.random() < 0.3) {
@@ -1142,13 +1157,12 @@ function displayShop() {
 
 function buyItem(item) {
     if (player.gold >= item.price) {
-        player.gold -= item.price;
+        updateGold(-item.price, `purchased ${item.name}`);
         const purchasedItem = { ...item };
         delete purchasedItem.price; // Remove price property from inventory item
         player.inventory.push(purchasedItem);
-        displayMessage(`You bought ${item.name} for ${item.price} gold!`, 'success');
-        updatePlayerStatsDisplay();
         displayShop(); // Refresh shop to update gold display and affordable items
+        saveGame(); // Save after purchase
     } else {
         displayMessage(`You don't have enough gold to buy ${item.name}. You need ${item.price - player.gold} more gold.`, 'error');
     }
@@ -1546,8 +1560,7 @@ async function handleExplorationAction(extractedData) {
             displayMessage(`You found: ${foundItem.name}!`, 'success');
         } else {
             const goldFound = Math.floor(Math.random() * 15) + 5;
-            player.gold += goldFound;
-            displayMessage(`You found ${goldFound} gold!`, 'success');
+            updateGold(goldFound, 'exploration');
         }
         updatePlayerStatsDisplay();
     }
@@ -1591,10 +1604,12 @@ async function handleSkillAction(extractedData) {
 async function processActionResults(actionAnalysis, aiResponse) {
     // Process secondary effects based on AI response and action type
     const { actionType } = actionAnalysis;
+    let gameStateChanged = false;
 
     // Check if AI response indicates quest progress
     if (aiResponse.toLowerCase().includes('quest') && aiResponse.toLowerCase().includes('complete')) {
         checkQuestCompletion(aiResponse);
+        gameStateChanged = true;
     }
 
     // Check for level up or experience gain
@@ -1603,11 +1618,47 @@ async function processActionResults(actionAnalysis, aiResponse) {
         if (expMatch) {
             const expGained = parseInt(expMatch[1]);
             player.exp += expGained;
+            displayMessage(`You gained ${expGained} experience!`, 'success');
             checkLevelUp();
+            gameStateChanged = true;
         }
     }
 
-    updatePlayerStatsDisplay();
+    // Check for gold gain or loss in AI response
+    const goldMatches = [
+        aiResponse.match(/(?:gain|find|receive|earn|get|obtain)\s*(\d+)\s*gold/i),
+        aiResponse.match(/(\d+)\s*gold\s*(?:pieces?|coins?)?.*(?:gained|found|received|earned|obtained)/i),
+        aiResponse.match(/(?:lose|lost|spend|pay|cost)\s*(\d+)\s*gold/i),
+        aiResponse.match(/(\d+)\s*gold.*(?:lost|spent|paid|costs?)/i)
+    ];
+
+    for (const match of goldMatches) {
+        if (match) {
+            const goldAmount = parseInt(match[1]);
+            const isLoss = /(?:lose|lost|spend|pay|cost)/i.test(aiResponse);
+            
+            if (isLoss) {
+                player.gold = Math.max(0, player.gold - goldAmount);
+                displayMessage(`You lost ${goldAmount} gold.`, 'error');
+            } else {
+                player.gold += goldAmount;
+                displayMessage(`You gained ${goldAmount} gold!`, 'success');
+            }
+            gameStateChanged = true;
+            break; // Only process the first gold match to avoid duplicates
+        }
+    }
+
+    // Check for item mentions that might need to be added to inventory
+    if (aiResponse.toLowerCase().includes('receive') && (aiResponse.toLowerCase().includes('item') || aiResponse.toLowerCase().includes('weapon') || aiResponse.toLowerCase().includes('armor') || aiResponse.toLowerCase().includes('potion'))) {
+        // This will be handled by the existing handleItemReceival function
+        console.log('Item receival detected in AI response');
+    }
+
+    if (gameStateChanged) {
+        updatePlayerStatsDisplay();
+        saveGame(); // Auto-save when game state changes significantly
+    }
 }
 
 function checkQuestCompletion(aiResponse) {
@@ -1617,9 +1668,17 @@ function checkQuestCompletion(aiResponse) {
         // Mark first active quest as completed if AI indicates success
         activeQuests[0].completed = true;
         displayMessage("Quest completed!", 'success');
-        player.exp += 50; // Bonus experience
-        player.gold += 25; // Bonus gold
+        
+        // Bonus rewards
+        const expReward = 50;
+        const goldReward = 25;
+        
+        player.exp += expReward;
+        player.gold += goldReward;
+        
+        displayMessage(`Quest rewards: ${expReward} experience and ${goldReward} gold!`, 'success');
         updateQuestButton();
+        updatePlayerStatsDisplay();
     }
 }
 
