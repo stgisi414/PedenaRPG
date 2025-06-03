@@ -386,14 +386,25 @@ function updateGold(amount, reason = '') {
 function displayMessage(message, type = 'info') {
     const p = document.createElement('p');
     p.classList.add('mb-2', 'pb-1', 'border-b', 'border-amber-700/50');
+    
+    let icon = '';
     if (type === 'combat') {
         p.classList.add('text-red-700', 'font-bold');
+        icon = '<i class="gi gi-sword-brandish mr-2"></i>';
     } else if (type === 'success') {
         p.classList.add('text-green-700');
+        icon = '<i class="gi gi-check-mark mr-2"></i>';
     } else if (type === 'error') {
         p.classList.add('text-red-500');
+        icon = '<i class="gi gi-cancel mr-2"></i>';
+    } else if (type === 'exploration') {
+        p.classList.add('text-blue-600');
+        icon = '<i class="gi gi-telescope mr-2"></i>';
+    } else if (type === 'info') {
+        icon = '<i class="gi gi-scroll-quill mr-2"></i>';
     }
-    p.textContent = message;
+    
+    p.innerHTML = icon + message;
     gameOutput.appendChild(p);
     gameOutput.scrollTop = gameOutput.scrollHeight; // Auto-scroll to bottom
 }
@@ -939,7 +950,7 @@ function displayInventory() {
     // Show gold
     const goldDiv = document.createElement('div');
     goldDiv.classList.add('parchment-box', 'p-3', 'mb-4', 'text-center');
-    goldDiv.innerHTML = `<p class="font-bold text-xl">Gold: ${player.gold}</p>`;
+    goldDiv.innerHTML = `<p class="font-bold text-xl"><i class="gi gi-gold-bar mr-2"></i>Gold: ${player.gold}</p>`;
     inventoryItemsDisplay.appendChild(goldDiv);
 
     // Show inventory count for debugging
@@ -966,7 +977,7 @@ function displayInventory() {
     // Show equipped items
     const equippedDiv = document.createElement('div');
     equippedDiv.classList.add('parchment-box', 'p-3', 'mb-4');
-    equippedDiv.innerHTML = '<h4 class="font-bold mb-2">Currently Equipped:</h4>';
+    equippedDiv.innerHTML = '<h4 class="font-bold mb-2"><i class="gi gi-armor-upgrade mr-2"></i>Currently Equipped:</h4>';
     const equippedItems = Object.entries(player.equipment).filter(([slot, item]) => item);
     if (equippedItems.length > 0) {
         equippedItems.forEach(([slot, item]) => {
@@ -1022,7 +1033,7 @@ function displayInventory() {
         if (item.type === 'consumable') {
             const useBtn = document.createElement('button');
             useBtn.classList.add('btn-parchment', 'text-sm', 'px-3', 'py-1');
-            useBtn.textContent = 'Use';
+            useBtn.innerHTML = '<i class="gi gi-drink-me mr-1"></i>Use';
             useBtn.onclick = () => useItem(index);
             buttonContainer.appendChild(useBtn);
         }
@@ -1030,7 +1041,7 @@ function displayInventory() {
         if (item.languageContent) {
             const readBtn = document.createElement('button');
             readBtn.classList.add('btn-parchment', 'text-sm', 'px-3', 'py-1', 'bg-purple-600', 'text-white');
-            readBtn.textContent = item.type === 'scroll' ? 'Read & Cast' : 'Study';
+            readBtn.innerHTML = item.type === 'scroll' ? '<i class="gi gi-scroll-unfurled mr-1"></i>Read & Cast' : '<i class="gi gi-book-cover mr-1"></i>Study';
             readBtn.onclick = () => useItem(index);
             buttonContainer.appendChild(readBtn);
         }
@@ -1038,7 +1049,8 @@ function displayInventory() {
         if (item.type === 'weapon' || item.type === 'armor') {
             const equipBtn = document.createElement('button');
             equipBtn.classList.add('btn-parchment', 'text-sm', 'px-3', 'py-1');
-            equipBtn.textContent = 'Equip';
+            const equipIcon = item.type === 'weapon' ? 'gi-sword' : 'gi-chest-armor';
+            equipBtn.innerHTML = `<i class="gi ${equipIcon} mr-1"></i>Equip`;
             equipBtn.onclick = () => equipItem(index);
             buttonContainer.appendChild(equipBtn);
         }
@@ -1233,7 +1245,7 @@ function displayShop() {
     // Add gold display at top first
     const goldDisplay = document.createElement('div');
     goldDisplay.classList.add('parchment-box', 'p-4', 'mb-6', 'text-center', 'bg-amber-100', 'border-2', 'border-amber-600');
-    goldDisplay.innerHTML = `<p class="font-bold text-2xl text-amber-900">Your Gold: ${player.gold}</p>`;
+    goldDisplay.innerHTML = `<p class="font-bold text-2xl text-amber-900"><i class="gi gi-gold-bar mr-3"></i>Your Gold: ${player.gold}</p>`;
     shopItemsDisplay.appendChild(goldDisplay);
 
     // Create shop items with markup prices
@@ -2271,6 +2283,29 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Load conversation history if available
     loadConversationHistory();
+
+    // Add event listeners for quick action buttons
+    document.getElementById('rest-btn')?.addEventListener('click', () => {
+        restPlayer();
+    });
+
+    document.getElementById('explore-btn')?.addEventListener('click', () => {
+        explore();
+    });
+
+    document.getElementById('cast-spell-btn')?.addEventListener('click', () => {
+        displayMessage("You focus your magical energy... (Use custom commands to cast specific spells)", 'info');
+    });
+
+    document.getElementById('pray-btn')?.addEventListener('click', () => {
+        displayMessage("You offer a prayer to the gods... A sense of peace washes over you.", 'success');
+        if (Math.random() < 0.3) {
+            const healAmount = Math.floor(Math.random() * 10) + 5;
+            player.hp = Math.min(player.maxHp, player.hp + healAmount);
+            displayMessage(`Your prayer is answered! You feel blessed and recover ${healAmount} HP.`, 'success');
+            updatePlayerStatsDisplay();
+        }
+    });
 
     // Make functions globally accessible
     window.displayCharacterProgression = displayCharacterProgression;
