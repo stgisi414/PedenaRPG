@@ -1,4 +1,159 @@
-html {
-  height: 100%;
-  width: 100%;
+body {
+    background-color: #262626; /* Dark stone */
+    color: #f5f5dc; /* Off-white for general body text (this applies to the outermost body) */
+    font-family: 'Merriweather', serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    padding: 20px;
+    box-sizing: border-box;
+}
+
+#game-container {
+    background-color: #8B4513; /* Saddle Brown - outer container */
+    border: 10px solid #5A2D0C; /* Darker brown for border */
+    position: relative;
+    box-shadow: 0 0 25px rgba(0, 0, 0, 0.7);
+    border-radius: 12px;
+    padding: 0; /* Remove padding here, add to inner content */
+}
+
+#parchment-background {
+    background-image: url('https://raw.githubusercontent.com/Anonymously-Stated/html-css-js-website-prompt-generator/main/images/parchment.jpeg'); /* Placeholder parchment texture */
+    background-size: cover;
+    background-position: center;
+    opacity: 0.9; /* Slightly transparent to let main color show through */
+    border-radius: 8px; /* Slightly smaller border-radius than container */
+    filter: sepia(0.3) saturate(1.2); /* Gives it a warm, aged look */
+    z-index: 0;
+}
+
+#game-container > div.relative {
+    /* This div contains the actual content and sits above the parchment background */
+    background-color: rgba(255, 255, 255, 0.05); /* Very slight translucent overlay for text readability */
+    border-radius: 8px;
+    padding: 2rem;
+    color: #4A2000; /* Deep dark brown for general text inside the parchment content area */
+}
+
+
+h1, h2, h3, h4 {
+    font-family: 'Old Standard TT', serif;
+    color: #4A2000; /* Deep dark brown for headings for strong contrast */
+    text-shadow: 1px 1px 2px rgba(255, 255, 255, 0.3); /* Lighter shadow for readability */
+}
+
+/* Specific text colors previously defined should also be adjusted */
+/* These specific Tailwind classes should ideally be *removed* from HTML for primary text if you want full CSS control here.
+   However, if you *must* keep them in HTML, adding !important would override.
+   For now, we've removed them from the HTML for better control. */
+.text-amber-900 {
+    color: #4A2000; /* Make sure this is a dark, readable color for headings/important text */
+}
+
+.text-amber-800 {
+    color: #7B3F00; /* A slightly lighter, but still dark, brown for subheadings/flavor text */
+}
+
+/* Ensure other specific text colors are also readable */
+.text-red-700 {
+    color: #991B1B; /* Darker red for combat, clearly visible */
+}
+.text-green-700 {
+    color: #065F46; /* Darker green for success messages */
+}
+.text-blue-700 {
+    color: #1D4ED8; /* Standard blue, ensure contrast */
+}
+.text-purple-700 {
+    color: #6D28D9; /* Standard purple, ensure contrast */
+}
+.text-orange-700 {
+    color: #C2410C; /* Standard orange, ensure contrast */
+}
+
+
+.btn-parchment {
+    @apply px-6 py-3 rounded-md shadow-lg transition-all duration-300 ease-in-out font-bold text-xl;
+    background-color: #D2B48C; /* Tan */
+    color: #5A2D0C; /* Dark brown text on buttons */
+    border: 2px solid #A0522D; /* Sienna border */
+    text-shadow: 1px 1px 1px rgba(255, 255, 255, 0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn-parchment:hover {
+    background-color: #E6D8C8; /* Lighter tan on hover */
+    transform: translateY(-2px);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+}
+
+.btn-parchment:disabled {
+    background-color: #BDB76B; /* Dark Khaki */
+    color: #7B68EE; /* Medium Slate Blue */
+    cursor: not-allowed;
+    opacity: 0.7;
+    transform: none;
+    box-shadow: none;
+}
+
+.input-parchment,
+.parchment-box {
+    background-color: #F5DEB3; /* Wheat */
+    border: 2px solid #D2B48C; /* Tan border */
+    color: #5A2D0C; /* Dark brown text within inputs and output boxes */
+    padding: 0.75rem 1rem;
+    border-radius: 6px;
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.input-parchment::placeholder {
+    color: #A0522D; /* Sienna placeholder */
+    opacity: 0.8;
+}
+
+.input-parchment:focus {
+    outline: none;
+    border-color: #8B4513; /* Sienna on focus */
+    box-shadow: 0 0 0 3px rgba(139, 69, 19, 0.3);
+}
+
+.parchment-box {
+    min-height: 150px;
+    line-height: 1.6;
+    font-size: 1.1rem;
+    white-space: pre-wrap; /* Preserve whitespace and line breaks */
+    word-wrap: break-word; /* Break long words */
+}
+
+/* Game Icons Adjustments */
+.gi {
+    vertical-align: middle;
+}
+
+/* Specific button colors for combat/shop/etc. */
+#attack-btn {
+    background-color: #DC2626; /* Tailwind Red 600 */
+    border-color: #B91C1C; /* Tailwind Red 700 */
+    color: white; /* White text on red button */
+}
+#attack-btn:hover {
+    background-color: #B91C1C;
+}
+
+#flee-btn, #exit-shop-btn, #exit-inventory-btn, #exit-skills-btn, #exit-quests-btn {
+    background-color: #4B5563; /* Tailwind Gray 600 */
+    border-color: #374151; /* Tailwind Gray 700 */
+    color: white; /* White text on gray button */
+}
+#flee-btn:hover, #exit-shop-btn:hover, #exit-inventory-btn:hover, #exit-skills-btn:hover, #exit-quests-btn:hover {
+    background-color: #374151;
+}
+
+/* Hide elements initially, controlled by JS */
+.hidden {
+    display: none !important;
 }
