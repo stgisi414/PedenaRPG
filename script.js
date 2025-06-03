@@ -274,9 +274,9 @@ async function generateCharacterBackground() {
     charBackgroundTextarea.value = "Generating character background...";
     generateBackgroundBtn.disabled = true;
     
-    const prompt = `Generate a concise and engaging fantasy RPG character background for a ${gender} ${charClass} named ${name} in the magical land of Pedena. The background should be about 3-4 sentences long and hint at their origin and motivation.`;
+    const prompt = `Write a brief fantasy RPG background for ${name}, a ${gender} ${charClass} in Pedena. 2-3 sentences about origin and goals.`;
 
-    const background = await callGeminiAPI(prompt, 0.8, 150);
+    const background = await callGeminiAPI(prompt, 0.8, 100);
     if (background) {
         charBackgroundTextarea.value = background;
         player.background = background;
@@ -711,3 +711,5 @@ document.addEventListener('DOMContentLoaded', () => {
         loadGameBtn.disabled = false;
     }
 });
+
+// End of file
