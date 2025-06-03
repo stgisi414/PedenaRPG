@@ -53,6 +53,50 @@ let gameWorld = {
     lastNPCInteraction: null
 };
 
+// Conversation History System for AI Context
+let conversationHistory = {
+    messages: [], // Array of {role: 'user'|'assistant', content: string, timestamp: number}
+    maxMessages: 50
+};
+
+function addToConversationHistory(role, content) {
+    conversationHistory.messages.push({
+        role: role,
+        content: content,
+        timestamp: Date.now()
+    });
+    
+    // Keep only the last 50 messages
+    if (conversationHistory.messages.length > conversationHistory.maxMessages) {
+        conversationHistory.messages = conversationHistory.messages.slice(-conversationHistory.maxMessages);
+    }
+}
+
+function getConversationContext() {
+    // Return the conversation history formatted for AI context
+    const recentMessages = conversationHistory.messages.slice(-20); // Last 20 for context
+    const contextString = recentMessages.map(msg => 
+        `${msg.role === 'user' ? 'Player' : 'DM'}: ${msg.content}`
+    ).join('\n');
+    
+    return contextString;
+}
+
+function saveConversationHistory() {
+    localStorage.setItem('pedenaConversationHistory', JSON.stringify(conversationHistory));
+}
+
+function loadConversationHistory() {
+    const saved = localStorage.getItem('pedenaConversationHistory');
+    if (saved) {
+        conversationHistory = JSON.parse(saved);
+        // Ensure maxMessages property exists
+        if (!conversationHistory.maxMessages) {
+            conversationHistory.maxMessages = 50;
+        }
+    }
+}
+
 // DOM Elements
 const startScreen = document.getElementById('start-screen');
 const newGameBtn = document.getElementById('new-game-btn');
@@ -251,9 +295,11 @@ function saveGame() {
             npcs: Array.from(gameWorld.npcs.entries()),
             locationMemory: Array.from(gameWorld.locationMemory.entries()),
             lastNPCInteraction: gameWorld.lastNPCInteraction
-        }
+        },
+        conversationHistory: conversationHistory
     };
     localStorage.setItem('pedenaRPGSave', JSON.stringify(saveData));
+    saveConversationHistory(); // Also save conversation separately
     displayMessage("Game saved!", 'success');
     loadGameBtn.disabled = false; // Enable load game button if a save exists
 }
@@ -272,6 +318,16 @@ function loadGame() {
                 gameWorld.locationMemory = new Map(saveData.gameWorld.locationMemory);
                 gameWorld.lastNPCInteraction = saveData.gameWorld.lastNPCInteraction;
             }
+            // Restore conversation history if it exists
+            if (saveData.conversationHistory) {
+                conversationHistory = saveData.conversationHistory;
+                if (!conversationHistory.maxMessages) {
+                    conversationHistory.maxMessages = 50;
+                }
+            } else {
+                // Try to load from separate storage
+                loadConversationHistory();
+            }
             // Load character progression if available
             if (player.name) {
                 CharacterManager.loadProgression(player);
@@ -279,18 +335,26 @@ function loadGame() {
         } else {
             // Old format - just player
             player = saveData;
+            loadConversationHistory();
         }
 
         displayMessage("Game loaded!", 'success');
         updatePlayerStatsDisplay();
         showScreen('game-play-screen');
         displayMessage(`Welcome back, ${player.name}! You are in ${player.currentLocation}.`);
+        
+        // Add to conversation history
+        addToConversationHistory('assistant', `Welcome back, ${player.name}! You are in ${player.currentLocation}.`);
 
         // Show existing NPCs if any
         const existingNPCs = getNPCsInLocation(player.currentLocation);
         if (existingNPCs.length > 0) {
-            displayMessage(`You notice ${existingNPCs.map(npc => npc.name).join(', ')} in the area.`);
+            const npcMessage = `You notice ${existingNPCs.map(npc => npc.name).join(', ')} in the area.`;
+            displayMessage(npcMessage);
+            addToConversationHistory('assistant', npcMessage);
         }
+        
+        saveConversationHistory();
     } else {
         displayMessage("No saved game found.", 'error');
     }
@@ -306,15 +370,31 @@ function rollDice(diceString) {
 }
 
 // AI Interaction Functions (Gemini API Calls)
-async function callGeminiAPI(prompt, temperature = 0.10, maxOutputTokens = 2000) {
+async function callGeminiAPI(prompt, temperature = 0.10, maxOutputTokens = 800, includeContext = true) {
     try {
+        let fullPrompt = prompt;
+        
+        // Add conversation context if requested and available
+        if (includeContext && conversationHistory.messages.length > 0) {
+            const context = getConversationContext();
+            if (context) {
+                fullPrompt = `CONVERSATION HISTORY (Last 20 exchanges):
+${context}
+
+CURRENT REQUEST:
+${prompt}
+
+Please respond as the DM, maintaining consistency with the conversation history above.`;
+            }
+        }
+        
         const response = await fetch(GEMINI_API_URL, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-                contents: [{ parts: [{ text: prompt }] }],
+                contents: [{ parts: [{ text: fullPrompt }] }],
                 generationConfig: {
                     temperature: temperature,
                     maxOutputTokens: maxOutputTokens,
@@ -435,7 +515,7 @@ async function generateCharacterBackground() {
 
     const prompt = `Create a brief background for ${name}, a ${gender} ${charClass} in Pedena. Use these world elements: Cities like ${context.worldLore.majorCities.join(', ')}; factions like ${context.worldLore.activeFactions.join(', ')}; guilds like ${context.worldLore.availableGuilds.join(', ')}. 2-3 sentences about origin and goals.`;
 
-    const background = await callGeminiAPI(prompt, 0.8, 800);
+    const background = await callGeminiAPI(prompt, 0.8, 400, false); // Don't include conversation history for character creation
     if (background) {
         charBackgroundTextarea.value = background;
         player.background = background;
@@ -505,7 +585,9 @@ async function handleNPCInteraction() {
     if (existingNPCs.length > 0 && Math.random() > 0.3) {
         // 70% chance to interact with existing NPC
         const npc = existingNPCs[Math.floor(Math.random() * existingNPCs.length)];
-        displayMessage(`You see ${npc.name} again. ${npc.description}`);
+        const npcMessage = `You see ${npc.name} again. ${npc.description}`;
+        displayMessage(npcMessage);
+        addToConversationHistory('assistant', npcMessage);
         gameWorld.lastNPCInteraction = npc.id;
     } else {
         // Create new NPC
@@ -514,7 +596,7 @@ async function handleNPCInteraction() {
 
         const prompt = `Create NPC in ${player.currentLocation}. Format: "Name: [name]. Appearance: [brief]. Says: [one line dialogue]"`;
 
-        const npcInfo = await callGeminiAPI(prompt, 0.8, 800);
+        const npcInfo = await callGeminiAPI(prompt, 0.8, 400, true);
         if (npcInfo) {
             // Parse the NPC info to extract name
             const nameMatch = npcInfo.match(/Name:\s*([^.]+)/);
@@ -524,11 +606,16 @@ async function handleNPCInteraction() {
             saveNPCToLocation(newNPC, player.currentLocation);
             gameWorld.lastNPCInteraction = newNPC.id;
 
-            displayMessage(`You encounter someone new: ${npcInfo}`);
+            const encounterMessage = `You encounter someone new: ${npcInfo}`;
+            displayMessage(encounterMessage);
+            addToConversationHistory('assistant', encounterMessage);
         } else {
-            displayMessage("You don't see anyone interesting to talk to right now.");
+            const fallbackMessage = "You don't see anyone interesting to talk to right now.";
+            displayMessage(fallbackMessage);
+            addToConversationHistory('assistant', fallbackMessage);
         }
     }
+    saveConversationHistory();
 }
 
 async function initiateCombat(enemy) {
@@ -890,6 +977,7 @@ async function processCustomCommand(command) {
     }
 
     displayMessage(`> ${command}`, 'info');
+    addToConversationHistory('user', command);
     displayMessage("Processing your command...", 'info');
 
     // Check for movement first, before AI call
@@ -897,6 +985,7 @@ async function processCustomCommand(command) {
 
     // Create context-rich prompt for the AI
     const contextPrompt = `
+CURRENT GAME STATE:
 Player: ${player.name} (${player.class}, Level ${player.level})
 Current Location: ${player.currentLocation}
 HP: ${player.hp}/${player.maxHp}
@@ -904,15 +993,22 @@ Gold: ${player.gold}
 Inventory: ${player.inventory.map(item => item.name).join(', ') || 'empty'}
 Equipped: ${Object.values(player.equipment).filter(item => item).map(item => item.name).join(', ') || 'nothing'}
 
+NPCs in location: ${getNPCsInLocation(player.currentLocation).map(npc => npc.name).join(', ') || 'none'}
+
 Player Command: "${command}"
 
 As the game master, interpret this command and provide a detailed response describing what happens. Focus on the immediate narrative result. If movement occurred, acknowledge the new location. Keep response to 2-3 sentences.`;
 
-    const response = await callGeminiAPI(contextPrompt, 0.8, 1500);
+    const response = await callGeminiAPI(contextPrompt, 0.8, 800, true);
     if (response) {
         displayMessage(response);
+        addToConversationHistory('assistant', response);
+        saveConversationHistory();
     } else {
-        displayMessage("You attempt the action, but nothing notable happens.");
+        const fallbackResponse = "You attempt the action, but nothing notable happens.";
+        displayMessage(fallbackResponse);
+        addToConversationHistory('assistant', fallbackResponse);
+        saveConversationHistory();
     }
 }
 
@@ -1001,6 +1097,7 @@ async function generateQuest() {
     }
 
     displayMessage("A mysterious figure approaches with a quest...", 'info');
+    addToConversationHistory('user', 'Request new quest');
 
     // Use world data for quest context
     const randomFaction = GameDataManager.getRandomFrom(gameData.organizations.factions);
@@ -1009,17 +1106,22 @@ async function generateQuest() {
 
     const prompt = `Create a quest for ${player.name} (${player.class}, Level ${player.level}) in ${player.currentLocation}. Involve elements like ${randomFaction.name}, ${randomGuild.name}, or ${randomBusiness.name}. Include quest giver, objective, reward (2-3 sentences).`;
 
-    const quest = await callGeminiAPI(prompt, 0.8, 1200);
+    const quest = await callGeminiAPI(prompt, 0.8, 600, true);
     if (quest) {
         player.quests.push({
             id: Date.now(),
             description: quest,
             completed: false
         });
-        displayMessage(`New Quest Added: ${quest}`, 'success');
+        const questMessage = `New Quest Added: ${quest}`;
+        displayMessage(questMessage, 'success');
+        addToConversationHistory('assistant', questMessage);
     } else {
-        displayMessage("No one seems to have any tasks for you right now.");
+        const fallbackMessage = "No one seems to have any tasks for you right now.";
+        displayMessage(fallbackMessage);
+        addToConversationHistory('assistant', fallbackMessage);
     }
+    saveConversationHistory();
 }
 
 function displayQuests() {
@@ -1148,6 +1250,9 @@ document.addEventListener('DOMContentLoaded', () => {
     if (localStorage.getItem('pedenaRPGSave')) {
         loadGameBtn.disabled = false;
     }
+
+    // Load conversation history if available
+    loadConversationHistory();
 
     // Make displayCharacterProgression globally accessible
     window.displayCharacterProgression = displayCharacterProgression;
