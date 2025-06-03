@@ -1423,6 +1423,10 @@ exitBackgroundBtn.addEventListener('click', () => {
     backgroundInterface.classList.add('hidden');
 });
 
+document.getElementById('exit-progression-btn').addEventListener('click', () => {
+    document.getElementById('progression-interface').classList.add('hidden');
+});
+
 // Quest management functions
 function markQuestComplete(questId) {
     const quest = player.quests.find(q => q.id === questId);
@@ -1640,26 +1644,11 @@ function displayCharacterProgression() {
     combatInterface.classList.add('hidden');
     backgroundInterface.classList.add('hidden');
 
-    // Create progression interface if it doesn't exist
-    let progressionInterface = document.getElementById('progression-interface');
+    // Use the existing progression interface from HTML
+    const progressionInterface = document.getElementById('progression-interface');
     if (!progressionInterface) {
-        progressionInterface = document.createElement('div');
-        progressionInterface.id = 'progression-interface';
-        progressionInterface.classList.add('hidden', 'mt-6');
-        progressionInterface.innerHTML = `
-            <h4 class="text-2xl font-bold text-purple-700 mb-4 text-center">Character Progression</h4>
-            <div id="progression-content" class="parchment-box p-4 mb-4"></div>
-            <div class="text-center">
-                <button id="exit-progression-btn" class="btn-parchment bg-gray-600 hover:bg-gray-700 text-white">Close Progression</button>
-            </div>
-        `;
-        gamePlayScreen.appendChild(progressionInterface);
-
-        // Add event listener for the close button
-        const exitBtn = progressionInterface.querySelector('#exit-progression-btn');
-        exitBtn.addEventListener('click', () => {
-            progressionInterface.classList.add('hidden');
-        });
+        displayMessage("Error: Could not find progression interface element.", 'error');
+        return;
     }
 
     progressionInterface.classList.remove('hidden');
