@@ -766,13 +766,33 @@ function displayInventory() {
     // Update status effects before displaying inventory
     ItemManager.updateStatusEffects(player);
 
+    // Load fresh inventory from storage
+    ItemManager.loadInventoryFromStorage(player);
+
     inventoryItemsDisplay.innerHTML = '';
+
+    // Debug information
+    console.log('Displaying inventory for:', player.name);
+    console.log('Current inventory:', player.inventory);
+    console.log('Inventory length:', player.inventory ? player.inventory.length : 'undefined');
+
+    // Ensure inventory exists
+    if (!player.inventory) {
+        player.inventory = [];
+        console.log('Inventory was undefined, initialized empty array');
+    }
 
     // Show gold
     const goldDiv = document.createElement('div');
     goldDiv.classList.add('parchment-box', 'p-3', 'mb-4', 'text-center');
     goldDiv.innerHTML = `<p class="font-bold text-xl">Gold: ${player.gold}</p>`;
     inventoryItemsDisplay.appendChild(goldDiv);
+
+    // Show inventory count for debugging
+    const debugDiv = document.createElement('div');
+    debugDiv.classList.add('parchment-box', 'p-3', 'mb-4', 'text-center', 'bg-blue-50');
+    debugDiv.innerHTML = `<p class="text-sm">Inventory Items: ${player.inventory.length}</p>`;
+    inventoryItemsDisplay.appendChild(debugDiv);
 
     // Show active status effects
     if (player.statusEffects && player.statusEffects.length > 0) {
@@ -806,7 +826,7 @@ function displayInventory() {
     inventoryItemsDisplay.appendChild(equippedDiv);
 
     if (player.inventory.length === 0) {
-        inventoryItemsDisplay.innerHTML += '<p class="text-center text-amber-800">Your inventory is empty.</p>';
+        inventoryItemsDisplay.innerHTML += '<p class="text-center text-amber-800">Your inventory is empty. Check the console for debugging information.</p>';
         return;
     }
 
@@ -1225,9 +1245,20 @@ async function handleItemReceival(command) {
     if (aiResponse) {
         const generatedItem = parseAIItemResponse(aiResponse, context);
         if (generatedItem) {
-            ItemManager.addItemToInventory(player, generatedItem);
+            // Ensure inventory array exists
+            if (!player.inventory) {
+                player.inventory = [];
+            }
+            
+            // Add item to inventory
+            player.inventory.push(generatedItem);
+            
+            // Save to local storage immediately
+            ItemManager.saveInventoryToStorage(player);
+            
             displayMessage(`You received: ${generatedItem.name}!`, 'success');
             displayMessage(`${generatedItem.description}`, 'info');
+            displayMessage(`Item added to inventory. You now have ${player.inventory.length} items.`, 'info');
             
             // Apply any immediate effects
             if (generatedItem.effects && generatedItem.effects.length > 0) {
@@ -1239,7 +1270,16 @@ async function handleItemReceival(command) {
             
             updatePlayerStatsDisplay();
             saveGame();
+            
+            // Log for debugging
+            console.log('Item added to inventory:', generatedItem);
+            console.log('Current inventory count:', player.inventory.length);
+        } else {
+            displayMessage('Failed to generate item from AI response.', 'error');
+            console.log('Failed to parse AI response:', aiResponse);
         }
+    } else {
+        displayMessage('Failed to generate item due to AI error.', 'error');
     }
 }
 
@@ -1868,6 +1908,40 @@ document.addEventListener('DOMContentLoaded', () => {
     window.abandonQuest = abandonQuest;
     window.LocationManager = LocationManager;
     window.GameActions = GameActions;
+    
+    // Debug functions for local storage
+    window.debugInventory = function() {
+        console.log('=== INVENTORY DEBUG ===');
+        console.log('Player name:', player.name);
+        console.log('Current inventory:', player.inventory);
+        console.log('Inventory length:', player.inventory ? player.inventory.length : 'undefined');
+        
+        // Check local storage
+        const savedInventory = localStorage.getItem(`inventory_${player.name}`);
+        const savedGame = localStorage.getItem('pedenaRPGSave');
+        
+        console.log('Saved inventory in localStorage:', savedInventory ? JSON.parse(savedInventory) : 'Not found');
+        console.log('Full saved game:', savedGame ? JSON.parse(savedGame) : 'Not found');
+        
+        // List all localStorage keys
+        console.log('All localStorage keys:', Object.keys(localStorage));
+        
+        return {
+            currentInventory: player.inventory,
+            savedInventory: savedInventory ? JSON.parse(savedInventory) : null,
+            localStorageKeys: Object.keys(localStorage)
+        };
+    };
+    
+    window.fixInventory = function() {
+        console.log('Attempting to fix inventory...');
+        if (!player.inventory) {
+            player.inventory = [];
+        }
+        ItemManager.saveInventoryToStorage(player);
+        saveGame();
+        console.log('Inventory fixed and saved');
+    };
 });
 
 function displayLevelUpRewards(progression, oldLevel) {

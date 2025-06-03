@@ -747,7 +747,15 @@ export class ItemManager {
             player.inventory = [];
         }
         
+        // Ensure the item has a unique ID
+        if (!item.id) {
+            item.id = `item_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        }
+        
         player.inventory.push(item);
+        console.log('ItemManager: Added item to inventory:', item);
+        console.log('ItemManager: Current inventory length:', player.inventory.length);
+        
         this.saveInventoryToStorage(player);
         return true;
     }
