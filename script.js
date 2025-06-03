@@ -47,6 +47,7 @@ let player = {
     quests: [],
     currentLocation: 'Pedena Town Square',
     currentEnemy: null // For combat
+};
 
 // Utility function to validate and fix character stats
 function validateAndFixStats(player) {
