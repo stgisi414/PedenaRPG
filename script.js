@@ -1391,7 +1391,8 @@ Equipped: ${Object.values(player.equipment).filter(item => item).map(item => ite
 Class Abilities: ${abilitiesText}
 Known Spells/Cantrips: ${spellsText}
 
-${questContext}NPCs in location: ${getNPCsInLocation(player.currentLocation).map(npc => npc.name).join(', ') || 'none'}
+${questContext}
+NPCs in location: ${getNPCsInLocation(player.currentLocation).map(npc => npc.name).join(', ') || 'none'}
 
 Player Command: "${command}"
 Action Analysis: ${JSON.stringify(actionAnalysis)}
