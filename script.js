@@ -464,4 +464,211 @@ function equipItem(index) {
             displayMessage(`You unequipped ${currentEquipped.name}.`);
         }
         player.equipment[itemToEquip.slot] = itemToEquip;
-        player.inventory.splice(index, 1); //
+        player.inventory.splice(index, 1); // Remove equipped item from inventory
+        displayMessage(`You equipped ${itemToEquip.name}!`, 'success');
+        displayInventory(); // Refresh inventory display
+        updatePlayerStatsDisplay();
+    } else {
+        displayMessage(`${itemToEquip.name} cannot be equipped.`, 'info');
+    }
+}
+
+function displaySkills() {
+    shopInterface.classList.add('hidden');
+    inventoryInterface.classList.add('hidden');
+    questInterface.classList.add('hidden');
+    combatInterface.classList.add('hidden');
+    skillsInterface.classList.remove('hidden');
+    
+    skillsListDisplay.innerHTML = '';
+    if (player.skills.length === 0) {
+        skillsListDisplay.innerHTML = '<p class="text-center text-amber-800">You have no special skills yet.</p>';
+        return;
+    }
+    
+    player.skills.forEach(skill => {
+        const skillDiv = document.createElement('div');
+        skillDiv.classList.add('parchment-box', 'p-3', 'mb-2');
+        skillDiv.innerHTML = `<p class="font-bold">${skill}</p>`;
+        skillsListDisplay.appendChild(skillDiv);
+    });
+}
+
+function displayShop() {
+    inventoryInterface.classList.add('hidden');
+    skillsInterface.classList.add('hidden');
+    questInterface.classList.add('hidden');
+    combatInterface.classList.add('hidden');
+    shopInterface.classList.remove('hidden');
+    
+    shopItemsDisplay.innerHTML = '';
+    // Sample shop items
+    const shopItems = [
+        { ...items.find(item => item.id === 'short_sword'), price: 15 },
+        { ...items.find(item => item.id === 'leather_armor'), price: 25 },
+        { ...items.find(item => item.id === 'healing_potion'), price: 12 }
+    ];
+    
+    shopItems.forEach(item => {
+        const itemDiv = document.createElement('div');
+        itemDiv.classList.add('parchment-box', 'p-3');
+        itemDiv.innerHTML = `
+            <p class="font-bold">${item.name}</p>
+            <p class="text-sm text-amber-700">${item.description}</p>
+            <p class="text-sm">Price: ${item.price} gold</p>
+        `;
+        const buyBtn = document.createElement('button');
+        buyBtn.classList.add('btn-parchment', 'text-sm', 'mt-2', 'px-3', 'py-1');
+        buyBtn.textContent = 'Buy';
+        buyBtn.onclick = () => buyItem(item);
+        itemDiv.appendChild(buyBtn);
+        shopItemsDisplay.appendChild(itemDiv);
+    });
+}
+
+function buyItem(item) {
+    if (player.gold >= item.price) {
+        player.gold -= item.price;
+        player.inventory.push({ ...item });
+        displayMessage(`You bought ${item.name} for ${item.price} gold!`, 'success');
+        updatePlayerStatsDisplay();
+    } else {
+        displayMessage(`You don't have enough gold to buy ${item.name}.`, 'error');
+    }
+}
+
+async function generateQuest() {
+    displayMessage("A mysterious figure approaches with a quest...", 'info');
+    const prompt = `Generate a short fantasy RPG quest for ${player.name} (${player.class}, Level ${player.level}) in ${player.currentLocation}. Include: quest giver name, quest objective, and reward. Keep it concise (2-3 sentences).`;
+    const quest = await callGeminiAPI(prompt, 0.8, 150);
+    if (quest) {
+        player.quests.push({
+            id: Date.now(),
+            description: quest,
+            completed: false
+        });
+        displayMessage(`New Quest Added: ${quest}`, 'success');
+    } else {
+        displayMessage("No one seems to have any tasks for you right now.");
+    }
+}
+
+function displayQuests() {
+    shopInterface.classList.add('hidden');
+    inventoryInterface.classList.add('hidden');
+    skillsInterface.classList.add('hidden');
+    combatInterface.classList.add('hidden');
+    questInterface.classList.remove('hidden');
+    
+    questListDisplay.innerHTML = '';
+    if (player.quests.length === 0) {
+        questListDisplay.innerHTML = '<p class="text-center text-amber-800">You have no active quests.</p>';
+        return;
+    }
+    
+    player.quests.forEach(quest => {
+        const questDiv = document.createElement('div');
+        questDiv.classList.add('parchment-box', 'p-3', 'mb-2');
+        questDiv.innerHTML = `<p class="text-sm">${quest.description}</p>`;
+        questListDisplay.appendChild(questDiv);
+    });
+}
+
+function restPlayer() {
+    player.hp = player.maxHp;
+    displayMessage("You take a long rest and restore your health to full.", 'success');
+    updatePlayerStatsDisplay();
+}
+
+// Event Listeners
+newGameBtn.addEventListener('click', () => {
+    showScreen('character-creation-screen');
+});
+
+loadGameBtn.addEventListener('click', loadGame);
+
+generateBackgroundBtn.addEventListener('click', generateCharacterBackground);
+
+createCharacterBtn.addEventListener('click', () => {
+    const name = charNameInput.value.trim();
+    const charClass = charClassSelect.value;
+    const gender = Array.from(charGenderRadios).find(radio => radio.checked)?.value;
+    const background = charBackgroundTextarea.value.trim();
+
+    if (!name || !charClass || !gender) {
+        alert('Please fill in all character details.');
+        return;
+    }
+
+    // Set up player character
+    player.name = name;
+    player.class = charClass;
+    player.gender = gender;
+    player.background = background;
+
+    // Apply class bonuses
+    const classData = classes[charClass];
+    player.maxHp += classData.hpBonus;
+    player.hp = player.maxHp;
+    
+    // Set stats based on class
+    Object.entries(classData.statFocus).forEach(([stat, value]) => {
+        player.stats[stat] = 10 + value; // Base 10 + class bonus
+    });
+    
+    // Add starting skills and abilities
+    player.skills.push(classData.startingSkill);
+    player.abilities.push(classData.startingAbility);
+    
+    // Add starting equipment
+    if (charClass === 'warrior') {
+        player.inventory.push({ ...items.find(item => item.id === 'short_sword') });
+        player.inventory.push({ ...items.find(item => item.id === 'leather_armor') });
+    }
+    player.inventory.push({ ...items.find(item => item.id === 'healing_potion') });
+
+    updatePlayerStatsDisplay();
+    showScreen('game-play-screen');
+    displayMessage(`Welcome to Pedena, ${player.name} the ${player.class}!`);
+    displayMessage(`You begin your adventure in ${player.currentLocation}.`);
+    generateWorldDescription(player.currentLocation);
+});
+
+// Game Action Event Listeners
+moveBtn.addEventListener('click', handleMovement);
+interactBtn.addEventListener('click', handleNPCInteraction);
+inventoryBtn.addEventListener('click', displayInventory);
+skillsBtn.addEventListener('click', displaySkills);
+shopBtn.addEventListener('click', displayShop);
+restBtn.addEventListener('click', restPlayer);
+saveGameBtn.addEventListener('click', saveGame);
+newQuestBtn.addEventListener('click', generateQuest);
+
+// Combat Event Listeners
+attackBtn.addEventListener('click', playerAttack);
+fleeBtn.addEventListener('click', fleeCombat);
+
+// Interface Exit Buttons
+exitShopBtn.addEventListener('click', () => {
+    shopInterface.classList.add('hidden');
+});
+
+exitInventoryBtn.addEventListener('click', () => {
+    inventoryInterface.classList.add('hidden');
+});
+
+exitSkillsBtn.addEventListener('click', () => {
+    skillsInterface.classList.add('hidden');
+});
+
+exitQuestsBtn.addEventListener('click', () => {
+    questInterface.classList.add('hidden');
+});
+
+// Initialize game
+document.addEventListener('DOMContentLoaded', () => {
+    // Check if there's a saved game to enable load button
+    if (localStorage.getItem('pedenaRPGSave')) {
+        loadGameBtn.disabled = false;
+    }
+});
