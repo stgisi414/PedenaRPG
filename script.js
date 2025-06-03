@@ -45,6 +45,13 @@ let player = {
     currentEnemy: null // For combat
 };
 
+// NPC Persistence System
+let gameWorld = {
+    npcs: new Map(), // location -> array of NPCs
+    locationMemory: new Map(), // location -> description cache
+    lastNPCInteraction: null
+};
+
 // DOM Elements
 const startScreen = document.getElementById('start-screen');
 const newGameBtn = document.getElementById('new-game-btn');
@@ -65,6 +72,7 @@ const customCommandInput = document.getElementById('custom-command-input');
 const executeCommandBtn = document.getElementById('execute-command-btn');
 const saveGameBtn = document.getElementById('save-game-btn');
 const newQuestBtn = document.getElementById('new-quest-btn');
+const showInventoryBtn = document.getElementById('show-inventory-btn');
 
 const combatInterface = document.getElementById('combat-interface');
 const enemyInfoDisplay = document.getElementById('enemy-info');
@@ -164,7 +172,15 @@ function saveGame() {
     if (!confirm("Are you sure you want to save your game? This will overwrite any existing save.")) {
         return;
     }
-    localStorage.setItem('pedenaRPGSave', JSON.stringify(player));
+    const saveData = {
+        player: player,
+        gameWorld: {
+            npcs: Array.from(gameWorld.npcs.entries()),
+            locationMemory: Array.from(gameWorld.locationMemory.entries()),
+            lastNPCInteraction: gameWorld.lastNPCInteraction
+        }
+    };
+    localStorage.setItem('pedenaRPGSave', JSON.stringify(saveData));
     displayMessage("Game saved!", 'success');
     loadGameBtn.disabled = false; // Enable load game button if a save exists
 }
@@ -172,11 +188,32 @@ function saveGame() {
 function loadGame() {
     const savedGame = localStorage.getItem('pedenaRPGSave');
     if (savedGame) {
-        player = JSON.parse(savedGame);
+        const saveData = JSON.parse(savedGame);
+        
+        // Handle old save format (just player data)
+        if (saveData.player) {
+            player = saveData.player;
+            // Restore game world if it exists
+            if (saveData.gameWorld) {
+                gameWorld.npcs = new Map(saveData.gameWorld.npcs);
+                gameWorld.locationMemory = new Map(saveData.gameWorld.locationMemory);
+                gameWorld.lastNPCInteraction = saveData.gameWorld.lastNPCInteraction;
+            }
+        } else {
+            // Old format - just player
+            player = saveData;
+        }
+        
         displayMessage("Game loaded!", 'success');
         updatePlayerStatsDisplay();
         showScreen('game-play-screen');
         displayMessage(`Welcome back, ${player.name}! You are in ${player.currentLocation}.`);
+        
+        // Show existing NPCs if any
+        const existingNPCs = getNPCsInLocation(player.currentLocation);
+        if (existingNPCs.length > 0) {
+            displayMessage(`You notice ${existingNPCs.map(npc => npc.name).join(', ')} in the area.`);
+        }
     } else {
         displayMessage("No saved game found.", 'error');
     }
@@ -192,7 +229,7 @@ function rollDice(diceString) {
 }
 
 // AI Interaction Functions (Gemini API Calls)
-async function callGeminiAPI(prompt, temperature = 0.89, maxOutputTokens = 150) {
+async function callGeminiAPI(prompt, temperature = 0.7, maxOutputTokens = 100) {
     try {
         const response = await fetch(GEMINI_API_URL, {
             method: 'POST',
@@ -244,6 +281,16 @@ async function callGeminiAPI(prompt, temperature = 0.89, maxOutputTokens = 150) 
         const data = await response.json();
         if (data.candidates && data.candidates.length > 0) {
             const candidate = data.candidates[0];
+            
+            // Handle MAX_TOKENS case
+            if (candidate.finishReason === 'MAX_TOKENS') {
+                console.warn('Response truncated due to MAX_TOKENS');
+                if (candidate.content && candidate.content.parts && candidate.content.parts.length > 0) {
+                    return candidate.content.parts[0].text;
+                }
+                return "Response was cut short. Please try a simpler request.";
+            }
+            
             // Check if content exists and has parts
             if (candidate.content && candidate.content.parts && candidate.content.parts.length > 0) {
                 return candidate.content.parts[0].text;
@@ -258,9 +305,39 @@ async function callGeminiAPI(prompt, temperature = 0.89, maxOutputTokens = 150) 
         return null;
     } catch (error) {
         console.error('Network or API request error:', error);
-        alert(`Network error during AI call: ${error.message}`);
-        return null;
+        return "Network error occurred. Please try again.";
     }
+}
+
+// NPC Management Functions
+function createNPC(name, description, location) {
+    return {
+        id: Date.now() + Math.random(),
+        name: name,
+        description: description,
+        location: location,
+        dialogueHistory: [],
+        lastSeen: Date.now(),
+        relationship: 'neutral'
+    };
+}
+
+function saveNPCToLocation(npc, location) {
+    if (!gameWorld.npcs.has(location)) {
+        gameWorld.npcs.set(location, []);
+    }
+    const locationNPCs = gameWorld.npcs.get(location);
+    // Check if NPC already exists by name
+    const existingIndex = locationNPCs.findIndex(n => n.name === npc.name);
+    if (existingIndex >= 0) {
+        locationNPCs[existingIndex] = npc; // Update existing
+    } else {
+        locationNPCs.push(npc); // Add new
+    }
+}
+
+function getNPCsInLocation(location) {
+    return gameWorld.npcs.get(location) || [];
 }
 
 async function generateCharacterBackground() {
@@ -281,7 +358,7 @@ async function generateCharacterBackground() {
     
     const prompt = `Create a brief background for ${name}, a ${gender} ${charClass} in Pedena. Use these world elements: Cities like ${context.worldLore.majorCities.join(', ')}; factions like ${context.worldLore.activeFactions.join(', ')}; guilds like ${context.worldLore.availableGuilds.join(', ')}. 2-3 sentences about origin and goals.`;
 
-    const background = await callGeminiAPI(prompt, 0.8, 80);
+    const background = await callGeminiAPI(prompt, 0.8, 60);
     if (background) {
         charBackgroundTextarea.value = background;
         player.background = background;
@@ -345,18 +422,35 @@ async function handleMovement() {
 async function handleNPCInteraction() {
     displayMessage("Looking for someone to talk to...", 'info');
     
-    // Get context from world data
-    const context = GameDataManager.generateLocationContext(player.currentLocation);
-    const randomFaction = GameDataManager.getRandomFrom(gameData.organizations.factions);
-    const randomBusiness = GameDataManager.getRandomFrom(gameData.economy.businesses);
+    // Check for existing NPCs in this location first
+    const existingNPCs = getNPCsInLocation(player.currentLocation);
     
-    const prompt = `In ${player.currentLocation}, create an NPC for ${player.name} (${player.class}). Consider local elements: ${randomFaction.name} faction, ${randomBusiness.name} business. Give name, appearance, and dialogue hint about quest/gossip (2-3 sentences).`;
-    
-    const npcInfo = await callGeminiAPI(prompt, 0.8, 100);
-    if (npcInfo) {
-        displayMessage(`You encounter someone: ${npcInfo}`);
+    if (existingNPCs.length > 0 && Math.random() > 0.3) {
+        // 70% chance to interact with existing NPC
+        const npc = existingNPCs[Math.floor(Math.random() * existingNPCs.length)];
+        displayMessage(`You see ${npc.name} again. ${npc.description}`);
+        gameWorld.lastNPCInteraction = npc.id;
     } else {
-        displayMessage("You don't see anyone interesting to talk to right now.");
+        // Create new NPC
+        const context = GameDataManager.generateLocationContext(player.currentLocation);
+        const randomFaction = GameDataManager.getRandomFrom(gameData.organizations.factions);
+        
+        const prompt = `Create NPC in ${player.currentLocation}. Format: "Name: [name]. Appearance: [brief]. Says: [one line dialogue]"`;
+        
+        const npcInfo = await callGeminiAPI(prompt, 0.8, 50);
+        if (npcInfo) {
+            // Parse the NPC info to extract name
+            const nameMatch = npcInfo.match(/Name:\s*([^.]+)/);
+            const npcName = nameMatch ? nameMatch[1].trim() : "Mysterious Figure";
+            
+            const newNPC = createNPC(npcName, npcInfo, player.currentLocation);
+            saveNPCToLocation(newNPC, player.currentLocation);
+            gameWorld.lastNPCInteraction = newNPC.id;
+            
+            displayMessage(`You encounter someone new: ${npcInfo}`);
+        } else {
+            displayMessage("You don't see anyone interesting to talk to right now.");
+        }
     }
 }
 
@@ -472,33 +566,72 @@ function displayInventory() {
     questInterface.classList.add('hidden');
     combatInterface.classList.add('hidden');
     inventoryInterface.classList.remove('hidden');
+    
+    displayMessage("Opening your inventory...", 'info');
+    
     inventoryItemsDisplay.innerHTML = '';
+    
+    // Show gold
+    const goldDiv = document.createElement('div');
+    goldDiv.classList.add('parchment-box', 'p-3', 'mb-4', 'text-center');
+    goldDiv.innerHTML = `<p class="font-bold text-xl">Gold: ${player.gold}</p>`;
+    inventoryItemsDisplay.appendChild(goldDiv);
+    
+    // Show equipped items
+    const equippedDiv = document.createElement('div');
+    equippedDiv.classList.add('parchment-box', 'p-3', 'mb-4');
+    equippedDiv.innerHTML = '<h4 class="font-bold mb-2">Currently Equipped:</h4>';
+    const equippedItems = Object.values(player.equipment).filter(item => item);
+    if (equippedItems.length > 0) {
+        equippedItems.forEach(item => {
+            const equipDiv = document.createElement('p');
+            equipDiv.textContent = `${item.name} (${item.slot})`;
+            equippedDiv.appendChild(equipDiv);
+        });
+    } else {
+        equippedDiv.innerHTML += '<p class="text-amber-700">Nothing equipped</p>';
+    }
+    inventoryItemsDisplay.appendChild(equippedDiv);
+    
     if (player.inventory.length === 0) {
-        inventoryItemsDisplay.innerHTML = '<p class="text-center text-amber-800">Your inventory is empty.</p>';
+        inventoryItemsDisplay.innerHTML += '<p class="text-center text-amber-800">Your inventory is empty.</p>';
         return;
     }
 
+    const inventoryHeader = document.createElement('h4');
+    inventoryHeader.classList.add('font-bold', 'mb-3');
+    inventoryHeader.textContent = 'Inventory Items:';
+    inventoryItemsDisplay.appendChild(inventoryHeader);
+
     player.inventory.forEach((item, index) => {
         const itemDiv = document.createElement('div');
-        itemDiv.classList.add('parchment-box', 'p-3');
+        itemDiv.classList.add('parchment-box', 'p-3', 'mb-2');
         itemDiv.innerHTML = `
             <p class="font-bold">${item.name} (${item.type})</p>
             <p class="text-sm text-amber-700">${item.description}</p>
             <p class="text-sm">Value: ${item.value} gold</p>
         `;
-        const useBtn = document.createElement('button');
-        useBtn.classList.add('btn-parchment', 'text-sm', 'mt-2', 'px-3', 'py-1');
-        useBtn.textContent = 'Use';
-        useBtn.onclick = () => useItem(index);
-        itemDiv.appendChild(useBtn);
+        
+        const buttonContainer = document.createElement('div');
+        buttonContainer.classList.add('flex', 'gap-2', 'mt-2');
+        
+        if (item.type === 'consumable') {
+            const useBtn = document.createElement('button');
+            useBtn.classList.add('btn-parchment', 'text-sm', 'px-3', 'py-1');
+            useBtn.textContent = 'Use';
+            useBtn.onclick = () => useItem(index);
+            buttonContainer.appendChild(useBtn);
+        }
 
-        const equipBtn = document.createElement('button');
         if (item.type === 'weapon' || item.type === 'armor') {
-            equipBtn.classList.add('btn-parchment', 'text-sm', 'mt-2', 'ml-2', 'px-3', 'py-1');
+            const equipBtn = document.createElement('button');
+            equipBtn.classList.add('btn-parchment', 'text-sm', 'px-3', 'py-1');
             equipBtn.textContent = 'Equip';
             equipBtn.onclick = () => equipItem(index);
-            itemDiv.appendChild(equipBtn);
+            buttonContainer.appendChild(equipBtn);
         }
+        
+        itemDiv.appendChild(buttonContainer);
         inventoryItemsDisplay.appendChild(itemDiv);
     });
 }
@@ -646,6 +779,11 @@ async function handleCommandConsequences(command, aiResponse) {
         if (Math.random() < 0.6) { // 60% chance to trigger combat
             checkRandomEncounter();
         }
+    }
+    
+    // Check for NPC interaction keywords
+    if (lowerCommand.includes('talk to') || lowerCommand.includes('speak to') || lowerCommand.includes('ask')) {
+        await handleNPCInteraction();
     }
     
     // Check for movement keywords
@@ -802,6 +940,7 @@ customCommandInput.addEventListener('keypress', (e) => {
 // Game Action Event Listeners
 saveGameBtn.addEventListener('click', saveGame);
 newQuestBtn.addEventListener('click', generateQuest);
+showInventoryBtn.addEventListener('click', displayInventory);
 
 // Combat Event Listeners
 attackBtn.addEventListener('click', playerAttack);
