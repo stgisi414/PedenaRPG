@@ -81,14 +81,16 @@
                     <div id="game-output" class="parchment-box mb-6 h-96 overflow-y-auto">
                         </div>
 
-                    <div id="game-actions" class="grid grid-cols-2 md:grid-cols-3 gap-4">
-                        <button id="move-btn" class="btn-parchment"><i class="gi gi-footprint mr-2"></i>Move</button>
-                        <button id="interact-btn" class="btn-parchment"><i class="gi gi-talk-bubble mr-2"></i>Interact</button>
-                        <button id="inventory-btn" class="btn-parchment"><i class="gi gi-backpack mr-2"></i>Inventory</button>
-                        <button id="skills-btn" class="btn-parchment"><i class="gi gi-skills mr-2"></i>Skills</button>
-                        <button id="shop-btn" class="btn-parchment"><i class="gi gi-shop mr-2"></i>Shop</button>
-                        <button id="rest-btn" class="btn-parchment"><i class="gi gi-bed-bunk mr-2"></i>Rest</button>
-                        <button id="save-game-btn" class="btn-parchment col-span-2 md:col-span-1"><i class="gi gi-save-arrow mr-2"></i>Save Game</button>
+                    <div id="custom-command-section" class="mb-6">
+                        <label for="custom-command-input" class="block text-lg mb-2">Enter Command:</label>
+                        <div class="flex gap-2">
+                            <input type="text" id="custom-command-input" class="input-parchment flex-1" placeholder="Type your action here (e.g., 'examine the mysterious door', 'talk to the merchant', 'cast fireball')...">
+                            <button id="execute-command-btn" class="btn-parchment"><i class="gi gi-lightning-bolt mr-2"></i>Execute</button>
+                        </div>
+                    </div>
+
+                    <div id="game-actions" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <button id="save-game-btn" class="btn-parchment"><i class="gi gi-save-arrow mr-2"></i>Save Game</button>
                         <button id="new-quest-btn" class="btn-parchment"><i class="gi gi-scroll-unfurled mr-2"></i>New Quest</button>
                     </div>
 

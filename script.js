@@ -61,12 +61,8 @@ const playerNameDisplay = document.getElementById('player-name');
 const playerLevelDisplay = document.getElementById('player-level');
 const playerHpDisplay = document.getElementById('player-hp');
 const gameOutput = document.getElementById('game-output');
-const moveBtn = document.getElementById('move-btn');
-const interactBtn = document.getElementById('interact-btn');
-const inventoryBtn = document.getElementById('inventory-btn');
-const skillsBtn = document.getElementById('skills-btn');
-const shopBtn = document.getElementById('shop-btn');
-const restBtn = document.getElementById('rest-btn');
+const customCommandInput = document.getElementById('custom-command-input');
+const executeCommandBtn = document.getElementById('execute-command-btn');
 const saveGameBtn = document.getElementById('save-game-btn');
 const newQuestBtn = document.getElementById('new-quest-btn');
 
@@ -165,6 +161,9 @@ function showScreen(screenId) {
 }
 
 function saveGame() {
+    if (!confirm("Are you sure you want to save your game? This will overwrite any existing save.")) {
+        return;
+    }
     localStorage.setItem('pedenaRPGSave', JSON.stringify(player));
     displayMessage("Game saved!", 'success');
     loadGameBtn.disabled = false; // Enable load game button if a save exists
@@ -599,7 +598,91 @@ function buyItem(item) {
     }
 }
 
+async function processCustomCommand(command) {
+    if (!command.trim()) {
+        displayMessage("Please enter a command.", 'error');
+        return;
+    }
+
+    displayMessage(`> ${command}`, 'info');
+    displayMessage("Processing your command...", 'info');
+
+    // Create context-rich prompt for the AI
+    const contextPrompt = `
+Player: ${player.name} (${player.class}, Level ${player.level})
+Location: ${player.currentLocation}
+HP: ${player.hp}/${player.maxHp}
+Gold: ${player.gold}
+Inventory: ${player.inventory.map(item => item.name).join(', ') || 'empty'}
+Equipped: ${Object.values(player.equipment).filter(item => item).map(item => item.name).join(', ') || 'nothing'}
+
+Player Command: "${command}"
+
+As the game master, interpret this command and provide a detailed response describing what happens. Consider the player's stats, location, and inventory. If the command involves:
+- Combat: Create an encounter
+- Movement: Describe traveling to a new location
+- Interaction: Create NPCs or environmental interactions
+- Magic/Skills: Describe magical effects or skill usage
+- Inventory: Handle item usage or examination
+
+Respond in 2-4 sentences describing the immediate result of the action.`;
+
+    const response = await callGeminiAPI(contextPrompt, 0.8, 150);
+    if (response) {
+        displayMessage(response);
+        
+        // Check if the command might trigger special game mechanics
+        await handleCommandConsequences(command, response);
+    } else {
+        displayMessage("You attempt the action, but nothing notable happens.");
+    }
+}
+
+async function handleCommandConsequences(command, aiResponse) {
+    const lowerCommand = command.toLowerCase();
+    
+    // Check for combat keywords
+    if (lowerCommand.includes('attack') || lowerCommand.includes('fight') || lowerCommand.includes('battle')) {
+        if (Math.random() < 0.6) { // 60% chance to trigger combat
+            checkRandomEncounter();
+        }
+    }
+    
+    // Check for movement keywords
+    if (lowerCommand.includes('go to') || lowerCommand.includes('travel') || lowerCommand.includes('move to')) {
+        const locationMatch = command.match(/(?:go to|travel to|move to)\s+(.+)/i);
+        if (locationMatch) {
+            const newLocation = locationMatch[1].trim();
+            player.currentLocation = newLocation;
+            await generateWorldDescription(newLocation);
+            if (Math.random() < 0.3) checkRandomEncounter();
+        }
+    }
+    
+    // Check for rest/healing keywords
+    if (lowerCommand.includes('rest') || lowerCommand.includes('sleep') || lowerCommand.includes('heal')) {
+        const healAmount = Math.floor(Math.random() * 20) + 10;
+        player.hp = Math.min(player.maxHp, player.hp + healAmount);
+        displayMessage(`You feel refreshed and recover ${healAmount} HP.`, 'success');
+        updatePlayerStatsDisplay();
+    }
+    
+    // Check for gold/treasure keywords
+    if (lowerCommand.includes('search') || lowerCommand.includes('loot') || lowerCommand.includes('treasure')) {
+        if (Math.random() < 0.4) { // 40% chance to find something
+            const goldFound = Math.floor(Math.random() * 15) + 5;
+            player.gold += goldFound;
+            displayMessage(`You found ${goldFound} gold!`, 'success');
+            updatePlayerStatsDisplay();
+        }
+    }
+}
+
 async function generateQuest() {
+    if (!confirm("Are you sure you want to request a new quest?")) {
+        return;
+    }
+    
     displayMessage("A mysterious figure approaches with a quest...", 'info');
     
     // Use world data for quest context
@@ -703,13 +786,20 @@ createCharacterBtn.addEventListener('click', () => {
     generateWorldDescription(player.currentLocation);
 });
 
+// Custom Command Event Listeners
+executeCommandBtn.addEventListener('click', () => {
+    processCustomCommand(customCommandInput.value);
+    customCommandInput.value = ''; // Clear input after execution
+});
+
+customCommandInput.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') {
+        processCustomCommand(customCommandInput.value);
+        customCommandInput.value = ''; // Clear input after execution
+    }
+});
+
 // Game Action Event Listeners
-moveBtn.addEventListener('click', handleMovement);
-interactBtn.addEventListener('click', handleNPCInteraction);
-inventoryBtn.addEventListener('click', displayInventory);
-skillsBtn.addEventListener('click', displaySkills);
-shopBtn.addEventListener('click', displayShop);
-restBtn.addEventListener('click', restPlayer);
 saveGameBtn.addEventListener('click', saveGame);
 newQuestBtn.addEventListener('click', generateQuest);
 
