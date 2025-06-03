@@ -911,6 +911,14 @@ function displayInventory() {
             buttonContainer.appendChild(equipBtn);
         }
 
+        // Add sell button for all items
+        const sellBtn = document.createElement('button');
+        sellBtn.classList.add('btn-parchment', 'text-sm', 'px-3', 'py-1', 'bg-yellow-600', 'text-white', 'hover:bg-yellow-700');
+        const sellPrice = Math.floor((item.value || 10) * 0.5); // Sell for 50% of value
+        sellBtn.textContent = `Sell (${sellPrice}g)`;
+        sellBtn.onclick = () => sellItem(index);
+        buttonContainer.appendChild(sellBtn);
+
         itemDiv.appendChild(buttonContainer);
         inventoryItemsDisplay.appendChild(itemDiv);
     });
@@ -1022,6 +1030,35 @@ function unequipItem(slot) {
         updatePlayerStatsDisplay();
     } else {
         displayMessage(`No item equipped in ${slot} slot.`, 'info');
+    }
+}
+
+function sellItem(index) {
+    const item = player.inventory[index];
+    if (!item) {
+        displayMessage("Item not found.", 'error');
+        return;
+    }
+
+    const sellPrice = Math.floor((item.value || 10) * 0.5); // Sell for 50% of item value
+    
+    if (confirm(`Are you sure you want to sell ${item.name} for ${sellPrice} gold?`)) {
+        // Remove item from inventory
+        player.inventory.splice(index, 1);
+        
+        // Add gold to player
+        updateGold(sellPrice, `sold ${item.name}`);
+        
+        displayMessage(`You sold ${item.name} for ${sellPrice} gold.`, 'success');
+        
+        // Save inventory changes
+        ItemManager.saveInventoryToStorage(player);
+        
+        // Refresh inventory display
+        displayInventory();
+        
+        // Save game state
+        saveGame();
     }
 }
 
