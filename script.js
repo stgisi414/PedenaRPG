@@ -1,9 +1,9 @@
-// Import game data assets
+// Import game data and assets
 import { gameData, GameDataManager } from './assets/game-data-loader.js';
+import { questCharacterNames, QuestCharacterGenerator } from './assets/quest-character-names.js';
 import { CharacterManager } from './game-logic/character-manager.js';
 import { GameActions } from './game-logic/game-actions.js';
 import { LocationManager } from './game-logic/location-manager.js';
-import { QuestCharacterGenerator } from './assets/quest-character-names.js';
 import { classProgression, spellDefinitions, abilityDefinitions } from './game-logic/class-progression.js';
 import { ItemGenerator, ItemManager, itemCategories, itemRarity, statusEffects } from './assets/world-items.js';
 
@@ -650,7 +650,7 @@ async function generateCharacterBackground() {
     // Generate rich context using world data
     const context = GameDataManager.generateBackgroundPromptContext({ name, class: charClass, gender });
 
-    const prompt = `Create a brief background for ${name}, a ${gender} ${charClass} in Pedena. Use theseworld elements: Cities like ${context.worldLore.majorCities.join(', ')}; factions like ${context.worldLore.activeFactions.join(', ')}; guilds like ${context.worldLore.availableGuilds.join(', ')}. 2-3 sentences about origin and goals.`;
+    const prompt = `Create a brief background for ${name}, a ${gender} ${charClass} in Pedena. Use theseworld elements:Cities like ${context.worldLore.majorCities.join(', ')}; factions like ${context.worldLore.activeFactions.join(', ')}; guilds like ${context.worldLore.availableGuilds.join(', ')}. 2-3 sentences about origin and goals.`;
 
     const background = await callGeminiAPI(prompt, 0.8, 200, false); // Don't include conversation history for character creation
     if (background) {
@@ -2325,4 +2325,116 @@ function learnNewSpell(spellName) {
     if (result.success) {
         displayCharacterProgression(); // Refresh display
     }
+}
+
+async function explore() {
+    displayMessage("Exploring the area...", 'info');
+
+    // Generate potential characters they might encounter
+    const potentialNPC = QuestCharacterGenerator.generateRandomCharacter();
+    const potentialMerchant = QuestCharacterGenerator.generateMerchant();
+
+    const explorePrompt = `
+${player.name} (${player.class}, Level ${player.level}) explores ${player.currentLocation}.
+Current status: HP ${player.hp}/${player.maxHp}, Gold ${player.gold}
+
+Potential characters in the area:
+- ${potentialNPC}
+- ${potentialMerchant}
+
+Generate a brief exploration result (1-2 sentences) that includes:
+1. What they discover (location, item, person, or event)
+2. A specific choice or action they can take
+3. Use the named characters if mentioning NPCs
+4. Keep it appropriate for their level
+
+Format: Just the exploration result, no extra text.
+`;
+
+    const explorationResult = await callGeminiAPI(explorePrompt, 0.7, 300);
+
+    if (explorationResult) {
+        displayMessage(explorationResult, 'exploration');
+    } else {
+        displayMessage("The area seems quiet. You don't find anything of interest.", 'info');
+    }
+}
+
+function showShop() {
+    shopInterface.classList.remove('hidden');
+    const shopItems = shopInterface.querySelector('#shop-items');
+    shopItems.innerHTML = '';
+
+    // Generate a merchant name for this shop visit
+    const merchantName = QuestCharacterGenerator.generateMerchant();
+
+    // Update shop header with merchant name
+    const shopHeader = shopInterface.querySelector('h4');
+    shopHeader.textContent = `${merchantName}'s Shop`;
+
+    const items = [
+        { name: 'Health Potion', cost: 25, effect: 'heal', value: 30 },
+        { name: 'Magic Scroll', cost: 50, effect: 'spell', value: 1 },
+        { name: 'Iron Sword', cost: 100, effect: 'weapon', value: 10 },
+        { name: 'Leather Armor', cost: 75, effect: 'armor', value: 5 },
+        { name: 'Lucky Charm', cost: 150, effect: 'luck', value: 1 }
+    ];
+
+    items.forEach(item => {
+        const itemDiv = document.createElement('div');
+        itemDiv.classList.add('shop-item');
+        itemDiv.innerHTML = `
+            <p>${item.name} - ${item.cost} gold</p>
+            <button onclick="buyItem('${item.name}')">Buy</button>
+        `;
+        shopItems.appendChild(itemDiv);
+    });
+}
+
+async function talkToNPC(npcName) {
+    displayMessage(`Attempting to talk to ${npcName}...`, 'info');
+    const prompt = `The player, ${player.name}, attempts to speak with ${npcName} in ${player.currentLocation}. What is the NPC's initial response? (1-2 sentences)`;
+    const response = await callGeminiAPI(prompt, 0.7, 200, true);
+    if (response) {
+        displayMessage(`${npcName} says: ${response}`);
+    } else {
+        displayMessage(`${npcName} doesn't seem interested in talking right now.`);
+    }
+}
+
+async function processCustomCommand(command) {
+    if (!command.trim()) {
+        displayMessage("Please enter a command.", 'error');
+        return;
+    }
+
+    displayMessage(`> ${command}`, 'info');
+    addToConversationHistory('user', command);
+    displayMessage("Processing your command...", 'info');
+
+    if (command.includes('explore') || command.includes('search')) {
+        await explore();
+    } else if (command.includes('talk to') || command.includes('speak with')) {
+            const npcMatch = command.match(/(?:talk to|speak with)\s+(.+)/i);
+            if (npcMatch) {
+                const npcName = npcMatch[1].trim();
+                await talkToNPC(npcName);
+            } else {
+                // Generate a random NPC to talk to if none specified
+                const randomNPC = QuestCharacterGenerator.generateRandomCharacter();
+                displayMessage(`You look around and spot ${randomNPC} nearby. Try "talk to ${randomNPC}" to start a conversation.`, 'info');
+            }
+        }
+
+    // Other actions can be added similarly
+    else {
+        const aiResponse = await callGeminiAPI(command, 0.8, 500, true); // Generic AI response
+        if (aiResponse) {
+            displayMessage(aiResponse);
+            addToConversationHistory('assistant', aiResponse);
+        } else {
+            displayMessage("Nothing happens.", 'info');
+        }
+    }
+    saveConversationHistory();
 }
