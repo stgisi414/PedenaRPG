@@ -1414,9 +1414,7 @@ function displayQuests() {
         activeHeader.textContent = 'Active Quests';
         questListDisplay.appendChild(activeHeader);
 
-        activeCorrecting runtime errors and making quest functions globally accessible.
-```javascript
-Quests.forEach(quest => {
+        activeQuests.forEach(quest => {
             const questDiv = document.createElement('div');
             questDiv.classList.add('parchment-box', 'p-4', 'mb-3', 'border-l-4', 'border-green-600');
             questDiv.innerHTML = `
@@ -1579,7 +1577,7 @@ function displayCharacterProgression() {
 
     progressionInterface.classList.remove('hidden');
 
-    const progressionContent = document.getElementById('progression-content');
+    
     const progression = CharacterManager.getCharacterProgression(player);
 
     progressionContent.innerHTML = `
