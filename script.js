@@ -1380,8 +1380,7 @@ async function processCustomCommand(command) {
 
     // Create context-rich prompt for the AI
     const questContext = getActiveQuestsContext();
-    const contextPrompt = `
-CURRENT GAME STATE:
+    const contextPrompt = `CURRENT GAME STATE:
 Player: ${player.name} (${player.class}, Level ${player.level})
 Current Location: ${player.currentLocation}
 HP: ${player.hp}/${player.maxHp}
@@ -1391,8 +1390,7 @@ Equipped: ${Object.values(player.equipment).filter(item => item).map(item => ite
 Class Abilities: ${abilitiesText}
 Known Spells/Cantrips: ${spellsText}
 
-${questContext}
-NPCs in location: ${getNPCsInLocation(player.currentLocation).map(npc => npc.name).join(', ') || 'none'}
+${questContext}NPCs in location: ${getNPCsInLocation(player.currentLocation).map(npc => npc.name).join(', ') || 'none'}
 
 Player Command: "${command}"
 Action Analysis: ${JSON.stringify(actionAnalysis)}
