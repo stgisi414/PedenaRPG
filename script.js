@@ -65,7 +65,7 @@ function addToConversationHistory(role, content) {
         content: content,
         timestamp: Date.now()
     });
-    
+
     // Keep only the last 50 messages
     if (conversationHistory.messages.length > conversationHistory.maxMessages) {
         conversationHistory.messages = conversationHistory.messages.slice(-conversationHistory.maxMessages);
@@ -78,7 +78,7 @@ function getConversationContext() {
     const contextString = recentMessages.map(msg => 
         `${msg.role === 'user' ? 'Player' : 'DM'}: ${msg.content}`
     ).join('\n');
-    
+
     return contextString;
 }
 
@@ -348,7 +348,7 @@ function loadGame() {
         updateQuestButton(); // Update quest button based on saved quests
         showScreen('game-play-screen');
         displayMessage(`Welcome back, ${player.name}! You are in ${player.currentLocation}.`);
-        
+
         // Add to conversation history
         addToConversationHistory('assistant', `Welcome back, ${player.name}! You are in ${player.currentLocation}.`);
 
@@ -359,7 +359,7 @@ function loadGame() {
             displayMessage(npcMessage);
             addToConversationHistory('assistant', npcMessage);
         }
-        
+
         saveConversationHistory();
     } else {
         displayMessage("No saved game found.", 'error');
@@ -379,7 +379,7 @@ function rollDice(diceString) {
 async function callGeminiAPI(prompt, temperature = 0.10, maxOutputTokens = 800, includeContext = true) {
     try {
         let fullPrompt = prompt;
-        
+
         // Add conversation context if requested and available
         if (includeContext && conversationHistory.messages.length > 0) {
             const context = getConversationContext();
@@ -393,7 +393,7 @@ ${prompt}
 Please respond as the DM, maintaining consistency with the conversation history above.`;
             }
         }
-        
+
         const response = await fetch(GEMINI_API_URL, {
             method: 'POST',
             headers: {
@@ -997,7 +997,7 @@ async function processCustomCommand(command) {
     if (player.classProgression && player.classProgression.classAbilities) {
         abilitiesText = player.classProgression.classAbilities.join(', ');
     }
-    
+
     let spellsText = 'none';
     if (player.classProgression && player.classProgression.knownSpells && player.classProgression.knownCantrips) {
         const allSpells = [...player.classProgression.knownSpells, ...player.classProgression.knownCantrips];
@@ -1100,23 +1100,23 @@ async function handleCommandConsequences(command, aiResponse) {
     if (lowerCommand.includes('what abilities') || lowerCommand.includes('my abilities') || lowerCommand.includes('what spells') || lowerCommand.includes('my spells') || lowerCommand.includes('what can i do')) {
         if (player.classProgression) {
             let abilitiesMsg = `As a Level ${player.level} ${player.class}, you have:\n`;
-            
+
             if (player.classProgression.classAbilities.length > 0) {
                 abilitiesMsg += `\nClass Abilities: ${player.classProgression.classAbilities.join(', ')}`;
             }
-            
+
             if (player.classProgression.knownCantrips.length > 0) {
                 abilitiesMsg += `\nCantrips: ${player.classProgression.knownCantrips.join(', ')}`;
             }
-            
+
             if (player.classProgression.knownSpells.length > 0) {
                 abilitiesMsg += `\nSpells: ${player.classProgression.knownSpells.join(', ')}`;
             }
-            
+
             if (player.classProgression.classFeats.length > 0) {
                 abilitiesMsg += `\nFeats: ${player.classProgression.classFeats.join(', ')}`;
             }
-            
+
             displayMessage(abilitiesMsg, 'info');
             addToConversationHistory('assistant', abilitiesMsg);
         } else {
@@ -1145,6 +1145,13 @@ async function handleCommandConsequences(command, aiResponse) {
 }
 
 async function generateQuest() {
+    // Limit to one active quest
+    const activeQuests = player.quests.filter(q => !q.completed);
+    if (activeQuests.length > 0) {
+        displayMessage("You already have an active quest. Finish it before seeking another.", 'error');
+        return;
+    }
+
     if (!confirm("Are you sure you want to request a new quest?")) {
         return;
     }
@@ -1170,14 +1177,14 @@ async function generateQuest() {
         const questMessage = `New Quest Added: ${quest}`;
         displayMessage(questMessage, 'success');
         addToConversationHistory('assistant', questMessage);
-        
+
         // Force update quest button immediately
         setTimeout(() => {
             updateQuestButton();
         }, 100);
-        
+
         saveGame(); // Auto-save after quest creation
-        
+
         // Log for debugging
         console.log('Quest added:', newQuest);
         console.log('Total quests:', player.quests.length);
@@ -1193,7 +1200,7 @@ async function generateQuest() {
 function updateQuestButton() {
     const activeQuests = player.quests.filter(q => !q.completed);
     console.log('updateQuestButton called - Total quests:', player.quests.length, 'Active quests:', activeQuests.length);
-    
+
     if (activeQuests.length > 0) {
         newQuestBtn.innerHTML = '<i class="gi gi-scroll-unfurled mr-2"></i>View Quest';
         newQuestBtn.onclick = displayQuests;
@@ -1208,7 +1215,7 @@ function updateQuestButton() {
 function getActiveQuestsContext() {
     const activeQuests = player.quests.filter(q => !q.completed);
     if (activeQuests.length === 0) return '';
-    
+
     return `ACTIVE QUESTS:\n${activeQuests.map(q => q.description).join('\n')}\n\n`;
 }
 
@@ -1225,7 +1232,11 @@ function displayQuests() {
     const completedQuests = player.quests.filter(q => q.completed);
 
     if (activeQuests.length === 0 && completedQuests.length === 0) {
-        questListDisplay.innerHTML = '<p class="text-center text-amber-800">You have no quests.</p>';
+        questListDisplay.innerHTML = '<p class="text-center text-amber-800">You have no quests. Use the main "New Quest" button to find one!</p>';
+        // Auto-close after showing message
+        setTimeout(() => {
+            questInterface.classList.add('hidden');
+        }, 2000);
         return;
     }
 
@@ -1233,7 +1244,7 @@ function displayQuests() {
     if (activeQuests.length > 0) {
         const activeHeader = document.createElement('h5');
         activeHeader.classList.add('font-bold', 'text-lg', 'mb-3', 'text-green-700');
-        activeHeader.textContent = 'Active Quests';
+        activeHeader.textContent = 'Active Quest';
         questListDisplay.appendChild(activeHeader);
 
         activeQuests.forEach((quest, index) => {
@@ -1242,8 +1253,9 @@ function displayQuests() {
             questDiv.innerHTML = `
                 <p class="text-sm mb-2">${quest.description}</p>
                 <div class="flex gap-2">
-                    <button class="btn-parchment text-xs px-2 py-1" onclick="markQuestComplete(${quest.id})">Mark Complete</button>
+                    <button class="btn-parchment text-xs px-2 py-1 bg-red-600 hover:bg-red-700 text-white" onclick="abandonQuest(${quest.id})">Abandon Quest</button>
                 </div>
+                <p class="text-xs text-amber-700 mt-2 italic">Note: Quest completion is determined by the AI based on your actions during gameplay.</p>
             `;
             questListDisplay.appendChild(questDiv);
         });
@@ -1263,26 +1275,17 @@ function displayQuests() {
             questListDisplay.appendChild(questDiv);
         });
     }
-
-    // Add option to get new quest if no active quests
-    if (activeQuests.length === 0) {
-        const newQuestButton = document.createElement('button');
-        newQuestButton.classList.add('btn-parchment', 'w-full', 'mt-4');
-        newQuestButton.innerHTML = '<i class="gi gi-scroll-unfurled mr-2"></i>Seek New Quest';
-        newQuestButton.onclick = () => {
-            questInterface.classList.add('hidden');
-            updateQuestButton(); // Update the main quest button
-            generateQuest();
-        };
-        questListDisplay.appendChild(newQuestButton);
-    }
 }
 
-function markQuestComplete(questId) {
-    const quest = player.quests.find(q => q.id === questId);
-    if (quest) {
-        quest.completed = true;
-        displayMessage(`Quest completed: ${quest.description.substring(0, 50)}...`, 'success');
+function abandonQuest(questId) {
+    if (!confirm("Are you sure you want to abandon this quest?")) {
+        return;
+    }
+
+    const questIndex = player.quests.findIndex(q => q.id === questId);
+    if (questIndex !== -1) {
+        player.quests.splice(questIndex, 1);
+        displayMessage("Quest abandoned.", 'info');
         updateQuestButton();
         displayQuests(); // Refresh display
     }
@@ -1308,7 +1311,7 @@ function displayBackground() {
                 <p class="mb-2"><strong>Level:</strong> ${player.level || 1}</p>
                 <p class="mb-2"><strong>Current Location:</strong> ${player.currentLocation || 'Unknown'}</p>
             </div>
-            
+
             <div class="parchment-box p-4">
                 <h5 class="font-bold text-lg mb-3 text-amber-900">Character Stats</h5>
                 <p class="mb-1"><strong>Strength:</strong> ${player.stats.strength || 10}</p>
@@ -1319,7 +1322,7 @@ function displayBackground() {
                 <p class="mb-1"><strong>Charisma:</strong> ${player.stats.charisma || 10}</p>
             </div>
         </div>
-        
+
         <div class="parchment-box p-4 mt-4">
             <h5 class="font-bold text-lg mb-3 text-amber-900">Background Story</h5>
             <div class="text-sm leading-relaxed text-amber-800">
@@ -1448,6 +1451,7 @@ document.addEventListener('DOMContentLoaded', () => {
     window.displayCharacterProgression = displayCharacterProgression;
     window.markQuestComplete = markQuestComplete;
     window.updateQuestButton = updateQuestButton;
+    window.abandonQuest = abandonQuest;
 });
 
 function displayLevelUpRewards(progression, oldLevel) {
