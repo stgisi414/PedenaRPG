@@ -2,6 +2,11 @@
 // Advanced Location Management System
 import { gameData, GameDataManager } from '../assets/game-data-loader.js';
 
+// Ensure gameData is available globally for compatibility
+if (typeof window !== 'undefined') {
+    window.gameData = gameData;
+}
+
 export class LocationManager {
     
     static locationTypes = {

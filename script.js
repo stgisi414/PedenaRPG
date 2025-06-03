@@ -982,8 +982,45 @@ async function processCustomCommand(command) {
     addToConversationHistory('user', command);
     displayMessage("Processing your command...", 'info');
 
-    // Analyze action using GameActions module
+    // First check if this is a movement command using LocationManager
+    const movementAnalysis = LocationManager.analyzeMovementCommand(command, player.currentLocation, player);
+    
+    if (movementAnalysis.confidence > 0.6) {
+        // Use advanced location processing
+        const detailedPrompt = LocationManager.createDetailedMovementPrompt(movementAnalysis, player);
+        
+        const response = await callGeminiAPI(detailedPrompt, 0.8, 1000, true);
+        if (response) {
+            displayMessage(response);
+            addToConversationHistory('assistant', response);
+            
+            // Apply movement results
+            if (movementAnalysis.destination && movementAnalysis.destination.name) {
+                let newLocationName = movementAnalysis.destination.name;
+                
+                // Handle different destination types
+                if (movementAnalysis.destination.parentLocation) {
+                    newLocationName = `${movementAnalysis.destination.name}, ${movementAnalysis.destination.parentLocation}`;
+                }
+                
+                player.currentLocation = newLocationName;
+                LocationManager.saveLocationToHistory(newLocationName, player.name);
+                updatePlayerStatsDisplay();
+                
+                // Check for encounters
+                if (Math.random() < movementAnalysis.encounterChance) {
+                    checkRandomEncounter();
+                }
+            }
+        }
+        
+        saveConversationHistory();
+        return;
+    }
+
+    // For non-movement commands, use the existing system
     const actionAnalysis = GameActions.analyzeCommand(command, player);
+    actionAnalysis.originalCommand = command; // Ensure original command is preserved
 
     // Handle immediate consequences based on action analysis
     await handleActionConsequences(actionAnalysis);
@@ -1078,17 +1115,73 @@ async function handleActionConsequences(actionAnalysis) {
 }
 
 async function handleMovementAction(extractedData) {
-    if (extractedData.primary) {
+    const command = extractedData.originalCommand || extractedData.primary || '';
+    
+    // Use LocationManager for advanced movement analysis
+    const movementAnalysis = LocationManager.analyzeMovementCommand(command, player.currentLocation, player);
+    
+    if (movementAnalysis.confidence > 0.5 && movementAnalysis.destination) {
+        const destination = movementAnalysis.destination;
+        
+        // Handle different movement types
+        switch (movementAnalysis.movementType) {
+            case 'city_travel':
+            case 'region_travel':
+                player.currentLocation = destination.name;
+                displayMessage(`After ${movementAnalysis.estimatedTime} minutes of travel, you arrive at ${destination.name}.`);
+                if (destination.description) {
+                    displayMessage(destination.description);
+                }
+                LocationManager.saveLocationToHistory(destination.name, player.name);
+                break;
+                
+            case 'district_travel':
+            case 'building_entry':
+                player.currentLocation = `${destination.name}, ${destination.parentLocation}`;
+                displayMessage(`You move to ${destination.name}.`);
+                break;
+                
+            case 'directional_travel':
+                if (destination.possibleLocations && destination.possibleLocations.length > 0) {
+                    const randomDestination = destination.possibleLocations[Math.floor(Math.random() * destination.possibleLocations.length)];
+                    player.currentLocation = randomDestination;
+                    displayMessage(`Traveling ${destination.direction}, you reach ${randomDestination}.`);
+                    LocationManager.saveLocationToHistory(randomDestination, player.name);
+                } else {
+                    displayMessage(`You head ${destination.direction} but don't find anything notable.`);
+                }
+                break;
+                
+            case 'interpreted_travel':
+                player.currentLocation = destination.name;
+                displayMessage(`You travel to ${destination.name}.`);
+                LocationManager.saveLocationToHistory(destination.name, player.name);
+                break;
+                
+            default:
+                displayMessage("You wander around but don't go anywhere specific.");
+                return;
+        }
+        
+        // Check for encounters based on calculated chance
+        if (Math.random() < movementAnalysis.encounterChance) {
+            checkRandomEncounter();
+        }
+        
+        updatePlayerStatsDisplay();
+        
+    } else if (extractedData.primary) {
+        // Fallback to simple movement
         let newLocation = extractedData.primary;
-        // Clean up location name
         newLocation = newLocation.replace(/^(the|a|an)\s+/i, '').trim();
         newLocation = newLocation.replace(/\s+(and|then|,).*$/i, '').trim();
 
         if (newLocation && !['alone', 'him', 'her', 'them', 'person', 'npc'].includes(newLocation.toLowerCase())) {
             player.currentLocation = newLocation;
             displayMessage(`You travel to ${newLocation}.`);
-            await generateWorldDescription(newLocation);
+            LocationManager.saveLocationToHistory(newLocation, player.name);
             if (Math.random() < 0.3) checkRandomEncounter();
+            updatePlayerStatsDisplay();
         }
     }
 }
@@ -1507,6 +1600,8 @@ document.addEventListener('DOMContentLoaded', () => {
     window.generateQuest = generateQuest;
     window.learnNewSpell = learnNewSpell;
     window.abandonQuest = abandonQuest;
+    window.LocationManager = LocationManager;
+    window.GameActions = GameActions;
 });
 
 function displayLevelUpRewards(progression, oldLevel) {
