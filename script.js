@@ -813,11 +813,22 @@ function displayInventory() {
     const equippedDiv = document.createElement('div');
     equippedDiv.classList.add('parchment-box', 'p-3', 'mb-4');
     equippedDiv.innerHTML = '<h4 class="font-bold mb-2">Currently Equipped:</h4>';
-    const equippedItems = Object.values(player.equipment).filter(item => item);
+    const equippedItems = Object.entries(player.equipment).filter(([slot, item]) => item);
     if (equippedItems.length > 0) {
-        equippedItems.forEach(item => {
-            const equipDiv = document.createElement('p');
-            equipDiv.textContent = `${item.name} (${item.slot})`;
+        equippedItems.forEach(([slot, item]) => {
+            const equipDiv = document.createElement('div');
+            equipDiv.classList.add('flex', 'justify-between', 'items-center', 'mb-2', 'p-2', 'bg-amber-50', 'rounded');
+            
+            const itemInfo = document.createElement('span');
+            itemInfo.textContent = `${item.name} (${item.slot})`;
+            equipDiv.appendChild(itemInfo);
+            
+            const unequipBtn = document.createElement('button');
+            unequipBtn.classList.add('btn-parchment', 'text-xs', 'px-2', 'py-1', 'bg-red-600', 'text-white', 'hover:bg-red-700');
+            unequipBtn.innerHTML = '<i class="gi gi-cancel mr-1"></i>Unequip';
+            unequipBtn.onclick = () => unequipItem(slot);
+            equipDiv.appendChild(unequipBtn);
+            
             equippedDiv.appendChild(equipDiv);
         });
     } else {
@@ -974,6 +985,21 @@ function equipItem(index) {
         updatePlayerStatsDisplay();
     } else {
         displayMessage(`${itemToEquip.name} cannot be equipped.`, 'info');
+    }
+}
+
+function unequipItem(slot) {
+    const equippedItem = player.equipment[slot];
+    if (equippedItem) {
+        // Move item back to inventory
+        player.inventory.push(equippedItem);
+        // Remove from equipment slot
+        player.equipment[slot] = null;
+        displayMessage(`You unequipped ${equippedItem.name}.`, 'success');
+        displayInventory(); // Refresh inventory display
+        updatePlayerStatsDisplay();
+    } else {
+        displayMessage(`No item equipped in ${slot} slot.`, 'info');
     }
 }
 
