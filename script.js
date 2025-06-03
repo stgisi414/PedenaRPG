@@ -1792,6 +1792,16 @@ createCharacterBtn.addEventListener('click', () => {
     player.gender = gender;
     player.background = background;
 
+    // Initialize base stats to 10 before applying any bonuses
+    player.stats = {
+        strength: 10,
+        dexterity: 10,
+        intelligence: 10,
+        constitution: 10,
+        wisdom: 10,
+        charisma: 10
+    };
+
     // Initialize character with new progression system
     CharacterManager.initializeCharacter(player, charClass);
 

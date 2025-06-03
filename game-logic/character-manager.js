@@ -108,8 +108,23 @@ export class CharacterManager {
         player.maxHp += hitDieBonus;
         player.hp = player.maxHp;
         
+        // Ensure stats object exists and has base values
+        if (!player.stats) {
+            player.stats = {
+                strength: 10,
+                dexterity: 10,
+                intelligence: 10,
+                constitution: 10,
+                wisdom: 10,
+                charisma: 10
+            };
+        }
+        
         // Apply primary stat bonuses
         progression.primaryStats.forEach(stat => {
+            if (player.stats[stat] < 10) {
+                player.stats[stat] = 10; // Ensure minimum base value
+            }
             player.stats[stat] += 2; // Bonus for primary stats
         });
     }
