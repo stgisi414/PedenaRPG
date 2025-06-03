@@ -487,6 +487,241 @@ export class ItemGenerator {
         return rarityDesc[item.rarity] || 'A mysterious item of unknown origin.';
     }
     
+    // Constructed Language System
+    static languageTemplates = {
+        elven: {
+            name: "Elvish",
+            phoneticPattern: ["th", "el", "ar", "an", "sil", "mel", "gal", "tar", "wen", "dal", "ith", "lor", "nim", "gil", "dor"],
+            suffixes: ["wen", "iel", "ath", "oth", "eth", "rim", "los", "las"],
+            prefixes: ["sil", "gal", "mel", "el", "ar", "th"],
+            grammar: "VSO", // Verb-Subject-Object
+            script: "flowing",
+            sample: "Sil galad wen melethril, ithil naergon las."
+        },
+        succubus: {
+            name: "Infernal Succubus",
+            phoneticPattern: ["zar", "bel", "ash", "mor", "nex", "vex", "drak", "keth", "vor", "rath", "xen", "mal", "kor", "tash"],
+            suffixes: ["ath", "oth", "ex", "ash", "ek", "ak", "or", "ur"],
+            prefixes: ["zar", "bel", "mor", "drak", "vex", "mal"],
+            grammar: "SOV", // Subject-Object-Verb
+            script: "angular",
+            sample: "Zar'thek beloth nexari, morathi drakul vexen."
+        },
+        draconic: {
+            name: "Ancient Draconic",
+            phoneticPattern: ["bahar", "krex", "thar", "vorth", "yol", "fus", "ro", "dah", "shul", "grah", "mul", "qah", "wuld"],
+            suffixes: ["ul", "ah", "ex", "oth", "ar", "or"],
+            prefixes: ["yol", "fus", "thar", "vorth", "krex"],
+            grammar: "Free", // Flexible word order
+            script: "runic",
+            sample: "Yol toor shul! Fus ro dah krexul."
+        },
+        demonic: {
+            name: "Lower Demonic",
+            phoneticPattern: ["gorth", "mek", "zul", "thak", "bor", "nath", "krul", "vash", "lok", "grim", "sek", "urth"],
+            suffixes: ["ek", "ak", "ul", "oth", "ur", "ok"],
+            prefixes: ["gorth", "mek", "zul", "krul", "nath"],
+            grammar: "SOV",
+            script: "jagged",
+            sample: "Gorthek zulnath thakul, bor'mekul vashoth lokgrim."
+        },
+        celestial: {
+            name: "High Celestial",
+            phoneticPattern: ["lum", "cel", "aur", "ser", "lyr", "thal", "mir", "nev", "sil", "bel", "aeth", "vel"],
+            suffixes: ["iel", "ael", "oth", "eth", "ir", "al"],
+            prefixes: ["lum", "cel", "aur", "ser", "thal"],
+            grammar: "VSO",
+            script: "luminous",
+            sample: "Lumiel aethyr celoth, seraphim thalmir nevael."
+        },
+        orcish: {
+            name: "Tribal Orcish",
+            phoneticPattern: ["grok", "uruk", "shar", "dug", "goth", "morg", "bash", "krump", "wagh", "zog", "nob"],
+            suffixes: ["uk", "agh", "og", "ub", "ok"],
+            prefixes: ["grok", "uruk", "morg", "bash"],
+            grammar: "SVO", // Subject-Verb-Object
+            script: "crude",
+            sample: "Grokuk bashagh morgoth, uruk wagh zogub!"
+        }
+    };
+
+    static generateConstructedLanguage(languageType, textLength = 'medium') {
+        const template = this.languageTemplates[languageType.toLowerCase()] || this.languageTemplates.elven;
+        
+        const lengthMap = {
+            short: { sentences: 1, wordsPerSentence: [3, 5] },
+            medium: { sentences: 2, wordsPerSentence: [4, 7] },
+            long: { sentences: 3, wordsPerSentence: [5, 9] },
+            scroll: { sentences: 4, wordsPerSentence: [6, 12] }
+        };
+        
+        const config = lengthMap[textLength] || lengthMap.medium;
+        const sentences = [];
+        
+        for (let i = 0; i < config.sentences; i++) {
+            const wordCount = Math.floor(Math.random() * (config.wordsPerSentence[1] - config.wordsPerSentence[0] + 1)) + config.wordsPerSentence[0];
+            const sentence = this.generateSentence(template, wordCount);
+            sentences.push(sentence);
+        }
+        
+        return {
+            text: sentences.join(' '),
+            language: template.name,
+            script: template.script,
+            translation: this.generateTranslation(sentences.length, languageType)
+        };
+    }
+
+    static generateSentence(template, wordCount) {
+        const words = [];
+        
+        // Generate base words using phonetic patterns
+        for (let i = 0; i < wordCount; i++) {
+            let word = '';
+            
+            // Sometimes add prefix (20% chance)
+            if (Math.random() < 0.2 && template.prefixes.length > 0) {
+                word += template.prefixes[Math.floor(Math.random() * template.prefixes.length)];
+            }
+            
+            // Add main phonetic element
+            word += template.phoneticPattern[Math.floor(Math.random() * template.phoneticPattern.length)];
+            
+            // Sometimes add suffix (30% chance)
+            if (Math.random() < 0.3 && template.suffixes.length > 0) {
+                word += template.suffixes[Math.floor(Math.random() * template.suffixes.length)];
+            }
+            
+            words.push(word);
+        }
+        
+        // Apply basic grammar rules
+        return this.applyGrammarRules(words, template.grammar);
+    }
+
+    static applyGrammarRules(words, grammar) {
+        if (words.length < 3) return words.join(' ') + '.';
+        
+        switch (grammar) {
+            case 'VSO': // Verb-Subject-Object
+                return words.join(' ') + '.';
+            case 'SOV': // Subject-Object-Verb  
+                return words.join(' ') + '.';
+            case 'SVO': // Subject-Verb-Object
+                return words.join(' ') + '!';
+            default: // Free word order
+                return words.join(' ') + '.';
+        }
+    }
+
+    static generateTranslation(sentenceCount, languageType) {
+        const translationTemplates = {
+            elven: [
+                "The stars shine upon you, beloved one, the moon guides your path.",
+                "In ancient times, the great trees whispered secrets of magic.",
+                "May the light of Valinor guide your journey through shadow."
+            ],
+            succubus: [
+                "Your desires call to me, mortal, let us make a pact.",
+                "The flames of passion burn eternal in the depths below.",
+                "Sweet whispers promise power beyond your wildest dreams."
+            ],
+            draconic: [
+                "Fire and fury! The ancient power awakens within.",
+                "By claw and flame, the old ways shall return to this realm.",
+                "The Thu'um echoes through mountain peaks, calling dragons home."
+            ],
+            demonic: [
+                "The darkness speaks your name, flesh-bound soul.",
+                "Blood and shadow bind the infernal contract of damnation.",
+                "In the abyss below, legions march at the master's command."
+            ],
+            celestial: [
+                "Divine light illuminates the path of the righteous.",
+                "Heaven's chorus sings of hope and eternal redemption.",
+                "The blessed ones gather where mortal prayers ascend."
+            ],
+            orcish: [
+                "Fight good! Smash enemies, take their shiny things!",
+                "Big chief says charge! WAAAGH! Victory or glorious death!",
+                "Strong warrior earns respect, weak one gets eaten!"
+            ]
+        };
+        
+        const templates = translationTemplates[languageType.toLowerCase()] || translationTemplates.elven;
+        const selectedTemplates = templates.slice(0, sentenceCount);
+        
+        return selectedTemplates.join(' ');
+    }
+
+    // Enhanced book generation with constructed languages
+    static generateLanguageBook(rarity, languageType) {
+        const language = this.generateConstructedLanguage(languageType, 'scroll');
+        const template = this.languageTemplates[languageType.toLowerCase()] || this.languageTemplates.elven;
+        
+        const bookTitles = {
+            elven: "Silmarillion Eregion",
+            succubus: "Zar'thek Belothrim",
+            draconic: "Yol'Toor'Shul", 
+            demonic: "Gorthek Ulokrim",
+            celestial: "Lumiel Serathim",
+            orcish: "Grokagh Waaghbook"
+        };
+        
+        const title = bookTitles[languageType.toLowerCase()] || `${template.name} Script`;
+        
+        return {
+            name: `${title} (${template.name} Language)`,
+            type: itemCategories.BOOK,
+            rarity: rarity,
+            effects: this.generateBookEffects(rarity),
+            description: `A ${template.script} text written in ${template.name}. The writing seems to shimmer with otherworldly power.`,
+            languageContent: {
+                originalText: language.text,
+                translation: language.translation,
+                language: language.language,
+                script: language.script
+            },
+            readAction: 'language_study',
+            value: Math.floor((itemRarity[rarity]?.multiplier || 1) * 25)
+        };
+    }
+
+    // Enhanced scroll generation with constructed languages
+    static generateLanguageScroll(rarity, languageType, spellType = 'generic') {
+        const language = this.generateConstructedLanguage(languageType, 'short');
+        const template = this.languageTemplates[languageType.toLowerCase()] || this.languageTemplates.elven;
+        
+        const scrollNames = {
+            elven: "Scroll of Elven Incantation",
+            succubus: "Scroll of Seductive Whispers", 
+            draconic: "Scroll of Dragon Words",
+            demonic: "Scroll of Infernal Binding",
+            celestial: "Scroll of Divine Grace",
+            orcish: "Scroll of Battle Cry"
+        };
+        
+        const scrollName = scrollNames[languageType.toLowerCase()] || `Scroll of ${template.name}`;
+        
+        return {
+            name: scrollName,
+            type: itemCategories.SCROLL,
+            rarity: rarity,
+            singleUse: true,
+            effects: this.generateScrollEffects(rarity),
+            description: `An ancient scroll inscribed with ${template.script} ${template.name} text. Magical energy pulses through the words.`,
+            languageContent: {
+                originalText: language.text,
+                translation: language.translation,
+                language: language.language,
+                script: language.script,
+                spellType: spellType
+            },
+            readAction: 'spell_casting',
+            value: Math.floor((itemRarity[rarity]?.multiplier || 1) * 15)
+        };
+    }
+
     // Generate AI prompt for contextual item creation
     static generateItemPrompt(context) {
         return {
@@ -494,11 +729,12 @@ export class ItemGenerator {
             availableCategories: Object.values(itemCategories),
             availableRarities: Object.keys(itemRarity),
             statusEffects: Object.keys(statusEffects),
+            availableLanguages: Object.keys(this.languageTemplates),
             dynamicElements: {
                 prefixes: dynamicItemPrefixes,
                 suffixes: dynamicItemSuffixes
             },
-            generationInstructions: `Create a contextually appropriate item based on the current game situation. Consider the player's class, current location, recent actions, and quest progress. The item should feel meaningful and integrated into the world narrative.`
+            generationInstructions: `Create a contextually appropriate item based on the current game situation. Consider the player's class, current location, recent actions, and quest progress. The item should feel meaningful and integrated into the world narrative. For language-based items, include constructed language text.`
         };
     }
 }

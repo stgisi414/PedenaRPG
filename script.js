@@ -842,6 +842,14 @@ function displayInventory() {
             buttonContainer.appendChild(useBtn);
         }
 
+        if (item.languageContent) {
+            const readBtn = document.createElement('button');
+            readBtn.classList.add('btn-parchment', 'text-sm', 'px-3', 'py-1', 'bg-purple-600', 'text-white');
+            readBtn.textContent = item.type === 'scroll' ? 'Read & Cast' : 'Study';
+            readBtn.onclick = () => useItem(index);
+            buttonContainer.appendChild(readBtn);
+        }
+
         if (item.type === 'weapon' || item.type === 'armor') {
             const equipBtn = document.createElement('button');
             equipBtn.classList.add('btn-parchment', 'text-sm', 'px-3', 'py-1');
@@ -857,6 +865,12 @@ function displayInventory() {
 
 function useItem(index) {
     const item = player.inventory[index];
+    
+    // Handle language items with special reading functionality
+    if (item.languageContent) {
+        readLanguageItem(item);
+        return;
+    }
     
     // Use the new ItemManager system
     const result = ItemManager.useItem(player, item.id);
@@ -877,6 +891,52 @@ function useItem(index) {
             displayMessage(result.message || `You cannot use ${item.name} at this time.`, 'info');
         }
     }
+}
+
+function readLanguageItem(item) {
+    const content = item.languageContent;
+    
+    // Display the constructed language text first
+    displayMessage(`You carefully examine ${item.name} and see the following ${content.script} text written in ${content.language}:`, 'info');
+    
+    // Show the constructed language text in a special format
+    const languageDiv = document.createElement('div');
+    languageDiv.classList.add('parchment-box', 'p-4', 'my-3', 'border-2', 'border-purple-600', 'bg-purple-50');
+    languageDiv.innerHTML = `
+        <h5 class="font-bold text-purple-800 mb-2">${content.language} Text:</h5>
+        <p class="font-serif text-lg italic text-purple-900 mb-3">"${content.originalText}"</p>
+        <hr class="border-purple-300 my-3">
+        <h6 class="font-semibold text-purple-700 mb-1">Translation:</h6>
+        <p class="text-purple-800">"${content.translation}"</p>
+    `;
+    gameOutput.appendChild(languageDiv);
+    gameOutput.scrollTop = gameOutput.scrollHeight;
+    
+    // Add to conversation history for AI context
+    addToConversationHistory('user', `I read the ${item.name}`);
+    addToConversationHistory('assistant', `The ${content.language} text reads: "${content.originalText}" which translates to: "${content.translation}"`);
+    
+    // Apply any magical effects from reading
+    if (item.effects && item.effects.length > 0) {
+        const result = ItemManager.applyItemEffects(player, item);
+        if (result.success) {
+            displayMessage(`Reading the ${content.language} text has a magical effect: ${result.message}`, 'success');
+        }
+    }
+    
+    // Remove single-use scrolls after reading
+    if (item.singleUse) {
+        const itemIndex = player.inventory.indexOf(item);
+        if (itemIndex >= 0) {
+            player.inventory.splice(itemIndex, 1);
+            displayMessage(`The ${item.name} crumbles to dust after being read.`, 'info');
+            ItemManager.saveInventoryToStorage(player);
+            displayInventory(); // Refresh inventory display
+        }
+    }
+    
+    updatePlayerStatsDisplay();
+    saveConversationHistory();
 }
 
 function equipItem(index) {
@@ -1196,7 +1256,43 @@ function parseAIItemResponse(aiResponse, context) {
         const type = typeMatch ? typeMatch[1].trim().toLowerCase() : 'magical';
         const rarity = rarityMatch ? rarityMatch[1].trim().toUpperCase() : 'UNCOMMON';
         
-        // Map type to category
+        // Detect language type from item name and context
+        const detectLanguageType = (name, desc) => {
+            const lowerName = name.toLowerCase();
+            const lowerDesc = desc.toLowerCase();
+            const fullText = lowerName + ' ' + lowerDesc;
+            
+            if (fullText.includes('succubus') || fullText.includes('demon') || fullText.includes('infernal')) return 'succubus';
+            if (fullText.includes('elven') || fullText.includes('elf') || fullText.includes('elvish')) return 'elven';
+            if (fullText.includes('dragon') || fullText.includes('draconic') || fullText.includes('wyrm')) return 'draconic';
+            if (fullText.includes('demonic') || fullText.includes('fiend') || fullText.includes('abyss')) return 'demonic';
+            if (fullText.includes('celestial') || fullText.includes('angel') || fullText.includes('divine')) return 'celestial';
+            if (fullText.includes('orc') || fullText.includes('orcish') || fullText.includes('tribal')) return 'orcish';
+            
+            return 'elven'; // Default
+        };
+        
+        // Check if this is a language-based item
+        const isLanguageItem = itemName.toLowerCase().includes('language') || 
+                              itemName.toLowerCase().includes('script') ||
+                              itemName.toLowerCase().includes('tome') ||
+                              itemName.toLowerCase().includes('scroll') ||
+                              type.includes('scroll') || 
+                              type.includes('book');
+        
+        if (isLanguageItem) {
+            const languageType = detectLanguageType(itemName, description);
+            const validRarity = Object.keys(itemRarity).includes(rarity) ? rarity : 'UNCOMMON';
+            
+            // Generate appropriate language item
+            if (type.includes('scroll')) {
+                return ItemGenerator.generateLanguageScroll(validRarity, languageType);
+            } else {
+                return ItemGenerator.generateLanguageBook(validRarity, languageType);
+            }
+        }
+        
+        // Map type to category for non-language items
         let category = itemCategories.MAGICAL;
         if (type.includes('scroll')) category = itemCategories.SCROLL;
         else if (type.includes('book') || type.includes('tome')) category = itemCategories.BOOK;
@@ -1214,12 +1310,6 @@ function parseAIItemResponse(aiResponse, context) {
         // Override with AI-generated details
         generatedItem.name = itemName;
         generatedItem.description = description;
-        
-        // Add special properties for story items
-        if (itemName.toLowerCase().includes('language') || itemName.toLowerCase().includes('script')) {
-            generatedItem.effects = [...(generatedItem.effects || []), 'enchanted'];
-            generatedItem.specialProperty = 'language_learning';
-        }
         
         return generatedItem;
         
