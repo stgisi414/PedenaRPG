@@ -2,6 +2,7 @@
 import { gameData, GameDataManager } from './assets/game-data-loader.js';
 import { CharacterManager } from './game-logic/character-manager.js';
 import { classProgression, spellDefinitions, abilityDefinitions } from './game-logic/class-progression.js';
+import { GameActions } from './game-logic/game-actions.js'; // Import GameActions
 
 const GEMINI_API_KEY = 'AIzaSyDIFeql6HUpkZ8JJlr_kuN0WDFHUyOhijA'; // Replace with your actual Gemini API Key
 const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`;
@@ -989,8 +990,11 @@ async function processCustomCommand(command) {
     addToConversationHistory('user', command);
     displayMessage("Processing your command...", 'info');
 
-    // Check for movement first, before AI call
-    await handleCommandConsequences(command, "");
+    // Analyze action using GameActions module
+    const actionAnalysis = GameActions.analyzeAction(command, player, gameData);
+
+    // Handle immediate consequences based on action analysis
+    await handleActionConsequences(actionAnalysis);
 
     // Get character abilities for context
     let abilitiesText = 'none';
@@ -1020,13 +1024,18 @@ Known Spells/Cantrips: ${spellsText}
 ${questContext}NPCs in location: ${getNPCsInLocation(player.currentLocation).map(npc => npc.name).join(', ') || 'none'}
 
 Player Command: "${command}"
+Action Analysis: ${JSON.stringify(actionAnalysis)}
 
-As the game master, interpret this command and provide a detailed response describing what happens. Focus on the immediate narrative result. If movement occurred, acknowledge the new location. Consider quest progress if relevant. Keep response to 2-3 sentences.`;
+As the game master, interpret this command and action analysis, and provide a detailed response describing what happens. Focus on the immediate narrative result. Consider quest progress if relevant. Keep response to 2-3 sentences.`;
 
     const response = await callGeminiAPI(contextPrompt, 0.8, 800, true);
     if (response) {
         displayMessage(response);
         addToConversationHistory('assistant', response);
+
+        // Process secondary effects based on AI response and action type
+        await processActionResults(actionAnalysis, response);
+
         saveConversationHistory();
     } else {
         const fallbackResponse = "You attempt the action, but nothing notable happens.";
@@ -1036,290 +1045,150 @@ As the game master, interpret this command and provide a detailed response descr
     }
 }
 
-async function handleCommandConsequences(command, aiResponse) {
-    const lowerCommand = command.toLowerCase();
+// New action handling functions to replace old system
+async function handleActionConsequences(actionAnalysis) {
+    const { actionType, extractedData, confidence } = actionAnalysis;
 
-    // Check for combat keywords
-    if (lowerCommand.includes('attack') || lowerCommand.includes('fight') || lowerCommand.includes('battle')) {
-        if (Math.random() < 0.6) { // 60% chance to trigger combat
-            checkRandomEncounter();
-        }
+    // Handle immediate consequences based on action type
+    switch (actionType) {
+        case GameActions.actionTypes.MOVEMENT:
+            await handleMovementAction(extractedData);
+            break;
+
+        case GameActions.actionTypes.COMBAT:
+            await handleCombatAction(extractedData);
+            break;
+
+        case GameActions.actionTypes.INTERACTION:
+            await handleInteractionAction(extractedData);
+            break;
+
+        case GameActions.actionTypes.EXPLORATION:
+            await handleExplorationAction(extractedData);
+            break;
+
+        case GameActions.actionTypes.REST:
+            await handleRestAction(extractedData);
+            break;
+
+        case GameActions.actionTypes.INVENTORY:
+            await handleInventoryAction(extractedData);
+            break;
+
+        case GameActions.actionTypes.SKILL:
+            await handleSkillAction(extractedData);
+            break;
+
+        default:
+            // For unknown or other action types, minimal processing
+            break;
     }
+}
 
-    // Check for NPC interaction keywords
-    if (lowerCommand.includes('talk to') || lowerCommand.includes('speak to') || lowerCommand.includes('ask')) {
-        await handleNPCInteraction();
-    }
+async function handleMovementAction(extractedData) {
+    if (extractedData.primary) {
+        let newLocation = extractedData.primary;
+        // Clean up location name
+        newLocation = newLocation.replace(/^(the|a|an)\s+/i, '').trim();
+        newLocation = newLocation.replace(/\s+(and|then|,).*$/i, '').trim();
 
-    // Enhanced movement detection - check for movement keywords but exclude NPC interactions
-    const isMovementCommand = (
-        lowerCommand.includes('go to') || lowerCommand.includes('travel') || lowerCommand.includes('move to') ||
-        lowerCommand.includes('walk to') || lowerCommand.includes('head to') || lowerCommand.includes('journey to') ||
-        lowerCommand.includes('visit') || lowerCommand.includes('flee to') || lowerCommand.includes('escape to') ||
-        lowerCommand.includes('enter')
-    );
-
-    // Special handling for "leave" and "exit" - check if it's about NPCs or locations
-    const isLeaveCommand = lowerCommand.includes('leave') || lowerCommand.includes('exit');
-    const isNPCLeaveCommand = isLeaveCommand && (
-        lowerCommand.includes('alone') || 
-        lowerCommand.includes('npc') ||
-        lowerCommand.includes('him') || 
-        lowerCommand.includes('her') || 
-        lowerCommand.includes('them') ||
-        lowerCommand.includes('person') ||
-        lowerCommand.includes('merchant') ||
-        lowerCommand.includes('guard') ||
-        lowerCommand.includes('citizen') ||
-        lowerCommand.includes('stranger') ||
-        lowerCommand.includes('figure') ||
-        // Common names that might be NPCs
-        /leave\s+\w+\s+alone/i.test(lowerCommand) ||
-        /stop\s+(talking|bothering|pestering)/i.test(lowerCommand)
-    );
-
-    // Only trigger movement if it's a clear movement command and NOT an NPC interaction
-    if ((isMovementCommand || (isLeaveCommand && !isNPCLeaveCommand))) {
-
-        // Try to extract location from command
-        let newLocation = null;
-
-        // Direct location patterns
-        const locationPatterns = [
-            /(?:go to|travel to|move to|walk to|head to|journey to|visit|flee to|escape to)\s+(.+)/i,
-            /(?:leave|exit)\s+(?:the\s+)?(.+?)(?:\s+and|\s+to|\s*$)/i,
-            /(?:enter|go into)\s+(?:the\s+)?(.+)/i
-        ];
-
-        // Only try to extract location if it's not an NPC leave command
-        if (!isNPCLeaveCommand) {
-            for (const pattern of locationPatterns) {
-                const match = command.match(pattern);
-                if (match) {
-                    newLocation = match[1].trim();
-                    // Don't treat common NPC-related words as locations
-                    if (!['alone', 'him', 'her', 'them', 'person', 'npc'].includes(newLocation.toLowerCase())) {
-                        break;
-                    } else {
-                        newLocation = null;
-                    }
-                }
-            }
-        }
-
-        // If no specific location found and it's a clear area exit command
-        if (!newLocation && isLeaveCommand && !isNPCLeaveCommand) {
-            // Generate a nearby location to move to
-            const nearbyLocations = [
-                GameDataManager.getRandomFrom(gameData.world.cities),
-                GameDataManager.getRandomFrom(gameData.world.regions)
-            ];
-            newLocation = nearbyLocations[Math.floor(Math.random() * nearbyLocations.length)].name;
-            displayMessage(`You leave ${player.currentLocation} and head towards ${newLocation}.`);
-        }
-
-        if (newLocation) {
-            // Clean up the location name
-            newLocation = newLocation.replace(/^(the|a|an)\s+/i, '').trim();
+        if (newLocation && !['alone', 'him', 'her', 'them', 'person', 'npc'].includes(newLocation.toLowerCase())) {
             player.currentLocation = newLocation;
-            displayMessage(`You are now in ${newLocation}.`);
+            displayMessage(`You travel to ${newLocation}.`);
             await generateWorldDescription(newLocation);
             if (Math.random() < 0.3) checkRandomEncounter();
         }
     }
+}
 
-    // Check for ability inquiry keywords
-    if (lowerCommand.includes('what abilities') || lowerCommand.includes('my abilities') || lowerCommand.includes('what spells') || lowerCommand.includes('my spells') || lowerCommand.includes('what can i do')) {
-        if (player.classProgression) {
-            let abilitiesMsg = `As a Level ${player.level} ${player.class}, you have:\n`;
-
-            if (player.classProgression.classAbilities.length > 0) {
-                abilitiesMsg += `\nClass Abilities: ${player.classProgression.classAbilities.join(', ')}`;
-            }
-
-            if (player.classProgression.knownCantrips.length > 0) {
-                abilitiesMsg += `\nCantrips: ${player.classProgression.knownCantrips.join(', ')}`;
-            }
-
-            if (player.classProgression.knownSpells.length > 0) {
-                abilitiesMsg += `\nSpells: ${player.classProgression.knownSpells.join(', ')}`;
-            }
-
-            if (player.classProgression.classFeats.length > 0) {
-                abilitiesMsg += `\nFeats: ${player.classProgression.classFeats.join(', ')}`;
-            }
-
-            displayMessage(abilitiesMsg, 'info');
-            addToConversationHistory('assistant', abilitiesMsg);
-        } else {
-            displayMessage("Your character abilities haven't been initialized yet.", 'error');
-        }
-        return; // Don't send to AI for this query
+async function handleCombatAction(extractedData) {
+    // 60% chance to trigger combat for combat actions
+    if (Math.random() < 0.6) {
+        checkRandomEncounter();
     }
+}
 
-    // Check for rest/healing keywords
-    if (lowerCommand.includes('rest') || lowerCommand.includes('sleep') || lowerCommand.includes('heal')) {
-        const healAmount = Math.floor(Math.random() * 20) + 10;
-        player.hp = Math.min(player.maxHp, player.hp + healAmount);
-        displayMessage(`You feel refreshed and recover ${healAmount} HP.`, 'success');
+async function handleInteractionAction(extractedData) {
+    await handleNPCInteraction();
+}
+
+async function handleExplorationAction(extractedData) {
+    // 40% chance to find something when searching/exploring
+    if (Math.random() < 0.4) {
+        const goldFound = Math.floor(Math.random() * 15) + 5;
+        player.gold += goldFound;
+        displayMessage(`You found ${goldFound} gold!`, 'success');
         updatePlayerStatsDisplay();
     }
+}
 
-    // Check for gold/treasure keywords
-    if (lowerCommand.includes('search') || lowerCommand.includes('loot') || lowerCommand.includes('treasure')) {
-        if (Math.random() < 0.4) { // 40% chance to find something
-            const goldFound = Math.floor(Math.random() * 15) + 5;
-            player.gold += goldFound;
-            displayMessage(`You found ${goldFound} gold!`, 'success');
+async function handleRestAction(extractedData) {
+    const healAmount = Math.floor(Math.random() * 20) + 10;
+    player.hp = Math.min(player.maxHp, player.hp + healAmount);
+    displayMessage(`You feel refreshed and recover ${healAmount} HP.`, 'success');
+    updatePlayerStatsDisplay();
+}
+
+async function handleInventoryAction(extractedData) {
+    // Handle basic inventory actions - more complex logic can be added
+    if (extractedData.primary) {
+        const itemName = extractedData.primary.toLowerCase();
+        const item = player.inventory.find(item => 
+            item.name.toLowerCase().includes(itemName)
+        );
+
+        if (item && item.type === 'consumable' && item.effect?.type === 'heal') {
+            const index = player.inventory.indexOf(item);
+            player.hp = Math.min(player.maxHp, player.hp + item.effect.amount);
+            player.inventory.splice(index, 1);
+            displayMessage(`You used ${item.name} and healed ${item.effect.amount} HP!`, 'success');
             updatePlayerStatsDisplay();
         }
     }
 }
 
-async function generateQuest() {
-    // Limit to one active quest
-    const activeQuests = player.quests.filter(q => !q.completed);
-    if (activeQuests.length > 0) {
-        displayMessage("You already have an active quest. Finish it before seeking another.", 'error');
-        return;
-    }
-
-    if (!confirm("Are you sure you want to request a new quest?")) {
-        return;
-    }
-
-    displayMessage("A mysterious figure approaches with a quest...", 'info');
-    addToConversationHistory('user', 'Request new quest');
-
-    // Use world data for quest context
-    const randomFaction = GameDataManager.getRandomFrom(gameData.organizations.factions);
-    const randomGuild = GameDataManager.getRandomFrom(gameData.organizations.guilds);
-    const randomBusiness = GameDataManager.getRandomFrom(gameData.economy.businesses);
-
-    const prompt = `Create a complete quest for ${player.name} (${player.class}, Level ${player.level}) in ${player.currentLocation}. Include: Quest giver name, clear objective, and specific reward. Use factions like ${randomFaction.name} or ${randomGuild.name}. Keep to 4-5 sentences maximum.`;
-
-    const quest = await callGeminiAPI(prompt, 0.8, 600, true);
-    if (quest) {
-        const newQuest = {
-            id: Date.now(),
-            description: quest,
-            completed: false
-        };
-        player.quests.push(newQuest);
-        const questMessage = `New Quest Added: ${quest}`;
-        displayMessage(questMessage, 'success');
-        addToConversationHistory('assistant', questMessage);
-
-        // Force update quest button immediately
-        setTimeout(() => {
-            updateQuestButton();
-        }, 100);
-
-        saveGame(); // Auto-save after quest creation
-
-        // Log for debugging
-        console.log('Quest added:', newQuest);
-        console.log('Total quests:', player.quests.length);
-        console.log('Active quests:', player.quests.filter(q => !q.completed).length);
+async function handleSkillAction(extractedData) {
+    // Handle skill-based actions with basic success/failure
+    const skillCheck = Math.random();
+    if (skillCheck > 0.3) {
+        displayMessage("Your skill attempt succeeds!", 'success');
     } else {
-        const fallbackMessage = "No one seems to have any tasks for you right now.";
-        displayMessage(fallbackMessage);
-        addToConversationHistory('assistant', fallbackMessage);
+        displayMessage("Your skill attempt fails.", 'error');
     }
-    saveConversationHistory();
 }
 
-function updateQuestButton() {
-    const activeQuests = player.quests.filter(q => !q.completed);
-    console.log('updateQuestButton called - Total quests:', player.quests.length, 'Active quests:', activeQuests.length);
+async function processActionResults(actionAnalysis, aiResponse) {
+    // Process secondary effects based on AI response and action type
+    const { actionType } = actionAnalysis;
 
+    // Check if AI response indicates quest progress
+    if (aiResponse.toLowerCase().includes('quest') && aiResponse.toLowerCase().includes('complete')) {
+        checkQuestCompletion(aiResponse);
+    }
+
+    // Check for level up or experience gain
+    if (aiResponse.toLowerCase().includes('experience') || aiResponse.toLowerCase().includes('exp')) {
+        const expMatch = aiResponse.match(/(\d+)\s*(?:exp|experience)/i);
+        if (expMatch) {
+            const expGained = parseInt(expMatch[1]);
+            player.exp += expGained;
+            checkLevelUp();
+        }
+    }
+
+    updatePlayerStatsDisplay();
+}
+
+function checkQuestCompletion(aiResponse) {
+    // Simple quest completion detection
+    const activeQuests = player.quests.filter(q => !q.completed);
     if (activeQuests.length > 0) {
-        newQuestBtn.innerHTML = '<i class="gi gi-scroll-unfurled mr-2"></i>View Quest';
-        newQuestBtn.onclick = displayQuests;
-        console.log('Button set to View Quest mode');
-    } else {
-        newQuestBtn.innerHTML = '<i class="gi gi-scroll-unfurled mr-2"></i>New Quest';
-        newQuestBtn.onclick = generateQuest;
-        console.log('Button set to New Quest mode');
-    }
-}
-
-function getActiveQuestsContext() {
-    const activeQuests = player.quests.filter(q => !q.completed);
-    if (activeQuests.length === 0) return '';
-
-    return `ACTIVE QUESTS:\n${activeQuests.map(q => q.description).join('\n')}\n\n`;
-}
-
-function displayQuests() {
-    shopInterface.classList.add('hidden');
-    inventoryInterface.classList.add('hidden');
-    skillsInterface.classList.add('hidden');
-    combatInterface.classList.add('hidden');
-    backgroundInterface.classList.add('hidden');
-    questInterface.classList.remove('hidden');
-
-    questListDisplay.innerHTML = '';
-    const activeQuests = player.quests.filter(q => !q.completed);
-    const completedQuests = player.quests.filter(q => q.completed);
-
-    if (activeQuests.length === 0 && completedQuests.length === 0) {
-        questListDisplay.innerHTML = '<p class="text-center text-amber-800">You have no quests. Use the main "New Quest" button to find one!</p>';
-        // Auto-close after showing message
-        setTimeout(() => {
-            questInterface.classList.add('hidden');
-        }, 2000);
-        return;
-    }
-
-    // Active Quests Section
-    if (activeQuests.length > 0) {
-        const activeHeader = document.createElement('h5');
-        activeHeader.classList.add('font-bold', 'text-lg', 'mb-3', 'text-green-700');
-        activeHeader.textContent = 'Active Quest';
-        questListDisplay.appendChild(activeHeader);
-
-        activeQuests.forEach((quest, index) => {
-            const questDiv = document.createElement('div');
-            questDiv.classList.add('parchment-box', 'p-3', 'mb-2');
-            questDiv.innerHTML = `
-                <p class="text-sm mb-2">${quest.description}</p>
-                <div class="flex gap-2">
-                    <button class="btn-parchment text-xs px-2 py-1 bg-red-600 hover:bg-red-700 text-white" onclick="abandonQuest(${quest.id})">Abandon Quest</button>
-                </div>
-                <p class="text-xs text-amber-700 mt-2 italic">Note: Quest completion is determined by the AI based on your actions during gameplay.</p>
-            `;
-            questListDisplay.appendChild(questDiv);
-        });
-    }
-
-    // Completed Quests Section
-    if (completedQuests.length > 0) {
-        const completedHeader = document.createElement('h5');
-        completedHeader.classList.add('font-bold', 'text-lg', 'mb-3', 'mt-4', 'text-gray-600');
-        completedHeader.textContent = 'Completed Quests';
-        questListDisplay.appendChild(completedHeader);
-
-        completedQuests.forEach(quest => {
-            const questDiv = document.createElement('div');
-            questDiv.classList.add('parchment-box', 'p-3', 'mb-2', 'opacity-75');
-            questDiv.innerHTML = `<p class="text-sm line-through">${quest.description}</p>`;
-            questListDisplay.appendChild(questDiv);
-        });
-    }
-}
-
-window.abandonQuest = function(questId) {
-    if (!confirm("Are you sure you want to abandon this quest?")) {
-        return;
-    }
-
-    const questIndex = player.quests.findIndex(q => q.id === questId);
-    if (questIndex !== -1) {
-        player.quests.splice(questIndex, 1);
-        displayMessage("Quest abandoned.", 'info');
+        // Mark first active quest as completed if AI indicates success
+        activeQuests[0].completed = true;
+        displayMessage("Quest completed!", 'success');
+        player.exp += 50; // Bonus experience
+        player.gold += 25; // Bonus gold
         updateQuestButton();
-        displayQuests(); // Refresh display
     }
 }
 
@@ -1546,6 +1415,8 @@ function displayCharacterProgression() {
     progressionInterface.classList.remove('hidden');
 
     const progressionContent = document.getElementById('progression-content');
+Action analysis and new action handling functions are integrated for better command processing.
+```javascript
     const progression = CharacterManager.getCharacterProgression(player);
 
     progressionContent.innerHTML = `
