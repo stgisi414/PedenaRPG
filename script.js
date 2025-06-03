@@ -650,8 +650,7 @@ async function generateCharacterBackground() {
     // Generate rich context using world data
     const context = GameDataManager.generateBackgroundPromptContext({ name, class: charClass, gender });
 
-    const prompt = `Create a brief background for ${name}, a ${gender} ${charClass} in Pedena. Use theseworld elements:Cities like ${code tags.
-context.worldLore.majorCities.join(', ')}; factions like ${context.worldLore.activeFactions.join(', ')}; guilds like ${context.worldLore.availableGuilds.join(', ')}. 2-3 sentences about origin and goals.`;
+    const prompt = `Create a brief background for ${name}, a ${gender} ${charClass} in Pedena. Use these world elements: Cities like ${context.worldLore.majorCities.join(', ')}; factions like ${context.worldLore.activeFactions.join(', ')}; guilds like ${context.worldLore.availableGuilds.join(', ')}. 2-3 sentences about origin and goals.`;
 
     const background = await callGeminiAPI(prompt, 0.8, 200, false); // Don't include conversation history for character creation
     if (background) {
@@ -1375,9 +1374,7 @@ async function processCustomCommand(command) {
     let spellsText = 'none';
     if (player.classProgression && player.classProgression.knownSpells && player.classProgression.knownCantrips) {
         const allSpells = [...player.classProgression.knownSpells, ...player.classProgression.knownCantrips];
-        spellsText = allSpellstext
-            ```tool_code
-.join(', ') || 'none';
+        spellsText = allSpells.join(', ') || 'none';
     }
 
     // Create context-rich prompt for the AI
@@ -2185,7 +2182,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const savedInventory = localStorage.getItem(`inventory_${player.name}`);
         const savedGame = localStorage.getItem('pedenaRPGSave');
 
-        console.log('Saved inventory inlocalStorage:', savedInventory ? JSON.parse(savedInventory) : 'Not found');
+        console.log('Saved inventory in localStorage:', savedInventory ? JSON.parse(savedInventory) : 'Not found');
         console.log('Full saved game:', savedGame ? JSON.parse(savedGame) : 'Not found');
 
         // List all localStorage keys
