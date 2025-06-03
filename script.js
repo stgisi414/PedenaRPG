@@ -138,9 +138,6 @@ function autoFixStatsInStorage() {
     } catch (error) {
         console.error('Error during stats validation:', error);
     }
-}
-
-
 };
 
 // NPC Persistence System
