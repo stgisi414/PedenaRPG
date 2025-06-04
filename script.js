@@ -7,6 +7,7 @@ import { LocationManager } from './game-logic/location-manager.js';
 import { classProgression, spellDefinitions, abilityDefinitions } from './game-logic/class-progression.js';
 import { ItemGenerator, ItemManager, itemCategories, itemRarity, statusEffects } from './assets/world-items.js';
 import { TransactionMiddleware } from './game-logic/transaction-middleware.js';
+import { ItemExchangeMiddleware } from './game-logic/item-exchange-middleware.js';
 
 const GEMINI_API_KEY = 'AIzaSyDIFeql6HUpkZ8JJlr_kuN0WDFHUyOhijA'; // Replace with your actual Gemini API Key
 const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`;
@@ -2480,6 +2481,22 @@ IMPORTANT: If the player is trying to interact with something from recent explor
                 console.error('Transaction processing error:', transactionError);
             }
 
+            // Check for item exchanges in the AI response
+            try {
+                const exchangeData = await ItemExchangeMiddleware.detectItemExchange(response, command, player, {
+                    location: player.currentLocation
+                });
+
+                if (exchangeData && exchangeData.hasExchange) {
+                    const exchangeResult = await ItemExchangeMiddleware.processItemExchange(exchangeData, player);
+                    if (exchangeResult && exchangeResult.success) {
+                        console.log('Item exchange processed:', exchangeResult);
+                    }
+                }
+            } catch (exchangeError) {
+                console.error('Item exchange processing error:', exchangeError);
+            }
+
             // Check for quest completion
             checkQuestCompletion(command + ' ' + response);
 
@@ -2765,6 +2782,7 @@ document.addEventListener('DOMContentLoaded', () => {
     window.itemCategories = itemCategories;
     window.itemRarity = itemRarity;
     window.TransactionMiddleware = TransactionMiddleware;
+    window.ItemExchangeMiddleware = ItemExchangeMiddleware;
 
     // Make other functions globally accessible if needed by other parts of the code or for debugging
     window.LocationManager = typeof LocationManager !== 'undefined' ? LocationManager : {};
