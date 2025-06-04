@@ -1819,6 +1819,13 @@ Format: Just the exploration result, no extra text.
 }
 
 function showShop() {
+    // Hide other interfaces
+    const interfaces = ['combat-interface', 'inventory-interface', 'skills-interface', 'quest-interface', 'background-interface', 'progression-interface'];
+    interfaces.forEach(id => {
+        const element = document.getElementById(id);
+        if (element) element.classList.add('hidden');
+    });
+
     shopInterface.classList.remove('hidden');
     const shopItems = shopInterface.querySelector('#shop-items');
     shopItems.innerHTML = '';
@@ -1830,23 +1837,65 @@ function showShop() {
     const shopHeader = shopInterface.querySelector('h4');
     shopHeader.textContent = `${merchantName}'s Shop`;
 
-    const items = [
-        { name: 'Health Potion', cost: 25, effect: 'heal', value: 30 },
-        { name: 'Magic Scroll', cost: 50, effect: 'spell', value: 1 },
-        { name: 'Iron Sword', cost: 100, effect: 'weapon', value: 10 },
-        { name: 'Leather Armor', cost: 75, effect: 'armor', value: 5 },
-        { name: 'Lucky Charm', cost: 150, effect: 'luck', value: 1 }
-    ];
+    // Generate 15-20 random items using world-items system
+    const itemCount = 15 + Math.floor(Math.random() * 6); // 15-20 items
+    const shopInventory = [];
 
-    items.forEach(item => {
+    for (let i = 0; i < itemCount; i++) {
+        const context = {
+            locationContext: player.currentLocation,
+            playerLevel: player.level,
+            playerClass: player.class
+        };
+        
+        const item = ItemGenerator.generateItem(context);
+        shopInventory.push(item);
+    }
+
+    // Sort items by rarity and value for better shop organization
+    shopInventory.sort((a, b) => {
+        const rarityOrder = { 'COMMON': 1, 'UNCOMMON': 2, 'RARE': 3, 'EPIC': 4, 'LEGENDARY': 5, 'ARTIFACT': 6, 'MYTHIC': 7 };
+        const aRarity = rarityOrder[a.rarity] || 1;
+        const bRarity = rarityOrder[b.rarity] || 1;
+        if (aRarity !== bRarity) return aRarity - bRarity;
+        return (a.value || 0) - (b.value || 0);
+    });
+
+    shopInventory.forEach((item, index) => {
         const itemDiv = document.createElement('div');
-        itemDiv.classList.add('shop-item');
+        itemDiv.classList.add('shop-item', 'parchment-box', 'p-3', 'mb-3');
+        itemDiv.style.border = '2px solid #2d1810'; // Dark border
+        itemDiv.style.borderRadius = '8px';
+        
+        const canAfford = player.gold >= item.value;
+        const affordabilityClass = canAfford ? 'text-green-600' : 'text-red-600';
+        const buttonDisabled = canAfford ? '' : 'disabled';
+        const buttonClass = canAfford ? 'btn-parchment' : 'btn-parchment opacity-50 cursor-not-allowed';
+
         itemDiv.innerHTML = `
-            <p>${item.name} - ${item.cost} gold</p>
-            <button onclick="buyItem('${item.name}')">Buy</button>
+            <div class="flex justify-between items-start mb-2">
+                <h6 class="font-bold text-lg">${item.name}</h6>
+                <span class="text-xs px-2 py-1 rounded ${getRarityColor(item.rarity)}">${item.rarity}</span>
+            </div>
+            <p class="text-sm text-amber-700 mb-2">${item.description}</p>
+            
+            ${item.damage ? `<p class="text-xs text-red-600">Damage: ${item.damage}</p>` : ''}
+            ${item.armor ? `<p class="text-xs text-blue-600">Armor: ${item.armor}</p>` : ''}
+            ${item.effect ? `<p class="text-xs text-purple-600">Effect: ${getEffectDescription(item.effect)}</p>` : ''}
+            ${item.effects && item.effects.length > 0 ? `<p class="text-xs text-purple-600">Effects: ${item.effects.slice(0,2).join(', ').replace(/_/g, ' ')}</p>` : ''}
+            
+            <div class="flex justify-between items-center mt-3">
+                <span class="font-bold ${affordabilityClass}">${item.value} gold</span>
+                <button onclick="buyShopItem(${index})" class="${buttonClass} text-sm py-1 px-3" ${buttonDisabled}>
+                    ${canAfford ? 'Buy' : 'Too Expensive'}
+                </button>
+            </div>
         `;
         shopItems.appendChild(itemDiv);
     });
+
+    // Store shop inventory globally for purchase function
+    window.currentShopInventory = shopInventory;
 }
 
 async function talkToNPC(npcName) {
@@ -2047,6 +2096,48 @@ document.addEventListener('DOMContentLoaded', () => {
         displayMessage(`You rest and recover ${healAmount} HP. You feel refreshed.`, 'success');
         updatePlayerStatsDisplay();
         saveGame();
+
+
+
+// Shop item purchase function
+function buyShopItem(itemIndex) {
+    if (!window.currentShopInventory || !window.currentShopInventory[itemIndex]) {
+        displayMessage('Item no longer available.', 'error');
+        return;
+    }
+
+    const item = window.currentShopInventory[itemIndex];
+    
+    if (player.gold < item.value) {
+        displayMessage(`You need ${item.value} gold but only have ${player.gold} gold.`, 'error');
+        return;
+    }
+
+    // Ensure inventory exists
+    if (!player.inventory) {
+        player.inventory = [];
+    }
+
+    // Purchase the item
+    updateGold(-item.value, 'shop purchase');
+    player.inventory.push(item);
+    
+    displayMessage(`Purchased ${item.name} for ${item.value} gold!`, 'success');
+    
+    // Remove item from shop inventory
+    window.currentShopInventory.splice(itemIndex, 1);
+    
+    // Save game state
+    ItemManager.saveInventoryToStorage(player);
+    saveGame();
+    
+    // Refresh shop display
+    showShop();
+}
+
+// Make functions globally accessible
+window.buyShopItem = buyShopItem;
+
 
         // Small chance of random event while resting
         if (Math.random() < 0.1) {
