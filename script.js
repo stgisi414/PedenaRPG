@@ -2381,18 +2381,295 @@ function displayInventory() {
 
     inventoryInterface.classList.remove('hidden');
 
+    // Build complete inventory display
+    let inventoryHTML = '';
+
+    // Show equipped items section
+    inventoryHTML += `
+        <div class="mb-6">
+            <h5 class="text-xl font-bold mb-3 text-blue-600">Equipped Items</h5>
+            <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
+                ${buildEquipmentDisplay()}
+            </div>
+        </div>
+    `;
+
+    // Show inventory items section
+    inventoryHTML += `
+        <div class="mb-6">
+            <h5 class="text-xl font-bold mb-3 text-yellow-600">Inventory Items</h5>
+            <p class="text-sm text-gray-600 mb-3">Items: ${player.inventory ? player.inventory.length : 0} | Gold: ${player.gold}</p>
+    `;
+
     if (!player.inventory || player.inventory.length === 0) {
-        inventoryItemsDisplay.innerHTML = '<p class="text-center text-gray-600">Your inventory is empty.</p>';
+        inventoryHTML += '<p class="text-center text-gray-600">Your inventory is empty.</p>';
+    } else {
+        inventoryHTML += '<div class="grid grid-cols-1 md:grid-cols-2 gap-3">';
+        player.inventory.forEach((item, index) => {
+            inventoryHTML += buildInventoryItemDisplay(item, index);
+        });
+        inventoryHTML += '</div>';
+    }
+
+    inventoryHTML += '</div>';
+
+    inventoryItemsDisplay.innerHTML = inventoryHTML;
+}
+
+function buildEquipmentDisplay() {
+    if (!player.equipment) {
+        player.equipment = {
+            head: null,
+            chest: null,
+            hands: null,
+            legs: null,
+            feet: null,
+            mainHand: null,
+            offHand: null,
+            amulet: null,
+            ring1: null,
+            ring2: null
+        };
+    }
+
+    const equipmentSlots = [
+        { slot: 'mainHand', name: 'Main Hand', icon: 'gi-sword-brandish' },
+        { slot: 'offHand', name: 'Off Hand', icon: 'gi-round-shield' },
+        { slot: 'head', name: 'Head', icon: 'gi-helmet' },
+        { slot: 'chest', name: 'Chest', icon: 'gi-chest-armor' },
+        { slot: 'hands', name: 'Hands', icon: 'gi-gauntlet' },
+        { slot: 'legs', name: 'Legs', icon: 'gi-leg-armor' },
+        { slot: 'feet', name: 'Feet', icon: 'gi-leg-armor' },
+        { slot: 'amulet', name: 'Amulet', icon: 'gi-gem-pendant' },
+        { slot: 'ring1', name: 'Ring 1', icon: 'gi-diamond-ring' },
+        { slot: 'ring2', name: 'Ring 2', icon: 'gi-diamond-ring' }
+    ];
+
+    return equipmentSlots.map(slotData => {
+        const item = player.equipment[slotData.slot];
+        if (item) {
+            return `
+                <div class="parchment-box p-2 text-center">
+                    <div class="mb-1">
+                        <i class="gi ${slotData.icon} text-xl text-green-600"></i>
+                    </div>
+                    <h6 class="font-bold text-sm">${slotData.name}</h6>
+                    <p class="text-xs text-green-700">${item.name}</p>
+                    <button onclick="unequipItem('${slotData.slot}')" class="btn-parchment text-xs mt-1 py-1 px-2">
+                        Unequip
+                    </button>
+                </div>
+            `;
+        } else {
+            return `
+                <div class="parchment-box p-2 text-center border-dashed border-gray-400">
+                    <div class="mb-1">
+                        <i class="gi ${slotData.icon} text-xl text-gray-400"></i>
+                    </div>
+                    <h6 class="font-bold text-sm text-gray-500">${slotData.name}</h6>
+                    <p class="text-xs text-gray-500">Empty</p>
+                </div>
+            `;
+        }
+    }).join('');
+}
+
+function buildInventoryItemDisplay(item, index) {
+    const canEquip = item.slot && (!player.equipment[item.slot] || player.equipment[item.slot].id !== item.id);
+    const isConsumable = item.type === 'consumable' || (item.effect && (item.effect.type === 'heal' || item.effect.type === 'mana'));
+    
+    return `
+        <div class="parchment-box p-3 mb-2">
+            <div class="flex justify-between items-start mb-2">
+                <h6 class="font-bold text-lg">${item.name}</h6>
+                <span class="text-xs px-2 py-1 rounded ${getRarityColor(item.rarity || 'COMMON')}">${item.rarity || 'COMMON'}</span>
+            </div>
+            <p class="text-sm text-amber-700 mb-2">${item.description || 'No description'}</p>
+            
+            ${item.damage ? `<p class="text-xs text-red-600">Damage: ${item.damage}</p>` : ''}
+            ${item.defense ? `<p class="text-xs text-blue-600">Defense: ${item.defense}</p>` : ''}
+            ${item.effect ? `<p class="text-xs text-purple-600">Effect: ${getEffectDescription(item.effect)}</p>` : ''}
+            ${item.value ? `<p class="text-xs text-green-600 mb-2">Value: ${item.value} gold</p>` : ''}
+            
+            <div class="flex gap-2 flex-wrap">
+                ${canEquip ? `<button onclick="equipItem(${index})" class="btn-parchment text-xs py-1 px-2 bg-green-600 hover:bg-green-700">Equip</button>` : ''}
+                ${isConsumable ? `<button onclick="useItem(${index})" class="btn-parchment text-xs py-1 px-2 bg-blue-600 hover:bg-blue-700">Use</button>` : ''}
+                <button onclick="sellItem(${index})" class="btn-parchment text-xs py-1 px-2 bg-yellow-600 hover:bg-yellow-700">Sell</button>
+                <button onclick="dropItem(${index})" class="btn-parchment text-xs py-1 px-2 bg-red-600 hover:bg-red-700">Drop</button>
+            </div>
+        </div>
+    `;
+}
+
+function getRarityColor(rarity) {
+    const colors = {
+        'COMMON': 'bg-gray-200 text-gray-800',
+        'UNCOMMON': 'bg-green-200 text-green-800',
+        'RARE': 'bg-blue-200 text-blue-800',
+        'EPIC': 'bg-purple-200 text-purple-800',
+        'LEGENDARY': 'bg-yellow-200 text-yellow-800',
+        'ARTIFACT': 'bg-red-200 text-red-800'
+    };
+    return colors[rarity] || colors['COMMON'];
+}
+
+function getEffectDescription(effect) {
+    if (!effect) return 'Unknown effect';
+    
+    if (effect.type === 'heal') return `Heals ${effect.amount} HP`;
+    if (effect.type === 'mana') return `Restores ${effect.amount} mana`;
+    if (effect.type === 'buff') return `+${effect.amount} ${effect.stat} for ${effect.duration}s`;
+    if (effect.type === 'status') return `${effect.effect} for ${effect.duration}s`;
+    
+    return effect.description || 'Special effect';
+}
+
+// Item action functions
+function equipItem(itemIndex) {
+    if (!player.inventory || !player.inventory[itemIndex]) {
+        displayMessage("Item not found.", 'error');
         return;
     }
 
-    inventoryItemsDisplay.innerHTML = player.inventory.map(item => `
-        <div class="parchment-box p-3 mb-2">
-            <h6 class="font-bold">${item.name}</h6>
-            <p class="text-sm text-amber-700">${item.description || 'No description'}</p>
-            ${item.value ? `<p class="text-xs text-green-600">Value: ${item.value} gold</p>` : ''}
-        </div>
-    `).join('');
+    const item = player.inventory[itemIndex];
+    
+    if (!item.slot) {
+        displayMessage("This item cannot be equipped.", 'error');
+        return;
+    }
+
+    // Check if slot is valid
+    if (!player.equipment.hasOwnProperty(item.slot)) {
+        displayMessage("Invalid equipment slot.", 'error');
+        return;
+    }
+
+    // If something is already equipped in that slot, unequip it first
+    if (player.equipment[item.slot]) {
+        const oldItem = player.equipment[item.slot];
+        player.inventory.push(oldItem);
+        displayMessage(`Unequipped ${oldItem.name}.`, 'info');
+    }
+
+    // Equip the new item
+    player.equipment[item.slot] = item;
+    player.inventory.splice(itemIndex, 1);
+    
+    displayMessage(`Equipped ${item.name}.`, 'success');
+    
+    // Apply item effects if any
+    if (item.effects && window.ItemManager) {
+        ItemManager.applyItemEffects(player, item);
+    }
+    
+    updatePlayerStatsDisplay();
+    displayInventory(); // Refresh display
+    saveGame();
+}
+
+function unequipItem(slot) {
+    if (!player.equipment[slot]) {
+        displayMessage("No item equipped in that slot.", 'error');
+        return;
+    }
+
+    const item = player.equipment[slot];
+    
+    // Ensure inventory array exists
+    if (!player.inventory) {
+        player.inventory = [];
+    }
+    
+    // Move item back to inventory
+    player.inventory.push(item);
+    player.equipment[slot] = null;
+    
+    displayMessage(`Unequipped ${item.name}.`, 'success');
+    updatePlayerStatsDisplay();
+    displayInventory(); // Refresh display
+    saveGame();
+}
+
+function useItem(itemIndex) {
+    if (!player.inventory || !player.inventory[itemIndex]) {
+        displayMessage("Item not found.", 'error');
+        return;
+    }
+
+    const item = player.inventory[itemIndex];
+    
+    // Check if item is consumable
+    if (item.type !== 'consumable' && !item.effect) {
+        displayMessage("This item cannot be used.", 'error');
+        return;
+    }
+
+    // Apply item effects
+    let effectApplied = false;
+    
+    if (item.effect) {
+        if (item.effect.type === 'heal') {
+            const healAmount = item.effect.amount || 30;
+            const oldHp = player.hp;
+            player.hp = Math.min(player.maxHp, player.hp + healAmount);
+            const actualHeal = player.hp - oldHp;
+            displayMessage(`You used ${item.name} and recovered ${actualHeal} HP.`, 'success');
+            effectApplied = true;
+        } else if (item.effect.type === 'mana') {
+            displayMessage(`You used ${item.name} and feel your magical energy restored.`, 'success');
+            effectApplied = true;
+        } else if (window.ItemManager && typeof ItemManager.applyItemEffects === 'function') {
+            const result = ItemManager.applyItemEffects(player, item);
+            if (result.success) {
+                displayMessage(result.message, 'success');
+                effectApplied = true;
+            }
+        }
+    }
+
+    if (effectApplied) {
+        // Remove item from inventory after use
+        player.inventory.splice(itemIndex, 1);
+        updatePlayerStatsDisplay();
+        displayInventory(); // Refresh display
+        saveGame();
+    } else {
+        displayMessage("The item has no effect.", 'info');
+    }
+}
+
+function sellItem(itemIndex) {
+    if (!player.inventory || !player.inventory[itemIndex]) {
+        displayMessage("Item not found.", 'error');
+        return;
+    }
+
+    const item = player.inventory[itemIndex];
+    const sellValue = Math.floor((item.value || 10) * 0.6); // Sell for 60% of value
+    
+    if (confirm(`Sell ${item.name} for ${sellValue} gold?`)) {
+        player.inventory.splice(itemIndex, 1);
+        updateGold(sellValue, 'item sale');
+        displayMessage(`Sold ${item.name} for ${sellValue} gold.`, 'success');
+        displayInventory(); // Refresh display
+        saveGame();
+    }
+}
+
+function dropItem(itemIndex) {
+    if (!player.inventory || !player.inventory[itemIndex]) {
+        displayMessage("Item not found.", 'error');
+        return;
+    }
+
+    const item = player.inventory[itemIndex];
+    
+    if (confirm(`Drop ${item.name}? This item will be lost forever.`)) {
+        player.inventory.splice(itemIndex, 1);
+        displayMessage(`Dropped ${item.name}.`, 'info');
+        displayInventory(); // Refresh display
+        saveGame();
+    }
 }
 
 function displayCharacterBackground() {
