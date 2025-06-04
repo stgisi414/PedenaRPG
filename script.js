@@ -2800,6 +2800,13 @@ function buyShopItem(itemIndex) {
 
 // Make functions globally accessible
 window.buyShopItem = buyShopItem;
+window.equipItem = equipItem;
+window.unequipItem = unequipItem;
+window.useItem = useItem;
+window.sellItem = sellItem;
+window.dropItem = dropItem;
+window.playerAttack = playerAttack;
+window.fleeCombat = fleeCombat;
 
 
         // Small chance of random event while resting
