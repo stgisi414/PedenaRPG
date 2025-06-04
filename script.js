@@ -366,27 +366,27 @@ function updateGold(amount, reason = '') {
     }
 
     updatePlayerStatsDisplay();
-    
+
     // Refresh inventory display if it's currently open
     if (!inventoryInterface.classList.contains('hidden')) {
         displayInventory();
     }
-    
+
     // Refresh shop display if it's currently open (for updated affordable items)
     if (!shopInterface.classList.contains('hidden')) {
         displayShop();
     }
-    
+
     // Auto-save after gold changes
     saveGame();
-    
+
     console.log(`Gold updated: ${oldGold} -> ${player.gold} (change: ${amount})`);
 }
 
 function displayMessage(message, type = 'info') {
     const p = document.createElement('p');
     p.classList.add('mb-2', 'pb-1', 'border-b', 'border-amber-700/50');
-    
+
     let icon = '';
     if (type === 'combat') {
         p.classList.add('text-red-700', 'font-bold');
@@ -403,7 +403,7 @@ function displayMessage(message, type = 'info') {
     } else if (type === 'info') {
         icon = '<i class="gi gi-scroll-quill mr-2"></i>';
     }
-    
+
     p.innerHTML = icon + message;
     gameOutput.appendChild(p);
     gameOutput.scrollTop = gameOutput.scrollHeight; // Auto-scroll to bottom
@@ -421,6 +421,15 @@ function showScreen(screenId) {
         if (screen.id === screenId) {
             screen.classList.remove('hidden');
         } else {
+            screen.classList.add('hidden');
+        }
+    });
+}
+
+function hideScreen(screenId) {
+    const screens = [startScreen, characterCreationScreen, gamePlayScreen, combatInterface, shopInterface, inventoryInterface, skillsInterface, questInterface, backgroundInterface, document.getElementById('progression-interface')];
+    screens.forEach(screen => {
+        if (screen.id === screenId) {
             screen.classList.add('hidden');
         }
     });
@@ -700,665 +709,19 @@ async function generateWorldDescription(location) {
     }
 }
 
-async function handleMovement(command) {
-    displayMessage("Considering your next move...", 'info');
-
-    // Use LocationManager to get possible destinations
-    const possibleDestinations = LocationManager.getPossibleDestinations(player.currentLocation, command);
-
-    if (possibleDestinations && possibleDestinations.length > 0) {
-        displayMessage("Where would you like to go?");
-        possibleDestinations.forEach((destination, index) => {
-            const button = document.createElement('button');
-            button.classList.add('btn-parchment', 'w-full', 'mb-2');
-            button.textContent = destination;
-            button.onclick = async () => {
-                player.currentLocation = destination;
-                displayMessage(`You travel to ${destination}.`);
-                await generateWorldDescription(destination);
-                // After moving, remove the movement choice buttons
-                document.querySelectorAll('.game-action-choice').forEach(btn => btn.remove());
-                checkRandomEncounter(); // Check for encounters after moving
-            };
-            button.classList.add('game-action-choice'); // Add a class to identify these buttons
-            gameOutput.appendChild(button);
-        });
-        gameOutput.scrollTop = gameOutput.scrollHeight;
-    } else {
-        displayMessage("The path ahead is unclear. You remain in your current location.");
-    }
-}
-
-async function handleNPCInteraction() {
-    displayMessage("Looking for someone to talk to...", 'info');
-
-    // Check for existing NPCs in this location first
-    const existingNPCs = getNPCsInLocation(player.currentLocation);
-
-    if (existingNPCs.length > 0 && Math.random() > 0.3) {
-        // 70% chance to interact with existing NPC
-        const npc = existingNPCs[Math.floor(Math.random() * existingNPCs.length)];
-        const npcMessage = `You see ${npc.name} again. ${npc.description}`;
-        displayMessage(npcMessage);
-        addToConversationHistory('assistant', npcMessage);
-        gameWorld.lastNPCInteraction = npc.id;
-    } else {
-        // Create new NPC
-        const context = GameDataManager.generateLocationContext(player.currentLocation);
-        const randomFaction = GameDataManager.getRandomFrom(gameData.organizations.factions);
-
-        // Use QuestCharacterGenerator to get a name
-        const npcName = QuestCharacterGenerator.generateRandomCharacter();
-        
-        // Get some example names to provide to the AI
-        const exampleNames = [
-            QuestCharacterGenerator.generateRandomCharacter(),
-            QuestCharacterGenerator.generateRandomCharacter(),
-            QuestCharacterGenerator.generateMerchant(),
-            QuestCharacterGenerator.generateInnkeeper()
-        ];
-
-        const prompt = `Create an NPC encounter in ${player.currentLocation}. 
-
-IMPORTANT: The NPC is named "${npcName}" - use this EXACT name, do NOT use generic names like "Elara" or "the villager".
-
-Character name examples from this world: ${exampleNames.join(', ')}
-
-Format: "You see ${npcName}. Appearance: [brief description]. ${npcName} says: [one line of dialogue]"
-
-Use the name "${npcName}" throughout the description.`;
-
-        const npcInfo = await callGeminiAPI(prompt, 0.8, 200, true);
-        if (npcInfo) {
-            const newNPC = createNPC(npcName, npcInfo, player.currentLocation);
-            saveNPCToLocation(newNPC, player.currentLocation);
-            gameWorld.lastNPCInteraction = newNPC.id;
-
-            const encounterMessage = npcInfo;
-            displayMessage(encounterMessage);
-            addToConversationHistory('assistant', encounterMessage);
-        } else {
-            const fallbackMessage = "You don't see anyone interesting to talk to right now.";
-            displayMessage(fallbackMessage);
-            addToConversationHistory('assistant', fallbackMessage);
-        }
-    }
-    saveConversationHistory();
-}
-
-async function initiateCombat(enemy) {
-    player.currentEnemy = enemy;
-    showScreen('combat-interface');
-    displayMessage(`A wild ${enemy.name} appears!`, 'combat');
-    enemyInfoDisplay.innerHTML = `<p class="text-xl font-bold">${enemy.name}</p><p>HP: ${enemy.hp}</p><p>Attack: ${enemy.attack}</p>`;
-    gamePlayScreen.classList.add('hidden'); // Hide general game actions during combat
-}
-
-async function playerAttack() {
-    if (!player.currentEnemy) return;
-
-    const damage = rollDice(player.equipment.mainHand?.damage || '1d4'); // Default bare-hand damage
-    player.currentEnemy.hp -= damage;
-    displayMessage(`You strike the ${player.currentEnemy.name} for ${damage} damage!`, 'combat');
-    enemyInfoDisplay.innerHTML = `<p class="text-xl font-bold">${player.currentEnemy.name}</p><p>HP: ${player.currentEnemy.hp}</p><p>Attack: ${player.currentEnemy.attack}</p>`;
-
-    if (player.currentEnemy.hp <= 0) {
-        displayMessage(`You defeated the ${player.currentEnemy.name}!`, 'success');
-        player.exp += player.currentEnemy.expReward;
-        updateGold(player.currentEnemy.goldDrop, 'combat victory');
-        displayMessage(`You gained ${player.currentEnemy.expReward} EXP!`, 'success');
-
-        // Generate random loot using new system (30% chance)
-        if (Math.random() < 0.3) {
-            const lootItem = ItemGenerator.generateItem({
-                enemyContext: player.currentEnemy.name,
-                locationContext: player.currentLocation,
-                rarity: Math.random() < 0.9 ? 'COMMON' : 'UNCOMMON'
-            });
-            ItemManager.addItemToInventory(player, lootItem);
-            displayMessage(`You found loot: ${lootItem.name}!`, 'success');
-        }
-
-        // Handle legacy loot system
-        if (player.currentEnemy.loot) {
-            player.currentEnemy.loot.forEach(lootItem => {
-                if (Math.random() < lootItem.chance) {
-                    const quantity = rollDice(lootItem.quantity || '1');
-                    const foundItem = items.find(item => item.id === lootItem.id);
-                    if (foundItem) {
-                        for (let i = 0; i < quantity; i++) {
-                            player.inventory.push({ ...foundItem }); // Add a copy
-                        }
-                        displayMessage(`You found ${quantity} ${foundItem.name}(s)!`, 'success');
-                    }
-                }
-            });
-        }
-        player.currentEnemy = null;
-        showScreen('game-play-screen');
-        gamePlayScreen.classList.remove('hidden'); // Show general game actions
-        checkLevelUp();
-    } else {
-        // Enemy's turn
-        await enemyAttack();
-    }
-    updatePlayerStatsDisplay();
-}
-
-async function enemyAttack() {
-    if (!player.currentEnemy) return;
-    const enemyDamage = rollDice(player.currentEnemy.attack);
-    player.hp -= enemyDamage;
-    displayMessage(`${player.currentEnemy.name} attacks you for ${enemyDamage} damage!`, 'combat');
-    updatePlayerStatsDisplay();
-
-    if (player.hp <= 0) {
-        displayMessage("You have been defeated! Game Over.", 'error');
-        alert("Game Over!");
-        location.reload(); // Simple reload for now
-    }
-}
-
-async function fleeCombat() {
-    displayMessage("You attempt to flee!", 'info');
-    // Simple flee chance for now, can be based on dexterity etc.
-    if (Math.random() > 0.5) {
-        displayMessage("You successfully escaped!", 'success');
-        player.currentEnemy = null;
-        showScreen('game-play-screen');
-        gamePlayScreen.classList.remove('hidden');
-    } else {
-        displayMessage("You failed to escape and the enemy attacks!", 'combat');
-        await enemyAttack();
-    }
-}
-
-function checkRandomEncounter() {
-    // 30% chance of encounter after movement
-    if (Math.random() < 0.3) {
-        const randomEnemy = enemies[Math.floor(Math.random() * enemies.length)];
-        initiateCombat({ ...randomEnemy }); // Pass a copy to avoid modifying original
-    }
-}
-
-function checkLevelUp() {
-    while (player.exp >= player.expToNextLevel) {
-        const oldLevel = player.level;
-        player.level++;
-        player.exp -= player.expToNextLevel;
-        player.expToNextLevel = Math.floor(player.expToNextLevel * 1.5); // Increase requirement
-
-        // Use new progression system for level up
-        if (player.classProgression && CharacterManager.levelUp(player)) {
-            displayMessage(`Congratulations! You reached Level ${player.level}!`, 'success');
-            displayMessage(`Your Max HP increased to ${player.maxHp}. You feel rejuvenated!`, 'success');
-
-            // Show new abilities and features gained
-            const progression = CharacterManager.getCharacterProgression(player);
-            displayLevelUpRewards(progression, oldLevel);
-        } else {
-            // Fallback to old system
-            player.maxHp += 10;
-            player.hp = player.maxHp;
-            displayMessage(`Congratulations! You reached Level ${player.level}!`, 'success');
-            displayMessage(`Your Max HP increased to ${player.maxHp}. You feel rejuvenated!`, 'success');
-        }
-
-        // AI call for level up bonus/flavor text
-        levelUpAI();
-        updatePlayerStatsDisplay();
-    }
-}
-
-async function levelUpAI() {
-    const prompt = `The player, ${player.name} (${player.class}), has just reached Level ${player.level}. Describe a brief, thematic benefit or insight they gain upon leveling up, related to their class or general growth.`;
-    const bonus = await callGeminiAPI(prompt, 0.7, 150);
-    if (bonus) {
-        displayMessage(`Upon leveling up, you feel: ${bonus}`, 'info');
-    }
-}
-
-function displayInventory() {
-    shopInterface.classList.add('hidden');
-    skillsInterface.classList.add('hidden');
-    questInterface.classList.add('hidden');
-    combatInterface.classList.add('hidden');
-    backgroundInterface.classList.add('hidden');
-    inventoryInterface.classList.remove('hidden');
-
-    displayMessage("Opening your inventory...", 'info');
-
-    // Update status effects before displaying inventory
-    ItemManager.updateStatusEffects(player);
-
-    // Load fresh inventory from storage
-    ItemManager.loadInventoryFromStorage(player);
-
-    inventoryItemsDisplay.innerHTML = '';
-
-    // Debug information
-    console.log('Displaying inventory for:', player.name);
-    console.log('Current inventory:', player.inventory);
-    console.log('Inventory length:', player.inventory ? player.inventory.length : 'undefined');
-
-    // Ensure inventory exists
-    if (!player.inventory) {
-        player.inventory = [];
-        console.log('Inventory was undefined, initialized empty array');
-    }
-
-    // Show gold
-    const goldDiv = document.createElement('div');
-    goldDiv.classList.add('parchment-box', 'p-3', 'mb-4', 'text-center');
-    goldDiv.innerHTML = `<p class="font-bold text-xl"><i class="gi gi-gold-bar mr-2"></i>Gold: ${player.gold}</p>`;
-    inventoryItemsDisplay.appendChild(goldDiv);
-
-    // Show inventory count for debugging
-    const debugDiv = document.createElement('div');
-    debugDiv.classList.add('parchment-box', 'p-3', 'mb-4', 'text-center', 'bg-blue-50');
-    debugDiv.innerHTML = `<p class="text-sm">Inventory Items: ${player.inventory.length}</p>`;
-    inventoryItemsDisplay.appendChild(debugDiv);
-
-    // Show active status effects
-    if (player.statusEffects && player.statusEffects.length > 0) {
-        const effectsDiv = document.createElement('div');
-        effectsDiv.classList.add('parchment-box', 'p-3', 'mb-4');
-        effectsDiv.innerHTML = '<h4 class="font-bold mb-2">Active Effects:</h4>';
-        player.statusEffects.forEach(effect => {
-            const effectP = document.createElement('p');
-            effectP.classList.add('text-sm', effect.type === 'positive' ? 'text-green-700' : 'text-red-700');
-            const timeLeft = Math.max(0, Math.floor((effect.expiresAt - Date.now()) / 1000));
-            effectP.textContent = `${effect.name} (${timeLeft}s): ${effect.description}`;
-            effectsDiv.appendChild(effectP);
-        });
-        inventoryItemsDisplay.appendChild(effectsDiv);
-    }
-
-    // Show equipped items
-    const equippedDiv = document.createElement('div');
-    equippedDiv.classList.add('parchment-box', 'p-3', 'mb-4');
-    equippedDiv.innerHTML = '<h4 class="font-bold mb-2"><i class="gi gi-armor-upgrade mr-2"></i>Currently Equipped:</h4>';
-    const equippedItems = Object.entries(player.equipment).filter(([slot, item]) => item);
-    if (equippedItems.length > 0) {
-        equippedItems.forEach(([slot, item]) => {
-            const equipDiv = document.createElement('div');
-            equipDiv.classList.add('flex', 'justify-between', 'items-center', 'mb-2', 'p-2', 'bg-amber-50', 'rounded');
-
-            const itemInfo = document.createElement('span');
-            itemInfo.textContent = `${item.name} (${item.slot})`;
-            equipDiv.appendChild(itemInfo);
-
-            const unequipBtn = document.createElement('button');
-            unequipBtn.classList.add('btn-parchment', 'text-xs', 'px-2', 'py-1', 'bg-red-600', 'text-white', 'hover:bg-red-700');
-            unequipBtn.innerHTML = '<i class="gi gi-cancel mr-1"></i>Unequip';
-            unequipBtn.onclick = () => unequipItem(slot);
-            equipDiv.appendChild(unequipBtn);
-
-            equippedDiv.appendChild(equipDiv);
-        });
-    } else {
-        equippedDiv.innerHTML += '<p class="text-amber-700">Nothing equipped</p>';
-    }
-    inventoryItemsDisplay.appendChild(equippedDiv);
-
-    if (player.inventory.length === 0) {
-        inventoryItemsDisplay.innerHTML += '<p class="text-center text-amber-800">Your inventory is empty. Check the console for debugging information.</p>';
-        return;
-    }
-
-    const inventoryHeader = document.createElement('h4');
-    inventoryHeader.classList.add('font-bold', 'mb-3');
-    inventoryHeader.textContent = 'Inventory Items:';
-    inventoryItemsDisplay.appendChild(inventoryHeader);
-
-    player.inventory.forEach((item, index) => {
-        const itemDiv = document.createElement('div');
-        itemDiv.classList.add('parchment-box', 'p-3', 'mb-2');
-
-        // Add rarity styling
-        const rarityData = itemRarity[item.rarity];
-        const rarityStyle = rarityData ? `color: ${rarityData.color}; font-weight: bold;` : '';
-        const rarityText = rarityData ? ` (${rarityData.name})` : '';
-
-        itemDiv.innerHTML = `
-            <p class="font-bold" style="${rarityStyle}">${item.name}${rarityText}</p>
-            <p class="text-sm text-amber-700">${item.description}</p>
-            <p class="text-sm">Value: ${item.value || 10} gold</p>
-            ${item.effects && item.effects.length > 0 ? `<p class="text-xs text-purple-600">Effects: ${item.effects.join(', ')}</p>` : ''}
-        `;
-
-        const buttonContainer = document.createElement('div');
-        buttonContainer.classList.add('flex', 'gap-2', 'mt-2');
-
-        if (item.type === 'consumable') {
-            const useBtn = document.createElement('button');
-            useBtn.classList.add('btn-parchment', 'text-sm', 'px-3', 'py-1');
-            useBtn.innerHTML = '<i class="gi gi-drink-me mr-1"></i>Use';
-            useBtn.onclick = () => useItem(index);
-            buttonContainer.appendChild(useBtn);
-        }
-
-        if (item.languageContent) {
-            const readBtn = document.createElement('button');
-            readBtn.classList.add('btn-parchment', 'text-sm', 'px-3', 'py-1', 'bg-purple-600', 'text-white');
-            readBtn.innerHTML = item.type === 'scroll' ? '<i class="gi gi-scroll-unfurled mr-1"></i>Read & Cast' : '<i class="gi gi-book-cover mr-1"></i>Study';
-            readBtn.onclick = () => useItem(index);
-            buttonContainer.appendChild(readBtn);
-        }
-
-        if (item.type === 'weapon' || item.type === 'armor') {
-            const equipBtn = document.createElement('button');
-            equipBtn.classList.add('btn-parchment', 'text-sm', 'px-3', 'py-1');
-            const equipIcon = item.type === 'weapon' ? 'gi-sword' : 'gi-chest-armor';
-            equipBtn.innerHTML = `<i class="gi ${equipIcon} mr-1"></i>Equip`;
-            equipBtn.onclick = () => equipItem(index);
-            buttonContainer.appendChild(equipBtn);
-        }
-
-        // Add sell button for all items
-        const sellBtn = document.createElement('button');
-        sellBtn.classList.add('btn-parchment', 'text-sm', 'px-3', 'py-1', 'bg-yellow-600', 'text-white', 'hover:bg-yellow-700');
-        const sellPrice = Math.floor((item.value || 10) * 0.5); // Sell for 50% of value
-        sellBtn.textContent = `Sell (${sellPrice}g)`;
-        sellBtn.onclick = () => sellItem(index);
-        buttonContainer.appendChild(sellBtn);
-
-        itemDiv.appendChild(buttonContainer);
-        inventoryItemsDisplay.appendChild(itemDiv);
-    });
-}
-
-function useItem(index) {
-    const item = player.inventory[index];
-
-    // Handle language items with special reading functionality
-    if (item.languageContent) {
-        readLanguageItem(item);
-        return;
-    }
-
-    // Use the new ItemManager system
-    const result = ItemManager.useItem(player, item.id);
-
-    if (result.success) {
-        displayMessage(result.message, 'success');
-        updatePlayerStatsDisplay();
-        displayInventory(); // Refresh inventory display
-    } else {
-        // Fallback to old system for legacy items
-        if (item.type === 'consumable' && item.effect?.type === 'heal') {
-            player.hp = Math.min(player.maxHp, player.hp + item.effect.amount);
-            displayMessage(`You used ${item.name} and healed ${item.effect.amount} HP!`, 'success');
-            player.inventory.splice(index, 1); // Remove consumed item
-            updatePlayerStatsDisplay();
-            displayInventory(); // Refresh inventory display
-        } else {
-            displayMessage(result.message || `You cannot use ${item.name} at this time.`, 'info');
-        }
-    }
-}
-
-function readLanguageItem(item) {
-    const content = item.languageContent;
-
-    // Display the constructed language text first
-    displayMessage(`You carefully examine ${item.name} and see the following ${content.script} text written in ${content.language}:`, 'info');
-
-    // Show the constructed language text in a special format
-    const languageDiv = document.createElement('div');
-    languageDiv.classList.add('parchment-box', 'p-4', 'my-3', 'border-2', 'border-purple-600', 'bg-purple-50');
-    languageDiv.innerHTML = `
-        <h5 class="font-bold text-purple-800 mb-2">${content.language} Text:</h5>
-        <p class="font-serif text-lg italic text-purple-900 mb-3">"${content.originalText}"</p>
-        <hr class="border-purple-300 my-3">
-        <h6 class="font-semibold text-purple-700 mb-1">Translation:</h6>
-        <p class="text-purple-800">"${content.translation}"</p>
-    `;
-    gameOutput.appendChild(languageDiv);
-    gameOutput.scrollTop = gameOutput.scrollHeight;
-
-    // Add to conversation history for AI context
-    addToConversationHistory('user', `I read the ${item.name}`);
-    addToConversationHistory('assistant', `The ${content.language} text reads: "${content.originalText}" which translates to: "${content.translation}"`);
-
-    // Apply any magical effects from reading
-    if (item.effects && item.effects.length > 0) {
-        const result = ItemManager.applyItemEffects(player, item);
-        if (result.success) {
-            displayMessage(`Reading the ${content.language} text has a magical effect: ${result.message}`, 'success');
-        }
-    }
-
-    // Remove single-use scrolls after reading
-    if (item.singleUse) {
-        const itemIndex = player.inventory.indexOf(item);
-        if (itemIndex >= 0) {
-            player.inventory.splice(itemIndex, 1);
-            displayMessage(`The ${item.name} crumbles to dust after being read.`, 'info');
-            ItemManager.saveInventoryToStorage(player);
-            displayInventory(); // Refresh inventory display
-        }
-    }
-
-    updatePlayerStatsDisplay();
-    saveConversationHistory();
-}
-
-function equipItem(index) {
-    const itemToEquip = player.inventory[index];
-    if (itemToEquip.slot) {
-        const currentEquipped = player.equipment[itemToEquip.slot];
-        if (currentEquipped) {
-            player.inventory.push(currentEquipped); // Put old item back in inventory
-            displayMessage(`You unequipped ${currentEquipped.name}.`);
-        }
-        player.equipment[itemToEquip.slot] = itemToEquip;
-        player.inventory.splice(index, 1); // Remove equipped item from inventory
-        displayMessage(`You equipped ${itemToEquip.name}!`, 'success');
-        displayInventory(); // Refresh inventory display
-        updatePlayerStatsDisplay();
-    } else {
-        displayMessage(`${itemToEquip.name} cannot be equipped.`, 'info');
-    }
-}
-
-function unequipItem(slot) {
-    const equippedItem = player.equipment[slot];
-    if (equippedItem) {
-        // Move item back to inventory
-        player.inventory.push(equippedItem);
-        // Remove from equipment slot
-        player.equipment[slot] = null;
-        displayMessage(`You unequipped ${equippedItem.name}.`, 'success');
-        displayInventory(); // Refresh inventory display
-        updatePlayerStatsDisplay();
-    } else {
-        displayMessage(`No item equipped in ${slot} slot.`, 'info');
-    }
-}
-
-function sellItem(index) {
-    const item = player.inventory[index];
-    if (!item) {
-        displayMessage("Item not found.", 'error');
-        return;
-    }
-
-    const sellPrice = Math.floor((item.value || 10) * 0.5); // Sell for 50% of item value
-
-    if (confirm(`Are you sure you want to sell ${item.name} for ${sellPrice} gold?`)) {
-        // Remove item from inventory
-        player.inventory.splice(index, 1);
-
-        // Add gold to player
-        updateGold(sellPrice, `sold ${item.name}`);
-
-        displayMessage(`You sold ${item.name} for ${sellPrice} gold.`, 'success');
-
-        // Save inventory changes
-        ItemManager.saveInventoryToStorage(player);
-
-        // Refresh inventory display
-        displayInventory();
-
-        // Save game state
-        saveGame();
-    }
-}
-
-function displaySkills() {
-    shopInterface.classList.add('hidden');
-    inventoryInterface.classList.add('hidden');
-    questInterface.classList.add('hidden');
-    combatInterface.classList.add('hidden');
-    backgroundInterface.classList.add('hidden');
-    skillsInterface.classList.remove('hidden');
-
-    skillsListDisplay.innerHTML = '';
-    if (player.skills.length === 0) {
-        skillsListDisplay.innerHTML = '<p class="text-center text-amber-800">You have no special skills yet.</p>';
-        return;
-    }
-
-    player.skills.forEach(skill => {
-        const skillDiv = document.createElement('div');
-        skillDiv.classList.add('parchment-box', 'p-3', 'mb-2');
-        skillDiv.innerHTML = `<p class="font-bold">${skill}</p>`;
-        skillsListDisplay.appendChild(skillDiv);
-    });
-}
-
-function displayShop() {
-    inventoryInterface.classList.add('hidden');
-    skillsInterface.classList.add('hidden');
-    questInterface.classList.add('hidden');
-    combatInterface.classList.add('hidden');
-    backgroundInterface.classList.add('hidden');
-    shopInterface.classList.remove('hidden');
-
-    // Generate a specific merchant name
-    const merchantName = QuestCharacterGenerator.generateMerchant();
-    displayMessage(`Welcome to ${merchantName}'s shop!`, 'info');
-
-    shopItemsDisplay.innerHTML = '';
-
-    // Add gold display at top first
-    const goldDisplay = document.createElement('div');
-    goldDisplay.classList.add('parchment-box', 'p-4', 'mb-6', 'text-center', 'bg-amber-100', 'border-2', 'border-amber-600');
-    goldDisplay.innerHTML = `<p class="font-bold text-2xl text-amber-900"><i class="gi gi-gold-bar mr-3"></i>Your Gold: ${player.gold}</p>`;
-    shopItemsDisplay.appendChild(goldDisplay);
-
-    // Create shop items with markup prices
-    const shopItems = items.filter(item => item.id !== 'gold_coin').map(item => ({
-        ...item,
-        price: Math.ceil(item.value * 1.5) // 50% markup
-    }));
-
-    // Group items by category
-    const categories = {
-        'Weapons': shopItems.filter(item => item.type === 'weapon'),
-        'Armor & Shields': shopItems.filter(item => item.type === 'armor'),
-        'Consumables': shopItems.filter(item => item.type === 'consumable'),
-        'Tools & Utilities': shopItems.filter(item => item.type === 'tool' || item.type === 'ammunition'),
-        'Magical Items': shopItems.filter(item => ['magical', 'scroll'].includes(item.type)),
-        'Jewelry': shopItems.filter(item => item.type === 'jewelry'),
-        'Rare Items': shopItems.filter(item => ['rare', 'luxury', 'treasure'].includes(item.type))
-    };
-
-    Object.entries(categories).forEach(([categoryName, categoryItems]) => {
-        if (categoryItems.length > 0) {
-            // Create category container
-            const categoryContainer = document.createElement('div');
-            categoryContainer.classList.add('mb-8');
-
-            // Category header
-            const categoryHeader = document.createElement('h5');
-            categoryHeader.classList.add('font-bold', 'text-xl', 'mb-4', 'text-amber-900', 'border-b-2', 'border-amber-700', 'pb-2');
-            categoryHeader.textContent = categoryName;
-            categoryContainer.appendChild(categoryHeader);
-
-            // Items grid
-            const categoryGrid = document.createElement('div');
-            categoryGrid.classList.add('grid', 'grid-cols-1', 'md:grid-cols-2', 'lg:grid-cols-3', 'gap-4');
-
-            categoryItems.forEach(item => {
-                const itemDiv = document.createElement('div');
-                itemDiv.classList.add('parchment-box', 'p-4', 'flex', 'flex-col', 'h-full');
-
-                // Item content
-                const itemContent = document.createElement('div');
-                itemContent.classList.add('flex-grow');
-
-                let itemDetails = `
-                    <h6 class="font-bold text-lg text-amber-900 mb-2">${item.name}</h6>
-                    <p class="text-sm text-amber-700 mb-3 leading-relaxed">${item.description}</p>
-                    <div class="space-y-1 mb-3">
-                        <p class="text-sm font-semibold text-green-700">Price: ${item.price} gold</p>
-                `;
-
-                // Add type-specific information
-                if (item.damage) {
-                    itemDetails += `<p class="text-sm text-red-600">Damage: ${item.damage}</p>`;
-                }
-                if (item.defense) {
-                    itemDetails += `<p class="text-sm text-blue-600">Defense: +${item.defense}</p>`;
-                }
-                if (item.effect) {
-                    itemDetails += `<p class="text-sm text-purple-600">Effect: ${item.effect.type}</p>`;
-                }
-                if (item.slot) {
-                    itemDetails += `<p class="text-sm text-gray-600">Slot: ${item.slot}</p>`;
-                }
-
-                itemDetails += `</div>`;
-                itemContent.innerHTML = itemDetails;
-                itemDiv.appendChild(itemContent);
-
-                // Buy button at bottom
-                const buyBtn = document.createElement('button');
-                buyBtn.classList.add('btn-parchment', 'text-sm', 'mt-auto', 'py-2', 'w-full');
-
-                if (player.gold >= item.price) {
-                    buyBtn.textContent = `Buy for ${item.price} gold`;
-                    buyBtn.onclick = () => buyItem(item);
-                    buyBtn.classList.add('bg-green-600', 'hover:bg-green-700', 'text-white');
-                } else {
-                    buyBtn.textContent = 'Too Expensive';
-                    buyBtn.disabled = true;
-                    buyBtn.classList.add('bg-gray-400', 'text-gray-700', 'cursor-not-allowed');
-                }
-
-                itemDiv.appendChild(buyBtn);
-                categoryGrid.appendChild(itemDiv);
-            });
-
-            categoryContainer.appendChild(categoryGrid);
-            shopItemsDisplay.appendChild(categoryContainer);
-        }
-    });
-}
-
-function buyItem(item) {
-    if (player.gold >= item.price) {
-        updateGold(-item.price, `purchased ${item.name}`);
-        const purchasedItem = { ...item };
-        delete purchasedItem.price; // Remove price property from inventory item
-        player.inventory.push(purchasedItem);
-        displayShop(); // Refresh shop to update gold display and affordable items
-        saveGame(); // Save after purchase
-    } else {
-        displayMessage(`You don't have enough gold to buy ${item.name}. You need ${item.price - player.gold} more gold.`, 'error');
-    }
-}
-
-async function processCustomCommand(command) {
-    if (!command.trim()) {
-        displayMessage("Please enter a command.", 'error');
-        return;
-    }
-
+async function executeCustomCommand(command) {
     displayMessage(`> ${command}`, 'info');
-    addToConversationHistory('user', command);
+
+    // Check if it's a movement command
+    const movementKeywords = ['go to', 'travel to', 'move to', 'head to', 'walk to', 'run to', 'visit', 'enter'];
+    const isMovement = movementKeywords.some(keyword => command.toLowerCase().includes(keyword));
+
+    if (isMovement) {
+        await handleStructuredMovement(command);
+        return;
+    }
+
+    displayMessage(`> ${command}`, 'user');
     displayMessage("Processing your command...", 'info');
 
     // Check for direct gold giving commands
@@ -1447,20 +810,20 @@ async function processCustomCommand(command) {
         if (destination && !['Alone', 'Him', 'Her', 'Them', 'Person', 'Npc'].includes(destination)) {
             const oldLocation = player.currentLocation;
             player.currentLocation = destination;
-            
+
             // Generate AI response for the movement
             const movementPrompt = `${player.name} travels from ${oldLocation} to ${destination}. Describe the journey and arrival in 1-2 sentences.`;
             const movementResponse = await callGeminiAPI(movementPrompt, 0.7, 300, true);
-            
+
             if (movementResponse) {
                 displayMessage(movementResponse);
                 addToConversationHistory('assistant', movementResponse);
             }
-            
+
             displayMessage(`You leave ${oldLocation} and arrive at ${destination}.`, 'success');
             LocationManager.saveLocationToHistory(destination, player.name);
             updatePlayerStatsDisplay(); // Ensure UI is updated
-            
+
             if (Math.random() < 0.3) checkRandomEncounter();
             saveConversationHistory();
             return;
@@ -1517,6 +880,556 @@ As the game master, interpret this command and action analysis, and provide a de
         displayMessage(fallbackResponse);
         addToConversationHistory('assistant', fallbackResponse);
         saveConversationHistory();
+    }
+}
+
+async function handleStructuredMovement(command) {
+    // Extract destination from command
+    const movementKeywords = ['go to', 'travel to', 'move to', 'head to', 'walk to', 'run to', 'visit', 'enter'];
+    let destination = command.toLowerCase();
+
+    for (const keyword of movementKeywords) {
+        if (destination.includes(keyword)) {
+            destination = destination.split(keyword)[1].trim();
+            break;
+        }
+    }
+
+    if (!destination) {
+        displayMessage("Where would you like to go?", 'error');
+        return;
+    }
+
+    // Create structured prompt for AI with JSON schema
+    const movementPrompt = `
+You are a game master for a fantasy RPG. The player "${player.name}" (Level ${player.level} ${player.class}) wants to travel from "${player.currentLocation}" to "${destination}".
+
+You must respond with ONLY valid JSON in this exact format:
+{
+    "canMove": true/false,
+    "newLocation": "Exact location name",
+    "travelTime": "time description",
+    "description": "2-3 sentence travel description",
+    "encounterChance": 0.0-1.0,
+    "encounterType": "none/combat/social/discovery",
+    "goldCost": 0
+}
+
+Rules:
+- If destination is vague, interpret as closest reasonable location
+- Keep location names consistent and memorable
+- Travel time should be realistic for fantasy setting
+- Description should be immersive but brief
+- Encounter chance: 0.1 for safe areas, 0.3 for wilderness, 0.5 for dangerous areas
+- Gold cost only for transport services (ships, carriages, etc.)
+
+Current context: Player has ${player.gold} gold, is at "${player.currentLocation}"
+`;
+
+    try {
+        const response = await callGeminiAPI(movementPrompt, 0.3, 400);
+
+        if (!response) {
+            displayMessage("Unable to process movement request.", 'error');
+            return;
+        }
+
+        // Extract JSON from response
+        let movementData;
+        try {
+            // Try to find JSON in the response
+            const jsonMatch = response.match(/\{[\s\S]*\}/);
+            if (jsonMatch) {
+                movementData = JSON.parse(jsonMatch[0]);
+            } else {
+                throw new Error("No JSON found in response");
+            }
+        } catch (parseError) {
+            console.error("Failed to parse movement JSON:", parseError);
+            // Fallback to old system
+            await handleMovement(command);
+            return;
+        }
+
+        // Validate required fields
+        if (!movementData.canMove === undefined || !movementData.newLocation || !movementData.description) {
+            console.error("Invalid movement data structure:", movementData);
+            await handleMovement(command);
+            return;
+        }
+
+        // Process movement result
+        if (!movementData.canMove) {
+            displayMessage(movementData.description || "You cannot travel there right now.", 'error');
+            return;
+        }
+
+        // Check gold cost
+        if (movementData.goldCost > 0) {
+            if (player.gold < movementData.goldCost) {
+                displayMessage(`You need ${movementData.goldCost} gold to travel there, but you only have ${player.gold} gold.`, 'error');
+                return;
+            }
+            player.gold -= movementData.goldCost;
+            displayMessage(`You pay ${movementData.goldCost} gold for transportation.`, 'info');
+        }
+
+        // Update player location
+        player.currentLocation = movementData.newLocation;
+        displayMessage(movementData.description, 'success');
+
+        // Show travel time if provided
+        if (movementData.travelTime) {
+            displayMessage(`Travel time: ${movementData.travelTime}`, 'info');
+        }
+
+        // Save the new location
+        saveGame();
+
+        // Check for encounters based on AI decision
+        if (movementData.encounterChance > 0 && Math.random() < movementData.encounterChance) {
+            setTimeout(async () => {
+                if (movementData.encounterType === 'combat') {
+                    await generateRandomEncounter();
+                } else if (movementData.encounterType === 'social') {
+                    await generateNPCEncounter();
+                } else if (movementData.encounterType === 'discovery') {
+                    await generateDiscoveryEncounter();
+                } else {
+                    await generateRandomEncounter(); // Default fallback
+                }
+            }, 1500);
+        }
+
+    } catch (error) {
+        console.error("Movement system error:", error);
+        displayMessage("There was an issue processing your movement. Please try again.", 'error');
+    }
+}
+
+// Fallback to original movement function for compatibility
+async function handleMovement(command) {
+    // Extract destination from command
+    const movementKeywords = ['go to', 'travel to', 'move to', 'head to', 'walk to', 'run to', 'visit', 'enter'];
+    let destination = command.toLowerCase();
+
+    for (const keyword of movementKeywords) {
+        if (destination.includes(keyword)) {
+            destination = destination.split(keyword)[1].trim();
+            break;
+        }
+    }
+
+    if (!destination) {
+        displayMessage("Where would you like to go?", 'error');
+        return;
+    }
+
+    // Use LocationManager to handle the movement
+    const result = await LocationManager.moveToLocation(player, destination);
+
+    if (result.success) {
+        player.currentLocation = result.newLocation;
+        displayMessage(result.description, 'success');
+
+        // Save the new location
+        saveGame();
+
+        // Check for encounters
+        if (result.hasEncounter && Math.random() < 0.3) {
+            await generateRandomEncounter();
+        }
+    } else {
+        displayMessage(result.message, 'error');
+    }
+}
+
+async function generateDiscoveryEncounter() {
+    displayMessage("You discover something interesting...", 'info');
+
+    const discoveryPrompt = `
+Generate a brief discovery encounter for ${player.name} (Level ${player.level} ${player.class}) at ${player.currentLocation}.
+
+Examples: finding a hidden cache, discovering ancient ruins, spotting a rare herb, finding a shortcut, etc.
+
+Respond with 2-3 sentences describing what they find and what they can do about it.
+`;
+
+    const discovery = await callGeminiAPI(discoveryPrompt, 0.7, 200);
+    if (discovery) {
+        displayMessage(discovery, 'discovery');
+    }
+}
+
+async function generateNPCEncounter() {
+    displayMessage("You encounter someone on the road...", 'info');
+
+    // Use existing NPC generation system
+    await startConversation();
+}
+
+async function generateRandomEncounter() {
+    displayMessage("You encounter something on your journey...", 'info');
+
+    // Generate a random encounter type
+    const encounterTypes = ['combat', 'treasure', 'npc', 'event'];
+    const encounterType = encounterTypes[Math.floor(Math.random() * encounterTypes.length)];
+
+    switch (encounterType) {
+        case 'combat':
+            displayMessage("A wild monster appears!", 'combat');
+            break;
+        case 'treasure':
+            displayMessage("You found a hidden treasure!", 'success');
+            break;
+        case 'npc':
+            displayMessage("You meet a wandering traveler.", 'info');
+            break;
+        case 'event':
+            displayMessage("A strange event unfolds before you...", 'exploration');
+            break;
+        default:
+            displayMessage("Nothing happens...", 'info');
+            break;
+    }
+}
+
+async function generateQuest() {
+    displayMessage("Seeking new adventures...", 'info');
+
+    const questPrompt = `
+Generate a quest for ${player.name}, a level ${player.level} ${player.class} in ${player.currentLocation}.
+
+You must respond with ONLY valid JSON in this exact format:
+{
+    "title": "Quest Title",
+    "description": "Detailed quest description (2-3 sentences)",
+    "objective": "Clear objective statement",
+    "rewards": {
+        "gold": 50-500,
+        "experience": 25-200,
+        "items": ["item1", "item2"] or []
+    },
+    "difficulty": "Easy/Medium/Hard/Very Hard",
+    "estimatedTime": "time description",
+    "location": "quest location",
+    "questGiver": "NPC name or source",
+    "requirements": ["requirement1", "requirement2"] or []
+}
+
+Quest should be appropriate for level ${player.level}. 
+Reward scaling: Level 1-3: 50-150 gold, Level 4-6: 100-300 gold, Level 7+: 200-500 gold.
+Make it engaging and fantasy-appropriate.
+`;
+
+    try {
+        const response = await callGeminiAPI(questPrompt, 0.7, 500);
+
+        if (!response) {
+            displayMessage("No new quests are available at this time.", 'info');
+            return;
+        }
+
+        // Extract JSON from response
+        let questData;
+        try {
+            const jsonMatch = response.match(/\{[\s\S]*\}/);
+            if (jsonMatch) {
+                questData = JSON.parse(jsonMatch[0]);
+            } else {
+                throw new Error("No JSON found in response");
+            }
+        } catch (parseError) {
+            console.error("Failed to parse quest JSON:", parseError);
+            // Fallback to old system
+            await generateQuestFallback();
+            return;
+        }
+
+        // Validate required fields
+        if (!questData.title || !questData.description || !questData.rewards) {
+            console.error("Invalid quest data structure:", questData);
+            await generateQuestFallback();
+            return;
+        }
+
+        // Create quest object
+        const questId = Date.now().toString();
+        const quest = {
+            id: questId,
+            title: questData.title,
+            description: questData.description,
+            objective: questData.objective || questData.description,
+            completed: false,
+            rewards: {
+                gold: questData.rewards.gold || 50,
+                experience: questData.rewards.experience || 25,
+                items: questData.rewards.items || []
+            },
+            difficulty: questData.difficulty || 'Medium',
+            estimatedTime: questData.estimatedTime || 'Unknown',
+            location: questData.location || player.currentLocation,
+            questGiver: questData.questGiver || 'Unknown',
+            requirements: questData.requirements || [],
+            dateCreated: new Date().toLocaleDateString()
+        };
+
+        player.quests.push(quest);
+        saveGame();
+
+        // Display quest information
+        displayMessage(`New quest available: ${quest.title}`, 'success');
+        displayMessage(quest.description, 'quest');
+        displayMessage(`Rewards: ${quest.rewards.gold} gold, ${quest.rewards.experience} XP${quest.rewards.items.length > 0 ? ', ' + quest.rewards.items.join(', ') : ''}`, 'info');
+        displayMessage(`Difficulty: ${quest.difficulty} | Estimated Time: ${quest.estimatedTime}`, 'info');
+
+    } catch (error) {
+        console.error("Quest generation error:", error);
+        displayMessage("Unable to generate quest at this time. Please try again.", 'error');
+    }
+}
+
+// Fallback quest generation for compatibility
+async function generateQuestFallback() {
+    const questPrompt = `
+Generate a quest for ${player.name}, a level ${player.level} ${player.class} in ${player.currentLocation}.
+
+The quest should be appropriate for their level and current location. Include:
+1. A clear objective
+2. A reward (gold and/or items)
+3. Any special requirements or challenges
+4. An interesting backstory
+
+Make it engaging and appropriate for a fantasy RPG setting.
+`;
+
+    const questDescription = await callGeminiAPI(questPrompt, 0.8, 400);
+
+    if (questDescription) {
+        const questId = Date.now().toString();
+        const quest = {
+            id: questId,
+            title: `Quest ${player.quests.length + 1}`,
+            description: questDescription,
+            completed: false,
+            rewards: { gold: 50, experience: 25, items: [] }, // Default values
+            location: player.currentLocation,
+            dateCreated: new Date().toLocaleDateString()
+        };
+
+        player.quests.push(quest);
+        displayMessage(`New quest available: ${quest.title}`, 'success');
+        displayMessage(questDescription, 'quest');
+        saveGame();
+    } else {
+        displayMessage("No new quests are available at this time.", 'info');
+    }
+}
+
+function checkQuestCompletion(playerAction) {
+    if (!player.quests || player.quests.length === 0) return;
+
+    player.quests.forEach(quest => {
+        if (!quest.completed) {
+            // Enhanced keyword matching for quest completion
+            let isCompleted = false;
+
+            // Check objective if available, otherwise use description
+            const questText = (quest.objective || quest.description).toLowerCase();
+            const actionText = playerAction.toLowerCase();
+
+            // Extract key action words and target objects
+            const actionKeywords = questText.match(/\b(kill|defeat|slay|destroy|find|locate|discover|collect|gather|deliver|bring|talk|speak|converse|visit|go to|explore|investigate|solve|complete)\b/g) || [];
+            const targetKeywords = questText.match(/\b(goblin|orc|dragon|treasure|artifact|scroll|book|merchant|priest|king|queen|temple|castle|forest|mountain|cave|ruins)\b/g) || [];
+
+            // Check if action contains quest keywords
+            if (actionKeywords.length > 0) {
+                const matchedActions = actionKeywords.filter(keyword => actionText.includes(keyword));
+                if (matchedActions.length > 0) {
+                    // If we have targetKeywords, check for those too
+                    if (targetKeywords.length > 0) {
+                        const matchedTargets = targetKeywords.filter(keyword => actionText.includes(keyword));
+                        isCompleted = matchedTargets.length > 0;
+                    } else {
+                        // No specific targets mentioned, action match is enough
+                        isCompleted = true;
+                    }
+                }
+            }
+
+            // Additional checks for location-based quests
+            if (!isCompleted && quest.location && questText.includes(quest.location.toLowerCase())) {
+                if (actionText.includes('arrive') || actionText.includes('reach') || actionText.includes('enter')) {
+                    isCompleted = true;
+                }
+            }
+
+            if (isCompleted) {
+                quest.completed = true;
+                displayMessage(`Quest completed: ${quest.title}!`, 'success');
+
+                // Award structured quest rewards
+                if (quest.rewards) {
+                    // Award gold
+                    if (quest.rewards.gold > 0) {
+                        player.gold += quest.rewards.gold;
+                        displayMessage(`You earned ${quest.rewards.gold} gold!`, 'reward');
+                    }
+
+                    // Award experience
+                    if (quest.rewards.experience > 0) {
+                        const oldLevel = player.level;
+                        CharacterManager.gainExperience(player, quest.rewards.experience);
+                        displayMessage(`You gained ${quest.rewards.experience} experience!`, 'reward');
+
+                        // Check for level up
+                        if (player.level > oldLevel) {
+                            displayMessage(`Level up! You are now level ${player.level}!`, 'success');
+                        }
+                    }
+
+                    // Award items
+                    if (quest.rewards.items && quest.rewards.items.length > 0) {
+                        quest.rewards.items.forEach(itemName => {
+                            const item = ItemManager.createItem(itemName, player.level);
+                            if (item) {
+                                ItemManager.addToInventory(player, item);
+                                displayMessage(`You received: ${item.name}!`, 'reward');
+                            }
+                        });
+                    }
+                } else {
+                    // Fallback to old reward system
+                    const reward = quest.reward || 50;
+                    player.gold += reward;
+                    displayMessage(`You earned ${reward} gold!`, 'reward');
+                }
+
+                saveGame();
+            }
+        }
+    });
+}
+
+async function playerAttack() {
+    if (!player.currentEnemy) return;
+
+    const enemy = player.currentEnemy;
+
+    // Calculate player damage based on class and level
+    let baseDamage = 10;
+    const levelBonus = player.level * 2;
+    const classMultiplier = getClassAttackMultiplier(player.class);
+    const randomVariation = Math.floor(Math.random() * 10) + 1; // 1-10
+
+    const damage = Math.floor((baseDamage + levelBonus) * classMultiplier + randomVariation);
+
+    enemy.hp -= damage;
+    displayMessage(`You attack ${enemy.name} for ${damage} damage!`, 'combat');
+
+    if (enemy.hp <= 0) {
+        displayMessage(`${enemy.name} is defeated!`, 'success');
+
+        // Reward gold and XP based on enemy level
+        const goldReward = Math.floor(Math.random() * 50) + 25;
+        const xpReward = Math.floor(Math.random() * 30) + 15;
+
+        player.gold += goldReward;
+        CharacterManager.gainExperience(player, xpReward);
+
+        displayMessage(`You gained ${goldReward} gold and ${xpReward} XP!`, 'reward');
+
+        player.currentEnemy = null;
+        hideScreen('combat-interface');
+        checkQuestCompletion(`defeated ${enemy.name}`);
+        saveGame();
+    } else {
+        // Enemy attacks back
+        setTimeout(() => enemyAttack(), 1000);
+    }
+}
+
+function getClassAttackMultiplier(playerClass) {
+    const multipliers = {
+        'warrior': 1.3,
+        'rogue': 1.1,
+        'ranger': 1.2,
+        'mage': 0.8
+    };
+    return multipliers[playerClass] || 1.0;
+}
+
+async function enemyAttack() {
+    if (!player.currentEnemy) return;
+
+    const enemy = player.currentEnemy;
+
+    // Calculate enemy damage
+    const baseDamage = enemy.attack || 8;
+    const randomVariation = Math.floor(Math.random() * 8) + 1; // 1-8
+    const damage = baseDamage + randomVariation;
+
+    // Apply damage to player
+    player.hp -= damage;
+
+    // Ensure HP doesn't go below 0
+    if (player.hp < 0) {
+        player.hp = 0;
+    }
+
+    displayMessage(`${enemy.name} attacks you for ${damage} damage!`, 'combat');
+    displayMessage(`Your HP: ${player.hp}/${player.maxHp}`, 'info');
+
+    // Update HP display
+    updatePlayerHPDisplay();
+
+    // Check if player is defeated
+    if (player.hp <= 0) {
+        displayMessage("You have been defeated!", 'error');
+        displayMessage("You lose consciousness and wake up in a safe place, but lose some gold...", 'info');
+
+        // Player death penalty
+        const goldLoss = Math.floor(player.gold * 0.1); // Lose 10% of gold
+        player.gold = Math.max(0, player.gold - goldLoss);
+        player.hp = Math.floor(player.maxHp * 0.25); // Recover to 25% HP
+
+        if (goldLoss > 0) {
+            displayMessage(`You lost ${goldLoss} gold.`, 'error');
+        }
+
+        displayMessage(`You recover to ${player.hp} HP.`, 'info');
+
+        // End combat
+        player.currentEnemy = null;
+        hideScreen('combat-interface');
+        saveGame();
+    }
+
+    saveGame(); // Save after each combat round
+}
+
+function updatePlayerHPDisplay() {
+    const hpDisplay = document.getElementById('player-hp');
+    if (hpDisplay) {
+        hpDisplay.textContent = `HP: ${player.hp}/${player.maxHp}`;
+    }
+}
+
+async function fleeCombat() {
+    if (!player.currentEnemy) return;
+
+    const enemy = player.currentEnemy;
+    const fleeChance = 0.7; // 70% chance to flee successfully
+
+    if (Math.random() < fleeChance) {
+        displayMessage(`You successfully flee from ${enemy.name}!`, 'success');
+        player.currentEnemy = null;
+        hideScreen('combat-interface');
+        saveGame();
+    } else {
+        displayMessage(`You failed to escape! ${enemy.name} blocks your path!`, 'error');
+        // Enemy gets a free attack
+        setTimeout(() => enemyAttack(), 1000);
     }
 }
 
@@ -1666,693 +1579,7 @@ function parseAIItemResponse(aiResponse, context) {
     }
 }
 
-// New action handling functions to replace old system
-async function handleActionConsequences(actionAnalysis) {
-    const { actionType, extractedData, confidence } = actionAnalysis;
-
-    // Handle immediate consequences based on action type
-    switch (actionType) {
-        case GameActions.actionTypes.MOVEMENT:
-            await handleMovementAction(extractedData);
-            break;
-
-        case GameActions.actionTypes.COMBAT:
-            await handleCombatAction(extractedData);
-            break;
-
-        case GameActions.actionTypes.INTERACTION:
-            await handleInteractionAction(extractedData);
-            break;
-
-        case GameActions.actionTypes.EXPLORATION:
-            await handleExplorationAction(extractedData);
-            break;
-
-        case GameActions.actionTypes.REST:
-            await handleRestAction(extractedData);
-            break;
-
-        case GameActions.actionTypes.INVENTORY:
-            await handleInventoryAction(extractedData);
-            break;
-
-        case GameActions.actionTypes.SKILL:
-            await handleSkillAction(extractedData);
-            break;
-
-        default:
-            // For unknown or other action types, minimal processing
-            break;
-    }
-}
-
-async function handleMovementAction(extractedData) {
-    const command = extractedData.originalCommand || extractedData.primary || '';
-
-    // Use LocationManager for advanced movement analysis
-    const movementAnalysis = LocationManager.analyzeMovementCommand(command, player.currentLocation, player);
-
-    if (movementAnalysis.confidence > 0.5 && movementAnalysis.destination) {
-        const destination = movementAnalysis.destination;
-
-        // Handle different movement types
-        switch (movementAnalysis.movementType) {
-            case 'city_travel':
-            case 'region_travel':
-                player.currentLocation = destination.name;
-                displayMessage(`After ${movementAnalysis.estimatedTime} minutes of travel, you arrive at ${destination.name}.`);
-                if (destination.description) {
-                    displayMessage(destination.description);
-                }
-                LocationManager.saveLocationToHistory(destination.name, player.name);
-                break;
-
-            case 'district_travel':
-            case 'building_entry':
-                player.currentLocation = `${destination.name}, ${destination.parentLocation}`;
-                displayMessage(`You move to ${destination.name}.`);
-                break;
-
-            case 'directional_travel':
-                if (destination.possibleLocations && destination.possibleLocations.length > 0) {
-                    const randomDestination = destination.possibleLocations[Math.floor(Math.random() * destination.possibleLocations.length)];
-                    player.currentLocation = randomDestination;
-                    displayMessage(`Traveling ${destination.direction}, you reach ${randomDestination}.`);
-                    LocationManager.saveLocationToHistory(randomDestination, player.name);
-                    updatePlayerStatsDisplay();
-                } else {
-                    displayMessage(`You head ${destination.direction} but don't find anything notable.`);
-                }
-                break;
-
-            case 'interpreted_travel':
-                player.currentLocation = destination.name;
-                displayMessage(`You travel to ${destination.name}.`);
-                LocationManager.saveLocationToHistory(destination.name, player.name);
-                updatePlayerStatsDisplay();
-                break;
-
-            default:
-                displayMessage("You wander around but don't go anywhere specific.");
-                return;
-        }
-
-        // Check for encounters based on calculated chance
-        if (Math.random() < movementAnalysis.encounterChance) {
-            checkRandomEncounter();
-        }
-
-        updatePlayerStatsDisplay();
-
-    } else if (extractedData.primary) {
-        // Fallback to simple movement
-        let newLocation = extractedData.primary;
-        newLocation = newLocation.replace(/^(the|a|an)\s+/i, '').trim();
-        newLocation = newLocation.replace(/\s+(and|then|,).*$/i, '').trim();
-
-        if (newLocation && !['alone', 'him', 'her', 'them', 'person', 'npc'].includes(newLocation.toLowerCase())) {
-            const oldLocation = player.currentLocation;
-            player.currentLocation = newLocation;
-            displayMessage(`You leave ${oldLocation} and travel to ${newLocation}.`);
-            LocationManager.saveLocationToHistory(newLocation, player.name);
-            if (Math.random() < 0.3) checkRandomEncounter();
-            updatePlayerStatsDisplay();
-        }
-    }
-}
-
-async function handleCombatAction(extractedData) {
-    // 60% chance to trigger combat for combat actions
-    if (Math.random() < 0.6) {
-        checkRandomEncounter();
-    }
-}
-
-async function handleInteractionAction(extractedData) {
-    await handleNPCInteraction();
-}
-
-async function handleExplorationAction(extractedData) {
-    // 40% chance to find something when searching/exploring
-    if (Math.random() < 0.4) {
-        if (Math.random() < 0.3) {
-            // 30% chance for item, 70% chance for gold
-            const foundItem = ItemGenerator.generateItem({
-                locationContext: player.currentLocation,
-                rarity: Math.random() < 0.8 ? 'COMMON' : 'UNCOMMON'
-            });
-            ItemManager.addItemToInventory(player, foundItem);
-            displayMessage(`You found: ${foundItem.name}!`, 'success');
-        } else {
-            const goldFound = Math.floor(Math.random() * 15) + 5;
-            updateGold(goldFound, 'exploration');
-        }
-        updatePlayerStatsDisplay();
-    }
-}
-
-async function handleRestAction(extractedData) {
-    const healAmount = Math.floor(Math.random() * 20) + 10;
-    player.hp = Math.min(player.maxHp, player.hp + healAmount);
-    displayMessage(`You feel refreshed and recover ${healAmount} HP.`, 'success');
-    updatePlayerStatsDisplay();
-}
-
-async function handleInventoryAction(extractedData) {
-    // Handle basic inventory actions - more complex logic can be added
-    if (extractedData.primary) {
-        const itemName = extractedData.primary.toLowerCase();
-        const item = player.inventory.find(item =>
-            item.name.toLowerCase().includes(itemName)
-        );
-
-        if (item && item.type === 'consumable' && item.effect?.type === 'heal') {
-            const index = player.inventory.indexOf(item);
-            player.hp = Math.min(player.maxHp, player.hp + item.effect.amount);
-            player.inventory.splice(index, 1);
-            displayMessage(`You used ${item.name} and healed ${item.effect.amount} HP!`, 'success');
-            updatePlayerStatsDisplay();
-        }
-    }
-}
-
-async function handleSkillAction(extractedData) {
-    // Handle skill-based actions with basic success/failure
-    const skillCheck = Math.random();
-    if (skillCheck > 0.3) {
-        displayMessage("Your skill attempt succeeds!", 'success');
-    } else {
-        displayMessage("Your skill attempt fails.", 'error');
-    }
-}
-
-async function processActionResults(actionAnalysis, aiResponse) {
-    // Process secondary effects based on AI response and action type
-    const { actionType } = actionAnalysis;
-    let gameStateChanged = false;
-
-    // Check if AI response indicates quest progress
-    if (aiResponse.toLowerCase().includes('quest') && aiResponse.toLowerCase().includes('complete')) {
-        checkQuestCompletion(aiResponse);
-        gameStateChanged = true;
-    }
-
-    // Check for level up or experience gain
-    if (aiResponse.toLowerCase().includes('experience') || aiResponse.toLowerCase().includes('exp')) {
-        const expMatch = aiResponse.match(/(\d+)\s*(?:exp|experience)/i);
-        if (expMatch) {
-            const expGained = parseInt(expMatch[1]);
-            player.exp += expGained;
-            displayMessage(`You gained ${expGained} experience!`, 'success');
-            checkLevelUp();
-            gameStateChanged = true;
-        }
-    }
-
-    // Check for gold gain or loss in AI response
-    const goldMatches = [
-        aiResponse.match(/(?:gain|find|receive|earn|get|obtain)\s*(\d+)\s*gold/i),
-        aiResponse.match(/(\d+)\s*gold\s*(?:pieces?|coins?)?.*(?:gained|found|received|earned|obtained)/i),
-        aiResponse.match(/(?:lose|lost|spend|pay|cost)\s*(\d+)\s*gold/i),
-        aiResponse.match(/(\d+)\s*gold.*(?:lost|spent|paid|costs?)/i),
-        aiResponse.match(/(?:give|hand|pay)\s*.*?(\d+)\s*gold/i),
-        aiResponse.match(/(\d+)\s*gold.*(?:given|handed|paid)/i)
-    ];
-
-    for (const match of goldMatches) {
-        if (match) {
-            const goldAmount = parseInt(match[1]);
-            const isLoss = /(?:lose|lost|spend|pay|cost|give|hand|paid|given|handed)/i.test(aiResponse);
-
-            if (isLoss) {
-                updateGold(-goldAmount, 'transaction');
-            } else {
-                updateGold(goldAmount, 'found');
-            }
-            gameStateChanged = true;
-            break; // Only process the first gold match to avoid duplicates
-        }
-    }
-
-    // Check for item mentions that might need to be added to inventory
-    if (aiResponse.toLowerCase().includes('receive') && (aiResponse.toLowerCase().includes('item') || aiResponse.toLowerCase().includes('weapon') || aiResponse.toLowerCase().includes('armor') || aiResponse.toLowerCase().includes('potion'))) {
-        // This will be handled by the existing handleItemReceival function
-        console.log('Item receival detected in AI response');
-    }
-
-    if (gameStateChanged) {
-        updatePlayerStatsDisplay();
-        saveGame(); // Auto-save when game state changes significantly
-    }
-}
-
-function checkQuestCompletion(aiResponse) {
-    // Simple quest completion detection
-    const activeQuests = player.quests.filter(q => !q.completed);
-    if (activeQuests.length > 0) {
-        // Mark first active quest as completed if AI indicates success
-        activeQuests[0].completed = true;
-        displayMessage("Quest completed!", 'success');
-
-        // Bonus rewards
-        const expReward = 50;
-        const goldReward = 25;
-
-        player.exp += expReward;
-        player.gold += goldReward;
-
-        displayMessage(`Quest rewards: ${expReward} experience and ${goldReward} gold!`, 'success');
-        updateQuestButton();
-        updatePlayerStatsDisplay();
-        checkLevelUp();
-    }
-}
-
-function displayBackground() {
-    shopInterface.classList.add('hidden');
-    inventoryInterface.classList.add('hidden');
-    skillsInterface.classList.add('hidden');
-    combatInterface.classList.add('hidden');
-    questInterface.classList.add('hidden');
-    backgroundInterface.classList.remove('hidden');
-
-    displayMessage("Reviewing your character background...", 'info');
-
-    backgroundContentDisplay.innerHTML = `
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div class="parchment-box p-4">
-                <h5 class="font-bold text-lg mb-3 text-amber-900">Character Details</h5>
-                <p class="mb-2"><strong>Name:</strong> ${player.name || 'Unknown'}</p>
-                <p class="mb-2"><strong>Gender:</strong> ${player.gender || 'Unknown'}</p>
-                <p class="mb-2"><strong>Class:</strong> ${player.class || 'Unknown'}</p>
-                <p class="mb-2"><strong>Level:</strong> ${player.level || 1}</p>
-                <p class="mb-2"><strong>Current Location:</strong> ${player.currentLocation || 'Unknown'}</p>
-            </div>
-
-            <div class="parchment-box p-4">
-                <h5 class="font-bold text-lg mb-3 text-amber-900">Character Stats</h5>
-                <p class="mb-1"><strong>Strength:</strong> ${player.stats.strength || 10}</p>
-                <p class="mb-1"><strong>Dexterity:</strong> ${player.stats.dexterity || 10}</p>
-                <p class="mb-1"><strong>Intelligence:</strong> ${player.stats.intelligence || 10}</p>
-                <p class="mb-1"><strong>Constitution:</strong> ${player.stats.constitution || 10}</p>
-                <p class="mb-1"><strong>Wisdom:</strong> ${player.stats.wisdom || 10}</p>
-                <p class="mb-1"><strong>Charisma:</strong> ${player.stats.charisma || 10}</p>
-            </div>
-        </div>
-
-        <div class="parchment-box p-4 mt-4">
-            <h5 class="font-bold text-lg mb-3 text-amber-900">Background Story</h5>
-            <div class="text-sm leading-relaxed text-amber-800">
-                ${player.background || 'No background story available. Create a character to generate one!'}
-            </div>
-        </div>
-    `;
-}
-
-function restPlayer() {
-    player.hp = player.maxHp;
-    displayMessage("You take a long rest and restore your health to full.", 'success');
-    updatePlayerStatsDisplay();
-}
-
-// Event Listeners
-newGameBtn.addEventListener('click', () => {
-    showScreen('character-creation-screen');
-});
-
-loadGameBtn.addEventListener('click', loadGame);
-
-generateBackgroundBtn.addEventListener('click', generateCharacterBackground);
-
-createCharacterBtn.addEventListener('click', () => {
-    const name = charNameInput.value.trim();
-    const charClass = charClassSelect.value;
-    const gender = Array.from(charGenderRadios).find(radio => radio.checked)?.value;
-    const background = charBackgroundTextarea.value.trim();
-
-    if (!name || !charClass || !gender) {
-        alert('Please fill in all character details.');
-        return;
-    }
-
-    // Set up player character
-    player.name = name;
-    player.class = charClass;
-    player.gender = gender;
-    player.background = background;
-
-    // Initialize base stats to 10 before applying any bonuses
-    player.stats = {
-        strength: 10,
-        dexterity: 10,
-        intelligence: 10,
-        constitution: 10,
-        wisdom: 10,
-        charisma: 10
-    };
-
-    // Initialize character with new progression system
-    CharacterManager.initializeCharacter(player, charClass);
-
-    // Apply class bonuses from old system for compatibility
-    const classData = classes[charClass];
-    if (classData) {
-        // Set stats based on class
-        Object.entries(classData.statFocus).forEach(([stat, value]) => {
-            player.stats[stat] = 10 + value; // Base 10 + class bonus
-        });
-    }
-
-    // Add starting equipment
-    if (charClass === 'warrior') {
-        player.inventory.push({ ...items.find(item => item.id === 'short_sword') });
-        player.inventory.push({ ...items.find(item => item.id === 'leather_armor') });
-    }
-    player.inventory.push({ ...items.find(item => item.id === 'healing_potion') });
-
-    updatePlayerStatsDisplay();
-    updateQuestButton(); // Initialize quest button for new character
-    showScreen('game-play-screen');
-    displayMessage(`Welcome to Pedena, ${player.name} the ${player.class}!`);
-    displayMessage(`You begin your adventure in ${player.currentLocation}.`);
-    generateWorldDescription(player.currentLocation);
-});
-
-// Custom Command Event Listeners
-executeCommandBtn.addEventListener('click', () => {
-    processCustomCommand(customCommandInput.value);
-    customCommandInput.value = ''; // Clear input after execution
-});
-
-customCommandInput.addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') {
-        processCustomCommand(customCommandInput.value);
-        customCommandInput.value = ''; // Clear input after execution
-    }
-});
-
-// Game Action Event Listeners
-saveGameBtn.addEventListener('click', saveGame);
-newQuestBtn.addEventListener('click', () => {
-    // Check if we should show quests or generate new quest
-    const activeQuests = player.quests.filter(q => !q.completed);
-    if (activeQuests.length > 0) {
-        displayQuests();
-    } else {
-        generateQuest();
-    }
-});
-showInventoryBtn.addEventListener('click', displayInventory);
-showShopBtn.addEventListener('click', displayShop);
-showBackgroundBtn.addEventListener('click', displayBackground);
-document.getElementById('show-progression-btn').addEventListener('click', displayCharacterProgression);
-
-// Combat Event Listeners
-attackBtn.addEventListener('click', playerAttack);
-fleeBtn.addEventListener('click', fleeCombat);
-
-// Interface Exit Buttons
-exitShopBtn.addEventListener('click', () => {
-    shopInterface.classList.add('hidden');
-});
-
-exitInventoryBtn.addEventListener('click', () => {
-    inventoryInterface.classList.add('hidden');
-});
-
-exitSkillsBtn.addEventListener('click', () => {
-    skillsInterface.classList.add('hidden');
-});
-
-exitQuestsBtn.addEventListener('click', () => {
-    questInterface.classList.add('hidden');
-});
-
-exitBackgroundBtn.addEventListener('click', () => {
-    backgroundInterface.classList.add('hidden');
-});
-
-document.getElementById('exit-progression-btn').addEventListener('click', () => {
-    document.getElementById('progression-interface').classList.add('hidden');
-});
-
-// Quest management functions
-function markQuestComplete(questId) {
-    const quest = player.quests.find(q => q.id === questId);
-    if (quest) {
-        quest.completed = true;
-        displayMessage(`Quest completed: ${quest.description.substring(0, 50)}...`, 'success');
-        player.exp += 50;
-        player.gold += 25;
-        updateQuestButton();
-        updatePlayerStatsDisplay();
-        checkLevelUp();
-    }
-}
-
-function abandonQuest(questId) {
-    if (confirm("Are you sure you want to abandon this quest?")) {
-        const questIndex = player.quests.findIndex(q => q.id === questId);
-        if (questIndex >= 0) {
-            const quest = player.quests[questIndex];
-            player.quests.splice(questIndex, 1);
-            displayMessage(`You abandoned the quest: ${quest.description.substring(0, 50)}...`, 'info');
-            updateQuestButton();
-            displayQuests(); // Refresh the quest display
-        }
-    }
-}
-
-function getActiveQuestsContext() {
-    const activeQuests = player.quests.filter(q => !q.completed);
-    if (activeQuests.length > 0) {
-        return `ACTIVE QUESTS: ${activeQuests.map(q => q.description.substring(0, 100)).join('; ')}\n`;
-    }
-    return '';
-}
-
-function updateQuestButton() {
-    console.log('updateQuestButton called - Total quests:', player.quests.length, 'Active quests:', player.quests.filter(q => !q.completed).length);
-
-    const activeQuests = player.quests.filter(q => !q.completed);
-    if (activeQuests.length > 0) {
-        newQuestBtn.textContent = `View Quests (${activeQuests.length})`;
-        console.log('Button set to View Quest mode');
-    } else {
-        newQuestBtn.textContent = 'New Quest';
-        console.log('Button set to New Quest mode');
-    }
-}
-
-function displayQuests() {
-    inventoryInterface.classList.add('hidden');
-    shopInterface.classList.add('hidden');
-    skillsInterface.classList.add('hidden');
-    combatInterface.classList.add('hidden');
-    backgroundInterface.classList.add('hidden');
-    questInterface.classList.remove('hidden');
-
-    displayMessage("Reviewing your quests...", 'info');
-
-    questListDisplay.innerHTML = '';
-
-    if (player.quests.length === 0) {
-        questListDisplay.innerHTML = '<p class="text-center text-amber-800">You have no quests yet. Click "New Quest" to start an adventure!</p>';
-        return;
-    }
-
-    const activeQuests = player.quests.filter(q => !q.completed);
-    const completedQuests = player.quests.filter(q => q.completed);
-
-    if (activeQuests.length > 0) {
-        const activeHeader = document.createElement('h5');
-        activeHeader.classList.add('font-bold', 'text-lg', 'mb-3', 'text-green-700');
-        activeHeader.textContent = 'Active Quests';
-        questListDisplay.appendChild(activeHeader);
-
-        activeQuests.forEach(quest => {
-            const questDiv = document.createElement('div');
-            questDiv.classList.add('parchment-box', 'p-4', 'mb-3', 'border-l-4', 'border-green-600');
-            questDiv.innerHTML = `
-                <p class="font-bold text-green-800 mb-2">Quest ${quest.id}</p>
-                <p class="text-sm leading-relaxed mb-3">${quest.description}</p>
-                <div class="flex gap-2">
-                    <button onclick="markQuestComplete(${quest.id})" class="btn-parchment text-sm px-3 py-1 bg-green-600 text-white">
-                        Mark Complete
-                    </button>
-                    <button onclick="abandonQuest(${quest.id})" class="btn-parchment text-sm px-3 py-1 bg-red-600 text-white">
-                        Abandon Quest
-                    </button>
-                </div>
-            `;
-            questListDisplay.appendChild(questDiv);
-        });
-    }
-
-    if (completedQuests.length > 0) {
-        const completedHeader = document.createElement('h5');
-        completedHeader.classList.add('font-bold', 'text-lg', 'mb-3', 'mt-6', 'text-blue-700');
-        completedHeader.textContent = 'Completed Quests';
-        questListDisplay.appendChild(completedHeader);
-
-        completedQuests.forEach(quest => {
-            const questDiv = document.createElement('div');
-            questDiv.classList.add('parchment-box', 'p-4', 'mb-3', 'border-l-4', 'border-blue-600', 'opacity-75');
-            questDiv.innerHTML = `
-                <p class="font-bold text-blue-800 mb-2">Quest ${quest.id} ✓</p>
-                <p class="text-sm leading-relaxed text-blue-700">${quest.description}</p>
-            `;
-            questListDisplay.appendChild(questDiv);
-        });
-    }
-
-    // Add New Quest button at the bottom
-    const newQuestButton = document.createElement('button');
-    newQuestButton.classList.add('btn-parchment', 'w-full', 'mt-4');
-    newQuestButton.innerHTML = '<i class="gi gi-scroll-unfurled mr-2"></i>Generate New Quest';
-    newQuestButton.onclick = () => {
-        questInterface.classList.add('hidden');
-        generateQuest();
-    };
-    questListDisplay.appendChild(newQuestButton);
-}
-
-async function generateQuest() {
-    displayMessage("Seeking new adventures...", 'info');
-
-    // Generate the character name first
-    const questGiverName = QuestCharacterGenerator.generateQuestGiver();
-    
-    // Get some example names to provide to the AI
-    const exampleNames = [
-        QuestCharacterGenerator.generateRandomCharacter(),
-        QuestCharacterGenerator.generateRandomCharacter(),
-        QuestCharacterGenerator.generateRandomCharacter(),
-        QuestCharacterGenerator.generateMerchant(),
-        QuestCharacterGenerator.generateQuestGiver()
-    ];
-
-    const contextPrompt = `
-Generate a fantasy RPG quest for ${player.name} (${player.class}, Level ${player.level}) in ${player.currentLocation}. 
-Current context: HP ${player.hp}/${player.maxHp}, Gold ${player.gold}
-
-IMPORTANT: Use the quest giver name "${questGiverName}" in the quest description. Do NOT use generic names like "Elara", "villager", or "merchant".
-
-Available character names you could reference include: ${exampleNames.join(', ')}
-
-Create a quest that:
-1. Fits their level and class
-2. Has a clear objective that involves the quest giver "${questGiverName}"
-3. Mentions specific rewards
-4. Is 2-3 sentences long
-5. Includes potential consequences for success/failure
-6. Uses the specific name "${questGiverName}" instead of generic terms
-
-Format: Just the quest description using the name "${questGiverName}", no extra text.`;
-
-    const questDescription = await callGeminiAPI(contextPrompt, 0.8, 400);
-    if (questDescription) {
-        const newQuest = {
-            id: Date.now(),
-            description: questDescription,
-            questGiver: questGiverName,
-            completed: false
-        };
-        player.quests.push(newQuest);
-        console.log('Quest added:', newQuest);
-        console.log('Total quests:', player.quests.length);
-        console.log('Active quests:', player.quests.filter(q => !q.completed).length);
-
-        displayMessage(`New quest available: ${questDescription}`, 'success');
-        updateQuestButton();
-        saveGame(); // Auto-save when quest is generated
-    } else {
-        displayMessage("No new quests are available at this time.", 'info');
-    }
-}
-
-// Initialize game
-document.addEventListener('DOMContentLoaded', () => {
-    // Check if there's a saved game to enable load button
-    if (localStorage.getItem('pedenaRPGSave')) {
-        loadGameBtn.disabled = false;
-    }
-
-    // Auto-fix any stat issues in storage
-    autoFixStatsInStorage();
-
-    // Load conversation history if available
-    loadConversationHistory();
-
-    // Add event listeners for quick action buttons
-    document.getElementById('rest-btn')?.addEventListener('click', () => {
-        restPlayer();
-    });
-
-    document.getElementById('explore-btn')?.addEventListener('click', () => {
-        explore();
-    });
-
-    document.getElementById('cast-spell-btn')?.addEventListener('click', () => {
-        displayMessage("You focus your magical energy... (Use custom commands to cast specific spells)", 'info');
-    });
-
-    document.getElementById('pray-btn')?.addEventListener('click', () => {
-        displayMessage("You offer a prayer to the gods... A sense of peace washes over you.", 'success');
-        if (Math.random() < 0.3) {
-            const healAmount = Math.floor(Math.random() * 10) + 5;
-            player.hp = Math.min(player.maxHp, player.hp + healAmount);
-            displayMessage(`Your prayer is answered! You feel blessed and recover ${healAmount} HP.`, 'success');
-            updatePlayerStatsDisplay();
-        }
-    });
-
-    // Make functions globally accessible
-    window.displayCharacterProgression = displayCharacterProgression;
-    window.updateQuestButton = updateQuestButton;
-    window.markQuestComplete = markQuestComplete;
-    window.displayQuests = displayQuests;
-    window.generateQuest = generateQuest;
-    window.learnNewSpell = learnNewSpell;
-    window.abandonQuest = abandonQuest;
-    window.LocationManager = LocationManager;
-    window.GameActions = GameActions;
-
-    // Debug functions for local storage
-    window.debugInventory = function() {
-        console.log('=== INVENTORY DEBUG ===');
-        console.log('Player name:', player.name);
-        console.log('Current inventory:', player.inventory);
-        console.log('Inventory length:', player.inventory ? player.inventory.length : 'undefined');
-
-        // Check local storage
-        const savedInventory = localStorage.getItem(`inventory_${player.name}`);
-        const savedGame = localStorage.getItem('pedenaRPGSave');
-
-        console.log('Saved inventory in localStorage:', savedInventory ? JSON.parse(savedInventory) : 'Not found');
-        console.log('Full saved game:', savedGame ? JSON.parse(savedGame) : 'Not found');
-
-        // List all localStorage keys
-        console.log('All localStorage keys:', Object.keys(localStorage));
-
-        return {
-            currentInventory: player.inventory,
-            savedInventory: savedInventory ? JSON.parse(savedInventory) : null,
-            localStorageKeys: Object.keys(localStorage)
-        };
-    };
-
-    window.fixInventory = function() {
-        console.log('Attempting to fix inventory...');
-        if (!player.inventory) {
-            player.inventory = [];
-        }
-        ItemManager.saveInventoryToStorage(player);
-        saveGame();
-        console.log('Inventory fixed and saved');
-    };
-});
-
+// Function to display character progression details.
 function displayLevelUpRewards(progression, oldLevel) {
     const newLevel = progression.level;
     const levelData = classProgression[progression.class].levels[newLevel];
@@ -2375,7 +1602,6 @@ function displayLevelUpRewards(progression, oldLevel) {
         }
     }
 }
-// Function to display character progression details.
 function displayCharacterProgression() {
     if (!player.classProgression) {
         displayMessage("Character progression not available.", 'error');
@@ -2421,7 +1647,7 @@ function displayCharacterProgression() {
                 <p><strong>Current XP:</strong> ${player.exp}</p>
                 <p><strong>XP to Next Level:</strong> ${player.expToNextLevel - player.exp}</p>
                 <p><strong>Total XP Needed:</strong> ${player.expToNextLevel}</p>
-                
+
                 <div class="mt-3">
                     <div class="w-full bg-amber-200 rounded-full h-4 border border-amber-700">
                         <div class="bg-gradient-to-r from-amber-500 to-amber-600 h-full rounded-full transition-all duration-300" 
@@ -2568,3 +1794,130 @@ async function talkToNPC(npcName) {
         displayMessage(`${npcName} doesn't seem interested in talking right now.`);
     }
 }
+
+// Auto-generate world event
+async function startConversation() {
+    displayMessage("Looking for someone to talk to...", 'info');
+
+    // Check for existing NPCs in this location first
+    const existingNPCs = getNPCsInLocation(player.currentLocation);
+
+    if (existingNPCs.length > 0 && Math.random() > 0.3) {
+        // 70% chance to interact with existing NPC
+        const npc = existingNPCs[Math.floor(Math.random() * existingNPCs.length)];
+        const npcMessage = `You see ${npc.name} again. ${npc.description}`;
+        displayMessage(npcMessage);
+        addToConversationHistory('assistant', npcMessage);
+        gameWorld.lastNPCInteraction = npc.id;
+    } else {
+        // Create new NPC
+        const context = GameDataManager.generateLocationContext(player.currentLocation);
+        const randomFaction = GameDataManager.getRandomFrom(gameData.organizations.factions);
+
+        // Use QuestCharacterGenerator to get a name
+        const npcName = QuestCharacterGenerator.generateRandomCharacter();
+
+        // Get some example names to provide to the AI
+        const exampleNames = [
+            QuestCharacterGenerator.generateRandomCharacter(),
+            QuestCharacterGenerator.generateRandomCharacter(),
+            QuestCharacterGenerator.generateMerchant(),
+            QuestCharacterGenerator.generateInnkeeper()
+        ];
+
+        const prompt = `Create an NPC encounter in ${player.currentLocation}. 
+
+IMPORTANT: The NPC is named "${npcName}" - use this EXACT name, do NOT use generic names like "Elara" or "the villager".
+
+Character name examples from this world: ${exampleNames.join(', ')}
+
+Format: "You see ${npcName}. Appearance: [brief description]. ${npcName} says: [one line of dialogue]"
+
+Use the name "${npcName}" throughout the description.`;
+
+        const npcInfo = await callGeminiAPI(prompt, 0.8, 200, true);
+        if (npcInfo) {
+            const newNPC = createNPC(npcName, npcInfo, player.currentLocation);
+            saveNPCToLocation(newNPC, player.currentLocation);
+            gameWorld.lastNPCInteraction = newNPC.id;
+
+            const encounterMessage = npcInfo;
+            displayMessage(encounterMessage);
+            addToConversationHistory('assistant', encounterMessage);
+        } else {
+            const fallbackMessage = "You don't see anyone interesting to talk to right now.";
+            displayMessage(fallbackMessage);
+            addToConversationHistory('assistant', fallbackMessage);
+        }
+    }
+    saveConversationHistory();
+}
+
+// Initialize game
+document.addEventListener('DOMContentLoaded', () => {
+    // Check if there's a saved game to enable load button
+    if (localStorage.getItem('pedenaRPGSave')) {
+        loadGameBtn.disabled = false;
+    }
+
+    // Auto-fix any stat issues in storage
+    autoFixStatsInStorage();
+
+    // Load conversation history if available
+    loadConversationHistory();
+
+    // Add event listeners for quick action buttons
+    document.getElementById('rest-btn')?.addEventListener('click', () => {
+        player.hp = Math.min(player.maxHp, player.hp + 20);
+        displayMessage("You feel refreshed.", 'success');
+        updatePlayerStatsDisplay();
+    });
+
+    document.getElementById('explore-btn')?.addEventListener('click', () => {
+        startConversation();
+    });
+
+    // Make functions globally accessible
+    window.displayCharacterProgression = displayCharacterProgression;
+    window.updateQuestButton = updateQuestButton;
+    window.markQuestComplete = markQuestComplete;
+    window.displayQuests = displayQuests;
+    window.generateQuest = generateQuest;
+    window.learnNewSpell = learnNewSpell;
+    window.LocationManager = LocationManager;
+    window.GameActions = GameActions;
+
+    // Debug functions for local storage
+    window.debugInventory = function() {
+        console.log('=== INVENTORY DEBUG ===');
+        console.log('Player name:', player.name);
+        console.log('Current inventory:', player.inventory);
+        console.log('Inventory length:', player.inventory ? player.inventory.length : 'undefined');
+
+        // Check local storage
+        const savedInventory = localStorage.getItem(`inventory_${player.name}`);
+        const savedGame = localStorage.getItem('pedenaRPGSave');
+
+        console.log('Saved inventory in localStorage:', savedInventory ? JSON.parse(savedInventory) : 'Not found');
+        console.log('Full saved game:', savedGame ? JSON.parse(savedGame) : 'Not found');
+
+        // List all localStorage keys
+        console.log('All localStorage keys:', Object.keys(localStorage));
+
+        return {
+            currentInventory: player.inventory,
+            savedInventory: savedInventory ? JSON.parse(savedInventory) : null,
+            localStorageKeys: Object.keys(localStorage)
+        };
+    };
+
+    window.fixInventory = function() {
+        console.log('Attempting to fix inventory...');
+        if (!player.inventory) {
+            player.inventory = [];
+        }
+        ItemManager.saveInventoryToStorage(player);
+        saveGame();
+        console.log('Inventory fixed and saved');
+    };
+});
