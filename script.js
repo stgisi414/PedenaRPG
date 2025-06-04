@@ -2465,22 +2465,39 @@ window.buyShopItem = buyShopItem;
     });
 
     document.getElementById('cast-spell-btn')?.addEventListener('click', () => {
-        if (player.classProgression && player.classProgression.knownSpells.length > 0) {
-            const spells = player.classProgression.knownSpells;
-            const randomSpell = spells[Math.floor(Math.random() * spells.length)];
-            displayMessage(`You attempt to cast ${randomSpell}...`, 'info');
+        // Check if player has class progression and is a spellcaster
+        if (player.classProgression && (player.classProgression.class === 'mage' || player.classProgression.class === 'ranger')) {
+            if (player.classProgression.knownSpells && player.classProgression.knownSpells.length > 0) {
+                const spells = player.classProgression.knownSpells;
+                const randomSpell = spells[Math.floor(Math.random() * spells.length)];
+                displayMessage(`You attempt to cast ${randomSpell}...`, 'info');
 
-            // Simple spell effect
-            const effects = [
-                { msg: "The spell fizzles out harmlessly.", type: 'info' },
-                { msg: "You feel magical energy coursing through you!", type: 'success' },
-                { msg: "Sparks of magic dance around your fingers.", type: 'success' },
-                { msg: "You sense the magical weave responding to your call.", type: 'success' }
-            ];
-            const effect = effects[Math.floor(Math.random() * effects.length)];
-            setTimeout(() => displayMessage(effect.msg, effect.type), 500);
+                // Get spell definition for better effect description
+                const spellDef = spellDefinitions[randomSpell];
+                if (spellDef) {
+                    displayMessage(`${spellDef.description}`, 'success');
+                    
+                    // Apply spell damage if it has any
+                    if (spellDef.damage && player.currentEnemy) {
+                        const damage = rollDice(spellDef.damage);
+                        displayMessage(`The spell deals ${damage} ${spellDef.school} damage!`, 'combat');
+                    }
+                } else {
+                    // Fallback effects
+                    const effects = [
+                        { msg: "The spell fizzles out harmlessly.", type: 'info' },
+                        { msg: "You feel magical energy coursing through you!", type: 'success' },
+                        { msg: "Sparks of magic dance around your fingers.", type: 'success' },
+                        { msg: "You sense the magical weave responding to your call.", type: 'success' }
+                    ];
+                    const effect = effects[Math.floor(Math.random() * effects.length)];
+                    setTimeout(() => displayMessage(effect.msg, effect.type), 500);
+                }
+            } else {
+                displayMessage("You don't know any spells yet.", 'info');
+            }
         } else {
-            displayMessage("You don't know any spells yet.", 'info');
+            displayMessage("You are not a spellcaster.", 'info');
         }
     });
 
