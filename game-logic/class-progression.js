@@ -209,7 +209,7 @@ export const classProgression = {
                 hp: 4,
                 features: ["Seventh Level Spells Access"],
                 abilities: ["Rapid Casting", "Spell Reflection"],
-                feats: ["War Caster"],
+                feats: ["War Caster"Plane Shift],
                 spells: ["Delayed Blast Fireball", "Finger of Death", "Plane Shift", "Prismatic Spray"],
                 cantrips: []
             },
