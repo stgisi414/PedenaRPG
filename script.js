@@ -1242,6 +1242,18 @@ function fixMaraRelationship() {
 
 // Auto-fix Mara relationship if we detect she should be romantic but isn't
 function autoFixMaraRelationship() {
+    // Ensure player and relationships exist before proceeding
+    if (!player || !player.relationships) {
+        console.log('autoFixMaraRelationship: Player or relationships not initialized yet');
+        return;
+    }
+    
+    // Ensure conversationHistory exists and has messages
+    if (!conversationHistory || !conversationHistory.messages || conversationHistory.messages.length === 0) {
+        console.log('autoFixMaraRelationship: No conversation history available');
+        return;
+    }
+    
     const conversationText = conversationHistory.messages.slice(-10).map(m => m.content).join(' ').toLowerCase();
     
     if ((conversationText.includes('mara') && conversationText.includes('girlfriend')) ||
