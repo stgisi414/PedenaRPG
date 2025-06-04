@@ -6,6 +6,7 @@ import { GameActions } from './game-logic/game-actions.js';
 import { LocationManager } from './game-logic/location-manager.js';
 import { classProgression, spellDefinitions, abilityDefinitions } from './game-logic/class-progression.js';
 import { ItemGenerator, ItemManager, itemCategories, itemRarity, statusEffects } from './assets/world-items.js';
+import { TransactionMiddleware } from './game-logic/transaction-middleware.js';
 
 const GEMINI_API_KEY = 'AIzaSyDIFeql6HUpkZ8JJlr_kuN0WDFHUyOhijA'; // Replace with your actual Gemini API Key
 const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`;
@@ -2703,6 +2704,22 @@ IMPORTANT: If the player is trying to interact with something from recent explor
             displayMessage(response, 'info');
             addToConversationHistory('assistant', response);
             
+            // Check for transactions in the AI response
+            try {
+                const transactionData = await TransactionMiddleware.detectTransaction(response, player, {
+                    command: command,
+                    location: player.currentLocation
+                });
+                
+                if (transactionData && transactionData.hasTransaction) {
+                    console.log('Transaction detected:', transactionData);
+                    await TransactionMiddleware.processTransaction(transactionData, player);
+                }
+            } catch (transactionError) {
+                console.error('Transaction processing error:', transactionError);
+                // Continue with normal flow even if transaction processing fails
+            }
+            
             // Handle item pickup if detected
             if (isPickupCommand) {
                 await handleItemPickup(command, response);
@@ -2968,6 +2985,15 @@ window.buyShopItem = buyShopItem;
     window.learnNewSpell = learnNewSpell;
     window.LocationManager = LocationManager;
     window.GameActions = GameActions;
+    window.TransactionMiddleware = TransactionMiddleware;
+    window.callGeminiAPI = callGeminiAPI;
+    window.updateGold = updateGold;
+    window.displayMessage = displayMessage;
+    window.saveGame = saveGame;
+    window.itemCategories = itemCategories;
+    window.itemRarity = itemRarity;
+    window.ItemGenerator = ItemGenerator;
+    window.ItemManager = ItemManager;
 
     // Debug functions for local storage
     window.debugInventory = function() {
