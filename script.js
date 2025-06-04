@@ -651,296 +651,9 @@ function createNPC(name, description, location) {
 }
 
 function saveNPCToLocation(npc, location) {
-    if (!gameWorld.npcs.has(location)) {
-        gameWorld.npcs.set(location, []);
-    }
-    const locationNPCs = gameWorld.npcs.get(location);
-    // Check if NPC already exists by name
-    const existingIndex = locationNPCs.findIndex(n => n.name === npc.name);
-    if (existingIndex >= 0) {
-        locationNPCs[existingIndex] = npc; // Update existing
-    } else {
-        locationNPCs.push(npc); // Add new
-    }
-}
-
-function getNPCsInLocation(location) {
-    return gameWorld.npcs.get(location) || [];
-}
-
-async function generateCharacterBackground() {
-    const name = charNameInput.value.trim();
-    const charClass = charClassSelect.value;
-    const gender = Array.from(charGenderRadios).find(radio => radio.checked)?.value;
-
-    if (!name || !charClass || !gender) {
-        alert("Please fill in character name, class, and gender.");
-        return;
-    }
-
-    charBackgroundTextarea.value = "Generating character background...";
-    generateBackgroundBtn.disabled = true;
-
-    // Generate rich context using world data
-    const context = GameDataManager.generateBackgroundPromptContext({ name, class: charClass, gender });
-
-    const prompt = `Create a brief background for ${name}, a ${gender} ${charClass} in Pedena. Use these world elements: Cities like ${context.worldLore.majorCities.join(', ')}; factions like ${context.worldLore.activeFactions.join(', ')}; guilds like ${context.worldLore.availableGuilds.join(', ')}. 2-3 sentences about origin and goals.`;
-
-    const background = await callGeminiAPI(prompt, 0.8, 200, false); // Don't include conversation history for character creation
-    if (background) {
-        charBackgroundTextarea.value = background;
-        player.background = background;
-    } else {
-        charBackgroundTextarea.value = "Failed to generate background. You can write your own or try again later.";
-        player.background = "A mysterious adventurer with an unknown past.";
-    }
-
-    generateBackgroundBtn.disabled = false;
-}
-
-async function generateWorldDescription(location) {
-    displayMessage(`Describing ${location}...`, 'info');
-    const prompt = `Describe the fantasy RPG location of ${location} in the magical land of Pedena. Focus on key features, atmosphere, and potential points of interest in about 3-5 sentences. Consider if it's a town, forest, cave, or mountain.`;
-    const description = await callGeminiAPI(prompt, 0.7, 250);
-    if (description) {
-        displayMessage(`You are in ${location}. ${description}`);
-    } else {
-        displayMessage(`Failed to describe ${location}.`);
-    }
-}
-
-async function executeCustomCommand(command) {
-    displayMessage(`> ${command}`, 'info');
-
-    // Check if it's a movement command
-    const movementKeywords = ['go to', 'travel to', 'move to', 'head to', 'walk to', 'run to', 'visit', 'enter'];
-    const isMovement = movementKeywords.some(keyword => command.toLowerCase().includes(keyword));
-
-    if (isMovement) {
-        await handleStructuredMovement(command);
-        return;
-    }
-
-    displayMessage(`> ${command}`, 'user');
-    displayMessage("Processing your command...", 'info');
-
-    // Check for direct gold giving commands
-    const goldGivePattern = /(?:give|hand|pay).*?(\d+)\s*gold/i;
-    const goldMatch = command.match(goldGivePattern);
-    if (goldMatch) {
-        const goldAmount = parseInt(goldMatch[1]);
-        if (player.gold >= goldAmount) {
-            updateGold(-goldAmount, 'given to NPC');
-        }
-    }
-
-    // Check if command mentions receiving an item (like "succubus language script")
-    if (command.toLowerCase().includes('receive') || command.toLowerCase().includes('get') ||
-        command.toLowerCase().includes('obtain') || command.toLowerCase().includes('script') ||
-        command.toLowerCase().includes('language') || command.toLowerCase().includes('tome') ||
-        command.toLowerCase().includes('book') || command.toLowerCase().includes('scroll')) {
-        await handleItemReceival(command);
-    }
-
-    // First check if this is a movement command using LocationManager
-    const movementAnalysis = LocationManager.analyzeMovementCommand(command, player.currentLocation, player);
-
-    if (movementAnalysis.confidence > 0.6) {
-        // Use advanced location processing
-        const detailedPrompt = LocationManager.createDetailedMovementPrompt(movementAnalysis, player);
-
-        const response = await callGeminiAPI(detailedPrompt, 0.8, 1000, true);
-        if (response) {
-            displayMessage(response);
-            addToConversationHistory('assistant', response);
-
-            // Apply movement results
-            if (movementAnalysis.destination && movementAnalysis.destination.name) {
-                let newLocationName = movementAnalysis.destination.name;
-
-                // Handle different destination types
-                if (movementAnalysis.destination.parentLocation) {
-                    newLocationName = `${movementAnalysis.destination.name}, ${movementAnalysis.destination.parentLocation}`;
-                }
-
-                const oldLocation = player.currentLocation;
-                player.currentLocation = newLocationName;
-                displayMessage(`You leave ${oldLocation} and arrive at ${newLocationName}.`, 'success');
-                LocationManager.saveLocationToHistory(newLocationName, player.name);
-                updatePlayerStatsDisplay(); // Ensure UI is updated
-
-                // Check for encounters
-                if (Math.random() < movementAnalysis.encounterChance) {
-                    checkRandomEncounter();
-                }
-            }
-        }
-
-        saveConversationHistory();
-        return;
-    }
-
-    // Check for basic movement patterns as fallback
-    const basicMovementPatterns = [
-        /(?:go|move|travel|head|journey|visit)\s+(?:to\s+)?(?:the\s+)?(.+)/i,
-        /(?:enter|go\s+into)\s+(?:the\s+)?(.+)/i,
-        /(?:leave|exit)\s+(?:the\s+)?(.+?)(?:\s+and\s+(?:go|head)\s+(?:to\s+)?(.+))?/i
-    ];
-
-    let basicMovementMatch = false;
-    let destination = null;
-
-    for (const pattern of basicMovementPatterns) {
-        const match = command.match(pattern);
-        if (match) {
-            basicMovementMatch = true;
-            destination = match[2] || match[1]; // Use second capture group if available, otherwise first
-            break;
-        }
-    }
-
-    if (basicMovementMatch && destination) {
-        // Clean up the destination name
-        destination = destination.replace(/^(the|a|an)\s+/i, '').trim();
-        destination = destination.replace(/\s+(and|then|,).*$/i, '').trim();
-
-        // Capitalize properly
-        destination = destination.replace(/\b\w/g, letter => letter.toUpperCase());
-
-        if (destination && !['Alone', 'Him', 'Her', 'Them', 'Person', 'Npc'].includes(destination)) {
-            const oldLocation = player.currentLocation;
-            player.currentLocation = destination;
-
-            // Generate AI response for the movement
-            const movementPrompt = `${player.name} travels from ${oldLocation} to ${destination}. Describe the journey and arrival in 1-2 sentences.`;
-            const movementResponse = await callGeminiAPI(movementPrompt, 0.7, 300, true);
-
-            if (movementResponse) {
-                displayMessage(movementResponse);
-                addToConversationHistory('assistant', movementResponse);
-            }
-
-            displayMessage(`You leave ${oldLocation} and arrive at ${destination}.`, 'success');
-            LocationManager.saveLocationToHistory(destination, player.name);
-            updatePlayerStatsDisplay(); // Ensure UI is updated
-
-            if (Math.random() < 0.3) checkRandomEncounter();
-            saveConversationHistory();
-            return;
-        }
-    }
-
-    // For non-movement commands, use the existing system
-    const actionAnalysis = GameActions.analyzeCommand(command, player);
-    actionAnalysis.originalCommand = command; // Ensure original command is preserved
-
-    // Get character abilities for context
-    let abilitiesText = 'none';
-    if (player.classProgression && player.classProgression.classAbilities) {
-        abilitiesText = player.classProgression.classAbilities.join(', ');
-    }
-
-    let spellsText = 'none';
-    if (player.classProgression && player.classProgression.knownSpells && player.classProgression.knownCantrips) {
-        const allSpells = [...player.classProgression.knownSpells, ...player.classProgression.knownCantrips];
-        spellsText = allSpells.join(', ') || 'none';
-    }
-
-    // Create context-rich prompt for the AI
-    const questContext = getActiveQuestsContext();
-    const contextPrompt = `CURRENT GAME STATE:
-Player: ${player.name} (${player.class}, Level ${player.level})
-Current Location: ${player.currentLocation}
-HP: ${player.hp}/${player.maxHp}
-Gold: ${player.gold}
-Inventory: ${player.inventory.map(item => item.name).join(', ') || 'empty'}
-Equipped: ${Object.values(player.equipment).filter(item => item).map(item => item.name).join(', ') || 'nothing'}
-Class Abilities: ${abilitiesText}
-Known Spells/Cantrips: ${spellsText}
-
-${questContext}
-NPCs in location: ${getNPCsInLocation(player.currentLocation).map(npc => npc.name).join(', ') || 'none'}
-
-Player Command: "${command}"
-Action Analysis: ${JSON.stringify(actionAnalysis)}
-
-As the game master, interpret this command and action analysis, and provide a detailed response describing what happens. Focus on the immediate narrative result. Consider quest progress if relevant. Keep response to 2-3 sentences.`;
-
-    const response = await callGeminiAPI(contextPrompt, 0.8, 800, true);
-    if (response) {
-        displayMessage(response);
-        addToConversationHistory('assistant', response);
-
-        // Process secondary effects based on AI response and action type
-        await processActionResults(actionAnalysis, response);
-
-        saveConversationHistory();
-    } else {
-        const fallbackResponse = "You attempt the action, but nothing notable happens.";
-        displayMessage(fallbackResponse);
-        addToConversationHistory('assistant', fallbackResponse);
-        saveConversationHistory();
-    }
-}
-
-async function handleStructuredMovement(command) {
-    // Extract destination from command
-    const movementKeywords = ['go to', 'travel to', 'move to', 'head to', 'walk to', 'run to', 'visit', 'enter'];
-    let destination = command.toLowerCase();
-
-    for (const keyword of movementKeywords) {
-        if (destination.includes(keyword)) {
-            destination = destination.split(keyword)[1].trim();
-            break;
-        }
-    }
-
-    if (!destination) {
-        displayMessage("Where would you like to go?", 'error');
-        return;
-    }
-
-    // Create structured prompt for AI with JSON schema
-    const movementPrompt = `You are a game master for a fantasy RPG. The player "${player.name}" (Level ${player.level} ${player.class}) wants to travel from "${player.currentLocation}" to "${destination}".
-
-CRITICAL: You MUST respond with ONLY valid JSON. No extra text before or after. Use this EXACT format:
-
-{
-    "canMove": true,
-    "newLocation": "Exact location name",
-    "travelTime": "time description",
-    "description": "2-3 sentence travel description",
-    "encounterChance": 0.2,
-    "encounterType": "none",
-    "goldCost": 0
-}
-
-VALIDATION RULES:
-- canMove: boolean (true/false)
-- newLocation: string (clean, proper location name)
-- travelTime: string (e.g., "30 minutes", "2 hours")
-- description: string (immersive travel narrative)
-- encounterChance: number 0.0-1.0 (0.1 safe, 0.3 wilderness, 0.5 dangerous)
-- encounterType: string ("none", "combat", "social", "discovery")
-- goldCost: number (0 for walking, 10-50 for transport)
-
-Context: Player has ${player.gold} gold, currently at "${player.currentLocation}"`;
-
-    try {
-        const response = await callGeminiAPI(movementPrompt, 0.2, 300, false);
-
-        if (!response) {
-            displayMessage("Unable to process movement request.", 'error');
-            return;
-        }
-
-        // Clean and parse JSON response
-        let movementData;
-        try {
-            // Remove any non-JSON content and extract JSON
-            const cleanResponse = response.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+    if (!gameWorld.npcs.hasjson\n?/g, '').replace(/```\n?/g, '').trim();
             const jsonMatch = cleanResponse.match(/\{[\s\S]*\}/);
-            
+
             if (jsonMatch) {
                 movementData = JSON.parse(jsonMatch[0]);
             } else {
@@ -1018,7 +731,7 @@ Context: Player has ${player.gold} gold, currently at "${player.currentLocation}
                     'social': generateNPCEncounter,
                     'discovery': generateDiscoveryEncounter
                 };
-                
+
                 const encounterFunction = encounterTypes[movementData.encounterType] || generateRandomEncounter;
                 await encounterFunction();
             }, 1500);
@@ -1178,7 +891,7 @@ async function generateCombatEncounter() {
         <p>Attack: ${scaledEnemy.attack}</p>
         <p>Defense: ${scaledEnemy.defense}</p>
     `;
-    
+
     combatInterface.classList.remove('hidden');
     displayMessage(`You face ${scaledEnemy.name}! Prepare for battle!`, 'combat');
 }
@@ -1227,7 +940,7 @@ async function generateTreasureEncounter() {
             const smallGold = Math.floor(Math.random() * (player.level * 15)) + 10;
             updateGold(smallGold, 'treasure cache');
             displayMessage(`💰 You found a small treasure cache with ${smallGold} gold!`, 'success');
-            
+
             if (Math.random() > 0.5) {
                 displayMessage("🍺 You also found a healing potion!", 'success');
                 if (!player.inventory) player.inventory = [];
@@ -1451,7 +1164,7 @@ function checkQuestCompletion(playerAction) {
                            (keyword === 'deliver' && (actionText.includes('gave') || actionText.includes('handed'))) ||
                            (keyword === 'talk' && (actionText.includes('spoke') || actionText.includes('conversation')));
                 });
-                
+
                 if (matchedActions.length > 0) {
                     // If we have targetKeywords, check for those too
                     if (targetKeywords.length > 0) {
@@ -1541,7 +1254,7 @@ function checkQuestCompletion(playerAction) {
                     // Enhanced fallback system with better reward calculation
                     const fallbackGold = Math.max(50, player.level * 25 + Math.floor(Math.random() * 50));
                     const fallbackXP = Math.max(25, player.level * 15 + Math.floor(Math.random() * 25));
-                    
+
                     updateGold(fallbackGold, 'quest completion');
                     gainExperience(fallbackXP);
                     displayMessage(`💰 You earned ${fallbackGold} gold and ${fallbackXP} experience!`, 'success');
@@ -1561,9 +1274,9 @@ function checkQuestCompletion(playerAction) {
 // Helper function for experience gain
 function gainExperience(amount) {
     if (!amount || amount <= 0) return;
-    
+
     player.exp = (player.exp || 0) + amount;
-    
+
     // Check for level up
     while (player.exp >= player.expToNextLevel) {
         player.exp -= player.expToNextLevel;
@@ -1571,13 +1284,13 @@ function gainExperience(amount) {
         player.maxHp += 10; // Basic HP increase
         player.hp = player.maxHp; // Full heal on level up
         player.expToNextLevel = Math.floor(player.expToNextLevel * 1.5); // Increase XP needed
-        
+
         // Apply class progression if available
         if (window.CharacterManager && typeof CharacterManager.levelUp === 'function') {
             CharacterManager.levelUp(player);
         }
     }
-    
+
     updatePlayerStatsDisplay();
 }
 
@@ -1636,7 +1349,7 @@ async function enemyAttack() {
 
     // Enhanced damage calculation with armor consideration
     let baseDamage = 0;
-    
+
     // Parse enemy attack if it's a dice string
     if (typeof enemy.attack === 'string' && enemy.attack.includes('d')) {
         baseDamage = rollDice(enemy.attack);
@@ -1651,7 +1364,7 @@ async function enemyAttack() {
 
     // Calculate player defense from equipment and stats
     let playerDefense = 0;
-    
+
     // Check equipped armor
     if (player.equipment) {
         Object.values(player.equipment).forEach(item => {
@@ -1689,7 +1402,7 @@ async function enemyAttack() {
         // Enhanced death penalty system
         const goldLoss = Math.floor(player.gold * 0.15); // Lose 15% of gold
         const originalGold = player.gold;
-        
+
         updateGold(-goldLoss, 'death penalty');
         player.hp = Math.floor(player.maxHp * 0.25); // Recover to 25% HP
 
@@ -1699,7 +1412,7 @@ async function enemyAttack() {
         // Move player to a safe location
         const safeLocations = ['Pedena Town Square', 'Temple of Healing', 'Inn'];
         const randomSafeLocation = safeLocations[Math.floor(Math.random() * safeLocations.length)];
-        
+
         if (player.currentLocation !== randomSafeLocation) {
             player.currentLocation = randomSafeLocation;
             displayMessage(`🏠 You find yourself at ${randomSafeLocation}.`, 'info');
@@ -1710,7 +1423,7 @@ async function enemyAttack() {
         hideScreen('combat-interface');
         updatePlayerStatsDisplay();
         saveGame();
-        
+
         // Add death to conversation history
         addToConversationHistory('assistant', `${player.name} was defeated in combat and recovered at ${player.currentLocation}`);
     } else {
@@ -2184,7 +1897,7 @@ document.addEventListener('DOMContentLoaded', () => {
         displayMessage(`You rest and recover ${healAmount} HP. You feel refreshed.`, 'success');
         updatePlayerStatsDisplay();
         saveGame();
-        
+
         // Small chance of random event while resting
         if (Math.random() < 0.1) {
             setTimeout(() => {
@@ -2203,7 +1916,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const spells = player.classProgression.knownSpells;
             const randomSpell = spells[Math.floor(Math.random() * spells.length)];
             displayMessage(`You attempt to cast ${randomSpell}...`, 'info');
-            
+
             // Simple spell effect
             const effects = [
                 { msg: "The spell fizzles out harmlessly.", type: 'info' },
@@ -2220,7 +1933,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document.getElementById('pray-btn')?.addEventListener('click', () => {
         displayMessage("You offer a prayer to the gods...", 'info');
-        
+
         // Random blessing effect
         if (Math.random() < 0.3) {
             const blessings = [
@@ -2372,3 +2085,182 @@ document.addEventListener('DOMContentLoaded', () => {
         console.log('Inventory fixed and saved');
     };
 });
+
+// Add main event listeners function
+function addMainEventListeners() {
+    try {
+        // Start screen buttons
+        newGameBtn?.addEventListener('click', () => {
+            console.log('New game button clicked');
+            showScreen('character-creation-screen');
+        });
+
+        loadGameBtn?.addEventListener('click', () => {
+            console.log('Load game button clicked');
+            loadGame();
+        });
+
+        // Character creation
+        generateBackgroundBtn?.addEventListener('click', () => {
+            console.log('Generate background button clicked');
+            generateCharacterBackground();
+        });
+
+        createCharacterBtn?.addEventListener('click', () => {
+            console.log('Create character button clicked');
+            createCharacter();
+        });
+
+        // Game play buttons
+        executeCommandBtn?.addEventListener('click', () => {
+            const command = customCommandInput.value.trim();
+            if (command) {
+                console.log('Executing command:', command);
+                executeCustomCommand(command);
+                customCommandInput.value = '';
+            }
+        });
+
+        customCommandInput?.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                executeCommandBtn.click();
+            }
+        });
+
+        saveGameBtn?.addEventListener('click', () => {
+            console.log('Save game button clicked');
+            saveGame();
+        });
+
+        // Combat buttons
+        attackBtn?.addEventListener('click', () => {
+            console.log('Attack button clicked');
+            playerAttack();
+        });
+
+        fleeBtn?.addEventListener('click', () => {
+            console.log('Flee button clicked');
+            fleeCombat();
+        });
+
+        // Interface buttons
+        showInventoryBtn?.addEventListener('click', () => {
+            console.log('Show inventory button clicked');
+            displayInventory();
+        });
+
+        showShopBtn?.addEventListener('click', () => {
+            console.log('Show shop button clicked');
+            showShop();
+        });
+
+        showBackgroundBtn?.addEventListener('click', () => {
+            console.log('Show background button clicked');
+            displayCharacterBackground();
+        });
+
+        // Exit buttons
+        exitShopBtn?.addEventListener('click', () => {
+            shopInterface?.classList.add('hidden');
+        });
+
+        exitInventoryBtn?.addEventListener('click', () => {
+            inventoryInterface?.classList.add('hidden');
+        });
+
+        exitSkillsBtn?.addEventListener('click', () => {
+            skillsInterface?.classList.add('hidden');
+        });
+
+        exitBackgroundBtn?.addEventListener('click', () => {
+            backgroundInterface?.classList.add('hidden');
+        });
+
+        console.log('✓ Main event listeners added');
+    } catch (error) {
+        console.error('❌ Error adding main event listeners:', error);
+    }
+}
+
+// Add missing functions
+function createCharacter() {
+    const name = charNameInput.value.trim();
+    const charClass = charClassSelect.value;
+    const gender = Array.from(charGenderRadios).find(radio => radio.checked)?.value;
+
+    if (!name || !charClass || !gender) {
+        alert("Please fill in all character details.");
+        return;
+    }
+
+    // Initialize player
+    player.name = name;
+    player.class = charClass;
+    player.gender = gender;
+    player.background = charBackgroundTextarea.value || "A mysterious adventurer.";
+
+    // Apply class bonuses using CharacterManager if available
+    if (CharacterManager) {
+        CharacterManager.initializeCharacter(player, charClass);
+    } else {
+        // Fallback initialization
+        const classData = classes[charClass];
+        if (classData) {
+            player.maxHp += classData.hpBonus;
+            player.hp = player.maxHp;
+        }
+    }
+
+    // Start the game
+    showScreen('game-play-screen');
+    updatePlayerStatsDisplay();
+    displayMessage(`Welcome to Pedena, ${player.name}! Your adventure begins in ${player.currentLocation}.`);
+    saveGame();
+}
+
+function displayInventory() {
+    // Hide other interfaces
+    const interfaces = ['combat-interface', 'shop-interface', 'skills-interface', 'quest-interface', 'background-interface', 'progression-interface'];
+    interfaces.forEach(id => {
+        const element = document.getElementById(id);
+        if (element) element.classList.add('hidden');
+    });
+
+    inventoryInterface.classList.remove('hidden');
+
+    if (!player.inventory || player.inventory.length === 0) {
+        inventoryItemsDisplay.innerHTML = '<p class="text-center text-gray-600">Your inventory is empty.</p>';
+        return;
+    }
+
+    inventoryItemsDisplay.innerHTML = player.inventory.map(item => `
+        <div class="parchment-box p-3 mb-2">
+            <h6 class="font-bold">${item.name}</h6>
+            <p class="text-sm text-amber-700">${item.description || 'No description'}</p>
+            ${item.value ? `<p class="text-xs text-green-600">Value: ${item.value} gold</p>` : ''}
+        </div>
+    `).join('');
+}
+
+function displayCharacterBackground() {
+    // Hide other interfaces
+    const interfaces = ['combat-interface', 'shop-interface', 'inventory-interface', 'skills-interface', 'quest-interface', 'progression-interface'];
+    interfaces.forEach(id => {
+        const element = document.getElementById(id);
+        if (element) element.classList.add('hidden');
+    });
+
+    backgroundInterface.classList.remove('hidden');
+    backgroundContentDisplay.innerHTML = `
+        <div class="parchment-box p-4">
+            <h5 class="font-bold text-xl mb-3">${player.name}</h5>
+            <p class="mb-2"><strong>Class:</strong> ${player.class}</p>
+            <p class="mb-2"><strong>Gender:</strong> ${player.gender}</p>
+            <p class="mb-4"><strong>Level:</strong> ${player.level}</p>
+            <div class="mb-4">
+                <h6 class="font-bold mb-2">Background Story:</h6>
+                <p class="italic">${player.background || 'No background story available.'}</p>
+            </div>
+        </div>
+    `;
+}
