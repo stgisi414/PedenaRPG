@@ -3031,18 +3031,29 @@ function displayInventory() {
         </div>`;
 
     // Inventory Items section (section spans full width, internal grid is single column)
+    // Filter out equipped items from inventory display
+    const unequippedItems = player.inventory ? player.inventory.filter(item => {
+        // Check if this item is currently equipped in any slot
+        if (!player.equipment) return true;
+        return !Object.values(player.equipment).some(equippedItem => 
+            equippedItem && equippedItem.id === item.id
+        );
+    }) : [];
+
     inventoryHTML += `
         <div class="mb-6 w-full md:col-span-2"> 
             <h5 class="text-xl font-bold mb-3 text-yellow-600">Inventory Items</h5>
-            <p class="text-sm text-gray-600 mb-3">Items: ${player.inventory ? player.inventory.length : 0}</p>
+            <p class="text-sm text-gray-600 mb-3">Items: ${unequippedItems.length}</p>
             <div class="grid grid-cols-1 gap-4 w-full"> 
     `;
 
-    if (!player.inventory || player.inventory.length === 0) {
+    if (unequippedItems.length === 0) {
         inventoryHTML += '<p class="text-center text-gray-600">Your inventory is empty.</p>';
     } else {
-        player.inventory.forEach((item, index) => {
-            inventoryHTML += typeof buildInventoryItemDisplay === 'function' ? buildInventoryItemDisplay(item, index) : ``;
+        unequippedItems.forEach((item, index) => {
+            // Find the original index in the full inventory for the action buttons
+            const originalIndex = player.inventory.findIndex(invItem => invItem.id === item.id);
+            inventoryHTML += typeof buildInventoryItemDisplay === 'function' ? buildInventoryItemDisplay(item, originalIndex) : ``;
         });
     }
     inventoryHTML += `
