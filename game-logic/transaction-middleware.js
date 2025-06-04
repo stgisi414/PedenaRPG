@@ -15,7 +15,7 @@ Location: ${player.currentLocation}
 Respond with ONLY valid JSON in this exact format:
 {
     "hasTransaction": true/false,
-    "transactionType": "purchase/gift/loot/trade/reward",
+    "transactionType": "purchase/sale/gift/loot/trade/reward",
     "items": [
         {
             "name": "item name",
@@ -31,6 +31,11 @@ Respond with ONLY valid JSON in this exact format:
     "goldChange": 0,
     "vendor": "vendor name or null"
 }
+
+IMPORTANT NOTES:
+- For PURCHASES: goldChange should be negative (player loses gold), items are added to inventory
+- For SALES: goldChange should be positive (player gains gold), items are removed from inventory
+- For sales, the item names should match what the player actually has in inventory
 
 If no transaction is detected, return {"hasTransaction": false}
 `;
@@ -60,22 +65,37 @@ If no transaction is detected, return {"hasTransaction": false}
         
         // Process gold change
         if (transactionData.goldChange !== 0) {
-            window.updateGold(transactionData.goldChange, 
-                transactionData.transactionType === 'purchase' ? 'item purchase' : 
-                transactionData.transactionType === 'reward' ? 'quest reward' : 'transaction');
+            const reason = transactionData.transactionType === 'purchase' ? 'item purchase' : 
+                         transactionData.transactionType === 'sale' ? 'item sale' :
+                         transactionData.transactionType === 'reward' ? 'quest reward' : 'transaction';
+            window.updateGold(transactionData.goldChange, reason);
         }
 
-        // Process items
+        // Process items based on transaction type
         if (transactionData.items && transactionData.items.length > 0) {
-            for (const itemData of transactionData.items) {
-                const generatedItem = this.generateStructuredItem(itemData, player);
-                if (generatedItem) {
-                    window.ItemManager.addItemToInventory(player, generatedItem);
-                    results.push(generatedItem);
-                    
-                    window.displayMessage(`Added to inventory: ${generatedItem.name}`, 'success');
-                    if (generatedItem.description) {
-                        window.displayMessage(generatedItem.description, 'info');
+            if (transactionData.transactionType === 'sale') {
+                // For sales, remove items from inventory
+                for (const itemData of transactionData.items) {
+                    const removed = this.removeItemFromInventory(player, itemData.name);
+                    if (removed) {
+                        results.push(removed);
+                        window.displayMessage(`Sold: ${removed.name}`, 'success');
+                    } else {
+                        window.displayMessage(`Could not find ${itemData.name} to sell`, 'error');
+                    }
+                }
+            } else {
+                // For purchases/rewards/loot, add items to inventory
+                for (const itemData of transactionData.items) {
+                    const generatedItem = this.generateStructuredItem(itemData, player);
+                    if (generatedItem) {
+                        window.ItemManager.addItemToInventory(player, generatedItem);
+                        results.push(generatedItem);
+                        
+                        window.displayMessage(`Added to inventory: ${generatedItem.name}`, 'success');
+                        if (generatedItem.description) {
+                            window.displayMessage(generatedItem.description, 'info');
+                        }
                     }
                 }
             }
@@ -161,6 +181,28 @@ If no transaction is detected, return {"hasTransaction": false}
                 }
                 break;
         }
+    }
+
+    static removeItemFromInventory(player, itemName) {
+        if (!player.inventory || player.inventory.length === 0) return null;
+        
+        // Find item by name (case-insensitive)
+        const itemIndex = player.inventory.findIndex(item => 
+            item.name.toLowerCase().includes(itemName.toLowerCase()) ||
+            itemName.toLowerCase().includes(item.name.toLowerCase())
+        );
+        
+        if (itemIndex === -1) return null;
+        
+        // Remove and return the item
+        const removedItem = player.inventory.splice(itemIndex, 1)[0];
+        
+        // Save inventory after removal
+        if (window.ItemManager && window.ItemManager.saveInventoryToStorage) {
+            window.ItemManager.saveInventoryToStorage(player);
+        }
+        
+        return removedItem;
     }
 }
 
