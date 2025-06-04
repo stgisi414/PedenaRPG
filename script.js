@@ -2184,7 +2184,7 @@ function showShop() {
             
             <div class="flex justify-between items-center mt-3">
                 <span class="font-bold ${affordabilityClass}">${item.value} gold</span>
-                <button onclick="buyShopItem(${index})" class="${buttonClass} text-sm py-1 px-3" ${buttonDisabled}>
+                <button class="shop-action-btn ${buttonClass} text-sm py-1 px-3" data-action="buy" data-index="${index}" ${buttonDisabled}>
                     ${canAfford ? 'Buy' : 'Too Expensive'}
                 </button>
             </div>
@@ -2667,32 +2667,38 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
     // <<< --- ADD INVENTORY EVENT LISTENER HERE --- >>>
-    if (inventoryItemsDisplay) { // Ensure the element exists (it's a global const)
+    if (inventoryItemsDisplay) {
         inventoryItemsDisplay.addEventListener('click', function(event) {
-            const button = event.target.closest('.inventory-action-btn'); // Get the button if a child element was clicked
+            const button = event.target.closest('.inventory-action-btn'); // Target buttons with this class
 
             if (button) {
                 const action = button.dataset.action;
-                const itemIndexStr = button.dataset.index;
-                const slot = button.dataset.slot; // For unequip
+                const itemIndexStr = button.dataset.index; // For most inventory actions
+                const slot = button.dataset.slot;         // Specifically for unequip
 
-                // Ensure itemIndex is a valid number when used
-                const itemIndex = itemIndexStr !== undefined ? parseInt(itemIndexStr) : null;
+                console.log(`Inventory action: ${action}, Index: ${itemIndexStr}, Slot: ${slot}`);
 
-                console.log(`Inventory action: ${action}, Index: ${itemIndex}, Slot: ${slot}`); // For debugging
+                // Ensure itemIndex is a valid number when needed
+                const itemIndex = itemIndexStr !== undefined ? parseInt(itemIndexStr, 10) : null;
 
-                // Safety checks
                 if (action !== 'unequip' && itemIndex === null) {
-                    console.error("Action requires an item index, but it's missing.");
+                    console.error("Action requires an item index, but it's missing or invalid.");
                     displayMessage("Error: Item index not found for action.", "error");
                     return;
                 }
 
-                if (action !== 'unequip' && (!player.inventory || itemIndex < 0 || itemIndex >= player.inventory.length)) {
-                    console.error(`Invalid item index: ${itemIndex} for inventory of length ${player.inventory?.length || 0}`);
-                    displayMessage("Error: Invalid item selected or inventory not ready.", "error");
-                    return;
+                // Validate index for actions that need it
+                if (action !== 'unequip' && (player.inventory && (itemIndex < 0 || itemIndex >= player.inventory.length))) {
+                    if (!player.inventory || player.inventory.length === 0 && action !== 'use') {
+                        // Allow use action even if inventory is empty IF it doesn't rely on an index (e.g. a generic 'use' button not tied to specific item)
+                        // However, based on your structure, 'use' will likely always have an index.
+                    } else {
+                        console.error(`Invalid item index: ${itemIndex} for inventory of length ${player.inventory?.length || 0}`);
+                        displayMessage("Error: Invalid item selected or inventory not ready.", "error");
+                        return;
+                    }
                 }
+
 
                 switch (action) {
                     case 'use':
@@ -2707,17 +2713,59 @@ document.addEventListener('DOMContentLoaded', () => {
                     case 'drop':
                         if (itemIndex !== null) dropItem(itemIndex);
                         break;
-                    case 'unequip':
-                        if (slot) unequipItem(slot);
+                    case 'unequip': // 'unequip' uses 'data-slot'
+                        if (slot) {
+                            unequipItem(slot);
+                        } else {
+                            console.error("Unequip action requires a slot, but it's missing.");
+                            displayMessage("Error: Slot not found for unequip action.", "error");
+                        }
                         break;
                     default:
                         console.warn('Unknown inventory action:', action);
                 }
             }
         });
-        console.log("✓ Inventory action event listener added to inventoryItemsDisplay.");
+        console.log("✓ Event delegation setup for inventory items.");
     } else {
-        console.error("inventoryItemsDisplay element not found for event listener setup.");
+        console.error("inventoryItemsDisplay element not found.");
+    }
+
+    if (shopItemsDisplay) {
+        shopItemsDisplay.addEventListener('click', function(event) {
+            const button = event.target.closest('.shop-action-btn'); // Target buttons with this class
+
+            if (button) {
+                const action = button.dataset.action;
+                const itemIndexStr = button.dataset.index;
+
+                console.log(`Shop action: ${action}, Index: ${itemIndexStr}`);
+
+                const itemIndex = itemIndexStr !== undefined ? parseInt(itemIndexStr, 10) : null;
+
+                if (itemIndex === null) {
+                    console.error("Shop action requires an item index, but it's missing or invalid.");
+                    displayMessage("Error: Item index not found for shop action.", "error");
+                    return;
+                }
+
+                // Validate index for shop actions
+                if (!window.currentShopInventory || itemIndex < 0 || itemIndex >= window.currentShopInventory.length) {
+                    console.error(`Invalid item index: ${itemIndex} for shop inventory of length ${window.currentShopInventory?.length || 0}`);
+                    displayMessage("Error: Invalid item selected or shop inventory not ready.", "error");
+                    return;
+                }
+
+                if (action === 'buy') {
+                    buyShopItem(itemIndex); // buyShopItem should use window.currentShopInventory[itemIndex]
+                } else {
+                    console.warn('Unknown shop action:', action);
+                }
+            }
+        });
+        console.log("✓ Event delegation setup for shop items.");
+    } else {
+        console.error("shopItemsDisplay element not found.");
     }
     // <<< --- END OF INVENTORY EVENT LISTENER --- >>>
 
@@ -2965,8 +3013,7 @@ function buildEquipmentDisplay() {
                         <h6 class="font-bold text-sm">${slotData.name}</h6>
                         <p class="text-xs text-green-700">${item.name}</p>
                     </div>
-                    <button class="btn-parchment inventory-action-btn text-xs py-1 px-2 flex-shrink-0" style="color: #D2B48C !important;"  data-action="unequip" data-index="${slotData.slot}">
-           
+                    <button class="btn-parchment inventory-action-btn text-xs py-1 px-2 flex-shrink-0" data-action="unequip" data-slot="${slotData.slot}" style="color: #8B4513 !important;">
                         Unequip
                     </button>
                 </div>

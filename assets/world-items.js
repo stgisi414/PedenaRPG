@@ -389,6 +389,20 @@ export const itemTemplates = {
             { name: 'Executioner\'s Mitts', armor: 3, rarity: 'EPIC', effects: ['critical_damage_boost', 'bleed_on_crit']},
             { name: 'Fists of the Titan', armor: 4, rarity: 'LEGENDARY', effects: ['strength_3', 'unarmed_damage_large', 'earthquake_punch']}
         ],
+        sleeves: [
+            { name: 'Cloth Sleeves', armor: 0, rarity: 'COMMON', effects: [] },
+            { name: 'Leather Armguards', armor: 1, rarity: 'COMMON', effects: [] },
+            { name: 'Iron Vambraces', armor: 2, rarity: 'UNCOMMON', effects: ['dexterity_tiny'] },
+            { name: 'Sleeves of the Shadow Dancer', armor: 2, rarity: 'RARE', effects: ['stealth_1', 'evasion_1'] },
+            { name: 'Bracers of the Storm', armor: 3, rarity: 'EPIC', effects: ['lightning_resistance_medium', 'shockwave_punch'] }  
+        ],
+        leggings: [
+            { name: 'Cloth Leggings', armor: 1, rarity: 'COMMON', effects: [] },
+            { name: 'Leather Pants', armor: 2, rarity: 'COMMON', effects: [] },
+            { name: 'Steel Greaves', armor: 3, rarity: 'UNCOMMON', effects: ['movement_speed_penalty_tiny', 'protection_1'] },
+            { name: 'Leggings of the Swift', armor: 2, rarity: 'RARE', effects: ['swift', 'stamina_regen_small'] },
+            { name: 'Shadow Stalker\'s Leggings', armor: 3, rarity: 'EPIC', effects: ['silent_movement', 'stealth_1'] }
+        ],
         boots: [
             { name: 'Worn Sandals', armor: 0, rarity: 'COMMON', effects: [] },
             { name: 'Leather Boots', armor: 1, rarity: 'COMMON', effects: [] },
