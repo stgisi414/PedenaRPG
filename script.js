@@ -1,113 +1,11 @@
-// Note: ES6 imports removed to fix global function access issue
-// Basic placeholder objects for compatibility
-const gameData = {};
-const GameDataManager = {
-    generateLocationContext: (location) => ({ location }),
-    getRandomFrom: (array) => array[Math.floor(Math.random() * array.length)]
-};
-const QuestCharacterGenerator = {
-    generateRandomCharacter: () => "Adventurer " + Math.floor(Math.random() * 1000),
-    generateMerchant: () => "Merchant " + Math.floor(Math.random() * 1000),
-    generateInnkeeper: () => "Innkeeper " + Math.floor(Math.random() * 1000)
-};
-const CharacterManager = {
-    initializeCharacter: (player, charClass) => {
-        player.classProgression = { class: charClass, level: player.level };
-    },
-    levelUp: (player) => console.log("Level up!"),
-    gainExperience: (player, xp) => gainExperience(xp),
-    saveProgression: () => { },
-    loadProgression: () => { },
-    getCharacterProgression: (player) => ({
-        class: player.class,
-        level: player.level,
-        hitDie: 'd8',
-        primaryStats: ['strength'],
-        features: [],
-        abilities: [],
-        feats: [],
-        spells: { known: [] },
-        cantrips: []
-    })
-};
-const GameActions = {};
-const LocationManager = {
-    moveToLocation: async (player, destination) => ({
-        success: true,
-        newLocation: destination,
-        description: `You travel to ${destination}.`,
-        hasEncounter: false
-    }),
-    saveLocationToHistory: () => { }
-};
-const classProgression = {};
-const spellDefinitions = {
-    "Magic Missile": { level: 1, school: "Evocation", damage: "1d4+1", description: "Darts of magical force strike unerringly." },
-    "Cure Wounds": { level: 1, school: "Evocation", description: "Heal wounds with divine magic." },
-    "Light": { level: 0, school: "Evocation", description: "Create a bright light." }
-};
-const abilityDefinitions = {};
-const ItemGenerator = {
-    generateItem: (context) => ({
-        id: Date.now(),
-        name: "Basic Item",
-        type: "magical",
-        rarity: "COMMON",
-        description: "A basic item found during your adventures.",
-        value: Math.floor(Math.random() * 50) + 10
-    }),
-    generateLanguageScroll: (rarity, lang) => ({
-        name: `${lang} Language Scroll`,
-        type: "scroll",
-        rarity: rarity,
-        description: `A scroll for learning ${lang} language.`,
-        value: 100
-    }),
-    generateLanguageBook: (rarity, lang) => ({
-        name: `${lang} Language Book`,
-        type: "book",
-        rarity: rarity,
-        description: `A book for learning ${lang} language.`,
-        value: 150
-    })
-};
-const ItemManager = {
-    addToInventory: (player, item) => {
-        if (!player.inventory) player.inventory = [];
-        player.inventory.push(item);
-    },
-    saveInventoryToStorage: () => { },
-    loadInventoryFromStorage: () => { },
-    addItemToInventory: (player, item) => {
-        if (!player.inventory) player.inventory = [];
-        player.inventory.push(item);
-    },
-    applyItemEffects: () => ({ success: true, message: "Item effect applied" })
-};
-const itemCategories = {
-    WEAPON: 'weapon',
-    ARMOR: 'armor',
-    CONSUMABLE: 'consumable',
-    MAGICAL: 'magical',
-    SCROLL: 'scroll',
-    BOOK: 'book',
-    JEWELRY: 'jewelry',
-    ARTIFACT: 'artifact',
-    INGREDIENT: 'ingredient',
-    TRINKET: 'trinket'
-};
-const itemRarity = {
-    COMMON: 'COMMON',
-    UNCOMMON: 'UNCOMMON',
-    RARE: 'RARE',
-    EPIC: 'EPIC',
-    LEGENDARY: 'LEGENDARY'
-};
-const statusEffects = {};
-const TransactionMiddleware = {
-    detectTransaction: () => Promise.resolve({ hasTransaction: false }),
-    processTransaction: () => Promise.resolve()
-};
+// Import game data and assets
+import { gameData, GameDataManager } from './assets/game-data-loader.js';
+import { QuestCharacterGenerator } from './assets/quest-character-names.js';
+import { CharacterManager } from './game-logic/character-manager.js';
+import { GameActions } from './game-logic/game-actions.js';
+import { LocationManager } from './game-logic/location-manager.js';
+import { classProgression, spellDefinitions, abilityDefinitions } from './game-logic/class-progression.js';
+import { ItemGenerator, ItemManager, itemCategories, itemRarity, statusEffects } from './assets/world-items.js';
 
 const GEMINI_API_KEY = 'AIzaSyDIFeql6HUpkZ8JJlr_kuN0WDFHUyOhijA'; // Replace with your actual Gemini API Key
 const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`;
@@ -1150,316 +1048,6 @@ async function generateTreasureEncounter() {
     saveGame();
 }
 
-// Intelligent spell selection based on context
-async function analyzeContextAndSelectSpell(availableSpells) {
-    try {
-        // Get current context
-        const contextInfo = {
-            inCombat: !!player.currentEnemy,
-            currentLocation: player.currentLocation,
-            playerHealth: `${player.hp}/${player.maxHp}`,
-            recentMessages: conversationHistory.messages.slice(-5).map(msg => msg.content).join(' '),
-            explorationContext: getExplorationContextString(),
-            enemyInfo: player.currentEnemy ? `Fighting ${player.currentEnemy.name} (HP: ${player.currentEnemy.hp})` : 'Not in combat'
-        };
-
-        // Create spell categories for better selection
-        const spellCategories = categorizeSpells(availableSpells);
-
-        // Build context-aware prompt for AI
-        const spellSelectionPrompt = `
-${player.name} (Level ${player.level} ${player.classProgression.class}) wants to cast a spell.
-
-CURRENT CONTEXT:
-- Location: ${contextInfo.currentLocation}
-- Combat Status: ${contextInfo.enemyInfo}
-- Health: ${contextInfo.playerHealth}
-- Recent Events: ${contextInfo.recentMessages}
-${contextInfo.explorationContext}
-
-AVAILABLE SPELLS BY CATEGORY:
-${formatSpellsForAI(spellCategories)}
-
-Based on the current situation, choose the MOST APPROPRIATE spell from the available list. Consider:
-1. If in combat, prioritize offensive spells or defensive ones if health is low
-2. If exploring, choose utility or divination spells
-3. If interacting socially, choose charm or illusion spells
-4. Match spell level to threat level
-
-IMPORTANT: Respond with ONLY the spell name from the available list. Do not add quotes or explanation.
-`;
-
-        const aiResponse = await callGeminiAPI(spellSelectionPrompt, 0.3, 50, false);
-
-        if (aiResponse) {
-            // Clean the response and validate it's in our spell list
-            const cleanedSpell = aiResponse.trim().replace(/['"]/g, '');
-            const matchedSpell = availableSpells.find(spell =>
-                spell.toLowerCase() === cleanedSpell.toLowerCase() ||
-                spell.toLowerCase().includes(cleanedSpell.toLowerCase()) ||
-                cleanedSpell.toLowerCase().includes(spell.toLowerCase())
-            );
-
-            if (matchedSpell) {
-                console.log(`AI selected spell: ${matchedSpell} from context analysis`);
-                return matchedSpell;
-            }
-        }
-
-        // Fallback: Context-based selection without AI
-        return selectSpellByContext(availableSpells, contextInfo);
-
-    } catch (error) {
-        console.error('Error in spell selection:', error);
-        return selectSpellByContext(availableSpells, {});
-    }
-}
-
-// Categorize spells by type for better selection
-function categorizeSpells(spells) {
-    const categories = {
-        combat: [],
-        healing: [],
-        utility: [],
-        movement: [],
-        social: [],
-        divination: []
-    };
-
-    spells.forEach(spellName => {
-        const spell = spellDefinitions[spellName];
-        if (!spell) return;
-
-        const school = spell.school?.toLowerCase() || '';
-        const description = spell.description?.toLowerCase() || '';
-        const damage = spell.damage;
-
-        if (damage || school === 'evocation' || description.includes('damage') || description.includes('attack')) {
-            categories.combat.push(spellName);
-        } else if (description.includes('heal') || description.includes('restore') || description.includes('hp')) {
-            categories.healing.push(spellName);
-        } else if (school === 'divination' || description.includes('detect') || description.includes('see') || description.includes('know')) {
-            categories.divination.push(spellName);
-        } else if (school === 'conjuration' && (description.includes('teleport') || description.includes('travel'))) {
-            categories.movement.push(spellName);
-        } else if (school === 'enchantment' || school === 'illusion' || description.includes('charm') || description.includes('persuade')) {
-            categories.social.push(spellName);
-        } else {
-            categories.utility.push(spellName);
-        }
-    });
-
-    return categories;
-}
-
-// Format spells for AI analysis
-function formatSpellsForAI(categories) {
-    let formatted = '';
-    Object.entries(categories).forEach(([category, spells]) => {
-        if (spells.length > 0) {
-            formatted += `${category.toUpperCase()}: ${spells.join(', ')}\n`;
-        }
-    });
-    return formatted;
-}
-
-// Context-based spell selection fallback
-function selectSpellByContext(availableSpells, contextInfo) {
-    const categories = categorizeSpells(availableSpells);
-
-    // Combat situation
-    if (contextInfo.inCombat) {
-        if (player.hp < player.maxHp * 0.3 && categories.healing.length > 0) {
-            return categories.healing[Math.floor(Math.random() * categories.healing.length)];
-        }
-        if (categories.combat.length > 0) {
-            return categories.combat[Math.floor(Math.random() * categories.combat.length)];
-        }
-    }
-
-    // Low health outside combat
-    if (player.hp < player.maxHp * 0.5 && categories.healing.length > 0) {
-        return categories.healing[Math.floor(Math.random() * categories.healing.length)];
-    }
-
-    // Exploration context
-    if (contextInfo.recentMessages?.includes('explore') || contextInfo.recentMessages?.includes('dark') || contextInfo.recentMessages?.includes('hidden')) {
-        if (categories.divination.length > 0) {
-            return categories.divination[Math.floor(Math.random() * categories.divination.length)];
-        }
-        if (categories.utility.length > 0) {
-            return categories.utility[Math.floor(Math.random() * categories.utility.length)];
-        }
-    }
-
-    // Social context
-    if (contextInfo.recentMessages?.includes('talk') || contextInfo.recentMessages?.includes('npc') || contextInfo.recentMessages?.includes('conversation')) {
-        if (categories.social.length > 0) {
-            return categories.social[Math.floor(Math.random() * categories.social.length)];
-        }
-    }
-
-    // Default: pick the most appropriate spell type for current situation
-    const priorityOrder = contextInfo.inCombat
-        ? ['combat', 'healing', 'utility', 'movement', 'divination', 'social']
-        : ['utility', 'divination', 'movement', 'healing', 'social', 'combat'];
-
-    for (const category of priorityOrder) {
-        if (categories[category].length > 0) {
-            return categories[category][Math.floor(Math.random() * categories[category].length)];
-        }
-    }
-
-    // Final fallback: random spell
-    return availableSpells[Math.floor(Math.random() * availableSpells.length)];
-}
-
-// Apply spell effects based on context and spell definition
-async function applySpellEffects(spellName, spellDef) {
-    // Handle damage spells in combat
-    if (spellDef.damage && player.currentEnemy) {
-        let damage = calculateSpellDamage(spellDef.damage);
-
-        // Apply damage to enemy
-        player.currentEnemy.hp = Math.max(0, player.currentEnemy.hp - damage);
-        displayMessage(`The spell deals ${damage} ${spellDef.school} damage to ${player.currentEnemy.name}!`, 'combat');
-
-        // Update enemy HP display
-        const enemyHpDisplay = document.getElementById('enemy-hp-display');
-        if (enemyHpDisplay) {
-            enemyHpDisplay.textContent = player.currentEnemy.hp;
-        }
-
-        // Check if enemy is defeated
-        if (player.currentEnemy.hp <= 0) {
-            displayMessage(`${player.currentEnemy.name} is defeated by your ${spellName}!`, 'success');
-
-            // Reward gold and XP
-            const goldReward = Math.floor(Math.random() * 40) + 20;
-            const xpReward = Math.floor(Math.random() * 25) + 15;
-
-            updateGold(goldReward, 'magical victory');
-            gainExperience(xpReward);
-
-            displayMessage(`You gained ${goldReward} gold and ${xpReward} XP!`, 'success');
-
-            player.currentEnemy = null;
-            // Remove inline combat interface
-            const inlineCombat = document.getElementById('inline-combat-interface');
-            if (inlineCombat) {
-                inlineCombat.remove();
-            }
-            checkQuestCompletion(`defeated enemy with ${spellName}`);
-            saveGame();
-        } else {
-            // Enemy retaliates
-            setTimeout(() => enemyAttack(), 1500);
-        }
-    }
-    // Handle healing spells
-    else if (spellDef.description?.toLowerCase().includes('heal') || spellDef.description?.toLowerCase().includes('restore')) {
-        const healAmount = Math.floor(Math.random() * 20) + 15; // 15-35 healing
-        const oldHp = player.hp;
-        player.hp = Math.min(player.maxHp, player.hp + healAmount);
-        const actualHeal = player.hp - oldHp;
-
-        if (actualHeal > 0) {
-            displayMessage(`${spellName} restores ${actualHeal} HP! You feel revitalized.`, 'success');
-            updatePlayerStatsDisplay();
-        } else {
-            displayMessage(`You are already at full health, but the magical energy washes over you comfortingly.`, 'info');
-        }
-    }
-    // Handle utility and exploration spells
-    else if (spellDef.school === 'Divination' || spellDef.description?.toLowerCase().includes('detect') || spellDef.description?.toLowerCase().includes('see')) {
-        displayMessage(`${spellName} reveals hidden information about your surroundings...`, 'exploration');
-
-        // Generate contextual information based on location
-        setTimeout(async () => {
-            const revealPrompt = `${player.name} cast ${spellName} (${spellDef.description}) in ${player.currentLocation}.
-            What might this divination/detection spell reveal? Provide 1-2 sentences of relevant information about the area, hidden objects, magical auras, or secrets.`;
-
-            const revelation = await callGeminiAPI(revealPrompt, 0.7, 150, true);
-            if (revelation) {
-                displayMessage(revelation, 'exploration');
-                addToConversationHistory('assistant', revelation);
-            } else {
-                displayMessage("You sense the presence of magical energies, but their nature remains unclear.", 'info');
-            }
-        }, 1000);
-    }
-    // Handle social/illusion spells
-    else if (spellDef.school === 'Enchantment' || spellDef.school === 'Illusion') {
-        displayMessage(`${spellName} weaves subtle magic around you, affecting the minds and perceptions of those nearby.`, 'success');
-
-        // Check if there are NPCs in the area
-        const existingNPCs = getNPCsInLocation(player.currentLocation);
-        if (existingNPCs.length > 0) {
-            const npc = existingNPCs[Math.floor(Math.random() * existingNPCs.length)];
-            setTimeout(() => {
-                displayMessage(`${npc.name} seems affected by the magical influence, their demeanor shifting slightly.`, 'info');
-            }, 1000);
-        }
-    }
-    // Handle movement spells
-    else if (spellDef.description?.toLowerCase().includes('teleport') || spellDef.description?.toLowerCase().includes('travel')) {
-        displayMessage(`${spellName} creates a shimmering portal of magical energy!`, 'success');
-
-        setTimeout(() => {
-            displayMessage("The magical transportation effect ripples through space, but you maintain control over your destination.", 'info');
-            displayMessage("You feel the magical energy settling, ready to be used for future travels.", 'info');
-        }, 1000);
-    }
-    // Default spell effects
-    else {
-        const contextualEffects = [
-            `${spellName} manifests its power, creating ${spellDef.school?.toLowerCase() || 'magical'} energy around you.`,
-            `The spell weaves its magic through the area, leaving traces of ${spellDef.school?.toLowerCase() || 'arcane'} power.`,
-            `${spellName} takes effect, demonstrating your growing mastery of the magical arts.`
-        ];
-
-        const effect = contextualEffects[Math.floor(Math.random() * contextualEffects.length)];
-        displayMessage(effect, 'success');
-    }
-
-    // Save progress
-    saveGame();
-}
-
-// Calculate spell damage more accurately
-function calculateSpellDamage(damageString) {
-    if (!damageString) return 0;
-
-    let damage = 0;
-
-    if (typeof damageString === 'string') {
-        if (damageString.includes('d')) {
-            // Standard dice notation like "3d8"
-            const cleanDamage = damageString.split(' ')[0]; // Remove damage type
-            damage = rollDice(cleanDamage);
-        } else if (damageString.includes('+')) {
-            // Handle format like "1d4+1 force"
-            const damagePart = damageString.split(' ')[0]; // Get "1d4+1"
-            const parts = damagePart.split('+');
-            damage = rollDice(parts[0]) + parseInt(parts[1] || 0);
-        } else {
-            // Try to parse as a number
-            damage = parseInt(damageString) || 0;
-        }
-    } else if (typeof damageString === 'number') {
-        damage = damageString;
-    }
-
-    // Ensure damage is a valid number
-    if (isNaN(damage) || damage < 1) {
-        damage = Math.floor(Math.random() * 8) + 3; // 3-10 damage fallback
-    }
-
-    return damage;
-}
-
-
-
 async function generateEventEncounter() {
     displayMessage("🌟 Something interesting happens...", 'exploration');
 
@@ -1530,7 +1118,7 @@ You must respond with ONLY valid JSON in this exact format:
     "requirements": ["requirement1", "requirement2"] or []
 }
 
-Quest should be appropriate for level ${player.level}.
+Quest should be appropriate for level ${player.level}. 
 Reward scaling: Level 1-3: 50-150 gold, Level 4-6: 100-300 gold, Level 7+: 200-500 gold.
 Make it engaging and fantasy-appropriate.
 `;
@@ -2400,7 +1988,7 @@ function displayCharacterProgression() {
 
                 <div class="mt-3">
                     <div class="w-full bg-amber-200 rounded-full h-4 border border-amber-700">
-                        <div class="bg-gradient-to-r from-amber-500 to-amber-600 h-full rounded-full transition-all duration-300"
+                        <div class="bg-gradient-to-r from-amber-500 to-amber-600 h-full rounded-full transition-all duration-300" 
                              style="width: ${Math.min(100, (player.exp / player.expToNextLevel) * 100)}%">
                         </div>
                     </div>
@@ -2588,12 +2176,12 @@ function showShop() {
                 <span class="text-xs px-2 py-1 rounded ${getRarityColor(item.rarity)}">${item.rarity}</span>
             </div>
             <p class="text-sm text-amber-700 mb-2">${item.description}</p>
-
+            
             ${item.damage ? `<p class="text-xs text-red-600">Damage: ${item.damage}</p>` : ''}
             ${item.armor ? `<p class="text-xs text-blue-600">Armor: ${item.armor}</p>` : ''}
             ${item.effect ? `<p class="text-xs text-purple-600">Effect: ${getEffectDescription(item.effect)}</p>` : ''}
             ${item.effects && item.effects.length > 0 ? `<p class="text-xs text-purple-600">Effects: ${item.effects.slice(0, 2).join(', ').replace(/_/g, ' ')}</p>` : ''}
-
+            
             <div class="flex justify-between items-center mt-3">
                 <span class="font-bold ${affordabilityClass}">${item.value} gold</span>
                 <button onclick="buyShopItem(${index})" class="${buttonClass} text-sm py-1 px-3" ${buttonDisabled}>
@@ -2690,7 +2278,7 @@ async function startConversation() {
             QuestCharacterGenerator.generateInnkeeper()
         ];
 
-        const prompt = `Create an NPC encounter in ${player.currentLocation}.
+        const prompt = `Create an NPC encounter in ${player.currentLocation}. 
 
 IMPORTANT: The NPC is named "${npcName}" - use this EXACT name, do NOT use generic names like "Elara" or "the villager".
 
@@ -2732,8 +2320,8 @@ async function generateCharacterBackground() {
     generateBackgroundBtn.disabled = true;
     generateBackgroundBtn.textContent = "Generating...";
 
-    const prompt = `Create a background story for ${name}, a ${gender} ${charClass} in the fantasy realm of Pedena.
-    Make it 2-3 paragraphs, interesting, and appropriate for a fantasy RPG character.
+    const prompt = `Create a background story for ${name}, a ${gender} ${charClass} in the fantasy realm of Pedena. 
+    Make it 2-3 paragraphs, interesting, and appropriate for a fantasy RPG character. 
     Include their motivations and how they became an adventurer.`;
 
     try {
@@ -2821,22 +2409,6 @@ IMPORTANT: If the player is trying to interact with something from recent explor
             displayMessage(response, 'info');
             addToConversationHistory('assistant', response);
 
-            // Check for transactions in the AI response
-            try {
-                const transactionData = await TransactionMiddleware.detectTransaction(response, player, {
-                    command: command,
-                    location: player.currentLocation
-                });
-
-                if (transactionData && transactionData.hasTransaction) {
-                    console.log('Transaction detected:', transactionData);
-                    await TransactionMiddleware.processTransaction(transactionData, player);
-                }
-            } catch (transactionError) {
-                console.error('Transaction processing error:', transactionError);
-                // Continue with normal flow even if transaction processing fails
-            }
-
             // Handle item pickup if detected
             if (isPickupCommand) {
                 await handleItemPickup(command, response);
@@ -2915,165 +2487,8 @@ document.addEventListener('DOMContentLoaded', () => {
             showShop();
         }
 
-        // Item action functions (these were referenced but not defined)
-        function equipItem(itemIndex) {
-            if (!player.inventory || !player.inventory[itemIndex]) {
-                displayMessage("Item not found.", 'error');
-                return;
-            }
-
-            const item = player.inventory[itemIndex];
-
-            if (!item.slot) {
-                displayMessage("This item cannot be equipped.", 'error');
-                return;
-            }
-
-            // Check if slot is valid
-            if (!player.equipment.hasOwnProperty(item.slot)) {
-                displayMessage("Invalid equipment slot.", 'error');
-                return;
-            }
-
-            // If something is already equipped in that slot, unequip it first
-            if (player.equipment[item.slot]) {
-                const oldItem = player.equipment[item.slot];
-                player.inventory.push(oldItem);
-                displayMessage(`Unequipped ${oldItem.name}.`, 'info');
-            }
-
-            // Equip the new item
-            player.equipment[item.slot] = item;
-            player.inventory.splice(itemIndex, 1);
-
-            displayMessage(`Equipped ${item.name}.`, 'success');
-
-            // Apply item effects if any
-            if (item.effects && window.ItemManager) {
-                ItemManager.applyItemEffects(player, item);
-            }
-
-            updatePlayerStatsDisplay();
-            displayInventory(); // Refresh display
-            saveGame();
-        }
-
-        function unequipItem(slot) {
-            if (!player.equipment[slot]) {
-                displayMessage("No item equipped in that slot.", 'error');
-                return;
-            }
-
-            const item = player.equipment[slot];
-
-            // Ensure inventory array exists
-            if (!player.inventory) {
-                player.inventory = [];
-            }
-
-            // Move item back to inventory
-            player.inventory.push(item);
-            player.equipment[slot] = null;
-
-            displayMessage(`Unequipped ${item.name}.`, 'success');
-            updatePlayerStatsDisplay();
-            displayInventory(); // Refresh display
-            saveGame();
-        }
-
-        function useItem(itemIndex) {
-            if (!player.inventory || !player.inventory[itemIndex]) {
-                displayMessage("Item not found.", 'error');
-                return;
-            }
-
-            const item = player.inventory[itemIndex];
-
-            // Check if item is consumable
-            if (item.type !== 'consumable' && !item.effect) {
-                displayMessage("This item cannot be used.", 'error');
-                return;
-            }
-
-            // Apply item effects
-            let effectApplied = false;
-
-            if (item.effect) {
-                if (item.effect.type === 'heal') {
-                    const healAmount = item.effect.amount || 30;
-                    const oldHp = player.hp;
-                    player.hp = Math.min(player.maxHp, player.hp + healAmount);
-                    const actualHeal = player.hp - oldHp;
-                    displayMessage(`You used ${item.name} and recovered ${actualHeal} HP.`, 'success');
-                    effectApplied = true;
-                } else if (item.effect.type === 'mana') {
-                    displayMessage(`You used ${item.name} and feel your magical energy restored.`, 'success');
-                    effectApplied = true;
-                } else if (window.ItemManager && typeof ItemManager.applyItemEffects === 'function') {
-                    const result = ItemManager.applyItemEffects(player, item);
-                    if (result.success) {
-                        displayMessage(result.message, 'success');
-                        effectApplied = true;
-                    }
-                }
-            }
-
-            if (effectApplied) {
-                // Remove item from inventory after use
-                player.inventory.splice(itemIndex, 1);
-                updatePlayerStatsDisplay();
-                displayInventory(); // Refresh display
-                saveGame();
-            } else {
-                displayMessage("The item has no effect.", 'info');
-            }
-        }
-
-        function sellItem(itemIndex) {
-            if (!player.inventory || !player.inventory[itemIndex]) {
-                displayMessage("Item not found.", 'error');
-                return;
-            }
-
-            const item = player.inventory[itemIndex];
-            const sellValue = Math.floor((item.value || 10) * 0.6); // Sell for 60% of value
-
-            if (confirm(`Sell ${item.name} for ${sellValue} gold?`)) {
-                player.inventory.splice(itemIndex, 1);
-                updateGold(sellValue, 'item sale');
-                displayMessage(`Sold ${item.name} for ${sellValue} gold.`, 'success');
-                displayInventory(); // Refresh display
-                saveGame();
-            }
-        }
-
-        function dropItem(itemIndex) {
-            if (!player.inventory || !player.inventory[itemIndex]) {
-                displayMessage("Item not found.", 'error');
-                return;
-            }
-
-            const item = player.inventory[itemIndex];
-
-            if (confirm(`Drop ${item.name}? This item will be lost forever.`)) {
-                player.inventory.splice(itemIndex, 1);
-                displayMessage(`Dropped ${item.name}.`, 'info');
-                displayInventory(); // Refresh display
-                saveGame();
-            }
-        }
-
-        // Make functions globally accessible immediately after definition
+        // Make functions globally accessible
         window.buyShopItem = buyShopItem;
-        window.equipItem = equipItem;
-        window.unequipItem = unequipItem;
-        window.useItem = useItem;
-        window.sellItem = sellItem;
-        window.dropItem = dropItem;
-        window.playerAttack = playerAttack;
-        window.fleeCombat = fleeCombat;
-
-        // Functions will be assigned to window object after they are defined
 
 
         // Small chance of random event while resting
@@ -3089,49 +2504,112 @@ document.addEventListener('DOMContentLoaded', () => {
         explore();
     });
 
-    document.getElementById('cast-spell-btn')?.addEventListener('click', async () => {
+    document.getElementById('cast-spell-btn')?.addEventListener('click', () => {
         // Check if player has class progression and is a spellcaster
         if (player.classProgression && (player.classProgression.class === 'mage' || player.classProgression.class === 'ranger')) {
-            // Get available spells and cantrips
-            const knownSpells = player.classProgression.knownSpells || [];
-            const knownCantrips = player.classProgression.knownCantrips || [];
-            const availableSpells = player.classProgression.availableSpells || [];
+            // Debug logging
+            console.log('Player class progression:', player.classProgression);
+            console.log('Known spells:', player.classProgression.knownSpells);
+            console.log('Available spells:', player.classProgression.availableSpells);
 
-            const allSpells = [...new Set([...knownSpells, ...knownCantrips, ...availableSpells])];
+            // Check both known spells and available spells
+            const spellsToUse = player.classProgression.knownSpells && player.classProgression.knownSpells.length > 0
+                ? player.classProgression.knownSpells
+                : player.classProgression.availableSpells || [];
 
-            if (allSpells.length === 0) {
+            if (spellsToUse.length > 0) {
+                const randomSpell = spellsToUse[Math.floor(Math.random() * spellsToUse.length)];
+                displayMessage(`You attempt to cast ${randomSpell}...`, 'info');
+
+                // Get spell definition for better effect description
+                const spellDef = spellDefinitions[randomSpell];
+                if (spellDef) {
+                    displayMessage(`${spellDef.description}`, 'success');
+
+                    // Apply spell damage if it has any
+                    if (spellDef.damage && player.currentEnemy) {
+                        let damage = 0;
+
+                        // Handle different damage formats
+                        if (typeof spellDef.damage === 'string') {
+                            if (spellDef.damage.includes('d')) {
+                                // Standard dice notation like "3d8"
+                                damage = rollDice(spellDef.damage);
+                            } else if (spellDef.damage.includes('+')) {
+                                // Handle format like "1d4+1 force"
+                                const damagePart = spellDef.damage.split(' ')[0]; // Get "1d4+1"
+                                const parts = damagePart.split('+');
+                                damage = rollDice(parts[0]) + parseInt(parts[1] || 0);
+                            } else {
+                                // Try to parse as a number
+                                damage = parseInt(spellDef.damage) || 8;
+                            }
+                        } else if (typeof spellDef.damage === 'number') {
+                            damage = spellDef.damage;
+                        } else {
+                            damage = 8; // Default damage
+                        }
+
+                        // Ensure damage is a valid number
+                        if (isNaN(damage) || damage < 1) {
+                            damage = Math.floor(Math.random() * 8) + 3; // 3-10 damage
+                        }
+
+                        // Apply damage to enemy if in combat
+                        if (player.currentEnemy) {
+                            player.currentEnemy.hp = Math.max(0, player.currentEnemy.hp - damage);
+                            displayMessage(`The spell deals ${damage} ${spellDef.school} damage!`, 'combat');
+
+                            // Update enemy HP display
+                            const enemyHpDisplay = document.getElementById('enemy-hp-display');
+                            if (enemyHpDisplay) {
+                                enemyHpDisplay.textContent = player.currentEnemy.hp;
+                            }
+
+                            // Check if enemy is defeated
+                            if (player.currentEnemy.hp <= 0) {
+                                displayMessage(`${player.currentEnemy.name} is defeated by your spell!`, 'success');
+
+                                // Reward gold and XP
+                                const goldReward = Math.floor(Math.random() * 40) + 20;
+                                const xpReward = Math.floor(Math.random() * 25) + 15;
+
+                                updateGold(goldReward, 'magical victory');
+                                gainExperience(xpReward);
+
+                                displayMessage(`You gained ${goldReward} gold and ${xpReward} XP!`, 'success');
+
+                                player.currentEnemy = null;
+                                // Remove inline combat interface
+                                const inlineCombat = document.getElementById('inline-combat-interface');
+                                if (inlineCombat) {
+                                    inlineCombat.remove();
+                                }
+                                checkQuestCompletion(`defeated enemy with ${randomSpell}`);
+                                saveGame();
+                            } else {
+                                // Enemy retaliates
+                                setTimeout(() => enemyAttack(), 1500);
+                            }
+                        } else {
+                            displayMessage(`The spell deals ${damage} ${spellDef.school} damage!`, 'combat');
+                        }
+                    }
+                } else {
+                    // Fallback effects
+                    const effects = [
+                        { msg: "The spell fizzles out harmlessly.", type: 'info' },
+                        { msg: "You feel magical energy coursing through you!", type: 'success' },
+                        { msg: "Sparks of magic dance around your fingers.", type: 'success' },
+                        { msg: "You sense the magical weave responding to your call.", type: 'success' }
+                    ];
+                    const effect = effects[Math.floor(Math.random() * effects.length)];
+                    setTimeout(() => displayMessage(effect.msg, effect.type), 500);
+                }
+            } else {
                 displayMessage(`You don't know any spells yet. Class: ${player.classProgression.class}, Level: ${player.level}`, 'info');
                 displayMessage("If this seems wrong, try using the Reset Progression button.", 'info');
-                return;
             }
-
-            // Analyze current context to select appropriate spell
-            const selectedSpell = await analyzeContextAndSelectSpell(allSpells);
-
-            displayMessage(`You focus your magical energy and cast ${selectedSpell}...`, 'info');
-
-            // Get spell definition for better effect description
-            const spellDef = spellDefinitions[selectedSpell];
-            if (spellDef) {
-                displayMessage(`${spellDef.description}`, 'success');
-
-                // Apply spell effects based on context
-                await applySpellEffects(selectedSpell, spellDef);
-            } else {
-                // Fallback effects
-                const effects = [
-                    { msg: "The spell manifests with a shimmer of magical energy.", type: 'success' },
-                    { msg: "You feel the magical weave responding to your will.", type: 'success' },
-                    { msg: "Arcane power flows through you as the spell takes effect.", type: 'success' }
-                ];
-                const effect = effects[Math.floor(Math.random() * effects.length)];
-                setTimeout(() => displayMessage(effect.msg, effect.type), 500);
-            }
-
-            // Add to conversation history for future context
-            addToConversationHistory('user', `cast ${selectedSpell}`);
-            saveConversationHistory();
-
         } else {
             displayMessage("You are not a spellcaster.", 'info');
         }
@@ -3226,7 +2704,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         ${quest.objective ? `<p class="text-sm text-amber-700"><strong>Objective:</strong> ${quest.objective}</p>` : ''}
                         ${quest.rewards ? `
                             <p class="text-sm text-green-700">
-                                <strong>Rewards:</strong>
+                                <strong>Rewards:</strong> 
                                 ${quest.rewards.gold ? `${quest.rewards.gold} gold` : ''}
                                 ${quest.rewards.experience ? `, ${quest.rewards.experience} XP` : ''}
                                 ${quest.rewards.items && quest.rewards.items.length > 0 ? `, ${quest.rewards.items.join(', ')}` : ''}
@@ -3259,26 +2737,6 @@ document.addEventListener('DOMContentLoaded', () => {
     window.learnNewSpell = learnNewSpell;
     window.LocationManager = LocationManager;
     window.GameActions = GameActions;
-    window.TransactionMiddleware = TransactionMiddleware;
-    window.callGeminiAPI = callGeminiAPI;
-    window.updateGold = updateGold;
-    window.displayMessage = displayMessage;
-    window.saveGame = saveGame;
-    window.itemCategories = itemCategories;
-    window.itemRarity = itemRarity;
-    window.ItemGenerator = ItemGenerator;
-    window.ItemManager = ItemManager;
-
-    // Also explicitly make the item interaction functions global here
-    window.buyShopItem = buyShopItem;
-    window.equipItem = equipItem;
-    window.unequipItem = unequipItem;
-    window.useItem = useItem;
-    window.sellItem = sellItem;
-    window.dropItem = dropItem;
-    window.playerAttack = playerAttack;
-    window.fleeCombat = fleeCombat;
-
 
     // Debug functions for local storage
     window.debugInventory = function() {
@@ -3660,7 +3118,7 @@ function buildEquipmentDisplay() {
                         <h6 class="font-bold text-sm">${slotData.name}</h6>
                         <p class="text-xs text-green-700">${item.name}</p>
                     </div>
-                    <button onclick="unequipItem('${slotData.slot}')" class="btn-parchment text-xs py-1 px-2 flex-shrink-0">
+                    <button onclick="unequipItem('${slotData.slot}')" class="btn-parchment text-xs py-1 px-2 flex-shrink-0" style="color: #D2B48C !important;">
                         Unequip
                     </button>
                 </div>
@@ -3692,17 +3150,17 @@ function buildInventoryItemDisplay(item, index) {
                 <span class="text-xs px-2 py-1 rounded ${getRarityColor(item.rarity || 'COMMON')}">${item.rarity || 'COMMON'}</span>
             </div>
             <p class="text-sm text-amber-700 mb-1">${item.description || 'No description'}</p>
-
+            
             ${item.damage ? `<p class="text-xs text-red-600">Damage: ${item.damage}</p>` : ''}
             ${item.defense ? `<p class="text-xs text-blue-600">Defense: ${item.defense}</p>` : ''}
             ${item.effect ? `<p class="text-xs text-purple-600">Effect: ${getEffectDescription(item.effect)}</p>` : ''}
             ${item.value ? `<p class="text-xs text-green-600 mb-1">Value: ${item.value} gold</p>` : ''}
-
+            
             <div class="flex gap-2 flex-wrap">
                 ${canEquip ? `<button onclick="equipItem(${index})" class="btn-parchment text-xs py-1 px-2 bg-green-600 hover:bg-green-700"  style="color: #D2B48C !important;">Equip</button>` : ''}
                 ${isConsumable ? `<button onclick="useItem(${index})" class="btn-parchment text-xs py-1 px-2 bg-blue-600 hover:bg-blue-700"  style="color: #D2B48C !important;">Use</button>` : ''}
                 <button onclick="sellItem(${index})" class="btn-parchment text-xs py-1 px-2 bg-yellow-600 hover:bg-yellow-700"  style="color: #D2B48C !important;">Sell</button>
-                <button onclick="dropItem(${index})" class="btn-parchment text-xs py-1 px-2 bg-red-600 hover:bg-red-700"  style="color: #D2B48C !important;">Drop</button>
+                <button onclick="dropItem(${index})" class="btn-parchment text-xs py-1 px-2 bg-red-600 hover:bg-red-700">Drop</button>
             </div>
         </div>
     `;
@@ -3731,7 +3189,153 @@ function getEffectDescription(effect) {
     return effect.description || 'Special effect';
 }
 
+// Item action functions
+function equipItem(itemIndex) {
+    if (!player.inventory || !player.inventory[itemIndex]) {
+        displayMessage("Item not found.", 'error');
+        return;
+    }
 
+    const item = player.inventory[itemIndex];
+
+    if (!item.slot) {
+        displayMessage("This item cannot be equipped.", 'error');
+        return;
+    }
+
+    // Check if slot is valid
+    if (!player.equipment.hasOwnProperty(item.slot)) {
+        displayMessage("Invalid equipment slot.", 'error');
+        return;
+    }
+
+    // If something is already equipped in that slot, unequip it first
+    if (player.equipment[item.slot]) {
+        const oldItem = player.equipment[item.slot];
+        player.inventory.push(oldItem);
+        displayMessage(`Unequipped ${oldItem.name}.`, 'info');
+    }
+
+    // Equip the new item
+    player.equipment[item.slot] = item;
+    player.inventory.splice(itemIndex, 1);
+
+    displayMessage(`Equipped ${item.name}.`, 'success');
+
+    // Apply item effects if any
+    if (item.effects && window.ItemManager) {
+        ItemManager.applyItemEffects(player, item);
+    }
+
+    updatePlayerStatsDisplay();
+    displayInventory(); // Refresh display
+    saveGame();
+}
+
+function unequipItem(slot) {
+    if (!player.equipment[slot]) {
+        displayMessage("No item equipped in that slot.", 'error');
+        return;
+    }
+
+    const item = player.equipment[slot];
+
+    // Ensure inventory array exists
+    if (!player.inventory) {
+        player.inventory = [];
+    }
+
+    // Move item back to inventory
+    player.inventory.push(item);
+    player.equipment[slot] = null;
+
+    displayMessage(`Unequipped ${item.name}.`, 'success');
+    updatePlayerStatsDisplay();
+    displayInventory(); // Refresh display
+    saveGame();
+}
+
+function useItem(itemIndex) {
+    if (!player.inventory || !player.inventory[itemIndex]) {
+        displayMessage("Item not found.", 'error');
+        return;
+    }
+
+    const item = player.inventory[itemIndex];
+
+    // Check if item is consumable
+    if (item.type !== 'consumable' && !item.effect) {
+        displayMessage("This item cannot be used.", 'error');
+        return;
+    }
+
+    // Apply item effects
+    let effectApplied = false;
+
+    if (item.effect) {
+        if (item.effect.type === 'heal') {
+            const healAmount = item.effect.amount || 30;
+            const oldHp = player.hp;
+            player.hp = Math.min(player.maxHp, player.hp + healAmount);
+            const actualHeal = player.hp - oldHp;
+            displayMessage(`You used ${item.name} and recovered ${actualHeal} HP.`, 'success');
+            effectApplied = true;
+        } else if (item.effect.type === 'mana') {
+            displayMessage(`You used ${item.name} and feel your magical energy restored.`, 'success');
+            effectApplied = true;
+        } else if (window.ItemManager && typeof ItemManager.applyItemEffects === 'function') {
+            const result = ItemManager.applyItemEffects(player, item);
+            if (result.success) {
+                displayMessage(result.message, 'success');
+                effectApplied = true;
+            }
+        }
+    }
+
+    if (effectApplied) {
+        // Remove item from inventory after use
+        player.inventory.splice(itemIndex, 1);
+        updatePlayerStatsDisplay();
+        displayInventory(); // Refresh display
+        saveGame();
+    } else {
+        displayMessage("The item has no effect.", 'info');
+    }
+}
+
+function sellItem(itemIndex) {
+    if (!player.inventory || !player.inventory[itemIndex]) {
+        displayMessage("Item not found.", 'error');
+        return;
+    }
+
+    const item = player.inventory[itemIndex];
+    const sellValue = Math.floor((item.value || 10) * 0.6); // Sell for 60% of value
+
+    if (confirm(`Sell ${item.name} for ${sellValue} gold?`)) {
+        player.inventory.splice(itemIndex, 1);
+        updateGold(sellValue, 'item sale');
+        displayMessage(`Sold ${item.name} for ${sellValue} gold.`, 'success');
+        displayInventory(); // Refresh display
+        saveGame();
+    }
+}
+
+function dropItem(itemIndex) {
+    if (!player.inventory || !player.inventory[itemIndex]) {
+        displayMessage("Item not found.", 'error');
+        return;
+    }
+
+    const item = player.inventory[itemIndex];
+
+    if (confirm(`Drop ${item.name}? This item will be lost forever.`)) {
+        player.inventory.splice(itemIndex, 1);
+        displayMessage(`Dropped ${item.name}.`, 'info');
+        displayInventory(); // Refresh display
+        saveGame();
+    }
+}
 
 function displayCharacterBackground() {
     // Hide other interfaces
@@ -3742,199 +3346,16 @@ function displayCharacterBackground() {
     });
 
     backgroundInterface.classList.remove('hidden');
-
-    // Calculate stat modifiers and totals
-    const baseStats = player.stats || {
-        strength: 10,
-        dexterity: 10,
-        intelligence: 10,
-        constitution: 10,
-        wisdom: 10,
-        charisma: 10
-    };
-
-    // Calculate equipment bonuses
-    const equipmentBonuses = calculateEquipmentBonuses();
-
-    // Build stats grid
-    const statsGrid = buildStatsGrid(baseStats, equipmentBonuses);
-
     backgroundContentDisplay.innerHTML = `
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div class="parchment-box p-4">
-                <h5 class="font-bold text-xl mb-3">${player.name}</h5>
-                <div class="grid grid-cols-2 gap-3 mb-4">
-                    <p><strong>Class:</strong> ${player.class}</p>
-                    <p><strong>Level:</strong> ${player.level}</p>
-                    <p><strong>Gender:</strong> ${player.gender}</p>
-                    <p><strong>XP:</strong> ${player.exp}/${player.expToNextLevel}</p>
-                    <p><strong>HP:</strong> ${player.hp}/${player.maxHp}</p>
-                    <p><strong>Gold:</strong> ${player.gold}</p>
-                </div>
-                <div class="mb-4">
-                    <h6 class="font-bold mb-2">Background Story:</h6>
-                    <p class="italic text-sm">${player.background || 'No background story available.'}</p>
-                </div>
+        <div class="parchment-box p-4">
+            <h5 class="font-bold text-xl mb-3">${player.name}</h5>
+            <p class="mb-2"><strong>Class:</strong> ${player.class}</p>
+            <p class="mb-2"><strong>Gender:</strong> ${player.gender}</p>
+            <p class="mb-4"><strong>Level:</strong> ${player.level}</p>
+            <div class="mb-4">
+                <h6 class="font-bold mb-2">Background Story:</h6>
+                <p class="italic">${player.background || 'No background story available.'}</p>
             </div>
-
-            <div class="parchment-box p-4">
-                <h5 class="font-bold text-xl mb-3">Character Statistics</h5>
-                ${statsGrid}
-            </div>
-        </div>
-
-        <div class="parchment-box p-4 mt-4">
-            <h5 class="font-bold text-xl mb-3">Equipment Summary</h5>
-            ${buildEquipmentSummary()}
         </div>
     `;
-}
-
-function calculateEquipmentBonuses() {
-    const bonuses = {
-        strength: 0,
-        dexterity: 0,
-        intelligence: 0,
-        constitution: 0,
-        wisdom: 0,
-        charisma: 0,
-        attack: 0,
-        defense: 0,
-        damage: 0
-    };
-
-    if (!player.equipment) return bonuses;
-
-    Object.values(player.equipment).forEach(item => {
-        if (!item) return;
-
-        // Check for stat bonuses
-        if (item.statBonus) {
-            Object.entries(item.statBonus).forEach(([stat, bonus]) => {
-                if (bonuses.hasOwnProperty(stat)) {
-                    bonuses[stat] += bonus;
-                }
-            });
-        }
-
-        // Add defense from armor
-        if (item.defense) {
-            bonuses.defense += item.defense;
-        }
-
-        // Add attack/damage from weapons
-        if (item.attack) {
-            bonuses.attack += item.attack;
-        }
-
-        if (item.damage && typeof item.damage === 'number') {
-            bonuses.damage += item.damage;
-        }
-    });
-
-    return bonuses;
-}
-
-function buildStatsGrid(baseStats, equipmentBonuses) {
-    const statNames = ['strength', 'dexterity', 'intelligence', 'constitution', 'wisdom', 'charisma'];
-
-    let gridHTML = '<div class="grid grid-cols-1 gap-2">';
-
-    statNames.forEach(statName => {
-        const baseStat = baseStats[statName] || 10;
-        const equipBonus = equipmentBonuses[statName] || 0;
-        const totalStat = baseStat + equipBonus;
-        const modifier = Math.floor((totalStat - 10) / 2);
-        const modifierSign = modifier >= 0 ? '+' : '';
-
-        const statDisplayName = statName.charAt(0).toUpperCase() + statName.slice(1);
-
-        gridHTML += `
-            <div class="flex justify-between items-center py-2 border-b border-amber-700/30">
-                <span class="font-semibold">${statDisplayName}:</span>
-                <div class="text-right">
-                    <span class="font-bold">${totalStat}</span>
-                    <span class="text-sm text-amber-700">(${modifierSign}${modifier})</span>
-                    ${equipBonus !== 0 ? `<span class="text-xs text-blue-600 ml-1">[${equipBonus > 0 ? '+' : ''}${equipBonus}]</span>` : ''}
-                </div>
-            </div>
-        `;
-    });
-
-    // Add combat stats
-    const attackBonus = equipmentBonuses.attack;
-    const defenseBonus = equipmentBonuses.defense;
-    const damageBonus = equipmentBonuses.damage;
-
-    if (attackBonus || defenseBonus || damageBonus) {
-        gridHTML += `
-            <div class="mt-3 pt-3 border-t border-amber-700/50">
-                <h6 class="font-bold mb-2 text-sm">Combat Bonuses:</h6>
-        `;
-
-        if (attackBonus) {
-            gridHTML += `
-                <div class="flex justify-between py-1">
-                    <span class="text-sm">Attack Bonus:</span>
-                    <span class="font-bold text-red-600">+${attackBonus}</span>
-                </div>
-            `;
-        }
-
-        if (defenseBonus) {
-            gridHTML += `
-                <div class="flex justify-between py-1">
-                    <span class="text-sm">Defense Bonus:</span>
-                    <span class="font-bold text-blue-600">+${defenseBonus}</span>
-                </div>
-            `;
-        }
-
-        if (damageBonus) {
-            gridHTML += `
-                <div class="flex justify-between py-1">
-                    <span class="text-sm">Damage Bonus:</span>
-                    <span class="font-bold text-green-600">+${damageBonus}</span>
-                </div>
-            `;
-        }
-
-        gridHTML += '</div>';
-    }
-
-    gridHTML += '</div>';
-    return gridHTML;
-}
-
-function buildEquipmentSummary() {
-    if (!player.equipment) return '<p class="text-gray-600">No equipment data available.</p>';
-
-    const equippedItems = Object.entries(player.equipment).filter(([slot, item]) => item !== null);
-
-    if (equippedItems.length === 0) {
-        return '<p class="text-gray-600">No items currently equipped.</p>';
-    }
-
-    let summaryHTML = '<div class="grid grid-cols-1 md:grid-cols-2 gap-3">';
-
-    equippedItems.forEach(([slot, item]) => {
-        const slotDisplayName = slot.charAt(0).toUpperCase() + slot.slice(1).replace(/([A-Z])/g, ' $1');
-
-        summaryHTML += `
-            <div class="flex items-center gap-3 p-2 bg-amber-100 rounded border">
-                <div class="flex-grow">
-                    <p class="font-semibold text-sm">${slotDisplayName}</p>
-                    <p class="text-xs text-amber-800">${item.name}</p>
-                </div>
-                <div class="text-right text-xs">
-                    ${item.defense ? `<span class="text-blue-600">DEF: +${item.defense}</span><br>` : ''}
-                    ${item.damage ? `<span class="text-red-600">DMG: ${item.damage}</span><br>` : ''}
-                    ${item.value ? `<span class="text-green-600">${item.value}g</span>` : ''}
-                </div>
-            </div>
-        `;
-    });
-
-    summaryHTML += '</div>';
-    return summaryHTML;
 }
