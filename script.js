@@ -2482,8 +2482,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const item = window.currentShopInventory[itemIndex]; // item here has .name, .value, .price, .description etc.
 
-            if (player.gold < item.price) { // Check against item.price
-                displayMessage(`You need ${item.price} gold but only have ${player.gold} gold.`, 'error');
+            if (player.gold < item.value) { // Use item.value instead of item.price
+                displayMessage(`You need ${item.value} gold but only have ${player.gold} gold.`, 'error');
                 return;
             }
 
@@ -2493,14 +2493,18 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             // Purchase the item
-            updateGold(-item.price, 'shop purchase'); // Deduct item.price
+            updateGold(-item.value, 'shop purchase'); // Deduct item.value
             const purchasedItem = { ...item }; // Create a copy
-            delete purchasedItem.price; // Optionally remove the shop-specific price from the inventory item
+            // Ensure the item has a unique ID if it doesn't have one
+            if (!purchasedItem.id) {
+                purchasedItem.id = Date.now() + Math.random();
+            }
             player.inventory.push(purchasedItem);
-            displayMessage(`Purchased ${item.name} for ${item.price} gold!`, 'success'); // Display item.price
+            displayMessage(`Purchased ${item.name} for ${item.value} gold!`, 'success');
 
             // Remove item from shop inventory
             window.currentShopInventory.splice(itemIndex, 1);
+            
             // Save game state
             if (typeof ItemManager !== 'undefined' && ItemManager.saveInventoryToStorage) {
                 ItemManager.saveInventoryToStorage(player);
@@ -2510,9 +2514,10 @@ document.addEventListener('DOMContentLoaded', () => {
             // Refresh shop display
             showShop();
 
+            // Check if inventory is open and refresh it
             const inventoryInterface = document.getElementById('inventory-interface');
-            if (inventoryInterface && !inventoryInterface.classList.contains('hidden') && typeof displayInventory === 'function') {
-                console.log("buyShopItem: Explicitly refreshing inventory display.");
+            if (inventoryInterface && !inventoryInterface.classList.contains('hidden')) {
+                console.log("buyShopItem: Inventory is open, refreshing display.");
                 displayInventory();
             }
         }
@@ -2708,6 +2713,8 @@ document.addEventListener('DOMContentLoaded', () => {
     window.updateGold = updateGold;
     window.displayMessage = displayMessage;
     window.saveGame = saveGame;
+    window.displayInventory = displayInventory;
+    window.showShop = showShop;
     window.ItemManager = ItemManager;
     window.ItemGenerator = ItemGenerator;
     window.itemCategories = itemCategories;

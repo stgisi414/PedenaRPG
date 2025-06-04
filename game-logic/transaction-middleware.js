@@ -122,6 +122,13 @@ If no transaction is detected, return {"hasTransaction": false}
                 console.log("TransactionMiddleware: Explicitly refreshing inventory display.");
                 window.displayInventory();
             }
+            
+            // Also refresh shop display if it's open (for sell transactions)
+            const shopInterface = document.getElementById('shop-interface');
+            if (shopInterface && !shopInterface.classList.contains('hidden') && typeof window.showShop === 'function') {
+                console.log("TransactionMiddleware: Refreshing shop display.");
+                window.showShop();
+            }
         }
 
         // updateGold already calls updatePlayerStatsDisplay.
