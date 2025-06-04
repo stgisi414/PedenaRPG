@@ -2798,6 +2798,154 @@ function buyShopItem(itemIndex) {
     showShop();
 }
 
+// Item action functions (these were referenced but not defined)
+function equipItem(itemIndex) {
+    if (!player.inventory || !player.inventory[itemIndex]) {
+        displayMessage("Item not found.", 'error');
+        return;
+    }
+
+    const item = player.inventory[itemIndex];
+    
+    if (!item.slot) {
+        displayMessage("This item cannot be equipped.", 'error');
+        return;
+    }
+
+    // Check if slot is valid
+    if (!player.equipment.hasOwnProperty(item.slot)) {
+        displayMessage("Invalid equipment slot.", 'error');
+        return;
+    }
+
+    // If something is already equipped in that slot, unequip it first
+    if (player.equipment[item.slot]) {
+        const oldItem = player.equipment[item.slot];
+        player.inventory.push(oldItem);
+        displayMessage(`Unequipped ${oldItem.name}.`, 'info');
+    }
+
+    // Equip the new item
+    player.equipment[item.slot] = item;
+    player.inventory.splice(itemIndex, 1);
+    
+    displayMessage(`Equipped ${item.name}.`, 'success');
+    
+    // Apply item effects if any
+    if (item.effects && window.ItemManager) {
+        ItemManager.applyItemEffects(player, item);
+    }
+    
+    updatePlayerStatsDisplay();
+    displayInventory(); // Refresh display
+    saveGame();
+}
+
+function unequipItem(slot) {
+    if (!player.equipment[slot]) {
+        displayMessage("No item equipped in that slot.", 'error');
+        return;
+    }
+
+    const item = player.equipment[slot];
+    
+    // Ensure inventory array exists
+    if (!player.inventory) {
+        player.inventory = [];
+    }
+    
+    // Move item back to inventory
+    player.inventory.push(item);
+    player.equipment[slot] = null;
+    
+    displayMessage(`Unequipped ${item.name}.`, 'success');
+    updatePlayerStatsDisplay();
+    displayInventory(); // Refresh display
+    saveGame();
+}
+
+function useItem(itemIndex) {
+    if (!player.inventory || !player.inventory[itemIndex]) {
+        displayMessage("Item not found.", 'error');
+        return;
+    }
+
+    const item = player.inventory[itemIndex];
+    
+    // Check if item is consumable
+    if (item.type !== 'consumable' && !item.effect) {
+        displayMessage("This item cannot be used.", 'error');
+        return;
+    }
+
+    // Apply item effects
+    let effectApplied = false;
+    
+    if (item.effect) {
+        if (item.effect.type === 'heal') {
+            const healAmount = item.effect.amount || 30;
+            const oldHp = player.hp;
+            player.hp = Math.min(player.maxHp, player.hp + healAmount);
+            const actualHeal = player.hp - oldHp;
+            displayMessage(`You used ${item.name} and recovered ${actualHeal} HP.`, 'success');
+            effectApplied = true;
+        } else if (item.effect.type === 'mana') {
+            displayMessage(`You used ${item.name} and feel your magical energy restored.`, 'success');
+            effectApplied = true;
+        } else if (window.ItemManager && typeof ItemManager.applyItemEffects === 'function') {
+            const result = ItemManager.applyItemEffects(player, item);
+            if (result.success) {
+                displayMessage(result.message, 'success');
+                effectApplied = true;
+            }
+        }
+    }
+
+    if (effectApplied) {
+        // Remove item from inventory after use
+        player.inventory.splice(itemIndex, 1);
+        updatePlayerStatsDisplay();
+        displayInventory(); // Refresh display
+        saveGame();
+    } else {
+        displayMessage("The item has no effect.", 'info');
+    }
+}
+
+function sellItem(itemIndex) {
+    if (!player.inventory || !player.inventory[itemIndex]) {
+        displayMessage("Item not found.", 'error');
+        return;
+    }
+
+    const item = player.inventory[itemIndex];
+    const sellValue = Math.floor((item.value || 10) * 0.6); // Sell for 60% of value
+    
+    if (confirm(`Sell ${item.name} for ${sellValue} gold?`)) {
+        player.inventory.splice(itemIndex, 1);
+        updateGold(sellValue, 'item sale');
+        displayMessage(`Sold ${item.name} for ${sellValue} gold.`, 'success');
+        displayInventory(); // Refresh display
+        saveGame();
+    }
+}
+
+function dropItem(itemIndex) {
+    if (!player.inventory || !player.inventory[itemIndex]) {
+        displayMessage("Item not found.", 'error');
+        return;
+    }
+
+    const item = player.inventory[itemIndex];
+    
+    if (confirm(`Drop ${item.name}? This item will be lost forever.`)) {
+        player.inventory.splice(itemIndex, 1);
+        displayMessage(`Dropped ${item.name}.`, 'info');
+        displayInventory(); // Refresh display
+        saveGame();
+    }
+}
+
 // Make functions globally accessible
 window.buyShopItem = buyShopItem;
 window.equipItem = equipItem;
@@ -3453,153 +3601,7 @@ function getEffectDescription(effect) {
     return effect.description || 'Special effect';
 }
 
-// Item action functions
-function equipItem(itemIndex) {
-    if (!player.inventory || !player.inventory[itemIndex]) {
-        displayMessage("Item not found.", 'error');
-        return;
-    }
 
-    const item = player.inventory[itemIndex];
-    
-    if (!item.slot) {
-        displayMessage("This item cannot be equipped.", 'error');
-        return;
-    }
-
-    // Check if slot is valid
-    if (!player.equipment.hasOwnProperty(item.slot)) {
-        displayMessage("Invalid equipment slot.", 'error');
-        return;
-    }
-
-    // If something is already equipped in that slot, unequip it first
-    if (player.equipment[item.slot]) {
-        const oldItem = player.equipment[item.slot];
-        player.inventory.push(oldItem);
-        displayMessage(`Unequipped ${oldItem.name}.`, 'info');
-    }
-
-    // Equip the new item
-    player.equipment[item.slot] = item;
-    player.inventory.splice(itemIndex, 1);
-    
-    displayMessage(`Equipped ${item.name}.`, 'success');
-    
-    // Apply item effects if any
-    if (item.effects && window.ItemManager) {
-        ItemManager.applyItemEffects(player, item);
-    }
-    
-    updatePlayerStatsDisplay();
-    displayInventory(); // Refresh display
-    saveGame();
-}
-
-function unequipItem(slot) {
-    if (!player.equipment[slot]) {
-        displayMessage("No item equipped in that slot.", 'error');
-        return;
-    }
-
-    const item = player.equipment[slot];
-    
-    // Ensure inventory array exists
-    if (!player.inventory) {
-        player.inventory = [];
-    }
-    
-    // Move item back to inventory
-    player.inventory.push(item);
-    player.equipment[slot] = null;
-    
-    displayMessage(`Unequipped ${item.name}.`, 'success');
-    updatePlayerStatsDisplay();
-    displayInventory(); // Refresh display
-    saveGame();
-}
-
-function useItem(itemIndex) {
-    if (!player.inventory || !player.inventory[itemIndex]) {
-        displayMessage("Item not found.", 'error');
-        return;
-    }
-
-    const item = player.inventory[itemIndex];
-    
-    // Check if item is consumable
-    if (item.type !== 'consumable' && !item.effect) {
-        displayMessage("This item cannot be used.", 'error');
-        return;
-    }
-
-    // Apply item effects
-    let effectApplied = false;
-    
-    if (item.effect) {
-        if (item.effect.type === 'heal') {
-            const healAmount = item.effect.amount || 30;
-            const oldHp = player.hp;
-            player.hp = Math.min(player.maxHp, player.hp + healAmount);
-            const actualHeal = player.hp - oldHp;
-            displayMessage(`You used ${item.name} and recovered ${actualHeal} HP.`, 'success');
-            effectApplied = true;
-        } else if (item.effect.type === 'mana') {
-            displayMessage(`You used ${item.name} and feel your magical energy restored.`, 'success');
-            effectApplied = true;
-        } else if (window.ItemManager && typeof ItemManager.applyItemEffects === 'function') {
-            const result = ItemManager.applyItemEffects(player, item);
-            if (result.success) {
-                displayMessage(result.message, 'success');
-                effectApplied = true;
-            }
-        }
-    }
-
-    if (effectApplied) {
-        // Remove item from inventory after use
-        player.inventory.splice(itemIndex, 1);
-        updatePlayerStatsDisplay();
-        displayInventory(); // Refresh display
-        saveGame();
-    } else {
-        displayMessage("The item has no effect.", 'info');
-    }
-}
-
-function sellItem(itemIndex) {
-    if (!player.inventory || !player.inventory[itemIndex]) {
-        displayMessage("Item not found.", 'error');
-        return;
-    }
-
-    const item = player.inventory[itemIndex];
-    const sellValue = Math.floor((item.value || 10) * 0.6); // Sell for 60% of value
-    
-    if (confirm(`Sell ${item.name} for ${sellValue} gold?`)) {
-        player.inventory.splice(itemIndex, 1);
-        updateGold(sellValue, 'item sale');
-        displayMessage(`Sold ${item.name} for ${sellValue} gold.`, 'success');
-        displayInventory(); // Refresh display
-        saveGame();
-    }
-}
-
-function dropItem(itemIndex) {
-    if (!player.inventory || !player.inventory[itemIndex]) {
-        displayMessage("Item not found.", 'error');
-        return;
-    }
-
-    const item = player.inventory[itemIndex];
-    
-    if (confirm(`Drop ${item.name}? This item will be lost forever.`)) {
-        player.inventory.splice(itemIndex, 1);
-        displayMessage(`Dropped ${item.name}.`, 'info');
-        displayInventory(); // Refresh display
-        saveGame();
-    }
-}
 
 function displayCharacterBackground() {
     // Hide other interfaces
