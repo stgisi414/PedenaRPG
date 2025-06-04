@@ -904,12 +904,12 @@ async function generateCombatEncounter() {
 
     // Scale enemy based on player level
     const enemyTypes = [
-        { name: 'Goblin Scout', hp: 15, attack: '1d4+1', defense: 1, level: 1 },
-        { name: 'Wild Wolf', hp: 20, attack: '1d6', defense: 2, level: 1 },
-        { name: 'Bandit', hp: 25, attack: '1d6+2', defense: 3, level: 2 },
-        { name: 'Orc Warrior', hp: 35, attack: '1d8+1', defense: 4, level: 3 },
-        { name: 'Dark Mage', hp: 30, attack: '1d8+2', defense: 2, level: 4 },
-        { name: 'Hill Giant', hp: 50, attack: '1d10+3', defense: 5, level: 5 }
+        { name: 'Goblin Scout', hp: 15, attack: 8, defense: 1, level: 1 },
+        { name: 'Wild Wolf', hp: 20, attack: 10, defense: 2, level: 1 },
+        { name: 'Bandit', hp: 25, attack: 12, defense: 3, level: 2 },
+        { name: 'Orc Warrior', hp: 35, attack: 15, defense: 4, level: 3 },
+        { name: 'Dark Mage', hp: 30, attack: 18, defense: 2, level: 4 },
+        { name: 'Hill Giant', hp: 50, attack: 22, defense: 5, level: 5 }
     ];
 
     // Select appropriate enemy for player level
@@ -922,19 +922,43 @@ async function generateCombatEncounter() {
         ...selectedEnemy,
         hp: selectedEnemy.hp + (levelDifference * 5),
         maxHp: selectedEnemy.hp + (levelDifference * 5),
+        attack: selectedEnemy.attack + (levelDifference * 2),
         name: levelDifference > 0 ? `Veteran ${selectedEnemy.name}` : selectedEnemy.name
     };
 
     player.currentEnemy = scaledEnemy;
-    enemyInfoDisplay.innerHTML = `
-        <h5 class="text-xl font-bold">${scaledEnemy.name}</h5>
-        <p>HP: ${scaledEnemy.hp}/${scaledEnemy.maxHp}</p>
-        <p>Attack: ${scaledEnemy.attack}</p>
-        <p>Defense: ${scaledEnemy.defense}</p>
-    `;
-
-    combatInterface.classList.remove('hidden');
+    
+    // Display combat interface inline in game output
+    displayCombatInterface(scaledEnemy);
     displayMessage(`You face ${scaledEnemy.name}! Prepare for battle!`, 'combat');
+}
+
+function displayCombatInterface(enemy) {
+    const combatDiv = document.createElement('div');
+    combatDiv.id = 'inline-combat-interface';
+    combatDiv.classList.add('parchment-box', 'p-4', 'my-4', 'bg-red-50', 'border-red-300');
+    
+    combatDiv.innerHTML = `
+        <div class="text-center mb-4">
+            <h4 class="text-2xl font-bold text-red-700">⚔️ Combat!</h4>
+        </div>
+        <div id="inline-enemy-info" class="parchment-box p-3 mb-4 text-center bg-red-100">
+            <h5 class="text-xl font-bold">${enemy.name}</h5>
+            <p class="text-lg">HP: <span id="enemy-hp-display">${enemy.hp}</span>/${enemy.maxHp}</p>
+            <p>Attack: ${enemy.attack} | Defense: ${enemy.defense}</p>
+        </div>
+        <div class="flex justify-center gap-4">
+            <button onclick="playerAttack()" class="btn-parchment bg-red-700 hover:bg-red-800 text-white">
+                <i class="gi gi-sword-brandish mr-2"></i>Attack
+            </button>
+            <button onclick="fleeCombat()" class="btn-parchment bg-gray-600 hover:bg-gray-700 text-white">
+                <i class="gi gi-run mr-2"></i>Flee
+            </button>
+        </div>
+    `;
+    
+    gameOutput.appendChild(combatDiv);
+    gameOutput.scrollTop = gameOutput.scrollHeight;
 }
 
 async function generateTreasureEncounter() {
@@ -1408,8 +1432,14 @@ async function playerAttack() {
 
     const damage = Math.floor((baseDamage + levelBonus) * classMultiplier + randomVariation);
 
-    enemy.hp -= damage;
+    enemy.hp = Math.max(0, enemy.hp - damage);
     displayMessage(`You attack ${enemy.name} for ${damage} damage!`, 'combat');
+    
+    // Update enemy HP display
+    const enemyHpDisplay = document.getElementById('enemy-hp-display');
+    if (enemyHpDisplay) {
+        enemyHpDisplay.textContent = enemy.hp;
+    }
 
     if (enemy.hp <= 0) {
         displayMessage(`${enemy.name} is defeated!`, 'success');
@@ -1418,13 +1448,21 @@ async function playerAttack() {
         const goldReward = Math.floor(Math.random() * 50) + 25;
         const xpReward = Math.floor(Math.random() * 30) + 15;
 
-        player.gold += goldReward;
-        CharacterManager.gainExperience(player, xpReward);
+        updateGold(goldReward, 'combat victory');
+        if (window.CharacterManager && typeof CharacterManager.gainExperience === 'function') {
+            CharacterManager.gainExperience(player, xpReward);
+        } else {
+            gainExperience(xpReward);
+        }
 
-        displayMessage(`You gained ${goldReward} gold and ${xpReward} XP!`, 'reward');
+        displayMessage(`You gained ${goldReward} gold and ${xpReward} XP!`, 'success');
 
         player.currentEnemy = null;
-        hideScreen('combat-interface');
+        // Remove inline combat interface
+        const inlineCombat = document.getElementById('inline-combat-interface');
+        if (inlineCombat) {
+            inlineCombat.remove();
+        }
         checkQuestCompletion(`defeated ${enemy.name}`);
         saveGame();
     } else {
@@ -1454,8 +1492,15 @@ async function enemyAttack() {
     // Parse enemy attack if it's a dice string
     if (typeof enemy.attack === 'string' && enemy.attack.includes('d')) {
         baseDamage = rollDice(enemy.attack);
+    } else if (typeof enemy.attack === 'number') {
+        baseDamage = enemy.attack;
     } else {
-        baseDamage = parseInt(enemy.attack) || 8;
+        baseDamage = 8; // Default damage
+    }
+
+    // Ensure baseDamage is a valid number
+    if (isNaN(baseDamage) || baseDamage < 0) {
+        baseDamage = 8;
     }
 
     // Add level-based scaling for enemies
@@ -1502,7 +1547,6 @@ async function enemyAttack() {
 
         // Enhanced death penalty system
         const goldLoss = Math.floor(player.gold * 0.15); // Lose 15% of gold
-        const originalGold = player.gold;
 
         updateGold(-goldLoss, 'death penalty');
         player.hp = Math.floor(player.maxHp * 0.25); // Recover to 25% HP
@@ -1521,7 +1565,11 @@ async function enemyAttack() {
 
         // End combat
         player.currentEnemy = null;
-        hideScreen('combat-interface');
+        // Remove inline combat interface
+        const inlineCombat = document.getElementById('inline-combat-interface');
+        if (inlineCombat) {
+            inlineCombat.remove();
+        }
         updatePlayerStatsDisplay();
         saveGame();
 
@@ -1549,7 +1597,11 @@ async function fleeCombat() {
     if (Math.random() < fleeChance) {
         displayMessage(`You successfully flee from ${enemy.name}!`, 'success');
         player.currentEnemy = null;
-        hideScreen('combat-interface');
+        // Remove inline combat interface
+        const inlineCombat = document.getElementById('inline-combat-interface');
+        if (inlineCombat) {
+            inlineCombat.remove();
+        }
         saveGame();
     } else {
         displayMessage(`You failed to escape! ${enemy.name} blocks your path!`, 'error');
