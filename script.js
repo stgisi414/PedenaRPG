@@ -2965,7 +2965,8 @@ function buildEquipmentDisplay() {
                         <h6 class="font-bold text-sm">${slotData.name}</h6>
                         <p class="text-xs text-green-700">${item.name}</p>
                     </div>
-                    <button onclick="unequipItem('${slotData.slot}')" class="btn-parchment text-xs py-1 px-2 flex-shrink-0" style="color: #D2B48C !important;">
+                    <button class="btn-parchment inventory-action-btn text-xs py-1 px-2 flex-shrink-0" style="color: #D2B48C !important;"  data-action="unequip" data-index="${slotData.slot}">
+           
                         Unequip
                     </button>
                 </div>
