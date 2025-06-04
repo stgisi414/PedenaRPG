@@ -142,11 +142,11 @@ h1, h2, h3, h4 {
     word-wrap: break-word; /* Break long words */
 }
 
-/* Game Icons Adjustments - Enhanced fallbacks */
+/* Game Icons Adjustments */
 .gi {
     vertical-align: middle;
     display: inline-block;
-    font-family: 'game-icons', 'Arial Unicode MS', 'Segoe UI Emoji', sans-serif;
+    font-family: 'game-icons' !important;
     speak: none;
     font-style: normal;
     font-weight: normal;
@@ -155,15 +155,11 @@ h1, h2, h3, h4 {
     line-height: 1;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    font-size: 1.2em;
 }
 
-/* Enhanced fallback icons */
+/* Fallback if Game Icons don't load - show text instead */
 .gi:before {
     content: "⚔️"; /* Default sword emoji as fallback */
-    display: inline-block;
-    width: 1em;
-    text-align: center;
 }
 
 .gi-person-pyromancer:before { content: "🧙"; }
