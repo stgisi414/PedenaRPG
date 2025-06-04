@@ -1048,6 +1048,316 @@ async function generateTreasureEncounter() {
     saveGame();
 }
 
+// Intelligent spell selection based on context
+async function analyzeContextAndSelectSpell(availableSpells) {
+    try {
+        // Get current context
+        const contextInfo = {
+            inCombat: !!player.currentEnemy,
+            currentLocation: player.currentLocation,
+            playerHealth: `${player.hp}/${player.maxHp}`,
+            recentMessages: conversationHistory.messages.slice(-5).map(msg => msg.content).join(' '),
+            explorationContext: getExplorationContextString(),
+            enemyInfo: player.currentEnemy ? `Fighting ${player.currentEnemy.name} (HP: ${player.currentEnemy.hp})` : 'Not in combat'
+        };
+        
+        // Create spell categories for better selection
+        const spellCategories = categorizeSpells(availableSpells);
+        
+        // Build context-aware prompt for AI
+        const spellSelectionPrompt = `
+${player.name} (Level ${player.level} ${player.classProgression.class}) wants to cast a spell.
+
+CURRENT CONTEXT:
+- Location: ${contextInfo.currentLocation}
+- Combat Status: ${contextInfo.enemyInfo}
+- Health: ${contextInfo.playerHealth}
+- Recent Events: ${contextInfo.recentMessages}
+${contextInfo.explorationContext}
+
+AVAILABLE SPELLS BY CATEGORY:
+${formatSpellsForAI(spellCategories)}
+
+Based on the current situation, choose the MOST APPROPRIATE spell from the available list. Consider:
+1. If in combat, prioritize offensive spells or defensive ones if health is low
+2. If exploring, choose utility or divination spells
+3. If interacting socially, choose charm or illusion spells
+4. Match spell level to threat level
+
+IMPORTANT: Respond with ONLY the spell name from the available list. Do not add quotes or explanation.
+`;
+
+        const aiResponse = await callGeminiAPI(spellSelectionPrompt, 0.3, 50, false);
+        
+        if (aiResponse) {
+            // Clean the response and validate it's in our spell list
+            const cleanedSpell = aiResponse.trim().replace(/['"]/g, '');
+            const matchedSpell = availableSpells.find(spell => 
+                spell.toLowerCase() === cleanedSpell.toLowerCase() ||
+                spell.toLowerCase().includes(cleanedSpell.toLowerCase()) ||
+                cleanedSpell.toLowerCase().includes(spell.toLowerCase())
+            );
+            
+            if (matchedSpell) {
+                console.log(`AI selected spell: ${matchedSpell} from context analysis`);
+                return matchedSpell;
+            }
+        }
+        
+        // Fallback: Context-based selection without AI
+        return selectSpellByContext(availableSpells, contextInfo);
+        
+    } catch (error) {
+        console.error('Error in spell selection:', error);
+        return selectSpellByContext(availableSpells, {});
+    }
+}
+
+// Categorize spells by type for better selection
+function categorizeSpells(spells) {
+    const categories = {
+        combat: [],
+        healing: [],
+        utility: [],
+        movement: [],
+        social: [],
+        divination: []
+    };
+    
+    spells.forEach(spellName => {
+        const spell = spellDefinitions[spellName];
+        if (!spell) return;
+        
+        const school = spell.school?.toLowerCase() || '';
+        const description = spell.description?.toLowerCase() || '';
+        const damage = spell.damage;
+        
+        if (damage || school === 'evocation' || description.includes('damage') || description.includes('attack')) {
+            categories.combat.push(spellName);
+        } else if (description.includes('heal') || description.includes('restore') || description.includes('hp')) {
+            categories.healing.push(spellName);
+        } else if (school === 'divination' || description.includes('detect') || description.includes('see') || description.includes('know')) {
+            categories.divination.push(spellName);
+        } else if (school === 'conjuration' && (description.includes('teleport') || description.includes('travel'))) {
+            categories.movement.push(spellName);
+        } else if (school === 'enchantment' || school === 'illusion' || description.includes('charm') || description.includes('persuade')) {
+            categories.social.push(spellName);
+        } else {
+            categories.utility.push(spellName);
+        }
+    });
+    
+    return categories;
+}
+
+// Format spells for AI analysis
+function formatSpellsForAI(categories) {
+    let formatted = '';
+    Object.entries(categories).forEach(([category, spells]) => {
+        if (spells.length > 0) {
+            formatted += `${category.toUpperCase()}: ${spells.join(', ')}\n`;
+        }
+    });
+    return formatted;
+}
+
+// Context-based spell selection fallback
+function selectSpellByContext(availableSpells, contextInfo) {
+    const categories = categorizeSpells(availableSpells);
+    
+    // Combat situation
+    if (contextInfo.inCombat) {
+        if (player.hp < player.maxHp * 0.3 && categories.healing.length > 0) {
+            return categories.healing[Math.floor(Math.random() * categories.healing.length)];
+        }
+        if (categories.combat.length > 0) {
+            return categories.combat[Math.floor(Math.random() * categories.combat.length)];
+        }
+    }
+    
+    // Low health outside combat
+    if (player.hp < player.maxHp * 0.5 && categories.healing.length > 0) {
+        return categories.healing[Math.floor(Math.random() * categories.healing.length)];
+    }
+    
+    // Exploration context
+    if (contextInfo.recentMessages?.includes('explore') || contextInfo.recentMessages?.includes('dark') || contextInfo.recentMessages?.includes('hidden')) {
+        if (categories.divination.length > 0) {
+            return categories.divination[Math.floor(Math.random() * categories.divination.length)];
+        }
+        if (categories.utility.length > 0) {
+            return categories.utility[Math.floor(Math.random() * categories.utility.length)];
+        }
+    }
+    
+    // Social context
+    if (contextInfo.recentMessages?.includes('talk') || contextInfo.recentMessages?.includes('npc') || contextInfo.recentMessages?.includes('conversation')) {
+        if (categories.social.length > 0) {
+            return categories.social[Math.floor(Math.random() * categories.social.length)];
+        }
+    }
+    
+    // Default: pick the most appropriate spell type for current situation
+    const priorityOrder = contextInfo.inCombat 
+        ? ['combat', 'healing', 'utility', 'movement', 'divination', 'social']
+        : ['utility', 'divination', 'movement', 'healing', 'social', 'combat'];
+    
+    for (const category of priorityOrder) {
+        if (categories[category].length > 0) {
+            return categories[category][Math.floor(Math.random() * categories[category].length)];
+        }
+    }
+    
+    // Final fallback: random spell
+    return availableSpells[Math.floor(Math.random() * availableSpells.length)];
+}
+
+// Apply spell effects based on context and spell definition
+async function applySpellEffects(spellName, spellDef) {
+    // Handle damage spells in combat
+    if (spellDef.damage && player.currentEnemy) {
+        let damage = calculateSpellDamage(spellDef.damage);
+        
+        // Apply damage to enemy
+        player.currentEnemy.hp = Math.max(0, player.currentEnemy.hp - damage);
+        displayMessage(`The spell deals ${damage} ${spellDef.school} damage to ${player.currentEnemy.name}!`, 'combat');
+        
+        // Update enemy HP display
+        const enemyHpDisplay = document.getElementById('enemy-hp-display');
+        if (enemyHpDisplay) {
+            enemyHpDisplay.textContent = player.currentEnemy.hp;
+        }
+        
+        // Check if enemy is defeated
+        if (player.currentEnemy.hp <= 0) {
+            displayMessage(`${player.currentEnemy.name} is defeated by your ${spellName}!`, 'success');
+            
+            // Reward gold and XP
+            const goldReward = Math.floor(Math.random() * 40) + 20;
+            const xpReward = Math.floor(Math.random() * 25) + 15;
+            
+            updateGold(goldReward, 'magical victory');
+            gainExperience(xpReward);
+            
+            displayMessage(`You gained ${goldReward} gold and ${xpReward} XP!`, 'success');
+            
+            player.currentEnemy = null;
+            // Remove inline combat interface
+            const inlineCombat = document.getElementById('inline-combat-interface');
+            if (inlineCombat) {
+                inlineCombat.remove();
+            }
+            checkQuestCompletion(`defeated enemy with ${spellName}`);
+            saveGame();
+        } else {
+            // Enemy retaliates
+            setTimeout(() => enemyAttack(), 1500);
+        }
+    }
+    // Handle healing spells
+    else if (spellDef.description?.toLowerCase().includes('heal') || spellDef.description?.toLowerCase().includes('restore')) {
+        const healAmount = Math.floor(Math.random() * 20) + 15; // 15-35 healing
+        const oldHp = player.hp;
+        player.hp = Math.min(player.maxHp, player.hp + healAmount);
+        const actualHeal = player.hp - oldHp;
+        
+        if (actualHeal > 0) {
+            displayMessage(`${spellName} restores ${actualHeal} HP! You feel revitalized.`, 'success');
+            updatePlayerStatsDisplay();
+        } else {
+            displayMessage(`You are already at full health, but the magical energy washes over you comfortingly.`, 'info');
+        }
+    }
+    // Handle utility and exploration spells
+    else if (spellDef.school === 'Divination' || spellDef.description?.toLowerCase().includes('detect') || spellDef.description?.toLowerCase().includes('see')) {
+        displayMessage(`${spellName} reveals hidden information about your surroundings...`, 'exploration');
+        
+        // Generate contextual information based on location
+        setTimeout(async () => {
+            const revealPrompt = `${player.name} cast ${spellName} (${spellDef.description}) in ${player.currentLocation}. 
+            What might this divination/detection spell reveal? Provide 1-2 sentences of relevant information about the area, hidden objects, magical auras, or secrets.`;
+            
+            const revelation = await callGeminiAPI(revealPrompt, 0.7, 150, true);
+            if (revelation) {
+                displayMessage(revelation, 'exploration');
+                addToConversationHistory('assistant', revelation);
+            } else {
+                displayMessage("You sense the presence of magical energies, but their nature remains unclear.", 'info');
+            }
+        }, 1000);
+    }
+    // Handle social/illusion spells
+    else if (spellDef.school === 'Enchantment' || spellDef.school === 'Illusion') {
+        displayMessage(`${spellName} weaves subtle magic around you, affecting the minds and perceptions of those nearby.`, 'success');
+        
+        // Check if there are NPCs in the area
+        const existingNPCs = getNPCsInLocation(player.currentLocation);
+        if (existingNPCs.length > 0) {
+            const npc = existingNPCs[Math.floor(Math.random() * existingNPCs.length)];
+            setTimeout(() => {
+                displayMessage(`${npc.name} seems affected by the magical influence, their demeanor shifting slightly.`, 'info');
+            }, 1000);
+        }
+    }
+    // Handle movement spells
+    else if (spellDef.description?.toLowerCase().includes('teleport') || spellDef.description?.toLowerCase().includes('travel')) {
+        displayMessage(`${spellName} creates a shimmering portal of magical energy!`, 'success');
+        
+        setTimeout(() => {
+            displayMessage("The magical transportation effect ripples through space, but you maintain control over your destination.", 'info');
+            displayMessage("You feel the magical energy settling, ready to be used for future travels.", 'info');
+        }, 1000);
+    }
+    // Default spell effects
+    else {
+        const contextualEffects = [
+            `${spellName} manifests its power, creating ${spellDef.school?.toLowerCase() || 'magical'} energy around you.`,
+            `The spell weaves its magic through the area, leaving traces of ${spellDef.school?.toLowerCase() || 'arcane'} power.`,
+            `${spellName} takes effect, demonstrating your growing mastery of the magical arts.`
+        ];
+        
+        const effect = contextualEffects[Math.floor(Math.random() * contextualEffects.length)];
+        displayMessage(effect, 'success');
+    }
+    
+    // Save progress
+    saveGame();
+}
+
+// Calculate spell damage more accurately
+function calculateSpellDamage(damageString) {
+    if (!damageString) return 0;
+    
+    let damage = 0;
+    
+    if (typeof damageString === 'string') {
+        if (damageString.includes('d')) {
+            // Standard dice notation like "3d8"
+            const cleanDamage = damageString.split(' ')[0]; // Remove damage type
+            damage = rollDice(cleanDamage);
+        } else if (damageString.includes('+')) {
+            // Handle format like "1d4+1 force"
+            const damagePart = damageString.split(' ')[0]; // Get "1d4+1"
+            const parts = damagePart.split('+');
+            damage = rollDice(parts[0]) + parseInt(parts[1] || 0);
+        } else {
+            // Try to parse as a number
+            damage = parseInt(damageString) || 0;
+        }
+    } else if (typeof damageString === 'number') {
+        damage = damageString;
+    }
+    
+    // Ensure damage is a valid number
+    if (isNaN(damage) || damage < 1) {
+        damage = Math.floor(Math.random() * 8) + 3; // 3-10 damage fallback
+    }
+    
+    return damage;
+}
+
+
+
 async function generateEventEncounter() {
     displayMessage("🌟 Something interesting happens...", 'exploration');
 
@@ -2488,112 +2798,49 @@ window.buyShopItem = buyShopItem;
         explore();
     });
 
-    document.getElementById('cast-spell-btn')?.addEventListener('click', () => {
+    document.getElementById('cast-spell-btn')?.addEventListener('click', async () => {
         // Check if player has class progression and is a spellcaster
         if (player.classProgression && (player.classProgression.class === 'mage' || player.classProgression.class === 'ranger')) {
-            // Debug logging
-            console.log('Player class progression:', player.classProgression);
-            console.log('Known spells:', player.classProgression.knownSpells);
-            console.log('Available spells:', player.classProgression.availableSpells);
+            // Get available spells and cantrips
+            const knownSpells = player.classProgression.knownSpells || [];
+            const knownCantrips = player.classProgression.knownCantrips || [];
+            const availableSpells = player.classProgression.availableSpells || [];
             
-            // Check both known spells and available spells
-            const spellsToUse = player.classProgression.knownSpells && player.classProgression.knownSpells.length > 0 
-                ? player.classProgression.knownSpells 
-                : player.classProgression.availableSpells || [];
+            const allSpells = [...new Set([...knownSpells, ...knownCantrips, ...availableSpells])];
             
-            if (spellsToUse.length > 0) {
-                const randomSpell = spellsToUse[Math.floor(Math.random() * spellsToUse.length)];
-                displayMessage(`You attempt to cast ${randomSpell}...`, 'info');
-
-                // Get spell definition for better effect description
-                const spellDef = spellDefinitions[randomSpell];
-                if (spellDef) {
-                    displayMessage(`${spellDef.description}`, 'success');
-                    
-                    // Apply spell damage if it has any
-                    if (spellDef.damage && player.currentEnemy) {
-                        let damage = 0;
-                        
-                        // Handle different damage formats
-                        if (typeof spellDef.damage === 'string') {
-                            if (spellDef.damage.includes('d')) {
-                                // Standard dice notation like "3d8"
-                                damage = rollDice(spellDef.damage);
-                            } else if (spellDef.damage.includes('+')) {
-                                // Handle format like "1d4+1 force"
-                                const damagePart = spellDef.damage.split(' ')[0]; // Get "1d4+1"
-                                const parts = damagePart.split('+');
-                                damage = rollDice(parts[0]) + parseInt(parts[1] || 0);
-                            } else {
-                                // Try to parse as a number
-                                damage = parseInt(spellDef.damage) || 8;
-                            }
-                        } else if (typeof spellDef.damage === 'number') {
-                            damage = spellDef.damage;
-                        } else {
-                            damage = 8; // Default damage
-                        }
-                        
-                        // Ensure damage is a valid number
-                        if (isNaN(damage) || damage < 1) {
-                            damage = Math.floor(Math.random() * 8) + 3; // 3-10 damage
-                        }
-                        
-                        // Apply damage to enemy if in combat
-                        if (player.currentEnemy) {
-                            player.currentEnemy.hp = Math.max(0, player.currentEnemy.hp - damage);
-                            displayMessage(`The spell deals ${damage} ${spellDef.school} damage!`, 'combat');
-                            
-                            // Update enemy HP display
-                            const enemyHpDisplay = document.getElementById('enemy-hp-display');
-                            if (enemyHpDisplay) {
-                                enemyHpDisplay.textContent = player.currentEnemy.hp;
-                            }
-                            
-                            // Check if enemy is defeated
-                            if (player.currentEnemy.hp <= 0) {
-                                displayMessage(`${player.currentEnemy.name} is defeated by your spell!`, 'success');
-                                
-                                // Reward gold and XP
-                                const goldReward = Math.floor(Math.random() * 40) + 20;
-                                const xpReward = Math.floor(Math.random() * 25) + 15;
-                                
-                                updateGold(goldReward, 'magical victory');
-                                gainExperience(xpReward);
-                                
-                                displayMessage(`You gained ${goldReward} gold and ${xpReward} XP!`, 'success');
-                                
-                                player.currentEnemy = null;
-                                // Remove inline combat interface
-                                const inlineCombat = document.getElementById('inline-combat-interface');
-                                if (inlineCombat) {
-                                    inlineCombat.remove();
-                                }
-                                checkQuestCompletion(`defeated enemy with ${randomSpell}`);
-                                saveGame();
-                            } else {
-                                // Enemy retaliates
-                                setTimeout(() => enemyAttack(), 1500);
-                            }
-                        } else {
-                            displayMessage(`The spell deals ${damage} ${spellDef.school} damage!`, 'combat');
-                        }
-                    }
-                } else {
-                    // Fallback effects
-                    const effects = [
-                        { msg: "The spell fizzles out harmlessly.", type: 'info' },
-                        { msg: "You feel magical energy coursing through you!", type: 'success' },
-                        { msg: "Sparks of magic dance around your fingers.", type: 'success' },
-                        { msg: "You sense the magical weave responding to your call.", type: 'success' }
-                    ];
-                    const effect = effects[Math.floor(Math.random() * effects.length)];
-                    setTimeout(() => displayMessage(effect.msg, effect.type), 500);
-                }
-            } else {
+            if (allSpells.length === 0) {
                 displayMessage(`You don't know any spells yet. Class: ${player.classProgression.class}, Level: ${player.level}`, 'info');
                 displayMessage("If this seems wrong, try using the Reset Progression button.", 'info');
+                return;
             }
+            
+            // Analyze current context to select appropriate spell
+            const selectedSpell = await analyzeContextAndSelectSpell(allSpells);
+            
+            displayMessage(`You focus your magical energy and cast ${selectedSpell}...`, 'info');
+            
+            // Get spell definition for better effect description
+            const spellDef = spellDefinitions[selectedSpell];
+            if (spellDef) {
+                displayMessage(`${spellDef.description}`, 'success');
+                
+                // Apply spell effects based on context
+                await applySpellEffects(selectedSpell, spellDef);
+            } else {
+                // Fallback effects
+                const effects = [
+                    { msg: "The spell manifests with a shimmer of magical energy.", type: 'success' },
+                    { msg: "You feel the magical weave responding to your will.", type: 'success' },
+                    { msg: "Arcane power flows through you as the spell takes effect.", type: 'success' }
+                ];
+                const effect = effects[Math.floor(Math.random() * effects.length)];
+                setTimeout(() => displayMessage(effect.msg, effect.type), 500);
+            }
+            
+            // Add to conversation history for future context
+            addToConversationHistory('user', `cast ${selectedSpell}`);
+            saveConversationHistory();
+            
         } else {
             displayMessage("You are not a spellcaster.", 'info');
         }
