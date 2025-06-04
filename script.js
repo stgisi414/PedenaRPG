@@ -7,7 +7,6 @@ import { LocationManager } from './game-logic/location-manager.js';
 import { classProgression, spellDefinitions, abilityDefinitions } from './game-logic/class-progression.js';
 import { ItemGenerator, ItemManager, itemCategories, itemRarity, statusEffects } from './assets/world-items.js';
 import { TransactionMiddleware } from './game-logic/transaction-middleware.js';
-import { RelationshipMiddleware } from './game-logic/relationship-middleware.js';
 
 const GEMINI_API_KEY = 'AIzaSyDIFeql6HUpkZ8JJlr_kuN0WDFHUyOhijA'; // Replace with your actual Gemini API Key
 const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`;
@@ -2267,16 +2266,6 @@ async function startConversation() {
         displayMessage(npcMessage);
         addToConversationHistory('assistant', npcMessage);
         gameWorld.lastNPCInteraction = npc.id;
-
-        // Emit relationship interaction event
-        window.dispatchEvent(new CustomEvent('npc-interaction', {
-            detail: {
-                npcName: npc.name,
-                location: player.currentLocation,
-                description: npc.description,
-                player: player
-            }
-        }));
     } else {
         // Create new NPC
         const context = GameDataManager.generateLocationContext(player.currentLocation);
@@ -2312,16 +2301,6 @@ Use the name "${npcName}" throughout the description.`;
             const encounterMessage = npcInfo;
             displayMessage(encounterMessage);
             addToConversationHistory('assistant', encounterMessage);
-
-            // Emit relationship interaction event for new NPC
-            window.dispatchEvent(new CustomEvent('npc-interaction', {
-                detail: {
-                    npcName: npcName,
-                    location: player.currentLocation,
-                    description: npcInfo,
-                    player: player
-                }
-            }));
         } else {
             const fallbackMessage = "You don't see anyone interesting to talk to right now.";
             displayMessage(fallbackMessage);
@@ -2434,30 +2413,6 @@ IMPORTANT: If the player is trying to interact with something from recent explor
             displayMessage(response, 'info');
             addToConversationHistory('assistant', response);
 
-            // Check if this response involves NPC dialogue and emit conversation event
-            const npcDialogueMatch = response.match(/(\w+(?:\s+\w+)*)\s+says?:/i);
-            if (npcDialogueMatch) {
-                const npcName = npcDialogueMatch[1].trim();
-                // Determine sentiment from response (basic analysis)
-                let sentiment = 'neutral';
-                if (response.toLowerCase().includes('smile') || response.toLowerCase().includes('laugh') || response.toLowerCase().includes('pleased')) {
-                    sentiment = 'positive';
-                } else if (response.toLowerCase().includes('frown') || response.toLowerCase().includes('angry') || response.toLowerCase().includes('hostile')) {
-                    sentiment = 'negative';
-                } else if (response.toLowerCase().includes('threaten') || response.toLowerCase().includes('danger')) {
-                    sentiment = 'threatening';
-                }
-
-                window.dispatchEvent(new CustomEvent('conversation-update', {
-                    detail: {
-                        npcName: npcName,
-                        playerName: player.name,
-                        conversation: response,
-                        sentiment: sentiment
-                    }
-                }));
-            }
-
             // Handle item pickup if detected
             if (isPickupCommand) {
                 await handleItemPickup(command, response);
@@ -2506,9 +2461,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Load conversation history if available
     loadConversationHistory();
-
-    // Initialize relationship tracking middleware
-    RelationshipMiddleware.initialize();
 
     // Add event listeners for quick action buttons
     document.getElementById('rest-btn')?.addEventListener('click', () => {
@@ -2768,7 +2720,6 @@ document.addEventListener('DOMContentLoaded', () => {
     window.itemCategories = itemCategories;
     window.itemRarity = itemRarity;
     window.TransactionMiddleware = TransactionMiddleware;
-    window.RelationshipMiddleware = RelationshipMiddleware;
 
     // Make other functions globally accessible if needed by other parts of the code or for debugging
     window.LocationManager = typeof LocationManager !== 'undefined' ? LocationManager : {};
@@ -2841,108 +2792,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if (shopItemsDisplay) {
         shopItemsDisplay.addEventListener('click', function(event) {
             const button = event.target.closest('.shop-action-btn'); // Target buttons with this class
-
-
-// Relationship display functions
-function displayRelationships() {
-    // Hide other interfaces
-    const interfacesToHide = ['shop-interface', 'inventory-interface', 'skills-interface', 'quest-interface', 'combat-interface', 'background-interface', 'progression-interface'];
-    interfacesToHide.forEach(id => {
-        const element = document.getElementById(id);
-        if (element) element.classList.add('hidden');
-    });
-
-    // Create or show relationships interface
-    let relationshipsInterface = document.getElementById('relationships-interface');
-    if (!relationshipsInterface) {
-        relationshipsInterface = createRelationshipsInterface();
-        document.body.appendChild(relationshipsInterface);
-    }
-
-    relationshipsInterface.classList.remove('hidden');
-
-    const relationships = RelationshipMiddleware.getAllRelationships(player.name);
-    const relationshipsDisplay = document.getElementById('relationships-content');
-
-    if (relationships.length === 0) {
-        relationshipsDisplay.innerHTML = '<p class="text-center text-gray-600">No relationships established yet.</p>';
-        return;
-    }
-
-    let relationshipsHTML = '<div class="grid grid-cols-1 gap-4">';
-
-    relationships.forEach(rel => {
-        const trustColor = rel.trustLevel >= 70 ? 'text-green-600' : rel.trustLevel >= 40 ? 'text-yellow-600' : 'text-red-600';
-        const relationshipColor = {
-            'ally': 'text-blue-600',
-            'friendly': 'text-green-600',
-            'neutral': 'text-gray-600',
-            'hostile': 'text-orange-600',
-            'enemy': 'text-red-600',
-            'romantic': 'text-pink-600'
-        }[rel.relationshipLevel] || 'text-gray-600';
-
-        relationshipsHTML += `
-            <div class="parchment-box p-4">
-                <div class="flex justify-between items-start mb-2">
-                    <h6 class="font-bold text-lg">${rel.npcName}</h6>
-                    <span class="text-sm px-2 py-1 rounded ${relationshipColor} font-semibold">${rel.relationshipLevel}</span>
-                </div>
-                <p class="text-sm text-amber-700 mb-2">${rel.npcDescription}</p>
-                <div class="grid grid-cols-2 gap-2 text-xs text-gray-600 mb-2">
-                    <p><strong>Met at:</strong> ${rel.locationMet}</p>
-                    <p><strong>Times spoken:</strong> ${rel.timesSpoken}</p>
-                    <p><strong>Trust level:</strong> <span class="${trustColor}">${rel.trustLevel}/100</span></p>
-                    <p><strong>Last seen:</strong> ${new Date(rel.lastInteraction).toLocaleDateString()}</p>
-                </div>
-                ${rel.lastConversation ? `
-                    <div class="mt-2 p-2 bg-amber-50 rounded text-xs">
-                        <p class="font-semibold">Last conversation:</p>
-                        <p class="italic">"${rel.lastConversation.text.substring(0, 100)}${rel.lastConversation.text.length > 100 ? '...' : ''}"</p>
-                    </div>
-                ` : ''}
-                ${rel.notes && rel.notes.length > 0 ? `
-                    <div class="mt-2">
-                        <p class="font-semibold text-xs">Notes:</p>
-                        ${rel.notes.slice(-2).map(note => `<p class="text-xs italic">• ${note.text}</p>`).join('')}
-                    </div>
-                ` : ''}
-            </div>
-        `;
-    });
-
-    relationshipsHTML += '</div>';
-    relationshipsDisplay.innerHTML = relationshipsHTML;
-}
-
-function createRelationshipsInterface() {
-    const interface_ = document.createElement('div');
-    interface_.id = 'relationships-interface';
-    interface_.className = 'fixed inset-0 z-50 overflow-auto bg-amber-50 p-4';
-    interface_.innerHTML = `
-        <div class="max-w-4xl mx-auto">
-            <div class="parchment-box p-6 mb-4">
-                <div class="flex justify-between items-center mb-4">
-                    <h4 class="text-3xl font-bold text-amber-800">Relationships</h4>
-                    <button id="exit-relationships-btn" class="btn-parchment bg-red-600 hover:bg-red-700 text-white">
-                        <i class="gi gi-cancel mr-2"></i>Close
-                    </button>
-                </div>
-                <div id="relationships-content"></div>
-            </div>
-        </div>
-    `;
-
-    // Add exit button listener
-    interface_.querySelector('#exit-relationships-btn').addEventListener('click', () => {
-        interface_.classList.add('hidden');
-    });
-
-    return interface_;
-}
-
-// Make relationship functions globally available
-window.displayRelationships = displayRelationships;
 
             if (button) {
                 const action = button.dataset.action;
@@ -3068,11 +2917,6 @@ function addMainEventListeners() {
         showBackgroundBtn?.addEventListener('click', () => {
             console.log('Show background button clicked');
             displayCharacterBackground();
-        });
-
-        document.getElementById('show-relationships-btn')?.addEventListener('click', () => {
-            console.log('Show relationships button clicked');
-            displayRelationships();
         });
 
         // Exit buttons
