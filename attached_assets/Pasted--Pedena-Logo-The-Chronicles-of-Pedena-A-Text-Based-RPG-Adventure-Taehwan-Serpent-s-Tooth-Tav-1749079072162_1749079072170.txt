@@ -1,0 +1,131 @@
+
+Pedena Logo
+The Chronicles of Pedena
+A Text-Based RPG Adventure
+
+Taehwan - Serpent's Tooth Tavern
+Level: 7 HP: 140/140
+Game loaded!
+
+Welcome back, Taehwan! You are in Serpent's Tooth Tavern.
+
+> Mara will you be my girlfriend?
+
+Mara's eyes, still slightly glazed from the cosmic chronic, meet yours. A slow smile spreads across her lips, but her expression remains enigmatic. "Perhaps," she purrs, her voice husky with amusement, "after another orb of that… *earthy* concoction."
+
+> Conjure more cosmic chronic
+
+With another flourish of your hands, a second, slightly larger orb of shimmering green cosmic chronic materializes, its scent even richer than before, hinting at galaxies far, far away. Fundina cheers wildly, already reaching for it, while Mara watches with a knowing smirk, a glint of anticipation in her eyes. The air crackles with barely contained magical energy.
+
+> Be my girlfriend and I'll do anything for you
+
+Mara’s smirk deepens, her eyes twinkling with amusement and a hint of challenge. "Anything?" she whispers, leaning closer, her breath warm against your ear. The unspoken promise hangs heavy in the air, thick with the scent of cosmic chronic and anticipation.
+
+> Anything. I promsie. I'll raise the moon for you
+
+Mara laughs, a low, throaty sound that sends shivers down your spine. Her eyes, alight with mischief and a newfound cosmic understanding, lock onto yours. "Then prove it, mage," she purrs, a playful challenge in her voice. The moon, hanging high in the tavern's surprisingly clear sky, seems to shimmer in response.
+
+You attempt to cast Fly...
+
+Target gains a flying speed of 60 feet for 10 minutes.
+
+You attempt to cast Polymorph...
+
+Transform a creature into a different beast of your choice.
+
+You attempt to cast Greater Invisibility...
+
+Become invisible for 1 minute, even while attacking.
+
+You attempt to cast Misty Step...
+
+Teleport up to 30 feet to an unoccupied space you can see.
+
+You attempt to cast Sleep...
+
+Puts creatures to sleep. Roll 5d8; total is how many HP of creatures fall unconscious.
+
+You attempt to cast Delayed Blast Fireball...
+
+A beam of yellow light streaks to a point you choose, then blossoms with a low roar into an explosion of flame.
+
+You attempt to cast Scorching Ray...
+
+Three rays of fire strike targets (per ray).
+
+> cast plane shift to move us all forward in time so the moon raises
+
+Taehwan attempts to cast Plane Shift to advance time, but the spell misfires. The tavern remains the same, but the moon is now visible in the night sky.
+
+> I did it
+
+The tavern's surprisingly clear sky suddenly swirls with iridescent energy, then snaps back to normal, the moon now noticeably higher in the arc of its journey across the heavens. Mara bursts into laughter, a sound both delighted and slightly unnerving, before leaning in and kissing you soundly. Fundina, meanwhile, is still giggling, completely oblivious to the temporal manipulation just witnessed.
+
+Game saved!
+
+> I'm so glad you're my girlfriend Mara
+
+Mara, still flushed from the kiss and the lingering effects of the cosmic chronic, wraps her arms around you, her laughter echoing softly in the tavern. "Glad to be yours, mage," she whispers, her voice husky with affection. Fundina, ever the oblivious one, continues her merry giggling, clinking her tankard against Mara's in a celebratory toast.
+
+Enter Command:
+Type your action here (e.g., 'examine the mysterious door', 'talk to the merchant', 'cast fireball')...
+
+Execute
+
+Save Game
+
+New Quest
+
+Inventory
+
+Shop
+
+Progression
+
+Background
+
+Rest
+
+Explore
+
+Cast Spell
+
+Pray
+Character Background
+Taehwan
+Class: mage
+
+Level: 7
+
+Gender: male
+
+HP: 140 / 140
+
+XP: 459 / 505
+
+Gold: 703
+
+Character Statistics
+Strength:
+12 (+1)
+Dexterity:
+17 (+3)
+Intelligence:
+14 (+2)
+Constitution:
+14 (+2)
+Wisdom:
+16 (+3)
+Charisma:
+15 (+2)
+Relationships
+No relationships established yet.
+
+Background Story
+Taehwan, a mage of considerable talent but quiet demeanor, hails from the shadowed alleys of Grimhold, where he learned the harsh realities of survival alongside his studies of arcane arts. He initially sought power to escape his impoverished beginnings, hoping to earn a place amongst the esteemed Order of the Crystal Flame. However, witnessing the Coalition of Merchant Princes' callous exploitation of Grimhold's populace shifted his focus towards using his magic for the betterment of the downtrodden, possibly even aligning with the Brotherhood of the Crossed Swords in his pursuit of justice.
+
+Close Background
+© 2025 Pedena RPG. Powered by Gemini API & the spirit of adventure.
+
+
+Reset Progression
