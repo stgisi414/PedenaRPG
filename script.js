@@ -2417,6 +2417,24 @@ function displayCharacterProgression() {
             </div>
 
             <div class="parchment-box p-3">
+                <h5 class="font-bold mb-2">Experience Progress</h5>
+                <p><strong>Current XP:</strong> ${player.exp}</p>
+                <p><strong>XP to Next Level:</strong> ${player.expToNextLevel - player.exp}</p>
+                <p><strong>Total XP Needed:</strong> ${player.expToNextLevel}</p>
+                
+                <div class="mt-3">
+                    <div class="w-full bg-amber-200 rounded-full h-4 border border-amber-700">
+                        <div class="bg-gradient-to-r from-amber-500 to-amber-600 h-full rounded-full transition-all duration-300" 
+                             style="width: ${Math.min(100, (player.exp / player.expToNextLevel) * 100)}%">
+                        </div>
+                    </div>
+                    <p class="text-sm text-center mt-1 text-amber-800">
+                        ${Math.round((player.exp / player.expToNextLevel) * 100)}% to Level ${player.level + 1}
+                    </p>
+                </div>
+            </div>
+
+            <div class="parchment-box p-3">
                 <h5 class="font-bold mb-2">Features Unlocked</h5>
                 ${progression.features.map(feature => `<p>• ${feature}</p>`).join('')}
             </div>
