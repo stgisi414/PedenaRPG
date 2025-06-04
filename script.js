@@ -553,6 +553,10 @@ function loadGame() {
         console.log("loadGame: Final player.gold after all loading steps:", player.gold);
         updatePlayerStatsDisplay();
         updateQuestButton(); // Update quest button based on saved quests
+        
+        // Auto-fix relationships based on conversation history
+        autoFixMaraRelationship();
+        
         showScreen('game-play-screen');
         displayMessage(`Welcome back, ${player.name}! You are in ${player.currentLocation}.`);
 
@@ -1097,6 +1101,130 @@ async function generateEventEncounter() {
         'weather_change',
         'mysterious_sign',
         'helpful_spirit',
+
+// Enhanced relationship detection function
+function checkRelationshipChanges(playerCommand, aiResponse) {
+    const combinedText = (playerCommand + ' ' + aiResponse).toLowerCase();
+    
+    // Romantic relationship patterns
+    const romanticPatterns = [
+        /(?:be my|will you be my|become my) (?:girlfriend|boyfriend|partner|lover)/,
+        /(?:yes.*(?:girlfriend|boyfriend|partner)|(?:girlfriend|boyfriend|partner).*yes)/,
+        /(?:accepted.*(?:proposal|relationship)|agreed.*(?:girlfriend|boyfriend))/,
+        /(?:kissed|kiss|romantic|romance|dating|lovers)/,
+        /(?:glad to be yours|your (?:girlfriend|boyfriend)|relationship.*established)/
+    ];
+
+    // Friend/ally patterns
+    const friendshipPatterns = [
+        /(?:become friends|best friends|good friends|trusted ally)/,
+        /(?:friendship.*established|friends now|alliance.*formed)/,
+        /(?:trust.*you|ally.*you|friend.*you)/
+    ];
+
+    // Hostile patterns
+    const hostilePatterns = [
+        /(?:enemy|enemies|hate|despise|hostile|angry)/,
+        /(?:betrayed|backstabbed|double.*crossed)/,
+        /(?:war|conflict|fight.*you)/
+    ];
+
+    // Extract NPC names from the conversation
+    const npcNames = extractNPCNames(aiResponse);
+    
+    npcNames.forEach(npcName => {
+        const currentRelationship = player.relationships[npcName];
+        let relationshipChanged = false;
+        let newStatus = currentRelationship?.status || 'neutral';
+        let trustChange = 0;
+
+        // Check for romantic development
+        if (romanticPatterns.some(pattern => pattern.test(combinedText))) {
+            if (combinedText.includes(npcName.toLowerCase()) || 
+                combinedText.includes('mara') || // Special case for current conversation
+                aiResponse.toLowerCase().includes('kiss') ||
+                aiResponse.toLowerCase().includes('girlfriend') ||
+                aiResponse.toLowerCase().includes('yours')) {
+                
+                newStatus = 'romantic';
+                trustChange = 30;
+                relationshipChanged = true;
+                
+                displayMessage(`💕 Your relationship with ${npcName} has blossomed into romance!`, 'success');
+            }
+        }
+        // Check for friendship
+        else if (friendshipPatterns.some(pattern => pattern.test(combinedText))) {
+            if (newStatus !== 'romantic') { // Don't downgrade from romantic
+                newStatus = 'allied';
+                trustChange = 15;
+                relationshipChanged = true;
+                displayMessage(`🤝 You've become close friends with ${npcName}!`, 'success');
+            }
+        }
+        // Check for hostility
+        else if (hostilePatterns.some(pattern => pattern.test(combinedText))) {
+            newStatus = 'hostile';
+            trustChange = -20;
+            relationshipChanged = true;
+            displayMessage(`⚔️ Your relationship with ${npcName} has turned hostile!`, 'error');
+        }
+
+        // Update relationship if changed
+        if (relationshipChanged) {
+            updateRelationship(npcName, 0, trustChange);
+            // Override the status with our detected status
+            if (player.relationships[npcName]) {
+                player.relationships[npcName].status = newStatus;
+            }
+            saveGame();
+        }
+    });
+}
+
+// Function to extract NPC names from AI responses
+function extractNPCNames(aiResponse) {
+    const names = [];
+    
+    // Known NPCs from conversation history
+    const knownNPCs = Object.keys(player.relationships || {});
+    
+    // Check for known NPCs in the response
+    knownNPCs.forEach(name => {
+        if (aiResponse.toLowerCase().includes(name.toLowerCase())) {
+            names.push(name);
+        }
+    });
+    
+    // Common NPC name patterns in the response
+    const namePatterns = [
+        /([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*?)(?:\s+(?:says|whispers|shouts|laughs|smiles|nods|looks|eyes|face))/g,
+        /([A-Z][a-z]+)(?:'s\s+(?:eyes|face|voice|smile|laugh))/g,
+        /([A-Z][a-z]+)(?:\s+(?:bursts|leans|wraps|kisses))/g
+    ];
+    
+    namePatterns.forEach(pattern => {
+        let match;
+        while ((match = pattern.exec(aiResponse)) !== null) {
+            const name = match[1].trim();
+            if (name.length > 1 && name.length < 20 && !names.includes(name)) {
+                // Exclude common words that might match the pattern
+                const excludeWords = ['The', 'A', 'An', 'You', 'Your', 'Game', 'Character', 'Player'];
+                if (!excludeWords.includes(name)) {
+                    names.push(name);
+                }
+            }
+        }
+    });
+    
+    // Special case: if "Mara" is mentioned, include her
+    if (aiResponse.toLowerCase().includes('mara') && !names.includes('Mara')) {
+        names.push('Mara');
+    }
+    
+    return [...new Set(names)]; // Remove duplicates
+}
+
         'ancient_relic',
         'crossroads_choice'
     ];
@@ -1122,6 +1250,47 @@ async function generateEventEncounter() {
             displayMessage(`❤️ You recover ${hpHeal} HP.`, 'success');
             updatePlayerStatsDisplay();
             break;
+
+
+// Manual fix for Mara relationship (can be called from console)
+function fixMaraRelationship() {
+    if (!player.relationships) {
+        player.relationships = {};
+    }
+    
+    player.relationships['Mara Moneymaker'] = {
+        status: 'romantic',
+        trust: 85,
+        interactions: 5,
+        lastInteraction: Date.now()
+    };
+    
+    displayMessage("💕 Relationship with Mara Moneymaker updated to romantic!", 'success');
+    saveGame();
+    
+    // Refresh background display if it's open
+    const backgroundInterface = document.getElementById('background-interface');
+    if (backgroundInterface && !backgroundInterface.classList.contains('hidden')) {
+        displayCharacterBackground();
+    }
+}
+
+// Auto-fix Mara relationship if we detect she should be romantic but isn't
+function autoFixMaraRelationship() {
+    const conversationText = conversationHistory.messages.slice(-10).map(m => m.content).join(' ').toLowerCase();
+    
+    if ((conversationText.includes('mara') && conversationText.includes('girlfriend')) ||
+        (conversationText.includes('mara') && conversationText.includes('kiss')) ||
+        (conversationText.includes('glad to be yours'))) {
+        
+        const maraRelationship = player.relationships['Mara Moneymaker'] || player.relationships['Mara'];
+        
+        if (!maraRelationship || maraRelationship.status !== 'romantic') {
+            console.log('Auto-fixing Mara relationship based on conversation history');
+            fixMaraRelationship();
+        }
+    }
+}
 
         case 'ancient_relic':
             displayMessage("🏛️ You discover the ruins of an ancient structure, worn down by time.", 'exploration');
@@ -2499,6 +2668,9 @@ IMPORTANT: If the player is trying to interact with something from recent explor
 
             // Check for quest completion
             checkQuestCompletion(command + ' ' + response);
+
+            // Check for relationship changes including romantic developments
+            checkRelationshipChanges(command, response);
 
             // Save conversation history
             saveConversationHistory();
