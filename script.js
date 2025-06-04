@@ -787,19 +787,19 @@ async function executeCustomCommand(command) {
         /(?:leave|exit)\s+(?:the\s+)?(.+?)(?:\s+and\s+(?:go|head)\s+(?:to\s+)?(.+))?/i
     ];
 
-    let isMovement = false;
+    let isBasicMovement = false;
     let destination = null;
 
     for (const pattern of basicMovementPatterns) {
         const match = command.match(pattern);
         if (match) {
-            isMovement = true;
+            isBasicMovement = true;
             destination = match[2] || match[1]; // Use second capture group if available, otherwise first
             break;
         }
     }
 
-    if (isMovement && destination) {
+    if (isBasicMovement && destination) {
         // Clean up the destination name
         destination = destination.replace(/^(the|a|an)\s+/i, '').trim();
         destination = destination.replace(/\s+(and|then|,).*$/i, '').trim();
