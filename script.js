@@ -714,9 +714,9 @@ async function executeCustomCommand(command) {
 
     // Check if it's a movement command
     const movementKeywords = ['go to', 'travel to', 'move to', 'head to', 'walk to', 'run to', 'visit', 'enter'];
-    const isMovement = movementKeywords.some(keyword => command.toLowerCase().includes(keyword));
+    const isMovementCommand = movementKeywords.some(keyword => command.toLowerCase().includes(keyword));
 
-    if (isMovement) {
+    if (isMovementCommand) {
         await handleStructuredMovement(command);
         return;
     }
@@ -787,19 +787,19 @@ async function executeCustomCommand(command) {
         /(?:leave|exit)\s+(?:the\s+)?(.+?)(?:\s+and\s+(?:go|head)\s+(?:to\s+)?(.+))?/i
     ];
 
-    let isBasicMovement = false;
+    let hasBasicMovement = false;
     let destination = null;
 
     for (const pattern of basicMovementPatterns) {
         const match = command.match(pattern);
         if (match) {
-            isBasicMovement = true;
+            hasBasicMovement = true;
             destination = match[2] || match[1]; // Use second capture group if available, otherwise first
             break;
         }
     }
 
-    if (isBasicMovement && destination) {
+    if (hasBasicMovement && destination) {
         // Clean up the destination name
         destination = destination.replace(/^(the|a|an)\s+/i, '').trim();
         destination = destination.replace(/\s+(and|then|,).*$/i, '').trim();
