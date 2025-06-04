@@ -2640,7 +2640,127 @@ window.buyShopItem = buyShopItem;
         saveGame();
         console.log('Inventory fixed and saved');
     };
+
+    // Reset character progression function
+    window.resetCharacterProgression = function() {
+        if (!player || !player.name || !player.class) {
+            displayMessage("No character loaded to reset progression for.", 'error');
+            return;
+        }
+
+        if (!confirm("Reset character progression? This will refresh your feats, skills, and abilities to match the updated game files, but keep your inventory, conversation history, and other data intact.")) {
+            return;
+        }
+
+        try {
+            console.log('Resetting character progression...');
+            
+            // Store important data we want to keep
+            const preservedData = {
+                name: player.name,
+                gender: player.gender,
+                class: player.class,
+                background: player.background,
+                level: player.level,
+                exp: player.exp,
+                expToNextLevel: player.expToNextLevel,
+                hp: player.hp,
+                maxHp: player.maxHp,
+                gold: player.gold,
+                inventory: player.inventory,
+                equipment: player.equipment,
+                currentLocation: player.currentLocation,
+                quests: player.quests,
+                completedQuests: player.completedQuests,
+                currentEnemy: player.currentEnemy
+            };
+
+            // Reset stats to base values before reapplying class bonuses
+            player.stats = {
+                strength: 10,
+                dexterity: 10,
+                intelligence: 10,
+                constitution: 10,
+                wisdom: 10,
+                charisma: 10
+            };
+
+            // Clear progression data
+            player.classProgression = null;
+
+            // Reinitialize with CharacterManager
+            if (CharacterManager && typeof CharacterManager.initializeCharacter === 'function') {
+                CharacterManager.initializeCharacter(player, player.class);
+                
+                // If player is above level 1, apply progression for each level
+                if (player.level > 1) {
+                    player.classProgression.level = 1; // Start from 1
+                    for (let level = 2; level <= player.level; level++) {
+                        CharacterManager.applyLevelProgression(player, level);
+                    }
+                    player.classProgression.level = player.level; // Ensure level matches
+                }
+            } else {
+                // Fallback initialization
+                const classData = classes[player.class];
+                if (classData) {
+                    // Apply stat bonuses
+                    Object.keys(classData.statFocus).forEach(stat => {
+                        player.stats[stat] += classData.statFocus[stat];
+                    });
+                }
+                console.warn('CharacterManager not available, using fallback initialization');
+            }
+
+            // Restore preserved data
+            Object.keys(preservedData).forEach(key => {
+                if (preservedData[key] !== undefined) {
+                    player[key] = preservedData[key];
+                }
+            });
+
+            // Validate and fix stats after reset
+            if (validateAndFixStats(player)) {
+                console.log("Fixed stats after progression reset");
+            }
+
+            // Save the updated character
+            saveGame();
+            if (player.classProgression) {
+                CharacterManager.saveProgression(player);
+            }
+
+            // Update display
+            updatePlayerStatsDisplay();
+            
+            displayMessage("Character progression has been reset and updated with the latest game data!", 'success');
+            displayMessage(`Your level ${player.level} ${player.class} has been refreshed with updated feats, skills, and abilities.`, 'info');
+            
+            console.log('Character progression reset complete');
+            
+        } catch (error) {
+            console.error('Error resetting character progression:', error);
+            displayMessage("An error occurred while resetting progression. Please try again.", 'error');
+        }
+    };
 });
+
+// Add reset progression button to the game interface
+    const resetProgressionBtn = document.createElement('button');
+    resetProgressionBtn.id = 'reset-progression-btn';
+    resetProgressionBtn.className = 'btn-parchment bg-orange-600 hover:bg-orange-700 text-white text-sm py-1 px-2';
+    resetProgressionBtn.style.position = 'absolute';
+    resetProgressionBtn.style.top = '10px';
+    resetProgressionBtn.style.right = '10px';
+    resetProgressionBtn.style.zIndex = '999';
+    resetProgressionBtn.innerHTML = '<i class="gi gi-refresh mr-1"></i>Reset Progression';
+    resetProgressionBtn.title = 'Reset character progression (feats, skills, abilities) to match updated game files';
+    
+    // Add to game container
+    const gameContainer = document.getElementById('game-container');
+    if (gameContainer) {
+        gameContainer.appendChild(resetProgressionBtn);
+    }
 
 // Add main event listeners function
 function addMainEventListeners() {
@@ -2730,6 +2850,13 @@ function addMainEventListeners() {
 
         exitBackgroundBtn?.addEventListener('click', () => {
             backgroundInterface?.classList.add('hidden');
+        });
+
+        // Reset progression button
+        const resetProgressionBtn = document.getElementById('reset-progression-btn');
+        resetProgressionBtn?.addEventListener('click', () => {
+            console.log('Reset progression button clicked');
+            resetCharacterProgression();
         });
 
         console.log('✓ Main event listeners added');
