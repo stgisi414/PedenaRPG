@@ -47,6 +47,7 @@ let player = {
     skills: [],
     abilities: [],
     quests: [],
+    relationships: {}, // NPC relationships: { npcName: { status: 'neutral', trust: 50, interactions: 0 } }
     currentLocation: 'Pedena Town Square',
     currentEnemy: null // For combat
 };
@@ -166,6 +167,42 @@ function addToConversationHistory(role, content) {
     if (conversationHistory.messages.length > conversationHistory.maxMessages) {
         conversationHistory.messages = conversationHistory.messages.slice(-conversationHistory.maxMessages);
     }
+}
+
+function updateRelationship(npcName, statusChange = 0, trustChange = 0) {
+    if (!player.relationships) {
+        player.relationships = {};
+    }
+
+    if (!player.relationships[npcName]) {
+        player.relationships[npcName] = {
+            status: 'neutral',
+            trust: 50,
+            interactions: 0,
+            lastInteraction: Date.now()
+        };
+    }
+
+    const relationship = player.relationships[npcName];
+    relationship.trust = Math.max(0, Math.min(100, relationship.trust + trustChange));
+    relationship.interactions++;
+    relationship.lastInteraction = Date.now();
+
+    // Update status based on trust level
+    if (relationship.trust >= 80) {
+        relationship.status = 'allied';
+    } else if (relationship.trust >= 60) {
+        relationship.status = 'friendly';
+    } else if (relationship.trust >= 40) {
+        relationship.status = 'neutral';
+    } else if (relationship.trust >= 20) {
+        relationship.status = 'unfriendly';
+    } else {
+        relationship.status = 'hostile';
+    }
+
+    saveGame();
+    return relationship;
 }
 
 function getConversationContext() {
@@ -2266,6 +2303,10 @@ async function startConversation() {
         displayMessage(npcMessage);
         addToConversationHistory('assistant', npcMessage);
         gameWorld.lastNPCInteraction = npc.id;
+        
+        // Update relationship - small positive interaction for talking
+        updateRelationship(npc.name, 0, 2);
+        displayMessage(`Your relationship with ${npc.name} has slightly improved.`, 'info');
     } else {
         // Create new NPC
         const context = GameDataManager.generateLocationContext(player.currentLocation);
@@ -2301,6 +2342,10 @@ Use the name "${npcName}" throughout the description.`;
             const encounterMessage = npcInfo;
             displayMessage(encounterMessage);
             addToConversationHistory('assistant', encounterMessage);
+            
+            // Initialize relationship for new NPC
+            updateRelationship(npcName, 0, 5);
+            displayMessage(`You've established a new relationship with ${npcName}.`, 'info');
         } else {
             const fallbackMessage = "You don't see anyone interesting to talk to right now.";
             displayMessage(fallbackMessage);
@@ -3224,6 +3269,18 @@ function getEffectDescription(effect) {
     return 'Special effect'; // Generic fallback for any other case
 }
 
+function getRelationshipColor(status) {
+    const colors = {
+        'hostile': 'text-red-600',
+        'unfriendly': 'text-red-400',
+        'neutral': 'text-gray-600',
+        'friendly': 'text-green-400',
+        'allied': 'text-green-600',
+        'romantic': 'text-pink-500'
+    };
+    return colors[status] || colors['neutral'];
+}
+
 // Item action functions
 function equipItem(itemIndex) {
     // --- Start of Debugging Logs ---
@@ -3474,6 +3531,32 @@ function displayCharacterBackground() {
         statsGridHTML += '</div>';
     }
 
+    // --- Data Preparation for Relationships ---
+    let relationshipsHTML = "";
+    if (player.relationships && Object.keys(player.relationships).length > 0) {
+        relationshipsHTML = '<div class="grid grid-cols-1 gap-2 text-sm">';
+        Object.entries(player.relationships).forEach(([npcName, relationship]) => {
+            const relationshipColor = getRelationshipColor(relationship.status);
+            const trust = relationship.trust || 0;
+            const trustBar = Math.max(0, Math.min(100, trust));
+            
+            relationshipsHTML += `
+                <div class="flex justify-between items-center py-2 border-b border-amber-700/20">
+                    <div class="flex-grow">
+                        <span class="font-semibold">${npcName}</span>
+                        <span class="text-xs ${relationshipColor} ml-2">(${relationship.status})</span>
+                        <div class="w-full bg-gray-200 rounded-full h-2 mt-1">
+                            <div class="bg-green-500 h-2 rounded-full" style="width: ${trustBar}%"></div>
+                        </div>
+                    </div>
+                    <span class="text-xs text-gray-600 ml-2">${trust}/100</span>
+                </div>`;
+        });
+        relationshipsHTML += '</div>';
+    } else {
+        relationshipsHTML = '<p class="text-sm text-gray-600 italic">No relationships established yet.</p>';
+    }
+
     // --- Constructing the innerHTML for backgroundContentDisplay ---
     backgroundContentDisplay.innerHTML = `
         <div class="parchment-box p-4">
@@ -3492,6 +3575,11 @@ function displayCharacterBackground() {
             <div class="mt-4 pt-4 border-t border-amber-700/30">
                 <h6 class="font-bold text-lg mb-2 text-amber-700">Character Statistics</h6>
                 ${statsGridHTML}
+            </div>
+
+            <div class="mt-4 pt-4 border-t border-amber-700/30">
+                <h6 class="font-bold text-lg mb-2 text-amber-700">Relationships</h6>
+                ${relationshipsHTML}
             </div>
 
             <div class="mt-4 pt-4 border-t border-amber-700/30">
