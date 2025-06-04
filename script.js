@@ -901,60 +901,80 @@ async function handleStructuredMovement(command) {
     }
 
     // Create structured prompt for AI with JSON schema
-    const movementPrompt = `
-You are a game master for a fantasy RPG. The player "${player.name}" (Level ${player.level} ${player.class}) wants to travel from "${player.currentLocation}" to "${destination}".
+    const movementPrompt = `You are a game master for a fantasy RPG. The player "${player.name}" (Level ${player.level} ${player.class}) wants to travel from "${player.currentLocation}" to "${destination}".
 
-You must respond with ONLY valid JSON in this exact format:
+CRITICAL: You MUST respond with ONLY valid JSON. No extra text before or after. Use this EXACT format:
+
 {
-    "canMove": true/false,
+    "canMove": true,
     "newLocation": "Exact location name",
     "travelTime": "time description",
     "description": "2-3 sentence travel description",
-    "encounterChance": 0.0-1.0,
-    "encounterType": "none/combat/social/discovery",
+    "encounterChance": 0.2,
+    "encounterType": "none",
     "goldCost": 0
 }
 
-Rules:
-- If destination is vague, interpret as closest reasonable location
-- Keep location names consistent and memorable
-- Travel time should be realistic for fantasy setting
-- Description should be immersive but brief
-- Encounter chance: 0.1 for safe areas, 0.3 for wilderness, 0.5 for dangerous areas
-- Gold cost only for transport services (ships, carriages, etc.)
+VALIDATION RULES:
+- canMove: boolean (true/false)
+- newLocation: string (clean, proper location name)
+- travelTime: string (e.g., "30 minutes", "2 hours")
+- description: string (immersive travel narrative)
+- encounterChance: number 0.0-1.0 (0.1 safe, 0.3 wilderness, 0.5 dangerous)
+- encounterType: string ("none", "combat", "social", "discovery")
+- goldCost: number (0 for walking, 10-50 for transport)
 
-Current context: Player has ${player.gold} gold, is at "${player.currentLocation}"
-`;
+Context: Player has ${player.gold} gold, currently at "${player.currentLocation}"`;
 
     try {
-        const response = await callGeminiAPI(movementPrompt, 0.3, 400);
+        const response = await callGeminiAPI(movementPrompt, 0.2, 300, false);
 
         if (!response) {
             displayMessage("Unable to process movement request.", 'error');
             return;
         }
 
-        // Extract JSON from response
+        // Clean and parse JSON response
         let movementData;
         try {
-            // Try to find JSON in the response
-            const jsonMatch = response.match(/\{[\s\S]*\}/);
+            // Remove any non-JSON content and extract JSON
+            const cleanResponse = response.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+            const jsonMatch = cleanResponse.match(/\{[\s\S]*\}/);
+            
             if (jsonMatch) {
                 movementData = JSON.parse(jsonMatch[0]);
             } else {
-                throw new Error("No JSON found in response");
+                throw new Error("No valid JSON structure found");
             }
-        } catch (parseError) {
-            console.error("Failed to parse movement JSON:", parseError);
-            // Fallback to old system
-            await handleMovement(command);
-            return;
-        }
 
-        // Validate required fields
-        if (!movementData.canMove === undefined || !movementData.newLocation || !movementData.description) {
-            console.error("Invalid movement data structure:", movementData);
-            await handleMovement(command);
+            // Validate all required fields exist and are correct types
+            if (typeof movementData.canMove !== 'boolean' ||
+                typeof movementData.newLocation !== 'string' ||
+                typeof movementData.description !== 'string' ||
+                typeof movementData.encounterChance !== 'number' ||
+                !movementData.newLocation.trim()) {
+                throw new Error("Invalid data types in JSON response");
+            }
+
+            // Sanitize and validate ranges
+            movementData.encounterChance = Math.max(0, Math.min(1, movementData.encounterChance));
+            movementData.goldCost = Math.max(0, parseInt(movementData.goldCost) || 0);
+            movementData.newLocation = movementData.newLocation.trim();
+
+        } catch (parseError) {
+            console.error("Failed to parse movement JSON:", parseError, "Raw response:", response);
+            // Enhanced fallback with basic movement
+            const sanitizedDestination = destination.replace(/[^a-zA-Z\s]/g, '').trim();
+            if (sanitizedDestination) {
+                const fallbackLocation = sanitizedDestination.replace(/\b\w/g, letter => letter.toUpperCase());
+                player.currentLocation = fallbackLocation;
+                displayMessage(`You travel to ${fallbackLocation}.`, 'success');
+                updatePlayerStatsDisplay();
+                saveGame();
+                if (Math.random() < 0.2) checkRandomEncounter();
+            } else {
+                displayMessage("Unable to determine destination.", 'error');
+            }
             return;
         }
 
@@ -970,34 +990,37 @@ Current context: Player has ${player.gold} gold, is at "${player.currentLocation
                 displayMessage(`You need ${movementData.goldCost} gold to travel there, but you only have ${player.gold} gold.`, 'error');
                 return;
             }
-            player.gold -= movementData.goldCost;
-            displayMessage(`You pay ${movementData.goldCost} gold for transportation.`, 'info');
+            updateGold(-movementData.goldCost, 'transportation');
         }
 
         // Update player location
+        const oldLocation = player.currentLocation;
         player.currentLocation = movementData.newLocation;
         displayMessage(movementData.description, 'success');
+        displayMessage(`You arrive at ${movementData.newLocation}.`, 'info');
 
         // Show travel time if provided
         if (movementData.travelTime) {
             displayMessage(`Travel time: ${movementData.travelTime}`, 'info');
         }
 
-        // Save the new location
+        // Update displays and save
+        updatePlayerStatsDisplay();
+        LocationManager.saveLocationToHistory(movementData.newLocation, player.name);
+        addToConversationHistory('assistant', `${player.name} traveled from ${oldLocation} to ${movementData.newLocation}`);
         saveGame();
 
         // Check for encounters based on AI decision
         if (movementData.encounterChance > 0 && Math.random() < movementData.encounterChance) {
             setTimeout(async () => {
-                if (movementData.encounterType === 'combat') {
-                    await generateRandomEncounter();
-                } else if (movementData.encounterType === 'social') {
-                    await generateNPCEncounter();
-                } else if (movementData.encounterType === 'discovery') {
-                    await generateDiscoveryEncounter();
-                } else {
-                    await generateRandomEncounter(); // Default fallback
-                }
+                const encounterTypes = {
+                    'combat': generateRandomEncounter,
+                    'social': generateNPCEncounter,
+                    'discovery': generateDiscoveryEncounter
+                };
+                
+                const encounterFunction = encounterTypes[movementData.encounterType] || generateRandomEncounter;
+                await encounterFunction();
             }, 1500);
         }
 
@@ -1071,27 +1094,203 @@ async function generateNPCEncounter() {
 async function generateRandomEncounter() {
     displayMessage("You encounter something on your journey...", 'info');
 
-    // Generate a random encounter type
-    const encounterTypes = ['combat', 'treasure', 'npc', 'event'];
-    const encounterType = encounterTypes[Math.floor(Math.random() * encounterTypes.length)];
+    // Weighted encounter types based on location and level
+    const encounterWeights = {
+        combat: 0.4,
+        treasure: 0.2,
+        npc: 0.25,
+        event: 0.15
+    };
+
+    // Adjust weights based on player level and location
+    if (player.level < 3) {
+        encounterWeights.combat = 0.3; // Less combat for low level
+        encounterWeights.treasure = 0.3; // More treasure
+    }
+
+    if (player.currentLocation.toLowerCase().includes('city') || player.currentLocation.toLowerCase().includes('town')) {
+        encounterWeights.combat = 0.2; // Less combat in cities
+        encounterWeights.npc = 0.5; // More NPCs in populated areas
+    }
+
+    // Generate random encounter
+    const random = Math.random();
+    let cumulative = 0;
+    let encounterType = 'event';
+
+    for (const [type, weight] of Object.entries(encounterWeights)) {
+        cumulative += weight;
+        if (random <= cumulative) {
+            encounterType = type;
+            break;
+        }
+    }
 
     switch (encounterType) {
         case 'combat':
-            displayMessage("A wild monster appears!", 'combat');
+            await generateCombatEncounter();
             break;
         case 'treasure':
-            displayMessage("You found a hidden treasure!", 'success');
+            await generateTreasureEncounter();
             break;
         case 'npc':
-            displayMessage("You meet a wandering traveler.", 'info');
+            await generateNPCEncounter();
             break;
         case 'event':
-            displayMessage("A strange event unfolds before you...", 'exploration');
+            await generateEventEncounter();
             break;
         default:
-            displayMessage("Nothing happens...", 'info');
+            displayMessage("The path ahead is quiet and peaceful.", 'info');
             break;
     }
+}
+
+async function generateCombatEncounter() {
+    displayMessage("⚔️ A hostile creature blocks your path!", 'combat');
+
+    // Scale enemy based on player level
+    const enemyTypes = [
+        { name: 'Goblin Scout', hp: 15, attack: '1d4+1', defense: 1, level: 1 },
+        { name: 'Wild Wolf', hp: 20, attack: '1d6', defense: 2, level: 1 },
+        { name: 'Bandit', hp: 25, attack: '1d6+2', defense: 3, level: 2 },
+        { name: 'Orc Warrior', hp: 35, attack: '1d8+1', defense: 4, level: 3 },
+        { name: 'Dark Mage', hp: 30, attack: '1d8+2', defense: 2, level: 4 },
+        { name: 'Hill Giant', hp: 50, attack: '1d10+3', defense: 5, level: 5 }
+    ];
+
+    // Select appropriate enemy for player level
+    const suitableEnemies = enemyTypes.filter(enemy => enemy.level <= player.level + 1);
+    const selectedEnemy = suitableEnemies[Math.floor(Math.random() * suitableEnemies.length)] || enemyTypes[0];
+
+    // Scale enemy stats
+    const levelDifference = Math.max(0, player.level - selectedEnemy.level);
+    const scaledEnemy = {
+        ...selectedEnemy,
+        hp: selectedEnemy.hp + (levelDifference * 5),
+        maxHp: selectedEnemy.hp + (levelDifference * 5),
+        name: levelDifference > 0 ? `Veteran ${selectedEnemy.name}` : selectedEnemy.name
+    };
+
+    player.currentEnemy = scaledEnemy;
+    enemyInfoDisplay.innerHTML = `
+        <h5 class="text-xl font-bold">${scaledEnemy.name}</h5>
+        <p>HP: ${scaledEnemy.hp}/${scaledEnemy.maxHp}</p>
+        <p>Attack: ${scaledEnemy.attack}</p>
+        <p>Defense: ${scaledEnemy.defense}</p>
+    `;
+    
+    combatInterface.classList.remove('hidden');
+    displayMessage(`You face ${scaledEnemy.name}! Prepare for battle!`, 'combat');
+}
+
+async function generateTreasureEncounter() {
+    displayMessage("✨ You discover something valuable!", 'success');
+
+    const treasureTypes = ['gold', 'item', 'multiple'];
+    const treasureType = treasureTypes[Math.floor(Math.random() * treasureTypes.length)];
+
+    switch (treasureType) {
+        case 'gold':
+            const goldAmount = Math.floor(Math.random() * (player.level * 30)) + 20;
+            updateGold(goldAmount, 'treasure found');
+            displayMessage(`💰 You found ${goldAmount} gold coins hidden in the area!`, 'success');
+            break;
+
+        case 'item':
+            if (window.ItemManager && typeof ItemManager.generateItem === 'function') {
+                const item = ItemManager.generateItem({
+                    category: Math.random() > 0.5 ? 'WEAPON' : 'MAGICAL',
+                    rarity: player.level > 3 ? 'UNCOMMON' : 'COMMON'
+                });
+                if (item) {
+                    ItemManager.addToInventory(player, item);
+                    displayMessage(`🎁 You found: ${item.name}!`, 'success');
+                    displayMessage(`${item.description}`, 'info');
+                }
+            } else {
+                // Fallback item generation
+                const items = ['Health Potion', 'Magic Scroll', 'Silver Ring', 'Iron Dagger'];
+                const foundItem = items[Math.floor(Math.random() * items.length)];
+                if (!player.inventory) player.inventory = [];
+                player.inventory.push({
+                    id: Date.now(),
+                    name: foundItem,
+                    type: 'treasure',
+                    description: 'A valuable item found during your travels',
+                    value: Math.floor(Math.random() * 50) + 25
+                });
+                displayMessage(`🎁 You found: ${foundItem}!`, 'success');
+            }
+            break;
+
+        case 'multiple':
+            const smallGold = Math.floor(Math.random() * (player.level * 15)) + 10;
+            updateGold(smallGold, 'treasure cache');
+            displayMessage(`💰 You found a small treasure cache with ${smallGold} gold!`, 'success');
+            
+            if (Math.random() > 0.5) {
+                displayMessage("🍺 You also found a healing potion!", 'success');
+                if (!player.inventory) player.inventory = [];
+                player.inventory.push({
+                    id: Date.now(),
+                    name: 'Healing Potion',
+                    type: 'consumable',
+                    effect: { type: 'heal', amount: 25 },
+                    description: 'Restores 25 HP when consumed',
+                    value: 20
+                });
+            }
+            break;
+    }
+
+    saveGame();
+}
+
+async function generateEventEncounter() {
+    displayMessage("🌟 Something interesting happens...", 'exploration');
+
+    const events = [
+        'weather_change',
+        'mysterious_sign',
+        'helpful_spirit',
+        'ancient_relic',
+        'crossroads_choice'
+    ];
+
+    const eventType = events[Math.floor(Math.random() * events.length)];
+
+    switch (eventType) {
+        case 'weather_change':
+            const weathers = ['begins to rain', 'clears up beautifully', 'becomes foggy', 'grows windy'];
+            const weather = weathers[Math.floor(Math.random() * weathers.length)];
+            displayMessage(`🌤️ The weather ${weather}, affecting your journey.`, 'info');
+            break;
+
+        case 'mysterious_sign':
+            displayMessage("🪧 You find a weathered signpost with mysterious directions carved into it.", 'exploration');
+            displayMessage("The ancient words seem to point toward hidden paths and secret locations.", 'info');
+            break;
+
+        case 'helpful_spirit':
+            const hpHeal = Math.floor(player.maxHp * 0.25);
+            player.hp = Math.min(player.maxHp, player.hp + hpHeal);
+            displayMessage("👻 A benevolent spirit appears and blesses you with healing energy!", 'success');
+            displayMessage(`❤️ You recover ${hpHeal} HP.`, 'success');
+            updatePlayerStatsDisplay();
+            break;
+
+        case 'ancient_relic':
+            displayMessage("🏛️ You discover the ruins of an ancient structure, worn down by time.", 'exploration');
+            displayMessage("Though mostly destroyed, you sense this place once held great significance.", 'info');
+            break;
+
+        case 'crossroads_choice':
+            displayMessage("🛤️ You reach a crossroads with multiple paths branching in different directions.", 'exploration');
+            displayMessage("Each path seems to lead to different adventures and opportunities.", 'info');
+            break;
+    }
+
+    saveGame();
 }
 
 async function generateQuest() {
@@ -1238,17 +1437,27 @@ function checkQuestCompletion(playerAction) {
             const questText = (quest.objective || quest.description).toLowerCase();
             const actionText = playerAction.toLowerCase();
 
-            // Extract key action words and target objects
-            const actionKeywords = questText.match(/\b(kill|defeat|slay|destroy|find|locate|discover|collect|gather|deliver|bring|talk|speak|converse|visit|go to|explore|investigate|solve|complete)\b/g) || [];
-            const targetKeywords = questText.match(/\b(goblin|orc|dragon|treasure|artifact|scroll|book|merchant|priest|king|queen|temple|castle|forest|mountain|cave|ruins)\b/g) || [];
+            // Enhanced action and target extraction
+            const actionKeywords = questText.match(/\b(kill|defeat|slay|destroy|eliminate|find|locate|discover|collect|gather|retrieve|deliver|bring|hand|give|talk|speak|converse|visit|go to|travel to|explore|investigate|solve|complete|finish|accomplish|obtain|acquire|rescue|save|protect)\b/g) || [];
+            const targetKeywords = questText.match(/\b(goblin|orc|dragon|bandit|thief|merchant|priest|king|queen|wizard|mage|treasure|artifact|scroll|book|letter|package|crystal|gem|temple|castle|tower|forest|mountain|cave|ruins|city|village|inn|tavern)\b/g) || [];
 
-            // Check if action contains quest keywords
+            // More flexible matching system
             if (actionKeywords.length > 0) {
-                const matchedActions = actionKeywords.filter(keyword => actionText.includes(keyword));
+                const matchedActions = actionKeywords.filter(keyword => {
+                    // Check for exact word match or similar actions
+                    return actionText.includes(keyword) || 
+                           (keyword === 'defeat' && (actionText.includes('beat') || actionText.includes('win') || actionText.includes('victory'))) ||
+                           (keyword === 'find' && (actionText.includes('found') || actionText.includes('discovered'))) ||
+                           (keyword === 'deliver' && (actionText.includes('gave') || actionText.includes('handed'))) ||
+                           (keyword === 'talk' && (actionText.includes('spoke') || actionText.includes('conversation')));
+                });
+                
                 if (matchedActions.length > 0) {
                     // If we have targetKeywords, check for those too
                     if (targetKeywords.length > 0) {
-                        const matchedTargets = targetKeywords.filter(keyword => actionText.includes(keyword));
+                        const matchedTargets = targetKeywords.filter(keyword => 
+                            actionText.includes(keyword) || actionText.includes(keyword + 's') || actionText.includes(keyword.slice(0, -1))
+                        );
                         isCompleted = matchedTargets.length > 0;
                     } else {
                         // No specific targets mentioned, action match is enough
@@ -1257,58 +1466,119 @@ function checkQuestCompletion(playerAction) {
                 }
             }
 
-            // Additional checks for location-based quests
-            if (!isCompleted && quest.location && questText.includes(quest.location.toLowerCase())) {
-                if (actionText.includes('arrive') || actionText.includes('reach') || actionText.includes('enter')) {
+            // Location-based quest completion
+            if (!isCompleted && quest.location) {
+                const questLocation = quest.location.toLowerCase();
+                if ((actionText.includes('arrive') || actionText.includes('reach') || actionText.includes('enter') || actionText.includes('visit')) &&
+                    (actionText.includes(questLocation) || player.currentLocation.toLowerCase().includes(questLocation))) {
                     isCompleted = true;
                 }
             }
 
+            // Check for quest completion phrases
+            if (!isCompleted) {
+                const completionPhrases = ['quest complete', 'mission accomplished', 'task finished', 'objective complete'];
+                isCompleted = completionPhrases.some(phrase => actionText.includes(phrase));
+            }
+
             if (isCompleted) {
                 quest.completed = true;
-                displayMessage(`Quest completed: ${quest.title}!`, 'success');
+                displayMessage(`🎉 Quest completed: ${quest.title || 'Unknown Quest'}!`, 'success');
 
-                // Award structured quest rewards
-                if (quest.rewards) {
-                    // Award gold
-                    if (quest.rewards.gold > 0) {
-                        player.gold += quest.rewards.gold;
-                        displayMessage(`You earned ${quest.rewards.gold} gold!`, 'reward');
+                // Award structured quest rewards with proper parsing
+                if (quest.rewards && typeof quest.rewards === 'object') {
+                    // Award gold with proper validation
+                    const goldReward = parseInt(quest.rewards.gold) || 0;
+                    if (goldReward > 0) {
+                        updateGold(goldReward, 'quest reward');
+                        displayMessage(`💰 You earned ${goldReward} gold!`, 'success');
                     }
 
-                    // Award experience
-                    if (quest.rewards.experience > 0) {
+                    // Award experience with proper validation
+                    const xpReward = parseInt(quest.rewards.experience) || parseInt(quest.rewards.exp) || 0;
+                    if (xpReward > 0) {
                         const oldLevel = player.level;
-                        CharacterManager.gainExperience(player, quest.rewards.experience);
-                        displayMessage(`You gained ${quest.rewards.experience} experience!`, 'reward');
+                        gainExperience(xpReward);
+                        displayMessage(`⭐ You gained ${xpReward} experience!`, 'success');
 
                         // Check for level up
                         if (player.level > oldLevel) {
-                            displayMessage(`Level up! You are now level ${player.level}!`, 'success');
+                            displayMessage(`🆙 Level up! You are now level ${player.level}!`, 'success');
+                            if (window.displayLevelUpRewards && player.classProgression) {
+                                displayLevelUpRewards(player.classProgression, oldLevel);
+                            }
                         }
                     }
 
-                    // Award items
-                    if (quest.rewards.items && quest.rewards.items.length > 0) {
+                    // Award items with proper validation
+                    if (quest.rewards.items && Array.isArray(quest.rewards.items) && quest.rewards.items.length > 0) {
                         quest.rewards.items.forEach(itemName => {
-                            const item = ItemManager.createItem(itemName, player.level);
-                            if (item) {
-                                ItemManager.addToInventory(player, item);
-                                displayMessage(`You received: ${item.name}!`, 'reward');
+                            if (typeof itemName === 'string' && itemName.trim()) {
+                                // Try to create item using ItemManager if available
+                                if (window.ItemManager && typeof ItemManager.createItem === 'function') {
+                                    const item = ItemManager.createItem(itemName.trim(), player.level);
+                                    if (item) {
+                                        ItemManager.addToInventory(player, item);
+                                        displayMessage(`🎁 You received: ${item.name}!`, 'success');
+                                    }
+                                } else {
+                                    // Fallback to simple inventory addition
+                                    const simpleItem = {
+                                        id: Date.now() + Math.random(),
+                                        name: itemName.trim(),
+                                        type: 'quest_reward',
+                                        description: 'A reward for completing a quest',
+                                        value: 10
+                                    };
+                                    if (!player.inventory) player.inventory = [];
+                                    player.inventory.push(simpleItem);
+                                    displayMessage(`🎁 You received: ${simpleItem.name}!`, 'success');
+                                }
                             }
                         });
                     }
                 } else {
-                    // Fallback to old reward system
-                    const reward = quest.reward || 50;
-                    player.gold += reward;
-                    displayMessage(`You earned ${reward} gold!`, 'reward');
+                    // Enhanced fallback system with better reward calculation
+                    const fallbackGold = Math.max(50, player.level * 25 + Math.floor(Math.random() * 50));
+                    const fallbackXP = Math.max(25, player.level * 15 + Math.floor(Math.random() * 25));
+                    
+                    updateGold(fallbackGold, 'quest completion');
+                    gainExperience(fallbackXP);
+                    displayMessage(`💰 You earned ${fallbackGold} gold and ${fallbackXP} experience!`, 'success');
                 }
 
+                // Update quest completion tracking
+                if (!player.completedQuests) player.completedQuests = 0;
+                player.completedQuests++;
+
                 saveGame();
+                updateQuestButton();
             }
         }
     });
+}
+
+// Helper function for experience gain
+function gainExperience(amount) {
+    if (!amount || amount <= 0) return;
+    
+    player.exp = (player.exp || 0) + amount;
+    
+    // Check for level up
+    while (player.exp >= player.expToNextLevel) {
+        player.exp -= player.expToNextLevel;
+        player.level++;
+        player.maxHp += 10; // Basic HP increase
+        player.hp = player.maxHp; // Full heal on level up
+        player.expToNextLevel = Math.floor(player.expToNextLevel * 1.5); // Increase XP needed
+        
+        // Apply class progression if available
+        if (window.CharacterManager && typeof CharacterManager.levelUp === 'function') {
+            CharacterManager.levelUp(player);
+        }
+    }
+    
+    updatePlayerStatsDisplay();
 }
 
 async function playerAttack() {
@@ -1364,48 +1634,89 @@ async function enemyAttack() {
 
     const enemy = player.currentEnemy;
 
-    // Calculate enemy damage
-    const baseDamage = enemy.attack || 8;
-    const randomVariation = Math.floor(Math.random() * 8) + 1; // 1-8
-    const damage = baseDamage + randomVariation;
-
-    // Apply damage to player
-    player.hp -= damage;
-
-    // Ensure HP doesn't go below 0
-    if (player.hp < 0) {
-        player.hp = 0;
+    // Enhanced damage calculation with armor consideration
+    let baseDamage = 0;
+    
+    // Parse enemy attack if it's a dice string
+    if (typeof enemy.attack === 'string' && enemy.attack.includes('d')) {
+        baseDamage = rollDice(enemy.attack);
+    } else {
+        baseDamage = parseInt(enemy.attack) || 8;
     }
 
-    displayMessage(`${enemy.name} attacks you for ${damage} damage!`, 'combat');
-    displayMessage(`Your HP: ${player.hp}/${player.maxHp}`, 'info');
+    // Add level-based scaling for enemies
+    const levelScaling = Math.max(1, Math.floor(player.level / 3));
+    const randomVariation = Math.floor(Math.random() * 6) + 1; // 1-6
+    let totalDamage = baseDamage + levelScaling + randomVariation;
+
+    // Calculate player defense from equipment and stats
+    let playerDefense = 0;
+    
+    // Check equipped armor
+    if (player.equipment) {
+        Object.values(player.equipment).forEach(item => {
+            if (item && typeof item.defense === 'number') {
+                playerDefense += item.defense;
+            }
+        });
+    }
+
+    // Add constitution bonus to defense
+    if (player.stats && player.stats.constitution) {
+        const constitutionBonus = Math.floor((player.stats.constitution - 10) / 2);
+        playerDefense += Math.max(0, constitutionBonus);
+    }
+
+    // Apply defense (minimum 1 damage)
+    const finalDamage = Math.max(1, totalDamage - playerDefense);
+
+    // Apply damage to player
+    const oldHp = player.hp;
+    player.hp = Math.max(0, player.hp - finalDamage);
+
+    // Display combat results
+    displayMessage(`${enemy.name} attacks you for ${finalDamage} damage!${playerDefense > 0 ? ` (${totalDamage} reduced by ${playerDefense} defense)` : ''}`, 'combat');
+    displayMessage(`Your HP: ${player.hp}/${player.maxHp}${oldHp > player.hp ? ` (-${oldHp - player.hp})` : ''}`, 'info');
 
     // Update HP display
-    updatePlayerHPDisplay();
+    updatePlayerStatsDisplay();
 
     // Check if player is defeated
     if (player.hp <= 0) {
-        displayMessage("You have been defeated!", 'error');
-        displayMessage("You lose consciousness and wake up in a safe place, but lose some gold...", 'info');
+        displayMessage("💀 You have been defeated!", 'error');
+        displayMessage("You lose consciousness and wake up in a safe place...", 'info');
 
-        // Player death penalty
-        const goldLoss = Math.floor(player.gold * 0.1); // Lose 10% of gold
-        player.gold = Math.max(0, player.gold - goldLoss);
+        // Enhanced death penalty system
+        const goldLoss = Math.floor(player.gold * 0.15); // Lose 15% of gold
+        const originalGold = player.gold;
+        
+        updateGold(-goldLoss, 'death penalty');
         player.hp = Math.floor(player.maxHp * 0.25); // Recover to 25% HP
 
-        if (goldLoss > 0) {
-            displayMessage(`You lost ${goldLoss} gold.`, 'error');
-        }
+        displayMessage(`💰 You lost ${goldLoss} gold from your ordeal.`, 'error');
+        displayMessage(`❤️ You recover to ${player.hp} HP at a safe location.`, 'info');
 
-        displayMessage(`You recover to ${player.hp} HP.`, 'info');
+        // Move player to a safe location
+        const safeLocations = ['Pedena Town Square', 'Temple of Healing', 'Inn'];
+        const randomSafeLocation = safeLocations[Math.floor(Math.random() * safeLocations.length)];
+        
+        if (player.currentLocation !== randomSafeLocation) {
+            player.currentLocation = randomSafeLocation;
+            displayMessage(`🏠 You find yourself at ${randomSafeLocation}.`, 'info');
+        }
 
         // End combat
         player.currentEnemy = null;
         hideScreen('combat-interface');
+        updatePlayerStatsDisplay();
+        saveGame();
+        
+        // Add death to conversation history
+        addToConversationHistory('assistant', `${player.name} was defeated in combat and recovered at ${player.currentLocation}`);
+    } else {
+        // Combat continues - save progress
         saveGame();
     }
-
-    saveGame(); // Save after each combat round
 }
 
 function updatePlayerHPDisplay() {
@@ -1868,21 +2179,161 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Add event listeners for quick action buttons
     document.getElementById('rest-btn')?.addEventListener('click', () => {
-        player.hp = Math.min(player.maxHp, player.hp + 20);
-        displayMessage("You feel refreshed.", 'success');
+        const healAmount = Math.floor(player.maxHp * 0.25) + 10;
+        player.hp = Math.min(player.maxHp, player.hp + healAmount);
+        displayMessage(`You rest and recover ${healAmount} HP. You feel refreshed.`, 'success');
         updatePlayerStatsDisplay();
+        saveGame();
+        
+        // Small chance of random event while resting
+        if (Math.random() < 0.1) {
+            setTimeout(() => {
+                displayMessage("While resting, you notice something interesting nearby...", 'info');
+                generateDiscoveryEncounter();
+            }, 1000);
+        }
     });
 
     document.getElementById('explore-btn')?.addEventListener('click', () => {
-        startConversation();
+        explore();
     });
+
+    document.getElementById('cast-spell-btn')?.addEventListener('click', () => {
+        if (player.classProgression && player.classProgression.knownSpells.length > 0) {
+            const spells = player.classProgression.knownSpells;
+            const randomSpell = spells[Math.floor(Math.random() * spells.length)];
+            displayMessage(`You attempt to cast ${randomSpell}...`, 'info');
+            
+            // Simple spell effect
+            const effects = [
+                { msg: "The spell fizzles out harmlessly.", type: 'info' },
+                { msg: "You feel magical energy coursing through you!", type: 'success' },
+                { msg: "Sparks of magic dance around your fingers.", type: 'success' },
+                { msg: "You sense the magical weave responding to your call.", type: 'success' }
+            ];
+            const effect = effects[Math.floor(Math.random() * effects.length)];
+            setTimeout(() => displayMessage(effect.msg, effect.type), 500);
+        } else {
+            displayMessage("You don't know any spells yet.", 'info');
+        }
+    });
+
+    document.getElementById('pray-btn')?.addEventListener('click', () => {
+        displayMessage("You offer a prayer to the gods...", 'info');
+        
+        // Random blessing effect
+        if (Math.random() < 0.3) {
+            const blessings = [
+                { effect: () => player.hp = Math.min(player.maxHp, player.hp + 5), msg: "You feel blessed with minor healing." },
+                { effect: () => updateGold(Math.floor(Math.random() * 10) + 5, 'divine blessing'), msg: "You find a few coins that weren't there before." },
+                { effect: () => {}, msg: "You feel a sense of peace and protection." }
+            ];
+            const blessing = blessings[Math.floor(Math.random() * blessings.length)];
+            blessing.effect();
+            setTimeout(() => {
+                displayMessage(blessing.msg, 'success');
+                updatePlayerStatsDisplay();
+                saveGame();
+            }, 1000);
+        } else {
+            setTimeout(() => displayMessage("The gods listen but remain silent.", 'info'), 1000);
+        }
+    });
+
+    // Add event listeners for progression and quest buttons
+    document.getElementById('show-progression-btn')?.addEventListener('click', () => {
+        displayCharacterProgression();
+    });
+
+    document.getElementById('new-quest-btn')?.addEventListener('click', () => {
+        if (player.quests && player.quests.filter(q => !q.completed).length > 0) {
+            displayQuests();
+        } else {
+            generateQuest();
+        }
+    });
+
+    // Add event listeners for interface exit buttons
+    document.getElementById('exit-progression-btn')?.addEventListener('click', () => {
+        document.getElementById('progression-interface')?.classList.add('hidden');
+    });
+
+    document.getElementById('exit-quests-btn')?.addEventListener('click', () => {
+        questInterface?.classList.add('hidden');
+    });
+
+    // Add missing functions
+    window.updateQuestButton = function() {
+        const activeQuests = player.quests ? player.quests.filter(q => !q.completed) : [];
+        const questBtn = document.getElementById('new-quest-btn');
+        if (questBtn) {
+            const questCount = activeQuests.length;
+            if (questCount > 0) {
+                questBtn.innerHTML = `<i class="gi gi-scroll-unfurled mr-2"></i>Quests (${questCount})`;
+                questBtn.classList.add('text-yellow-400');
+            } else {
+                questBtn.innerHTML = `<i class="gi gi-scroll-unfurled mr-2"></i>New Quest`;
+                questBtn.classList.remove('text-yellow-400');
+            }
+        }
+    };
+
+    window.displayQuests = function() {
+        if (!player.quests || player.quests.length === 0) {
+            displayMessage("You have no quests at this time.", 'info');
+            return;
+        }
+
+        // Hide other interfaces
+        const interfaces = ['combat-interface', 'shop-interface', 'inventory-interface', 'skills-interface', 'background-interface', 'progression-interface'];
+        interfaces.forEach(id => {
+            const element = document.getElementById(id);
+            if (element) element.classList.add('hidden');
+        });
+
+        // Show quest interface
+        questInterface.classList.remove('hidden');
+
+        const activeQuests = player.quests.filter(q => !q.completed);
+        const completedQuests = player.quests.filter(q => q.completed);
+
+        questListDisplay.innerHTML = `
+            <div class="mb-6">
+                <h5 class="text-xl font-bold mb-3 text-yellow-600">Active Quests (${activeQuests.length})</h5>
+                ${activeQuests.length > 0 ? activeQuests.map(quest => `
+                    <div class="parchment-box p-3 mb-3">
+                        <h6 class="font-bold text-lg">${quest.title || 'Untitled Quest'}</h6>
+                        <p class="mb-2">${quest.description || 'No description available'}</p>
+                        ${quest.objective ? `<p class="text-sm text-amber-700"><strong>Objective:</strong> ${quest.objective}</p>` : ''}
+                        ${quest.rewards ? `
+                            <p class="text-sm text-green-700">
+                                <strong>Rewards:</strong> 
+                                ${quest.rewards.gold ? `${quest.rewards.gold} gold` : ''}
+                                ${quest.rewards.experience ? `, ${quest.rewards.experience} XP` : ''}
+                                ${quest.rewards.items && quest.rewards.items.length > 0 ? `, ${quest.rewards.items.join(', ')}` : ''}
+                            </p>
+                        ` : ''}
+                        <p class="text-xs text-gray-600">Created: ${quest.dateCreated || 'Unknown'}</p>
+                    </div>
+                `).join('') : '<p class="text-gray-600">No active quests.</p>'}
+            </div>
+
+            ${completedQuests.length > 0 ? `
+            <div>
+                <h5 class="text-xl font-bold mb-3 text-green-600">Completed Quests (${completedQuests.length})</h5>
+                ${completedQuests.map(quest => `
+                    <div class="parchment-box p-3 mb-3 bg-green-100 border-green-300">
+                        <h6 class="font-bold">${quest.title || 'Untitled Quest'}</h6>
+                        <p class="text-sm text-green-800">✅ Completed</p>
+                    </div>
+                `).join('')}
+            </div>
+            ` : ''}
+        `;
+    };
 
     // Make functions globally accessible
     window.displayCharacterProgression = displayCharacterProgression;
-    window.updateQuestButton = updateQuestButton;
-    window.markQuestComplete = markQuestComplete;
-    window.displayQuests = displayQuests;
-    window.generateQuest = generateQuest;
     window.learnNewSpell = learnNewSpell;
     window.LocationManager = LocationManager;
     window.GameActions = GameActions;
