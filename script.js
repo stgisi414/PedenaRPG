@@ -7,6 +7,7 @@ import { LocationManager } from './game-logic/location-manager.js';
 import { classProgression, spellDefinitions, abilityDefinitions } from './game-logic/class-progression.js';
 import { ItemGenerator, ItemManager, itemCategories, itemRarity, statusEffects } from './assets/world-items.js';
 import { TransactionMiddleware } from './game-logic/transaction-middleware.js';
+import { TransactionMiddleware } from './game-logic/transaction-middleware.js';
 
 const GEMINI_API_KEY = 'AIzaSyDIFeql6HUpkZ8JJlr_kuN0WDFHUyOhijA'; // Replace with your actual Gemini API Key
 const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`;
@@ -2659,6 +2660,16 @@ document.addEventListener('DOMContentLoaded', () => {
     // Add main event listeners (this function should also be defined or its contents integrated)
     addMainEventListeners(); // Assuming this function is defined elsewhere in your script.js
 
+    // Make required functions globally available for TransactionMiddleware and other modules
+    window.callGeminiAPI = callGeminiAPI;
+    window.updateGold = updateGold;
+    window.displayMessage = displayMessage;
+    window.saveGame = saveGame;
+    window.ItemManager = ItemManager;
+    window.ItemGenerator = ItemGenerator;
+    window.itemCategories = itemCategories;
+    window.itemRarity = itemRarity;
+    
     // Make other functions globally accessible if needed by other parts of the code or for debugging
     window.LocationManager = typeof LocationManager !== 'undefined' ? LocationManager : {};
     window.GameActions = typeof GameActions !== 'undefined' ? GameActions : {};
