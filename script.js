@@ -3651,74 +3651,11 @@ function displayCharacterBackground() {
             </div>
 
             <div class="mt-4 pt-4 border-t border-amber-700/30">
-                <h6 class="font-bold text-lg mb-2 text-amber-700">Relationships</h6>
-                ${buildRelationshipsSection()}
-            </div>
-
-            <div class="mt-4 pt-4 border-t border-amber-700/30">
                 <h6 class="font-bold text-lg mb-2 text-amber-700">Background Story</h6>
                 <p class="italic text-sm leading-relaxed">${player.background || 'No background story available.'}</p>
             </div>
         </div>
     `;
-}
-
-function buildRelationshipsSection() {
-    if (!window.RelationshipMiddleware) {
-        return '<p class="text-sm text-gray-600">Relationship system not available.</p>';
-    }
-
-    const relationships = RelationshipMiddleware.getAllRelationships(player.name);
-    
-    if (relationships.length === 0) {
-        return '<p class="text-sm text-gray-600">No relationships established yet.</p>';
-    }
-
-    let relationshipsHTML = '<div class="grid grid-cols-1 gap-3">';
-    
-    // Show top 6 relationships to fit nicely in the background panel
-    relationships.slice(0, 6).forEach(rel => {
-        const trustColor = rel.trustLevel >= 70 ? 'text-green-600' : rel.trustLevel >= 40 ? 'text-yellow-600' : 'text-red-600';
-        const relationshipColor = {
-            'ally': 'text-blue-600',
-            'friendly': 'text-green-600',
-            'neutral': 'text-gray-600',
-            'hostile': 'text-orange-600',
-            'enemy': 'text-red-600',
-            'romantic': 'text-pink-600'
-        }[rel.relationshipLevel] || 'text-gray-600';
-
-        relationshipsHTML += `
-            <div class="bg-amber-50/50 p-2 rounded border border-amber-200">
-                <div class="flex justify-between items-center mb-1">
-                    <h6 class="font-bold text-sm">${rel.npcName}</h6>
-                    <span class="text-xs px-1 py-0.5 rounded ${relationshipColor} font-semibold">${rel.relationshipLevel}</span>
-                </div>
-                <div class="grid grid-cols-2 gap-1 text-xs text-gray-600">
-                    <p><strong>Trust:</strong> <span class="${trustColor}">${rel.trustLevel}/100</span></p>
-                    <p><strong>Met at:</strong> ${rel.locationMet}</p>
-                </div>
-                ${rel.lastConversation ? `
-                    <p class="text-xs italic mt-1 text-amber-700">"${rel.lastConversation.text.substring(0, 50)}${rel.lastConversation.text.length > 50 ? '...' : ''}"</p>
-                ` : ''}
-            </div>
-        `;
-    });
-    
-    relationshipsHTML += '</div>';
-    
-    if (relationships.length > 6) {
-        relationshipsHTML += `
-            <div class="mt-2 text-center">
-                <p class="text-xs text-gray-600">... and ${relationships.length - 6} more relationships</p>
-                <button onclick="displayRelationships()" class="btn-parchment text-xs py-1 px-2 bg-blue-600 hover:bg-blue-700 text-white mt-1">
-                    View All Relationships
-                </button>
-            </div>
-        `;
-    }
-    
-    return relationshipsHTML;
 }
 
 // IMPORTANT: Ensure the helper functions calculateEquipmentBonuses() and buildStatsGrid()
