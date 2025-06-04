@@ -3330,16 +3330,202 @@ function displayCharacterBackground() {
     });
 
     backgroundInterface.classList.remove('hidden');
+    
+    // Calculate stat modifiers and totals
+    const baseStats = player.stats || {
+        strength: 10,
+        dexterity: 10,
+        intelligence: 10,
+        constitution: 10,
+        wisdom: 10,
+        charisma: 10
+    };
+    
+    // Calculate equipment bonuses
+    const equipmentBonuses = calculateEquipmentBonuses();
+    
+    // Build stats grid
+    const statsGrid = buildStatsGrid(baseStats, equipmentBonuses);
+    
     backgroundContentDisplay.innerHTML = `
-        <div class="parchment-box p-4">
-            <h5 class="font-bold text-xl mb-3">${player.name}</h5>
-            <p class="mb-2"><strong>Class:</strong> ${player.class}</p>
-            <p class="mb-2"><strong>Gender:</strong> ${player.gender}</p>
-            <p class="mb-4"><strong>Level:</strong> ${player.level}</p>
-            <div class="mb-4">
-                <h6 class="font-bold mb-2">Background Story:</h6>
-                <p class="italic">${player.background || 'No background story available.'}</p>
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <!-- Character Info Panel -->
+            <div class="parchment-box p-4">
+                <h5 class="font-bold text-xl mb-3">${player.name}</h5>
+                <div class="grid grid-cols-2 gap-3 mb-4">
+                    <p><strong>Class:</strong> ${player.class}</p>
+                    <p><strong>Level:</strong> ${player.level}</p>
+                    <p><strong>Gender:</strong> ${player.gender}</p>
+                    <p><strong>XP:</strong> ${player.exp}/${player.expToNextLevel}</p>
+                    <p><strong>HP:</strong> ${player.hp}/${player.maxHp}</p>
+                    <p><strong>Gold:</strong> ${player.gold}</p>
+                </div>
+                <div class="mb-4">
+                    <h6 class="font-bold mb-2">Background Story:</h6>
+                    <p class="italic text-sm">${player.background || 'No background story available.'}</p>
+                </div>
+            </div>
+
+            <!-- Stats Panel -->
+            <div class="parchment-box p-4">
+                <h5 class="font-bold text-xl mb-3">Character Statistics</h5>
+                ${statsGrid}
             </div>
         </div>
+        
+        <!-- Equipment Summary -->
+        <div class="parchment-box p-4 mt-4">
+            <h5 class="font-bold text-xl mb-3">Equipment Summary</h5>
+            ${buildEquipmentSummary()}
+        </div>
     `;
+}
+
+function calculateEquipmentBonuses() {
+    const bonuses = {
+        strength: 0,
+        dexterity: 0,
+        intelligence: 0,
+        constitution: 0,
+        wisdom: 0,
+        charisma: 0,
+        attack: 0,
+        defense: 0,
+        damage: 0
+    };
+    
+    if (!player.equipment) return bonuses;
+    
+    Object.values(player.equipment).forEach(item => {
+        if (!item) return;
+        
+        // Check for stat bonuses
+        if (item.statBonus) {
+            Object.entries(item.statBonus).forEach(([stat, bonus]) => {
+                if (bonuses.hasOwnProperty(stat)) {
+                    bonuses[stat] += bonus;
+                }
+            });
+        }
+        
+        // Add defense from armor
+        if (item.defense) {
+            bonuses.defense += item.defense;
+        }
+        
+        // Add attack/damage from weapons
+        if (item.attack) {
+            bonuses.attack += item.attack;
+        }
+        
+        if (item.damage && typeof item.damage === 'number') {
+            bonuses.damage += item.damage;
+        }
+    });
+    
+    return bonuses;
+}
+
+function buildStatsGrid(baseStats, equipmentBonuses) {
+    const statNames = ['strength', 'dexterity', 'intelligence', 'constitution', 'wisdom', 'charisma'];
+    
+    let gridHTML = '<div class="grid grid-cols-1 gap-2">';
+    
+    statNames.forEach(statName => {
+        const baseStat = baseStats[statName] || 10;
+        const equipBonus = equipmentBonuses[statName] || 0;
+        const totalStat = baseStat + equipBonus;
+        const modifier = Math.floor((totalStat - 10) / 2);
+        const modifierSign = modifier >= 0 ? '+' : '';
+        
+        const statDisplayName = statName.charAt(0).toUpperCase() + statName.slice(1);
+        
+        gridHTML += `
+            <div class="flex justify-between items-center py-2 border-b border-amber-700/30">
+                <span class="font-semibold">${statDisplayName}:</span>
+                <div class="text-right">
+                    <span class="font-bold">${totalStat}</span>
+                    <span class="text-sm text-amber-700">(${modifierSign}${modifier})</span>
+                    ${equipBonus !== 0 ? `<span class="text-xs text-blue-600 ml-1">[${equipBonus > 0 ? '+' : ''}${equipBonus}]</span>` : ''}
+                </div>
+            </div>
+        `;
+    });
+    
+    // Add combat stats
+    const attackBonus = equipmentBonuses.attack;
+    const defenseBonus = equipmentBonuses.defense;
+    const damageBonus = equipmentBonuses.damage;
+    
+    if (attackBonus || defenseBonus || damageBonus) {
+        gridHTML += `
+            <div class="mt-3 pt-3 border-t border-amber-700/50">
+                <h6 class="font-bold mb-2 text-sm">Combat Bonuses:</h6>
+        `;
+        
+        if (attackBonus) {
+            gridHTML += `
+                <div class="flex justify-between py-1">
+                    <span class="text-sm">Attack Bonus:</span>
+                    <span class="font-bold text-red-600">+${attackBonus}</span>
+                </div>
+            `;
+        }
+        
+        if (defenseBonus) {
+            gridHTML += `
+                <div class="flex justify-between py-1">
+                    <span class="text-sm">Defense Bonus:</span>
+                    <span class="font-bold text-blue-600">+${defenseBonus}</span>
+                </div>
+            `;
+        }
+        
+        if (damageBonus) {
+            gridHTML += `
+                <div class="flex justify-between py-1">
+                    <span class="text-sm">Damage Bonus:</span>
+                    <span class="font-bold text-green-600">+${damageBonus}</span>
+                </div>
+            `;
+        }
+        
+        gridHTML += '</div>';
+    }
+    
+    gridHTML += '</div>';
+    return gridHTML;
+}
+
+function buildEquipmentSummary() {
+    if (!player.equipment) return '<p class="text-gray-600">No equipment data available.</p>';
+    
+    const equippedItems = Object.entries(player.equipment).filter(([slot, item]) => item !== null);
+    
+    if (equippedItems.length === 0) {
+        return '<p class="text-gray-600">No items currently equipped.</p>';
+    }
+    
+    let summaryHTML = '<div class="grid grid-cols-1 md:grid-cols-2 gap-3">';
+    
+    equippedItems.forEach(([slot, item]) => {
+        const slotDisplayName = slot.charAt(0).toUpperCase() + slot.slice(1).replace(/([A-Z])/g, ' $1');
+        
+        summaryHTML += `
+            <div class="flex items-center gap-3 p-2 bg-amber-100 rounded border">
+                <div class="flex-grow">
+                    <p class="font-semibold text-sm">${slotDisplayName}</p>
+                    <p class="text-xs text-amber-800">${item.name}</p>
+                </div>
+                <div class="text-right text-xs">
+                    ${item.defense ? `<span class="text-blue-600">DEF: +${item.defense}</span><br>` : ''}
+                    ${item.damage ? `<span class="text-red-600">DMG: ${item.damage}</span><br>` : ''}
+                    ${item.value ? `<span class="text-green-600">${item.value}g</span>` : ''}
+                </div>
+            </div>
+        `;
+    });
+    
+    summaryHTML += '</div>';
+    return summaryHTML;
 }
