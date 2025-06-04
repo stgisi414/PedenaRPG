@@ -2717,15 +2717,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
 
                 // Validate index for actions that need it
-                if (action !== 'unequip' && (player.inventory && (itemIndex < 0 || itemIndex >= player.inventory.length))) {
-                    if (!player.inventory || player.inventory.length === 0 && action !== 'use') {
-                        // Allow use action even if inventory is empty IF it doesn't rely on an index (e.g. a generic 'use' button not tied to specific item)
-                        // However, based on your structure, 'use' will likely always have an index.
-                    } else {
-                        console.error(`Invalid item index: ${itemIndex} for inventory of length ${player.inventory?.length || 0}`);
-                        displayMessage("Error: Invalid item selected or inventory not ready.", "error");
-                        return;
-                    }
+                if (action !== 'unequip' && (!player.inventory || itemIndex < 0 || itemIndex >= player.inventory.length)) {
+                    console.error(`Invalid item index: ${itemIndex} for inventory of length ${player.inventory?.length || 0}`);
+                    displayMessage("Error: Invalid item selected or inventory not ready.", "error");
+                    return;
                 }
 
 
@@ -3100,6 +3095,127 @@ function getRarityColor(rarity) {
         'ARTIFACT': 'bg-red-200 text-red-800'
     };
     return colors[rarity] || colors['COMMON'];
+}
+
+function equipItem(itemIndex) {
+    if (!player.inventory || !player.inventory[itemIndex]) {
+        displayMessage("Item not found.", 'error');
+        return;
+    }
+
+    const item = player.inventory[itemIndex];
+
+    if (!item.slot) {
+        displayMessage("This item cannot be equipped.", 'error');
+        return;
+    }
+
+    // Initialize equipment if it doesn't exist
+    if (!player.equipment) {
+        player.equipment = {
+            head: null, chest: null, hands: null, legs: null, feet: null,
+            mainHand: null, offHand: null, amulet: null, ring1: null, ring2: null
+        };
+    }
+
+    // Handle special cases for rings
+    let targetSlot = item.slot;
+    if (item.slot === 'ring1' || item.slot === 'ring') {
+        if (!player.equipment.ring1) {
+            targetSlot = 'ring1';
+        } else if (!player.equipment.ring2) {
+            targetSlot = 'ring2';
+        } else {
+            targetSlot = 'ring1'; // Replace first ring
+        }
+    }
+
+    // Unequip existing item in that slot
+    if (player.equipment[targetSlot]) {
+        player.inventory.push(player.equipment[targetSlot]);
+        displayMessage(`Unequipped ${player.equipment[targetSlot].name}`, 'info');
+    }
+
+    // Equip the new item
+    player.equipment[targetSlot] = item;
+    player.inventory.splice(itemIndex, 1);
+
+    // Apply item effects
+    if (ItemManager && typeof ItemManager.applyItemEffects === 'function') {
+        ItemManager.applyItemEffects(player, item);
+    }
+
+    displayMessage(`Equipped ${item.name}!`, 'success');
+    updatePlayerStatsDisplay();
+    displayInventory();
+    saveGame();
+}
+
+function unequipItem(slot) {
+    if (!player.equipment || !player.equipment[slot]) {
+        displayMessage("No item equipped in that slot.", 'error');
+        return;
+    }
+
+    const item = player.equipment[slot];
+    player.equipment[slot] = null;
+    
+    if (!player.inventory) player.inventory = [];
+    player.inventory.push(item);
+
+    displayMessage(`Unequipped ${item.name}!`, 'success');
+    updatePlayerStatsDisplay();
+    displayInventory();
+    saveGame();
+}
+
+function useItem(itemIndex) {
+    if (!player.inventory || !player.inventory[itemIndex]) {
+        displayMessage("Item not found.", 'error');
+        return;
+    }
+
+    const item = player.inventory[itemIndex];
+    const result = ItemManager.useItem(player, item.id);
+    
+    displayMessage(result.message, result.success ? 'success' : 'error');
+    
+    if (result.success) {
+        updatePlayerStatsDisplay();
+        displayInventory();
+        saveGame();
+    }
+}
+
+function sellItem(itemIndex) {
+    if (!player.inventory || !player.inventory[itemIndex]) {
+        displayMessage("Item not found.", 'error');
+        return;
+    }
+
+    const item = player.inventory[itemIndex];
+    const sellPrice = Math.floor((item.value || 1) * 0.5); // Sell for 50% of value
+    
+    updateGold(sellPrice, 'item sale');
+    player.inventory.splice(itemIndex, 1);
+    
+    displayMessage(`Sold ${item.name} for ${sellPrice} gold!`, 'success');
+    displayInventory();
+    saveGame();
+}
+
+function dropItem(itemIndex) {
+    if (!player.inventory || !player.inventory[itemIndex]) {
+        displayMessage("Item not found.", 'error');
+        return;
+    }
+
+    const item = player.inventory[itemIndex];
+    player.inventory.splice(itemIndex, 1);
+    
+    displayMessage(`Dropped ${item.name}.`, 'info');
+    displayInventory();
+    saveGame();
 }
 
 function getEffectDescription(effect) {

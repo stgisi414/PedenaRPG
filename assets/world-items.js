@@ -2176,6 +2176,11 @@ export class ItemManager {
             }
         }
     }
+
+    static applyItemEffects(player, item) {
+        if (!item.effects || item.effects.length === 0) return [];
+        return this.applyItemEffectsToPlayer(player, item.effects);
+    }
 }
 
 export default {
