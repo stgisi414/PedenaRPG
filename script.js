@@ -2467,9 +2467,18 @@ window.buyShopItem = buyShopItem;
     document.getElementById('cast-spell-btn')?.addEventListener('click', () => {
         // Check if player has class progression and is a spellcaster
         if (player.classProgression && (player.classProgression.class === 'mage' || player.classProgression.class === 'ranger')) {
-            if (player.classProgression.knownSpells && player.classProgression.knownSpells.length > 0) {
-                const spells = player.classProgression.knownSpells;
-                const randomSpell = spells[Math.floor(Math.random() * spells.length)];
+            // Debug logging
+            console.log('Player class progression:', player.classProgression);
+            console.log('Known spells:', player.classProgression.knownSpells);
+            console.log('Available spells:', player.classProgression.availableSpells);
+            
+            // Check both known spells and available spells
+            const spellsToUse = player.classProgression.knownSpells && player.classProgression.knownSpells.length > 0 
+                ? player.classProgression.knownSpells 
+                : player.classProgression.availableSpells || [];
+            
+            if (spellsToUse.length > 0) {
+                const randomSpell = spellsToUse[Math.floor(Math.random() * spellsToUse.length)];
                 displayMessage(`You attempt to cast ${randomSpell}...`, 'info');
 
                 // Get spell definition for better effect description
@@ -2494,7 +2503,8 @@ window.buyShopItem = buyShopItem;
                     setTimeout(() => displayMessage(effect.msg, effect.type), 500);
                 }
             } else {
-                displayMessage("You don't know any spells yet.", 'info');
+                displayMessage(`You don't know any spells yet. Class: ${player.classProgression.class}, Level: ${player.level}`, 'info');
+                displayMessage("If this seems wrong, try using the Reset Progression button.", 'info');
             }
         } else {
             displayMessage("You are not a spellcaster.", 'info');

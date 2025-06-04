@@ -82,10 +82,10 @@ export class CharacterManager {
         levelData.spells.forEach(spellName => {
             if (!player.classProgression.availableSpells.includes(spellName)) {
                 player.classProgression.availableSpells.push(spellName);
-                // For mages, automatically learn all available spells
-                if (player.classProgression.class === 'mage' && !player.classProgression.knownSpells.includes(spellName)) {
-                    player.classProgression.knownSpells.push(spellName);
-                }
+            }
+            // For mages, automatically learn all available spells
+            if (player.classProgression.class === 'mage' && !player.classProgression.knownSpells.includes(spellName)) {
+                player.classProgression.knownSpells.push(spellName);
             }
         });
         
