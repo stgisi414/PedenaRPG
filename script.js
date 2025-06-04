@@ -2946,7 +2946,7 @@ function dropItem(itemIndex) {
     }
 }
 
-// Make functions globally accessible
+// Make functions globally accessible immediately after definition
 window.buyShopItem = buyShopItem;
 window.equipItem = equipItem;
 window.unequipItem = unequipItem;
@@ -2955,6 +2955,8 @@ window.sellItem = sellItem;
 window.dropItem = dropItem;
 window.playerAttack = playerAttack;
 window.fleeCombat = fleeCombat;
+
+// Functions will be assigned to window object after they are defined
 
 
         // Small chance of random event while resting
