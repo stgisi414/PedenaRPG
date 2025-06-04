@@ -1184,124 +1184,184 @@ function checkQuestCompletion(playerAction) {
 
     player.quests.forEach(quest => {
         if (!quest.completed) {
-            // Enhanced keyword matching for quest completion
             let isCompleted = false;
 
-            // Check objective if available, otherwise use description
-            const questText = (quest.objective || quest.description).toLowerCase();
+            // Get the combined text from quest description and objective
+            const questText = (quest.objective || quest.description || '').toLowerCase();
             const actionText = playerAction.toLowerCase();
 
-            // Enhanced action and target extraction
-            const actionKeywords = questText.match(/\b(kill|defeat|slay|destroy|eliminate|find|locate|discover|collect|gather|retrieve|deliver|bring|hand|give|talk|speak|converse|visit|go to|travel to|explore|investigate|solve|complete|finish|accomplish|obtain|acquire|rescue|save|protect)\b/g) || [];
-            const targetKeywords = questText.match(/\b(goblin|orc|dragon|bandit|thief|merchant|priest|king|queen|wizard|mage|treasure|artifact|scroll|book|letter|package|crystal|gem|temple|castle|tower|forest|mountain|cave|ruins|city|village|inn|tavern)\b/g) || [];
+            console.log('Checking quest completion:', { 
+                questTitle: quest.title, 
+                questText, 
+                actionText,
+                questData: quest 
+            });
 
-            // More flexible matching system
-            if (actionKeywords.length > 0) {
-                const matchedActions = actionKeywords.filter(keyword => {
-                    // Check for exact word match or similar actions
-                    return actionText.includes(keyword) || 
-                           (keyword === 'defeat' && (actionText.includes('beat') || actionText.includes('win') || actionText.includes('victory'))) ||
-                           (keyword === 'find' && (actionText.includes('found') || actionText.includes('discovered'))) ||
-                           (keyword === 'deliver' && (actionText.includes('gave') || actionText.includes('handed'))) ||
-                           (keyword === 'talk' && (actionText.includes('spoke') || actionText.includes('conversation')));
-                });
+            // Comprehensive keyword matching with broader patterns
+            const actionPatterns = [
+                // Combat keywords
+                { keywords: ['kill', 'defeat', 'slay', 'destroy', 'eliminate', 'vanquish', 'conquer'], 
+                  triggers: ['defeated', 'killed', 'slain', 'destroyed', 'eliminated', 'beat', 'won', 'victory', 'triumphant'] },
+                
+                // Discovery keywords
+                { keywords: ['find', 'locate', 'discover', 'uncover', 'reveal'], 
+                  triggers: ['found', 'discovered', 'located', 'uncovered', 'revealed', 'came across', 'stumbled upon'] },
+                
+                // Collection keywords
+                { keywords: ['collect', 'gather', 'retrieve', 'obtain', 'acquire', 'get'], 
+                  triggers: ['collected', 'gathered', 'retrieved', 'obtained', 'acquired', 'got', 'picked up', 'taken'] },
+                
+                // Delivery keywords
+                { keywords: ['deliver', 'bring', 'hand', 'give', 'present', 'return'], 
+                  triggers: ['delivered', 'brought', 'handed', 'gave', 'presented', 'returned', 'completed delivery'] },
+                
+                // Social keywords
+                { keywords: ['talk', 'speak', 'converse', 'discuss', 'meet', 'contact'], 
+                  triggers: ['talked', 'spoke', 'conversed', 'discussed', 'met', 'contacted', 'conversation', 'dialogue'] },
+                
+                // Travel keywords
+                { keywords: ['visit', 'go to', 'travel to', 'reach', 'arrive'], 
+                  triggers: ['visited', 'went to', 'traveled to', 'reached', 'arrived', 'entered', 'found yourself'] },
+                
+                // Investigation keywords
+                { keywords: ['explore', 'investigate', 'examine', 'search', 'study'], 
+                  triggers: ['explored', 'investigated', 'examined', 'searched', 'studied', 'inspected'] },
+                
+                // Completion keywords
+                { keywords: ['complete', 'finish', 'accomplish', 'fulfill', 'achieve'], 
+                  triggers: ['completed', 'finished', 'accomplished', 'fulfilled', 'achieved', 'done', 'succeeded'] }
+            ];
 
-                if (matchedActions.length > 0) {
-                    // If we have targetKeywords, check for those too
-                    if (targetKeywords.length > 0) {
-                        const matchedTargets = targetKeywords.filter(keyword => 
-                            actionText.includes(keyword) || actionText.includes(keyword + 's') || actionText.includes(keyword.slice(0, -1))
-                        );
-                        isCompleted = matchedTargets.length > 0;
-                    } else {
-                        // No specific targets mentioned, action match is enough
+            // Check for action pattern matches
+            for (const pattern of actionPatterns) {
+                const hasQuestKeyword = pattern.keywords.some(keyword => questText.includes(keyword));
+                const hasActionTrigger = pattern.triggers.some(trigger => actionText.includes(trigger));
+                
+                if (hasQuestKeyword && hasActionTrigger) {
+                    console.log('Pattern match found:', { pattern: pattern.keywords, questKeyword: hasQuestKeyword, actionTrigger: hasActionTrigger });
+                    isCompleted = true;
+                    break;
+                }
+            }
+
+            // Enhanced target/object matching
+            if (!isCompleted) {
+                // Extract potential targets from quest text
+                const commonTargets = ['goblin', 'orc', 'dragon', 'bandit', 'thief', 'merchant', 'priest', 'wizard', 'mage', 
+                                     'treasure', 'artifact', 'scroll', 'book', 'letter', 'package', 'crystal', 'gem', 
+                                     'temple', 'castle', 'tower', 'forest', 'mountain', 'cave', 'ruins', 'city', 'village', 
+                                     'inn', 'tavern', 'altar', 'shrine', 'portal', 'bridge', 'well', 'statue'];
+
+                const questTargets = commonTargets.filter(target => questText.includes(target));
+                const actionTargets = commonTargets.filter(target => actionText.includes(target));
+
+                // Check if any quest targets appear in the action
+                if (questTargets.length > 0 && questTargets.some(target => actionText.includes(target))) {
+                    console.log('Target match found:', { questTargets, actionText });
+                    isCompleted = true;
+                }
+            }
+
+            // Location-based completion
+            if (!isCompleted && quest.location) {
+                const questLocation = quest.location.toLowerCase();
+                const currentLocation = player.currentLocation.toLowerCase();
+                
+                if (questLocation.includes(currentLocation) || currentLocation.includes(questLocation)) {
+                    // Check if action suggests arrival or being at location
+                    const locationTriggers = ['arrive', 'reach', 'enter', 'visit', 'at', 'in', 'found yourself'];
+                    if (locationTriggers.some(trigger => actionText.includes(trigger))) {
+                        console.log('Location-based completion:', { questLocation, currentLocation, actionText });
                         isCompleted = true;
                     }
                 }
             }
 
-            // Location-based quest completion
-            if (!isCompleted && quest.location) {
-                const questLocation = quest.location.toLowerCase();
-                if ((actionText.includes('arrive') || actionText.includes('reach') || actionText.includes('enter') || actionText.includes('visit')) &&
-                    (actionText.includes(questLocation) || player.currentLocation.toLowerCase().includes(questLocation))) {
+            // AI narrative completion detection
+            if (!isCompleted) {
+                const narrativeCompletionPhrases = [
+                    'quest complete', 'mission accomplished', 'task finished', 'objective complete',
+                    'successfully completed', 'objective achieved', 'mission successful', 'task done',
+                    'you have completed', 'you completed', 'you finished', 'you accomplished',
+                    'quest is complete', 'mission is finished', 'task is accomplished'
+                ];
+                
+                if (narrativeCompletionPhrases.some(phrase => actionText.includes(phrase))) {
+                    console.log('Narrative completion phrase detected:', actionText);
                     isCompleted = true;
                 }
             }
 
-            // Check for quest completion phrases
-            if (!isCompleted) {
-                const completionPhrases = ['quest complete', 'mission accomplished', 'task finished', 'objective complete'];
-                isCompleted = completionPhrases.some(phrase => actionText.includes(phrase));
+            // Check if the action text contains the quest title or similar
+            if (!isCompleted && quest.title) {
+                const titleWords = quest.title.toLowerCase().split(' ').filter(word => word.length > 2);
+                const titleMatches = titleWords.filter(word => actionText.includes(word));
+                
+                if (titleMatches.length >= Math.ceil(titleWords.length / 2)) {
+                    console.log('Quest title match detected:', { titleWords, titleMatches, actionText });
+                    isCompleted = true;
+                }
             }
 
             if (isCompleted) {
+                console.log('Quest completed!', quest.title);
                 quest.completed = true;
                 displayMessage(`🎉 Quest completed: ${quest.title || 'Unknown Quest'}!`, 'success');
 
-                // Award structured quest rewards with proper parsing
+                // Award rewards with enhanced parsing
+                let goldAwarded = 0;
+                let xpAwarded = 0;
+
                 if (quest.rewards && typeof quest.rewards === 'object') {
-                    // Award gold with proper validation
-                    const goldReward = parseInt(quest.rewards.gold) || 0;
-                    if (goldReward > 0) {
-                        updateGold(goldReward, 'quest reward');
-                        displayMessage(`💰 You earned ${goldReward} gold!`, 'success');
-                    }
+                    // Parse gold reward
+                    goldAwarded = parseInt(quest.rewards.gold) || 0;
+                    
+                    // Parse XP reward
+                    xpAwarded = parseInt(quest.rewards.experience) || parseInt(quest.rewards.exp) || 0;
 
-                    // Award experience with proper validation
-                    const xpReward = parseInt(quest.rewards.experience) || parseInt(quest.rewards.exp) || 0;
-                    if (xpReward > 0) {
-                        const oldLevel = player.level;
-                        gainExperience(xpReward);
-                        displayMessage(`⭐ You gained ${xpReward} experience!`, 'success');
-
-                        // Check for level up
-                        if (player.level > oldLevel) {
-                            displayMessage(`🆙 Level up! You are now level ${player.level}!`, 'success');
-                            if (window.displayLevelUpRewards && player.classProgression) {
-                                displayLevelUpRewards(player.classProgression, oldLevel);
-                            }
-                        }
-                    }
-
-                    // Award items with proper validation
+                    // Award items
                     if (quest.rewards.items && Array.isArray(quest.rewards.items) && quest.rewards.items.length > 0) {
                         quest.rewards.items.forEach(itemName => {
                             if (typeof itemName === 'string' && itemName.trim()) {
-                                // Try to create item using ItemManager if available
-                                if (window.ItemManager && typeof ItemManager.createItem === 'function') {
-                                    const item = ItemManager.createItem(itemName.trim(), player.level);
-                                    if (item) {
-                                        ItemManager.addToInventory(player, item);
-                                        displayMessage(`🎁 You received: ${item.name}!`, 'success');
-                                    }
-                                } else {
-                                    // Fallback to simple inventory addition
-                                    const simpleItem = {
-                                        id: Date.now() + Math.random(),
-                                        name: itemName.trim(),
-                                        type: 'quest_reward',
-                                        description: 'A reward for completing a quest',
-                                        value: 10
-                                    };
-                                    if (!player.inventory) player.inventory = [];
-                                    player.inventory.push(simpleItem);
-                                    displayMessage(`🎁 You received: ${simpleItem.name}!`, 'success');
-                                }
+                                const simpleItem = {
+                                    id: Date.now() + Math.random(),
+                                    name: itemName.trim(),
+                                    type: 'quest_reward',
+                                    description: 'A reward for completing a quest',
+                                    value: Math.max(10, player.level * 5)
+                                };
+                                if (!player.inventory) player.inventory = [];
+                                player.inventory.push(simpleItem);
+                                displayMessage(`🎁 You received: ${simpleItem.name}!`, 'success');
                             }
                         });
                     }
                 } else {
-                    // Enhanced fallback system with better reward calculation
-                    const fallbackGold = Math.max(50, player.level * 25 + Math.floor(Math.random() * 50));
-                    const fallbackXP = Math.max(25, player.level * 15 + Math.floor(Math.random() * 25));
-
-                    updateGold(fallbackGold, 'quest completion');
-                    gainExperience(fallbackXP);
-                    displayMessage(`💰 You earned ${fallbackGold} gold and ${fallbackXP} experience!`, 'success');
+                    // Fallback reward system based on player level
+                    goldAwarded = Math.max(50, player.level * 30 + Math.floor(Math.random() * 50));
+                    xpAwarded = Math.max(25, player.level * 20 + Math.floor(Math.random() * 25));
                 }
 
-                // Update quest completion tracking
+                // Apply rewards
+                if (goldAwarded > 0) {
+                    updateGold(goldAwarded, 'quest reward');
+                    displayMessage(`💰 You earned ${goldAwarded} gold!`, 'success');
+                }
+
+                if (xpAwarded > 0) {
+                    const oldLevel = player.level;
+                    gainExperience(xpAwarded);
+                    displayMessage(`⭐ You gained ${xpAwarded} experience!`, 'success');
+
+                    if (player.level > oldLevel) {
+                        displayMessage(`🆙 Level up! You are now level ${player.level}!`, 'success');
+                        if (window.displayLevelUpRewards && player.classProgression) {
+                            displayLevelUpRewards(player.classProgression, oldLevel);
+                        }
+                    }
+                }
+
+                // Update tracking
                 if (!player.completedQuests) player.completedQuests = 0;
                 player.completedQuests++;
 
