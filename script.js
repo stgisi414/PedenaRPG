@@ -16,10 +16,10 @@ const CharacterManager = {
     },
     levelUp: (player) => console.log("Level up!"),
     gainExperience: (player, xp) => gainExperience(xp),
-    saveProgression: () => {},
-    loadProgression: () => {},
-    getCharacterProgression: (player) => ({ 
-        class: player.class, 
+    saveProgression: () => { },
+    loadProgression: () => { },
+    getCharacterProgression: (player) => ({
+        class: player.class,
         level: player.level,
         hitDie: 'd8',
         primaryStats: ['strength'],
@@ -38,7 +38,7 @@ const LocationManager = {
         description: `You travel to ${destination}.`,
         hasEncounter: false
     }),
-    saveLocationToHistory: () => {}
+    saveLocationToHistory: () => { }
 };
 const classProgression = {};
 const spellDefinitions = {
@@ -65,7 +65,7 @@ const ItemGenerator = {
     }),
     generateLanguageBook: (rarity, lang) => ({
         name: `${lang} Language Book`,
-        type: "book", 
+        type: "book",
         rarity: rarity,
         description: `A book for learning ${lang} language.`,
         value: 150
@@ -76,32 +76,32 @@ const ItemManager = {
         if (!player.inventory) player.inventory = [];
         player.inventory.push(item);
     },
-    saveInventoryToStorage: () => {},
-    loadInventoryFromStorage: () => {},
+    saveInventoryToStorage: () => { },
+    loadInventoryFromStorage: () => { },
     addItemToInventory: (player, item) => {
         if (!player.inventory) player.inventory = [];
         player.inventory.push(item);
     },
     applyItemEffects: () => ({ success: true, message: "Item effect applied" })
 };
-const itemCategories = { 
-    WEAPON: 'weapon', 
-    ARMOR: 'armor', 
-    CONSUMABLE: 'consumable', 
-    MAGICAL: 'magical', 
-    SCROLL: 'scroll', 
-    BOOK: 'book', 
-    JEWELRY: 'jewelry', 
+const itemCategories = {
+    WEAPON: 'weapon',
+    ARMOR: 'armor',
+    CONSUMABLE: 'consumable',
+    MAGICAL: 'magical',
+    SCROLL: 'scroll',
+    BOOK: 'book',
+    JEWELRY: 'jewelry',
     ARTIFACT: 'artifact',
     INGREDIENT: 'ingredient',
     TRINKET: 'trinket'
 };
-const itemRarity = { 
-    COMMON: 'COMMON', 
-    UNCOMMON: 'UNCOMMON', 
-    RARE: 'RARE', 
-    EPIC: 'EPIC', 
-    LEGENDARY: 'LEGENDARY' 
+const itemRarity = {
+    COMMON: 'COMMON',
+    UNCOMMON: 'UNCOMMON',
+    RARE: 'RARE',
+    EPIC: 'EPIC',
+    LEGENDARY: 'LEGENDARY'
 };
 const statusEffects = {};
 const TransactionMiddleware = {
@@ -637,28 +637,28 @@ function rollDice(diceString) {
     if (!diceString || typeof diceString !== 'string') {
         return Math.floor(Math.random() * 6) + 1; // Default 1d6
     }
-    
+
     try {
         // Handle format like "3d8" or "1d4+1"
         const cleanDice = diceString.trim().split(' ')[0]; // Remove any damage type suffix
         const [dicePart, modifier] = cleanDice.split('+');
         const [num, sides] = dicePart.split('d').map(Number);
-        
+
         // Validate numbers
         if (isNaN(num) || isNaN(sides) || num < 1 || sides < 1) {
             return Math.floor(Math.random() * 6) + 1; // Default 1d6
         }
-        
+
         let total = 0;
         for (let i = 0; i < Math.min(num, 20); i++) { // Cap at 20 dice for safety
             total += Math.floor(Math.random() * sides) + 1;
         }
-        
+
         // Add modifier if present
         if (modifier && !isNaN(parseInt(modifier))) {
             total += parseInt(modifier);
         }
-        
+
         return Math.max(1, total); // Ensure at least 1 damage
     } catch (error) {
         console.error('Error rolling dice:', error, 'String:', diceString);
@@ -1053,7 +1053,7 @@ async function generateCombatEncounter() {
     };
 
     player.currentEnemy = scaledEnemy;
-    
+
     // Display combat interface inline in game output
     displayCombatInterface(scaledEnemy);
     displayMessage(`You face ${scaledEnemy.name}! Prepare for battle!`, 'combat');
@@ -1063,7 +1063,7 @@ function displayCombatInterface(enemy) {
     const combatDiv = document.createElement('div');
     combatDiv.id = 'inline-combat-interface';
     combatDiv.classList.add('parchment-box', 'p-4', 'my-4', 'bg-red-50', 'border-red-300');
-    
+
     combatDiv.innerHTML = `
         <div class="text-center mb-4">
             <h4 class="text-2xl font-bold text-red-700">⚔️ Combat!</h4>
@@ -1082,7 +1082,7 @@ function displayCombatInterface(enemy) {
             </button>
         </div>
     `;
-    
+
     gameOutput.appendChild(combatDiv);
     gameOutput.scrollTop = gameOutput.scrollHeight;
 }
@@ -1162,10 +1162,10 @@ async function analyzeContextAndSelectSpell(availableSpells) {
             explorationContext: getExplorationContextString(),
             enemyInfo: player.currentEnemy ? `Fighting ${player.currentEnemy.name} (HP: ${player.currentEnemy.hp})` : 'Not in combat'
         };
-        
+
         // Create spell categories for better selection
         const spellCategories = categorizeSpells(availableSpells);
-        
+
         // Build context-aware prompt for AI
         const spellSelectionPrompt = `
 ${player.name} (Level ${player.level} ${player.classProgression.class}) wants to cast a spell.
@@ -1190,25 +1190,25 @@ IMPORTANT: Respond with ONLY the spell name from the available list. Do not add 
 `;
 
         const aiResponse = await callGeminiAPI(spellSelectionPrompt, 0.3, 50, false);
-        
+
         if (aiResponse) {
             // Clean the response and validate it's in our spell list
             const cleanedSpell = aiResponse.trim().replace(/['"]/g, '');
-            const matchedSpell = availableSpells.find(spell => 
+            const matchedSpell = availableSpells.find(spell =>
                 spell.toLowerCase() === cleanedSpell.toLowerCase() ||
                 spell.toLowerCase().includes(cleanedSpell.toLowerCase()) ||
                 cleanedSpell.toLowerCase().includes(spell.toLowerCase())
             );
-            
+
             if (matchedSpell) {
                 console.log(`AI selected spell: ${matchedSpell} from context analysis`);
                 return matchedSpell;
             }
         }
-        
+
         // Fallback: Context-based selection without AI
         return selectSpellByContext(availableSpells, contextInfo);
-        
+
     } catch (error) {
         console.error('Error in spell selection:', error);
         return selectSpellByContext(availableSpells, {});
@@ -1225,15 +1225,15 @@ function categorizeSpells(spells) {
         social: [],
         divination: []
     };
-    
+
     spells.forEach(spellName => {
         const spell = spellDefinitions[spellName];
         if (!spell) return;
-        
+
         const school = spell.school?.toLowerCase() || '';
         const description = spell.description?.toLowerCase() || '';
         const damage = spell.damage;
-        
+
         if (damage || school === 'evocation' || description.includes('damage') || description.includes('attack')) {
             categories.combat.push(spellName);
         } else if (description.includes('heal') || description.includes('restore') || description.includes('hp')) {
@@ -1248,7 +1248,7 @@ function categorizeSpells(spells) {
             categories.utility.push(spellName);
         }
     });
-    
+
     return categories;
 }
 
@@ -1266,7 +1266,7 @@ function formatSpellsForAI(categories) {
 // Context-based spell selection fallback
 function selectSpellByContext(availableSpells, contextInfo) {
     const categories = categorizeSpells(availableSpells);
-    
+
     // Combat situation
     if (contextInfo.inCombat) {
         if (player.hp < player.maxHp * 0.3 && categories.healing.length > 0) {
@@ -1276,12 +1276,12 @@ function selectSpellByContext(availableSpells, contextInfo) {
             return categories.combat[Math.floor(Math.random() * categories.combat.length)];
         }
     }
-    
+
     // Low health outside combat
     if (player.hp < player.maxHp * 0.5 && categories.healing.length > 0) {
         return categories.healing[Math.floor(Math.random() * categories.healing.length)];
     }
-    
+
     // Exploration context
     if (contextInfo.recentMessages?.includes('explore') || contextInfo.recentMessages?.includes('dark') || contextInfo.recentMessages?.includes('hidden')) {
         if (categories.divination.length > 0) {
@@ -1291,25 +1291,25 @@ function selectSpellByContext(availableSpells, contextInfo) {
             return categories.utility[Math.floor(Math.random() * categories.utility.length)];
         }
     }
-    
+
     // Social context
     if (contextInfo.recentMessages?.includes('talk') || contextInfo.recentMessages?.includes('npc') || contextInfo.recentMessages?.includes('conversation')) {
         if (categories.social.length > 0) {
             return categories.social[Math.floor(Math.random() * categories.social.length)];
         }
     }
-    
+
     // Default: pick the most appropriate spell type for current situation
-    const priorityOrder = contextInfo.inCombat 
+    const priorityOrder = contextInfo.inCombat
         ? ['combat', 'healing', 'utility', 'movement', 'divination', 'social']
         : ['utility', 'divination', 'movement', 'healing', 'social', 'combat'];
-    
+
     for (const category of priorityOrder) {
         if (categories[category].length > 0) {
             return categories[category][Math.floor(Math.random() * categories[category].length)];
         }
     }
-    
+
     // Final fallback: random spell
     return availableSpells[Math.floor(Math.random() * availableSpells.length)];
 }
@@ -1319,30 +1319,30 @@ async function applySpellEffects(spellName, spellDef) {
     // Handle damage spells in combat
     if (spellDef.damage && player.currentEnemy) {
         let damage = calculateSpellDamage(spellDef.damage);
-        
+
         // Apply damage to enemy
         player.currentEnemy.hp = Math.max(0, player.currentEnemy.hp - damage);
         displayMessage(`The spell deals ${damage} ${spellDef.school} damage to ${player.currentEnemy.name}!`, 'combat');
-        
+
         // Update enemy HP display
         const enemyHpDisplay = document.getElementById('enemy-hp-display');
         if (enemyHpDisplay) {
             enemyHpDisplay.textContent = player.currentEnemy.hp;
         }
-        
+
         // Check if enemy is defeated
         if (player.currentEnemy.hp <= 0) {
             displayMessage(`${player.currentEnemy.name} is defeated by your ${spellName}!`, 'success');
-            
+
             // Reward gold and XP
             const goldReward = Math.floor(Math.random() * 40) + 20;
             const xpReward = Math.floor(Math.random() * 25) + 15;
-            
+
             updateGold(goldReward, 'magical victory');
             gainExperience(xpReward);
-            
+
             displayMessage(`You gained ${goldReward} gold and ${xpReward} XP!`, 'success');
-            
+
             player.currentEnemy = null;
             // Remove inline combat interface
             const inlineCombat = document.getElementById('inline-combat-interface');
@@ -1362,7 +1362,7 @@ async function applySpellEffects(spellName, spellDef) {
         const oldHp = player.hp;
         player.hp = Math.min(player.maxHp, player.hp + healAmount);
         const actualHeal = player.hp - oldHp;
-        
+
         if (actualHeal > 0) {
             displayMessage(`${spellName} restores ${actualHeal} HP! You feel revitalized.`, 'success');
             updatePlayerStatsDisplay();
@@ -1373,12 +1373,12 @@ async function applySpellEffects(spellName, spellDef) {
     // Handle utility and exploration spells
     else if (spellDef.school === 'Divination' || spellDef.description?.toLowerCase().includes('detect') || spellDef.description?.toLowerCase().includes('see')) {
         displayMessage(`${spellName} reveals hidden information about your surroundings...`, 'exploration');
-        
+
         // Generate contextual information based on location
         setTimeout(async () => {
-            const revealPrompt = `${player.name} cast ${spellName} (${spellDef.description}) in ${player.currentLocation}. 
+            const revealPrompt = `${player.name} cast ${spellName} (${spellDef.description}) in ${player.currentLocation}.
             What might this divination/detection spell reveal? Provide 1-2 sentences of relevant information about the area, hidden objects, magical auras, or secrets.`;
-            
+
             const revelation = await callGeminiAPI(revealPrompt, 0.7, 150, true);
             if (revelation) {
                 displayMessage(revelation, 'exploration');
@@ -1391,7 +1391,7 @@ async function applySpellEffects(spellName, spellDef) {
     // Handle social/illusion spells
     else if (spellDef.school === 'Enchantment' || spellDef.school === 'Illusion') {
         displayMessage(`${spellName} weaves subtle magic around you, affecting the minds and perceptions of those nearby.`, 'success');
-        
+
         // Check if there are NPCs in the area
         const existingNPCs = getNPCsInLocation(player.currentLocation);
         if (existingNPCs.length > 0) {
@@ -1404,7 +1404,7 @@ async function applySpellEffects(spellName, spellDef) {
     // Handle movement spells
     else if (spellDef.description?.toLowerCase().includes('teleport') || spellDef.description?.toLowerCase().includes('travel')) {
         displayMessage(`${spellName} creates a shimmering portal of magical energy!`, 'success');
-        
+
         setTimeout(() => {
             displayMessage("The magical transportation effect ripples through space, but you maintain control over your destination.", 'info');
             displayMessage("You feel the magical energy settling, ready to be used for future travels.", 'info');
@@ -1417,11 +1417,11 @@ async function applySpellEffects(spellName, spellDef) {
             `The spell weaves its magic through the area, leaving traces of ${spellDef.school?.toLowerCase() || 'arcane'} power.`,
             `${spellName} takes effect, demonstrating your growing mastery of the magical arts.`
         ];
-        
+
         const effect = contextualEffects[Math.floor(Math.random() * contextualEffects.length)];
         displayMessage(effect, 'success');
     }
-    
+
     // Save progress
     saveGame();
 }
@@ -1429,9 +1429,9 @@ async function applySpellEffects(spellName, spellDef) {
 // Calculate spell damage more accurately
 function calculateSpellDamage(damageString) {
     if (!damageString) return 0;
-    
+
     let damage = 0;
-    
+
     if (typeof damageString === 'string') {
         if (damageString.includes('d')) {
             // Standard dice notation like "3d8"
@@ -1449,12 +1449,12 @@ function calculateSpellDamage(damageString) {
     } else if (typeof damageString === 'number') {
         damage = damageString;
     }
-    
+
     // Ensure damage is a valid number
     if (isNaN(damage) || damage < 1) {
         damage = Math.floor(Math.random() * 8) + 3; // 3-10 damage fallback
     }
-    
+
     return damage;
 }
 
@@ -1530,7 +1530,7 @@ You must respond with ONLY valid JSON in this exact format:
     "requirements": ["requirement1", "requirement2"] or []
 }
 
-Quest should be appropriate for level ${player.level}. 
+Quest should be appropriate for level ${player.level}.
 Reward scaling: Level 1-3: 50-150 gold, Level 4-6: 100-300 gold, Level 7+: 200-500 gold.
 Make it engaging and fantasy-appropriate.
 `;
@@ -1650,53 +1650,69 @@ function checkQuestCompletion(playerAction) {
             const questText = (quest.objective || quest.description || '').toLowerCase();
             const actionText = playerAction.toLowerCase();
 
-            console.log('Checking quest completion:', { 
-                questTitle: quest.title, 
-                questText, 
+            console.log('Checking quest completion:', {
+                questTitle: quest.title,
+                questText,
                 actionText,
-                questData: quest 
+                questData: quest
             });
 
             // Comprehensive keyword matching with broader patterns
             const actionPatterns = [
                 // Combat keywords
-                { keywords: ['kill', 'defeat', 'slay', 'destroy', 'eliminate', 'vanquish', 'conquer'], 
-                  triggers: ['defeated', 'killed', 'slain', 'destroyed', 'eliminated', 'beat', 'won', 'victory', 'triumphant'] },
-                
+                {
+                    keywords: ['kill', 'defeat', 'slay', 'destroy', 'eliminate', 'vanquish', 'conquer'],
+                    triggers: ['defeated', 'killed', 'slain', 'destroyed', 'eliminated', 'beat', 'won', 'victory', 'triumphant']
+                },
+
                 // Discovery keywords
-                { keywords: ['find', 'locate', 'discover', 'uncover', 'reveal'], 
-                  triggers: ['found', 'discovered', 'located', 'uncovered', 'revealed', 'came across', 'stumbled upon'] },
-                
+                {
+                    keywords: ['find', 'locate', 'discover', 'uncover', 'reveal'],
+                    triggers: ['found', 'discovered', 'located', 'uncovered', 'revealed', 'came across', 'stumbled upon']
+                },
+
                 // Collection keywords
-                { keywords: ['collect', 'gather', 'retrieve', 'obtain', 'acquire', 'get'], 
-                  triggers: ['collected', 'gathered', 'retrieved', 'obtained', 'acquired', 'got', 'picked up', 'taken'] },
-                
+                {
+                    keywords: ['collect', 'gather', 'retrieve', 'obtain', 'acquire', 'get'],
+                    triggers: ['collected', 'gathered', 'retrieved', 'obtained', 'acquired', 'got', 'picked up', 'taken']
+                },
+
                 // Delivery keywords
-                { keywords: ['deliver', 'bring', 'hand', 'give', 'present', 'return'], 
-                  triggers: ['delivered', 'brought', 'handed', 'gave', 'presented', 'returned', 'completed delivery'] },
-                
+                {
+                    keywords: ['deliver', 'bring', 'hand', 'give', 'present', 'return'],
+                    triggers: ['delivered', 'brought', 'handed', 'gave', 'presented', 'returned', 'completed delivery']
+                },
+
                 // Social keywords
-                { keywords: ['talk', 'speak', 'converse', 'discuss', 'meet', 'contact'], 
-                  triggers: ['talked', 'spoke', 'conversed', 'discussed', 'met', 'contacted', 'conversation', 'dialogue'] },
-                
+                {
+                    keywords: ['talk', 'speak', 'converse', 'discuss', 'meet', 'contact'],
+                    triggers: ['talked', 'spoke', 'conversed', 'discussed', 'met', 'contacted', 'conversation', 'dialogue']
+                },
+
                 // Travel keywords
-                { keywords: ['visit', 'go to', 'travel to', 'reach', 'arrive'], 
-                  triggers: ['visited', 'went to', 'traveled to', 'reached', 'arrived', 'entered', 'found yourself'] },
-                
+                {
+                    keywords: ['visit', 'go to', 'travel to', 'reach', 'arrive'],
+                    triggers: ['visited', 'went to', 'traveled to', 'reached', 'arrived', 'entered', 'found yourself']
+                },
+
                 // Investigation keywords
-                { keywords: ['explore', 'investigate', 'examine', 'search', 'study'], 
-                  triggers: ['explored', 'investigated', 'examined', 'searched', 'studied', 'inspected'] },
-                
+                {
+                    keywords: ['explore', 'investigate', 'examine', 'search', 'study'],
+                    triggers: ['explored', 'investigated', 'examined', 'searched', 'studied', 'inspected']
+                },
+
                 // Completion keywords
-                { keywords: ['complete', 'finish', 'accomplish', 'fulfill', 'achieve'], 
-                  triggers: ['completed', 'finished', 'accomplished', 'fulfilled', 'achieved', 'done', 'succeeded'] }
+                {
+                    keywords: ['complete', 'finish', 'accomplish', 'fulfill', 'achieve'],
+                    triggers: ['completed', 'finished', 'accomplished', 'fulfilled', 'achieved', 'done', 'succeeded']
+                }
             ];
 
             // Check for action pattern matches
             for (const pattern of actionPatterns) {
                 const hasQuestKeyword = pattern.keywords.some(keyword => questText.includes(keyword));
                 const hasActionTrigger = pattern.triggers.some(trigger => actionText.includes(trigger));
-                
+
                 if (hasQuestKeyword && hasActionTrigger) {
                     console.log('Pattern match found:', { pattern: pattern.keywords, questKeyword: hasQuestKeyword, actionTrigger: hasActionTrigger });
                     isCompleted = true;
@@ -1707,10 +1723,10 @@ function checkQuestCompletion(playerAction) {
             // Enhanced target/object matching
             if (!isCompleted) {
                 // Extract potential targets from quest text
-                const commonTargets = ['goblin', 'orc', 'dragon', 'bandit', 'thief', 'merchant', 'priest', 'wizard', 'mage', 
-                                     'treasure', 'artifact', 'scroll', 'book', 'letter', 'package', 'crystal', 'gem', 
-                                     'temple', 'castle', 'tower', 'forest', 'mountain', 'cave', 'ruins', 'city', 'village', 
-                                     'inn', 'tavern', 'altar', 'shrine', 'portal', 'bridge', 'well', 'statue'];
+                const commonTargets = ['goblin', 'orc', 'dragon', 'bandit', 'thief', 'merchant', 'priest', 'wizard', 'mage',
+                    'treasure', 'artifact', 'scroll', 'book', 'letter', 'package', 'crystal', 'gem',
+                    'temple', 'castle', 'tower', 'forest', 'mountain', 'cave', 'ruins', 'city', 'village',
+                    'inn', 'tavern', 'altar', 'shrine', 'portal', 'bridge', 'well', 'statue'];
 
                 const questTargets = commonTargets.filter(target => questText.includes(target));
                 const actionTargets = commonTargets.filter(target => actionText.includes(target));
@@ -1726,7 +1742,7 @@ function checkQuestCompletion(playerAction) {
             if (!isCompleted && quest.location) {
                 const questLocation = quest.location.toLowerCase();
                 const currentLocation = player.currentLocation.toLowerCase();
-                
+
                 if (questLocation.includes(currentLocation) || currentLocation.includes(questLocation)) {
                     // Check if action suggests arrival or being at location
                     const locationTriggers = ['arrive', 'reach', 'enter', 'visit', 'at', 'in', 'found yourself'];
@@ -1745,7 +1761,7 @@ function checkQuestCompletion(playerAction) {
                     'you have completed', 'you completed', 'you finished', 'you accomplished',
                     'quest is complete', 'mission is finished', 'task is accomplished'
                 ];
-                
+
                 if (narrativeCompletionPhrases.some(phrase => actionText.includes(phrase))) {
                     console.log('Narrative completion phrase detected:', actionText);
                     isCompleted = true;
@@ -1756,7 +1772,7 @@ function checkQuestCompletion(playerAction) {
             if (!isCompleted && quest.title) {
                 const titleWords = quest.title.toLowerCase().split(' ').filter(word => word.length > 2);
                 const titleMatches = titleWords.filter(word => actionText.includes(word));
-                
+
                 if (titleMatches.length >= Math.ceil(titleWords.length / 2)) {
                     console.log('Quest title match detected:', { titleWords, titleMatches, actionText });
                     isCompleted = true;
@@ -1775,7 +1791,7 @@ function checkQuestCompletion(playerAction) {
                 if (quest.rewards && typeof quest.rewards === 'object') {
                     // Parse gold reward
                     goldAwarded = parseInt(quest.rewards.gold) || 0;
-                    
+
                     // Parse XP reward
                     xpAwarded = parseInt(quest.rewards.experience) || parseInt(quest.rewards.exp) || 0;
 
@@ -1870,7 +1886,7 @@ async function playerAttack() {
 
     enemy.hp = Math.max(0, enemy.hp - damage);
     displayMessage(`You attack ${enemy.name} for ${damage} damage!`, 'combat');
-    
+
     // Update enemy HP display
     const enemyHpDisplay = document.getElementById('enemy-hp-display');
     if (enemyHpDisplay) {
@@ -2049,10 +2065,10 @@ async function fleeCombat() {
 // Enhanced item pickup handler that detects specific items from story context
 async function handleItemPickup(command, storyContext = '') {
     console.log('Processing item pickup:', command);
-    
+
     // Extract item names from the command and story context
     const pickupItems = extractItemsFromText(command, storyContext);
-    
+
     if (pickupItems.length === 0) {
         displayMessage("You don't see anything specific to take.", 'info');
         return;
@@ -2064,7 +2080,7 @@ async function handleItemPickup(command, storyContext = '') {
     }
 
     let itemsAdded = 0;
-    
+
     for (const itemName of pickupItems) {
         const generatedItem = generateItemFromDescription(itemName, {
             locationContext: player.currentLocation,
@@ -2076,10 +2092,10 @@ async function handleItemPickup(command, storyContext = '') {
         if (generatedItem) {
             // Add to inventory using ItemManager
             ItemManager.addItemToInventory(player, generatedItem);
-            
+
             displayMessage(`You picked up: ${generatedItem.name}!`, 'success');
             displayMessage(`${generatedItem.description}`, 'info');
-            
+
             itemsAdded++;
         }
     }
@@ -2095,20 +2111,20 @@ async function handleItemPickup(command, storyContext = '') {
 function extractItemsFromText(command, storyContext = '') {
     const combinedText = `${command} ${storyContext}`.toLowerCase();
     const items = [];
-    
+
     // Common item pickup patterns
     const itemPatterns = [
         /(?:take|grab|pick up|get|collect)\s+(?:the\s+)?([^,.\n]+?)(?:\s+(?:and|,|\n)|$)/g,
         /(?:bronze|iron|steel|silver|gold|ancient|rusty|dented|worn|weathered|magical)\s+([a-z]+(?:\s+[a-z]+)*)/g,
         /(?:helmet|sword|shield|armor|weapon|blade|axe|bow|staff|ring|amulet|potion|scroll|book|gem|crystal)/g
     ];
-    
+
     // Extract from story context (items mentioned in previous responses)
     const storyItemMatches = storyContext.match(/(?:bronze helmet|short sword|leather jerkin|parchment|sword|helmet|armor|weapon|blade|axe|bow|staff|ring|amulet|potion|scroll|book|gem|crystal|equipment)/gi);
     if (storyItemMatches) {
         items.push(...storyItemMatches.map(item => item.trim()));
     }
-    
+
     // Extract from command
     let match;
     for (const pattern of itemPatterns) {
@@ -2119,12 +2135,12 @@ function extractItemsFromText(command, storyContext = '') {
             }
         }
     }
-    
+
     // Remove duplicates and filter out common words
-    const filteredItems = [...new Set(items)].filter(item => 
+    const filteredItems = [...new Set(items)].filter(item =>
         !['the', 'and', 'or', 'a', 'an', 'it', 'them', 'that', 'this'].includes(item.toLowerCase())
     );
-    
+
     console.log('Extracted items:', filteredItems);
     return filteredItems;
 }
@@ -2134,10 +2150,10 @@ function generateItemFromDescription(itemName, context) {
     try {
         // Clean up item name
         const cleanName = itemName.replace(/^(the|a|an)\s+/i, '').trim();
-        
+
         // Determine item category and properties from name
         const itemData = categorizeItemFromName(cleanName);
-        
+
         // Use ItemGenerator to create the item
         const generatedItem = ItemGenerator.generateItem({
             category: itemData.category,
@@ -2145,18 +2161,18 @@ function generateItemFromDescription(itemName, context) {
             locationContext: context.locationContext,
             playerLevel: context.playerLevel
         });
-        
+
         // Override with specific name and properties if detected
         if (itemData.specificName) {
             generatedItem.name = itemData.specificName;
         }
-        
+
         if (itemData.description) {
             generatedItem.description = itemData.description;
         }
-        
+
         return generatedItem;
-        
+
     } catch (error) {
         console.error('Error generating item:', error);
         return null;
@@ -2166,7 +2182,7 @@ function generateItemFromDescription(itemName, context) {
 // Categorize item based on name/description
 function categorizeItemFromName(itemName) {
     const name = itemName.toLowerCase();
-    
+
     // Specific item mappings
     const specificItems = {
         'bronze helmet': {
@@ -2206,12 +2222,12 @@ function categorizeItemFromName(itemName) {
             description: 'A rolled-up piece of parchment with faded writing, possibly containing important information.'
         }
     };
-    
+
     // Check for specific items first
     if (specificItems[name]) {
         return specificItems[name];
     }
-    
+
     // General categorization
     if (name.includes('helmet') || name.includes('helm') || name.includes('hat')) {
         return { category: itemCategories.ARMOR, rarity: 'COMMON' };
@@ -2231,7 +2247,7 @@ function categorizeItemFromName(itemName) {
     if (name.includes('ring') || name.includes('amulet') || name.includes('necklace')) {
         return { category: itemCategories.JEWELRY, rarity: 'UNCOMMON' };
     }
-    
+
     // Default to magical item
     return { category: itemCategories.MAGICAL, rarity: 'COMMON' };
 }
@@ -2384,7 +2400,7 @@ function displayCharacterProgression() {
 
                 <div class="mt-3">
                     <div class="w-full bg-amber-200 rounded-full h-4 border border-amber-700">
-                        <div class="bg-gradient-to-r from-amber-500 to-amber-600 h-full rounded-full transition-all duration-300" 
+                        <div class="bg-gradient-to-r from-amber-500 to-amber-600 h-full rounded-full transition-all duration-300"
                              style="width: ${Math.min(100, (player.exp / player.expToNextLevel) * 100)}%">
                         </div>
                     </div>
@@ -2492,18 +2508,18 @@ INTERACTABLE: altar, wooden box, runes
         // Parse the structured response
         const discoveryMatch = explorationResult.match(/DISCOVERY:\s*(.+?)(?=\nINTERACTABLE:|$)/s);
         const interactableMatch = explorationResult.match(/INTERACTABLE:\s*(.+?)$/s);
-        
+
         const discovery = discoveryMatch ? discoveryMatch[1].trim() : explorationResult;
-        const interactables = interactableMatch 
+        const interactables = interactableMatch
             ? interactableMatch[1].split(',').map(s => s.trim().toLowerCase())
             : [];
 
         displayMessage(discovery, 'exploration');
-        
+
         // Store exploration context
         addExplorationContext(discovery, interactables);
         addToConversationHistory('assistant', discovery);
-        
+
         if (interactables.length > 0) {
             displayMessage(`You can interact with: ${interactables.join(', ')}`, 'info');
         }
@@ -2541,7 +2557,7 @@ function showShop() {
             playerLevel: player.level,
             playerClass: player.class
         };
-        
+
         const item = ItemGenerator.generateItem(context);
         shopInventory.push(item);
     }
@@ -2560,7 +2576,7 @@ function showShop() {
         itemDiv.classList.add('shop-item', 'parchment-box', 'p-3', 'mb-3');
         itemDiv.style.border = '2px solid #2d1810'; // Dark border
         itemDiv.style.borderRadius = '8px';
-        
+
         const canAfford = player.gold >= item.value;
         const affordabilityClass = canAfford ? 'text-green-600' : 'text-red-600';
         const buttonDisabled = canAfford ? '' : 'disabled';
@@ -2572,12 +2588,12 @@ function showShop() {
                 <span class="text-xs px-2 py-1 rounded ${getRarityColor(item.rarity)}">${item.rarity}</span>
             </div>
             <p class="text-sm text-amber-700 mb-2">${item.description}</p>
-            
+
             ${item.damage ? `<p class="text-xs text-red-600">Damage: ${item.damage}</p>` : ''}
             ${item.armor ? `<p class="text-xs text-blue-600">Armor: ${item.armor}</p>` : ''}
             ${item.effect ? `<p class="text-xs text-purple-600">Effect: ${getEffectDescription(item.effect)}</p>` : ''}
-            ${item.effects && item.effects.length > 0 ? `<p class="text-xs text-purple-600">Effects: ${item.effects.slice(0,2).join(', ').replace(/_/g, ' ')}</p>` : ''}
-            
+            ${item.effects && item.effects.length > 0 ? `<p class="text-xs text-purple-600">Effects: ${item.effects.slice(0, 2).join(', ').replace(/_/g, ' ')}</p>` : ''}
+
             <div class="flex justify-between items-center mt-3">
                 <span class="font-bold ${affordabilityClass}">${item.value} gold</span>
                 <button onclick="buyShopItem(${index})" class="${buttonClass} text-sm py-1 px-3" ${buttonDisabled}>
@@ -2616,16 +2632,16 @@ function addExplorationContext(discovery, interactableElements = []) {
         timestamp: Date.now(),
         location: player.currentLocation
     });
-    
+
     // Add interactable elements
     interactableElements.forEach(element => {
         if (!currentExplorationContext.activeElements.includes(element)) {
             currentExplorationContext.activeElements.push(element);
         }
     });
-    
+
     currentExplorationContext.lastExploration = discovery;
-    
+
     // Keep only last 5 discoveries
     if (currentExplorationContext.discoveries.length > 5) {
         currentExplorationContext.discoveries = currentExplorationContext.discoveries.slice(-5);
@@ -2634,13 +2650,13 @@ function addExplorationContext(discovery, interactableElements = []) {
 
 function getExplorationContextString() {
     if (currentExplorationContext.discoveries.length === 0) return '';
-    
+
     const recent = currentExplorationContext.discoveries.slice(-3);
     const contextString = recent.map(d => d.discovery).join(' ');
-    const activeElements = currentExplorationContext.activeElements.length > 0 
+    const activeElements = currentExplorationContext.activeElements.length > 0
         ? `\n\nCurrently visible/interactable: ${currentExplorationContext.activeElements.join(', ')}`
         : '';
-    
+
     return `\n\nRECENT EXPLORATION CONTEXT:\n${contextString}${activeElements}`;
 }
 
@@ -2674,7 +2690,7 @@ async function startConversation() {
             QuestCharacterGenerator.generateInnkeeper()
         ];
 
-        const prompt = `Create an NPC encounter in ${player.currentLocation}. 
+        const prompt = `Create an NPC encounter in ${player.currentLocation}.
 
 IMPORTANT: The NPC is named "${npcName}" - use this EXACT name, do NOT use generic names like "Elara" or "the villager".
 
@@ -2716,8 +2732,8 @@ async function generateCharacterBackground() {
     generateBackgroundBtn.disabled = true;
     generateBackgroundBtn.textContent = "Generating...";
 
-    const prompt = `Create a background story for ${name}, a ${gender} ${charClass} in the fantasy realm of Pedena. 
-    Make it 2-3 paragraphs, interesting, and appropriate for a fantasy RPG character. 
+    const prompt = `Create a background story for ${name}, a ${gender} ${charClass} in the fantasy realm of Pedena.
+    Make it 2-3 paragraphs, interesting, and appropriate for a fantasy RPG character.
     Include their motivations and how they became an adventurer.`;
 
     try {
@@ -2766,7 +2782,7 @@ async function executeCustomCommand(command) {
         // Clean up the destination name
         destination = destination.replace(/^(the|a|an)\s+/i, '').trim();
         destination = destination.replace(/\s+(and|then|,).*$/i, '').trim();
-        
+
         await handleStructuredMovement(command, destination);
         return;
     }
@@ -2785,10 +2801,10 @@ async function executeCustomCommand(command) {
     // Check if this is an item pickup command
     const pickupKeywords = ['take', 'grab', 'pick up', 'get', 'collect', 'acquire'];
     const isPickupCommand = pickupKeywords.some(keyword => command.toLowerCase().includes(keyword));
-    
+
     // For all other commands, use general AI processing with exploration context
     const explorationContext = getExplorationContextString();
-    
+
     const contextPrompt = `
 ${player.name} (${player.class}, Level ${player.level}) in ${player.currentLocation} says: "${command}"
 
@@ -2804,14 +2820,14 @@ IMPORTANT: If the player is trying to interact with something from recent explor
         if (response) {
             displayMessage(response, 'info');
             addToConversationHistory('assistant', response);
-            
+
             // Check for transactions in the AI response
             try {
                 const transactionData = await TransactionMiddleware.detectTransaction(response, player, {
                     command: command,
                     location: player.currentLocation
                 });
-                
+
                 if (transactionData && transactionData.hasTransaction) {
                     console.log('Transaction detected:', transactionData);
                     await TransactionMiddleware.processTransaction(transactionData, player);
@@ -2820,15 +2836,15 @@ IMPORTANT: If the player is trying to interact with something from recent explor
                 console.error('Transaction processing error:', transactionError);
                 // Continue with normal flow even if transaction processing fails
             }
-            
+
             // Handle item pickup if detected
             if (isPickupCommand) {
                 await handleItemPickup(command, response);
             }
-            
+
             // Check for quest completion
             checkQuestCompletion(command + ' ' + response);
-            
+
             // Save conversation history
             saveConversationHistory();
         } else {
@@ -2863,201 +2879,201 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
 
-// Shop item purchase function
-function buyShopItem(itemIndex) {
-    if (!window.currentShopInventory || !window.currentShopInventory[itemIndex]) {
-        displayMessage('Item no longer available.', 'error');
-        return;
-    }
+        // Shop item purchase function
+        function buyShopItem(itemIndex) {
+            if (!window.currentShopInventory || !window.currentShopInventory[itemIndex]) {
+                displayMessage('Item no longer available.', 'error');
+                return;
+            }
 
-    const item = window.currentShopInventory[itemIndex];
-    
-    if (player.gold < item.value) {
-        displayMessage(`You need ${item.value} gold but only have ${player.gold} gold.`, 'error');
-        return;
-    }
+            const item = window.currentShopInventory[itemIndex];
 
-    // Ensure inventory exists
-    if (!player.inventory) {
-        player.inventory = [];
-    }
+            if (player.gold < item.value) {
+                displayMessage(`You need ${item.value} gold but only have ${player.gold} gold.`, 'error');
+                return;
+            }
 
-    // Purchase the item
-    updateGold(-item.value, 'shop purchase');
-    player.inventory.push(item);
-    
-    displayMessage(`Purchased ${item.name} for ${item.value} gold!`, 'success');
-    
-    // Remove item from shop inventory
-    window.currentShopInventory.splice(itemIndex, 1);
-    
-    // Save game state
-    ItemManager.saveInventoryToStorage(player);
-    saveGame();
-    
-    // Refresh shop display
-    showShop();
-}
+            // Ensure inventory exists
+            if (!player.inventory) {
+                player.inventory = [];
+            }
 
-// Item action functions (these were referenced but not defined)
-function equipItem(itemIndex) {
-    if (!player.inventory || !player.inventory[itemIndex]) {
-        displayMessage("Item not found.", 'error');
-        return;
-    }
+            // Purchase the item
+            updateGold(-item.value, 'shop purchase');
+            player.inventory.push(item);
 
-    const item = player.inventory[itemIndex];
-    
-    if (!item.slot) {
-        displayMessage("This item cannot be equipped.", 'error');
-        return;
-    }
+            displayMessage(`Purchased ${item.name} for ${item.value} gold!`, 'success');
 
-    // Check if slot is valid
-    if (!player.equipment.hasOwnProperty(item.slot)) {
-        displayMessage("Invalid equipment slot.", 'error');
-        return;
-    }
+            // Remove item from shop inventory
+            window.currentShopInventory.splice(itemIndex, 1);
 
-    // If something is already equipped in that slot, unequip it first
-    if (player.equipment[item.slot]) {
-        const oldItem = player.equipment[item.slot];
-        player.inventory.push(oldItem);
-        displayMessage(`Unequipped ${oldItem.name}.`, 'info');
-    }
+            // Save game state
+            ItemManager.saveInventoryToStorage(player);
+            saveGame();
 
-    // Equip the new item
-    player.equipment[item.slot] = item;
-    player.inventory.splice(itemIndex, 1);
-    
-    displayMessage(`Equipped ${item.name}.`, 'success');
-    
-    // Apply item effects if any
-    if (item.effects && window.ItemManager) {
-        ItemManager.applyItemEffects(player, item);
-    }
-    
-    updatePlayerStatsDisplay();
-    displayInventory(); // Refresh display
-    saveGame();
-}
+            // Refresh shop display
+            showShop();
+        }
 
-function unequipItem(slot) {
-    if (!player.equipment[slot]) {
-        displayMessage("No item equipped in that slot.", 'error');
-        return;
-    }
+        // Item action functions (these were referenced but not defined)
+        function equipItem(itemIndex) {
+            if (!player.inventory || !player.inventory[itemIndex]) {
+                displayMessage("Item not found.", 'error');
+                return;
+            }
 
-    const item = player.equipment[slot];
-    
-    // Ensure inventory array exists
-    if (!player.inventory) {
-        player.inventory = [];
-    }
-    
-    // Move item back to inventory
-    player.inventory.push(item);
-    player.equipment[slot] = null;
-    
-    displayMessage(`Unequipped ${item.name}.`, 'success');
-    updatePlayerStatsDisplay();
-    displayInventory(); // Refresh display
-    saveGame();
-}
+            const item = player.inventory[itemIndex];
 
-function useItem(itemIndex) {
-    if (!player.inventory || !player.inventory[itemIndex]) {
-        displayMessage("Item not found.", 'error');
-        return;
-    }
+            if (!item.slot) {
+                displayMessage("This item cannot be equipped.", 'error');
+                return;
+            }
 
-    const item = player.inventory[itemIndex];
-    
-    // Check if item is consumable
-    if (item.type !== 'consumable' && !item.effect) {
-        displayMessage("This item cannot be used.", 'error');
-        return;
-    }
+            // Check if slot is valid
+            if (!player.equipment.hasOwnProperty(item.slot)) {
+                displayMessage("Invalid equipment slot.", 'error');
+                return;
+            }
 
-    // Apply item effects
-    let effectApplied = false;
-    
-    if (item.effect) {
-        if (item.effect.type === 'heal') {
-            const healAmount = item.effect.amount || 30;
-            const oldHp = player.hp;
-            player.hp = Math.min(player.maxHp, player.hp + healAmount);
-            const actualHeal = player.hp - oldHp;
-            displayMessage(`You used ${item.name} and recovered ${actualHeal} HP.`, 'success');
-            effectApplied = true;
-        } else if (item.effect.type === 'mana') {
-            displayMessage(`You used ${item.name} and feel your magical energy restored.`, 'success');
-            effectApplied = true;
-        } else if (window.ItemManager && typeof ItemManager.applyItemEffects === 'function') {
-            const result = ItemManager.applyItemEffects(player, item);
-            if (result.success) {
-                displayMessage(result.message, 'success');
-                effectApplied = true;
+            // If something is already equipped in that slot, unequip it first
+            if (player.equipment[item.slot]) {
+                const oldItem = player.equipment[item.slot];
+                player.inventory.push(oldItem);
+                displayMessage(`Unequipped ${oldItem.name}.`, 'info');
+            }
+
+            // Equip the new item
+            player.equipment[item.slot] = item;
+            player.inventory.splice(itemIndex, 1);
+
+            displayMessage(`Equipped ${item.name}.`, 'success');
+
+            // Apply item effects if any
+            if (item.effects && window.ItemManager) {
+                ItemManager.applyItemEffects(player, item);
+            }
+
+            updatePlayerStatsDisplay();
+            displayInventory(); // Refresh display
+            saveGame();
+        }
+
+        function unequipItem(slot) {
+            if (!player.equipment[slot]) {
+                displayMessage("No item equipped in that slot.", 'error');
+                return;
+            }
+
+            const item = player.equipment[slot];
+
+            // Ensure inventory array exists
+            if (!player.inventory) {
+                player.inventory = [];
+            }
+
+            // Move item back to inventory
+            player.inventory.push(item);
+            player.equipment[slot] = null;
+
+            displayMessage(`Unequipped ${item.name}.`, 'success');
+            updatePlayerStatsDisplay();
+            displayInventory(); // Refresh display
+            saveGame();
+        }
+
+        function useItem(itemIndex) {
+            if (!player.inventory || !player.inventory[itemIndex]) {
+                displayMessage("Item not found.", 'error');
+                return;
+            }
+
+            const item = player.inventory[itemIndex];
+
+            // Check if item is consumable
+            if (item.type !== 'consumable' && !item.effect) {
+                displayMessage("This item cannot be used.", 'error');
+                return;
+            }
+
+            // Apply item effects
+            let effectApplied = false;
+
+            if (item.effect) {
+                if (item.effect.type === 'heal') {
+                    const healAmount = item.effect.amount || 30;
+                    const oldHp = player.hp;
+                    player.hp = Math.min(player.maxHp, player.hp + healAmount);
+                    const actualHeal = player.hp - oldHp;
+                    displayMessage(`You used ${item.name} and recovered ${actualHeal} HP.`, 'success');
+                    effectApplied = true;
+                } else if (item.effect.type === 'mana') {
+                    displayMessage(`You used ${item.name} and feel your magical energy restored.`, 'success');
+                    effectApplied = true;
+                } else if (window.ItemManager && typeof ItemManager.applyItemEffects === 'function') {
+                    const result = ItemManager.applyItemEffects(player, item);
+                    if (result.success) {
+                        displayMessage(result.message, 'success');
+                        effectApplied = true;
+                    }
+                }
+            }
+
+            if (effectApplied) {
+                // Remove item from inventory after use
+                player.inventory.splice(itemIndex, 1);
+                updatePlayerStatsDisplay();
+                displayInventory(); // Refresh display
+                saveGame();
+            } else {
+                displayMessage("The item has no effect.", 'info');
             }
         }
-    }
 
-    if (effectApplied) {
-        // Remove item from inventory after use
-        player.inventory.splice(itemIndex, 1);
-        updatePlayerStatsDisplay();
-        displayInventory(); // Refresh display
-        saveGame();
-    } else {
-        displayMessage("The item has no effect.", 'info');
-    }
-}
+        function sellItem(itemIndex) {
+            if (!player.inventory || !player.inventory[itemIndex]) {
+                displayMessage("Item not found.", 'error');
+                return;
+            }
 
-function sellItem(itemIndex) {
-    if (!player.inventory || !player.inventory[itemIndex]) {
-        displayMessage("Item not found.", 'error');
-        return;
-    }
+            const item = player.inventory[itemIndex];
+            const sellValue = Math.floor((item.value || 10) * 0.6); // Sell for 60% of value
 
-    const item = player.inventory[itemIndex];
-    const sellValue = Math.floor((item.value || 10) * 0.6); // Sell for 60% of value
-    
-    if (confirm(`Sell ${item.name} for ${sellValue} gold?`)) {
-        player.inventory.splice(itemIndex, 1);
-        updateGold(sellValue, 'item sale');
-        displayMessage(`Sold ${item.name} for ${sellValue} gold.`, 'success');
-        displayInventory(); // Refresh display
-        saveGame();
-    }
-}
+            if (confirm(`Sell ${item.name} for ${sellValue} gold?`)) {
+                player.inventory.splice(itemIndex, 1);
+                updateGold(sellValue, 'item sale');
+                displayMessage(`Sold ${item.name} for ${sellValue} gold.`, 'success');
+                displayInventory(); // Refresh display
+                saveGame();
+            }
+        }
 
-function dropItem(itemIndex) {
-    if (!player.inventory || !player.inventory[itemIndex]) {
-        displayMessage("Item not found.", 'error');
-        return;
-    }
+        function dropItem(itemIndex) {
+            if (!player.inventory || !player.inventory[itemIndex]) {
+                displayMessage("Item not found.", 'error');
+                return;
+            }
 
-    const item = player.inventory[itemIndex];
-    
-    if (confirm(`Drop ${item.name}? This item will be lost forever.`)) {
-        player.inventory.splice(itemIndex, 1);
-        displayMessage(`Dropped ${item.name}.`, 'info');
-        displayInventory(); // Refresh display
-        saveGame();
-    }
-}
+            const item = player.inventory[itemIndex];
 
-// Make functions globally accessible immediately after definition
-window.buyShopItem = buyShopItem;
-window.equipItem = equipItem;
-window.unequipItem = unequipItem;
-window.useItem = useItem;
-window.sellItem = sellItem;
-window.dropItem = dropItem;
-window.playerAttack = playerAttack;
-window.fleeCombat = fleeCombat;
+            if (confirm(`Drop ${item.name}? This item will be lost forever.`)) {
+                player.inventory.splice(itemIndex, 1);
+                displayMessage(`Dropped ${item.name}.`, 'info');
+                displayInventory(); // Refresh display
+                saveGame();
+            }
+        }
 
-// Functions will be assigned to window object after they are defined
+        // Make functions globally accessible immediately after definition
+        window.buyShopItem = buyShopItem;
+        window.equipItem = equipItem;
+        window.unequipItem = unequipItem;
+        window.useItem = useItem;
+        window.sellItem = sellItem;
+        window.dropItem = dropItem;
+        window.playerAttack = playerAttack;
+        window.fleeCombat = fleeCombat;
+
+        // Functions will be assigned to window object after they are defined
 
 
         // Small chance of random event while resting
@@ -3080,25 +3096,25 @@ window.fleeCombat = fleeCombat;
             const knownSpells = player.classProgression.knownSpells || [];
             const knownCantrips = player.classProgression.knownCantrips || [];
             const availableSpells = player.classProgression.availableSpells || [];
-            
+
             const allSpells = [...new Set([...knownSpells, ...knownCantrips, ...availableSpells])];
-            
+
             if (allSpells.length === 0) {
                 displayMessage(`You don't know any spells yet. Class: ${player.classProgression.class}, Level: ${player.level}`, 'info');
                 displayMessage("If this seems wrong, try using the Reset Progression button.", 'info');
                 return;
             }
-            
+
             // Analyze current context to select appropriate spell
             const selectedSpell = await analyzeContextAndSelectSpell(allSpells);
-            
+
             displayMessage(`You focus your magical energy and cast ${selectedSpell}...`, 'info');
-            
+
             // Get spell definition for better effect description
             const spellDef = spellDefinitions[selectedSpell];
             if (spellDef) {
                 displayMessage(`${spellDef.description}`, 'success');
-                
+
                 // Apply spell effects based on context
                 await applySpellEffects(selectedSpell, spellDef);
             } else {
@@ -3111,11 +3127,11 @@ window.fleeCombat = fleeCombat;
                 const effect = effects[Math.floor(Math.random() * effects.length)];
                 setTimeout(() => displayMessage(effect.msg, effect.type), 500);
             }
-            
+
             // Add to conversation history for future context
             addToConversationHistory('user', `cast ${selectedSpell}`);
             saveConversationHistory();
-            
+
         } else {
             displayMessage("You are not a spellcaster.", 'info');
         }
@@ -3129,7 +3145,7 @@ window.fleeCombat = fleeCombat;
             const blessings = [
                 { effect: () => player.hp = Math.min(player.maxHp, player.hp + 5), msg: "You feel blessed with minor healing." },
                 { effect: () => updateGold(Math.floor(Math.random() * 10) + 5, 'divine blessing'), msg: "You find a few coins that weren't there before." },
-                { effect: () => {}, msg: "You feel a sense of peace and protection." }
+                { effect: () => { }, msg: "You feel a sense of peace and protection." }
             ];
             const blessing = blessings[Math.floor(Math.random() * blessings.length)];
             blessing.effect();
@@ -3210,7 +3226,7 @@ window.fleeCombat = fleeCombat;
                         ${quest.objective ? `<p class="text-sm text-amber-700"><strong>Objective:</strong> ${quest.objective}</p>` : ''}
                         ${quest.rewards ? `
                             <p class="text-sm text-green-700">
-                                <strong>Rewards:</strong> 
+                                <strong>Rewards:</strong>
                                 ${quest.rewards.gold ? `${quest.rewards.gold} gold` : ''}
                                 ${quest.rewards.experience ? `, ${quest.rewards.experience} XP` : ''}
                                 ${quest.rewards.items && quest.rewards.items.length > 0 ? `, ${quest.rewards.items.join(', ')}` : ''}
@@ -3252,6 +3268,17 @@ window.fleeCombat = fleeCombat;
     window.itemRarity = itemRarity;
     window.ItemGenerator = ItemGenerator;
     window.ItemManager = ItemManager;
+
+    // Also explicitly make the item interaction functions global here
+    window.buyShopItem = buyShopItem;
+    window.equipItem = equipItem;
+    window.unequipItem = unequipItem;
+    window.useItem = useItem;
+    window.sellItem = sellItem;
+    window.dropItem = dropItem;
+    window.playerAttack = playerAttack;
+    window.fleeCombat = fleeCombat;
+
 
     // Debug functions for local storage
     window.debugInventory = function() {
@@ -3300,7 +3327,7 @@ window.fleeCombat = fleeCombat;
 
         try {
             console.log('Resetting character progression...');
-            
+
             // Store important data we want to keep
             const preservedData = {
                 name: player.name,
@@ -3337,7 +3364,7 @@ window.fleeCombat = fleeCombat;
             // Reinitialize with CharacterManager
             if (CharacterManager && typeof CharacterManager.initializeCharacter === 'function') {
                 CharacterManager.initializeCharacter(player, player.class);
-                
+
                 // If player is above level 1, apply progression for each level
                 if (player.level > 1) {
                     player.classProgression.level = 1; // Start from 1
@@ -3378,12 +3405,12 @@ window.fleeCombat = fleeCombat;
 
             // Update display
             updatePlayerStatsDisplay();
-            
+
             displayMessage("Character progression has been reset and updated with the latest game data!", 'success');
             displayMessage(`Your level ${player.level} ${player.class} has been refreshed with updated feats, skills, and abilities.`, 'info');
-            
+
             console.log('Character progression reset complete');
-            
+
         } catch (error) {
             console.error('Error resetting character progression:', error);
             displayMessage("An error occurred while resetting progression. Please try again.", 'error');
@@ -3392,21 +3419,21 @@ window.fleeCombat = fleeCombat;
 });
 
 // Add reset progression button to the game interface
-    const resetProgressionBtn = document.createElement('button');
-    resetProgressionBtn.id = 'reset-progression-btn';
-    resetProgressionBtn.className = 'btn-parchment bg-orange-600 hover:bg-orange-700 text-white text-sm py-1 px-2';
-    resetProgressionBtn.style.position = 'absolute';
-    resetProgressionBtn.style.top = '10px';
-    resetProgressionBtn.style.right = '10px';
-    resetProgressionBtn.style.zIndex = '999';
-    resetProgressionBtn.innerHTML = '<i class="gi gi-refresh mr-1"></i>Reset Progression';
-    resetProgressionBtn.title = 'Reset character progression (feats, skills, abilities) to match updated game files';
-    
-    // Add to game container
-    const gameContainer = document.getElementById('game-container');
-    if (gameContainer) {
-        gameContainer.appendChild(resetProgressionBtn);
-    }
+const resetProgressionBtn = document.createElement('button');
+resetProgressionBtn.id = 'reset-progression-btn';
+resetProgressionBtn.className = 'btn-parchment bg-orange-600 hover:bg-orange-700 text-white text-sm py-1 px-2';
+resetProgressionBtn.style.position = 'absolute';
+resetProgressionBtn.style.top = '10px';
+resetProgressionBtn.style.right = '10px';
+resetProgressionBtn.style.zIndex = '999';
+resetProgressionBtn.innerHTML = '<i class="gi gi-refresh mr-1"></i>Reset Progression';
+resetProgressionBtn.title = 'Reset character progression (feats, skills, abilities) to match updated game files';
+
+// Add to game container
+const gameContainer = document.getElementById('game-container');
+if (gameContainer) {
+    gameContainer.appendChild(resetProgressionBtn);
+}
 
 // Add main event listeners function
 function addMainEventListeners() {
@@ -3657,7 +3684,7 @@ function buildEquipmentDisplay() {
 function buildInventoryItemDisplay(item, index) {
     const canEquip = item.slot && (!player.equipment[item.slot] || player.equipment[item.slot].id !== item.id);
     const isConsumable = item.type === 'consumable' || (item.effect && (item.effect.type === 'heal' || item.effect.type === 'mana'));
-    
+
     return `
         <div class="parchment-box p-2 w-full">
             <div class="flex justify-between items-start mb-1">
@@ -3665,12 +3692,12 @@ function buildInventoryItemDisplay(item, index) {
                 <span class="text-xs px-2 py-1 rounded ${getRarityColor(item.rarity || 'COMMON')}">${item.rarity || 'COMMON'}</span>
             </div>
             <p class="text-sm text-amber-700 mb-1">${item.description || 'No description'}</p>
-            
+
             ${item.damage ? `<p class="text-xs text-red-600">Damage: ${item.damage}</p>` : ''}
             ${item.defense ? `<p class="text-xs text-blue-600">Defense: ${item.defense}</p>` : ''}
             ${item.effect ? `<p class="text-xs text-purple-600">Effect: ${getEffectDescription(item.effect)}</p>` : ''}
             ${item.value ? `<p class="text-xs text-green-600 mb-1">Value: ${item.value} gold</p>` : ''}
-            
+
             <div class="flex gap-2 flex-wrap">
                 ${canEquip ? `<button onclick="equipItem(${index})" class="btn-parchment text-xs py-1 px-2 bg-green-600 hover:bg-green-700"  style="color: #D2B48C !important;">Equip</button>` : ''}
                 ${isConsumable ? `<button onclick="useItem(${index})" class="btn-parchment text-xs py-1 px-2 bg-blue-600 hover:bg-blue-700"  style="color: #D2B48C !important;">Use</button>` : ''}
@@ -3695,12 +3722,12 @@ function getRarityColor(rarity) {
 
 function getEffectDescription(effect) {
     if (!effect) return 'Unknown effect';
-    
+
     if (effect.type === 'heal') return `Heals ${effect.amount} HP`;
     if (effect.type === 'mana') return `Restores ${effect.amount} mana`;
     if (effect.type === 'buff') return `+${effect.amount} ${effect.stat} for ${effect.duration}s`;
     if (effect.type === 'status') return `${effect.effect} for ${effect.duration}s`;
-    
+
     return effect.description || 'Special effect';
 }
 
@@ -3715,7 +3742,7 @@ function displayCharacterBackground() {
     });
 
     backgroundInterface.classList.remove('hidden');
-    
+
     // Calculate stat modifiers and totals
     const baseStats = player.stats || {
         strength: 10,
@@ -3725,16 +3752,15 @@ function displayCharacterBackground() {
         wisdom: 10,
         charisma: 10
     };
-    
+
     // Calculate equipment bonuses
     const equipmentBonuses = calculateEquipmentBonuses();
-    
+
     // Build stats grid
     const statsGrid = buildStatsGrid(baseStats, equipmentBonuses);
-    
+
     backgroundContentDisplay.innerHTML = `
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <!-- Character Info Panel -->
             <div class="parchment-box p-4">
                 <h5 class="font-bold text-xl mb-3">${player.name}</h5>
                 <div class="grid grid-cols-2 gap-3 mb-4">
@@ -3751,14 +3777,12 @@ function displayCharacterBackground() {
                 </div>
             </div>
 
-            <!-- Stats Panel -->
             <div class="parchment-box p-4">
                 <h5 class="font-bold text-xl mb-3">Character Statistics</h5>
                 ${statsGrid}
             </div>
         </div>
-        
-        <!-- Equipment Summary -->
+
         <div class="parchment-box p-4 mt-4">
             <h5 class="font-bold text-xl mb-3">Equipment Summary</h5>
             ${buildEquipmentSummary()}
@@ -3778,12 +3802,12 @@ function calculateEquipmentBonuses() {
         defense: 0,
         damage: 0
     };
-    
+
     if (!player.equipment) return bonuses;
-    
+
     Object.values(player.equipment).forEach(item => {
         if (!item) return;
-        
+
         // Check for stat bonuses
         if (item.statBonus) {
             Object.entries(item.statBonus).forEach(([stat, bonus]) => {
@@ -3792,39 +3816,39 @@ function calculateEquipmentBonuses() {
                 }
             });
         }
-        
+
         // Add defense from armor
         if (item.defense) {
             bonuses.defense += item.defense;
         }
-        
+
         // Add attack/damage from weapons
         if (item.attack) {
             bonuses.attack += item.attack;
         }
-        
+
         if (item.damage && typeof item.damage === 'number') {
             bonuses.damage += item.damage;
         }
     });
-    
+
     return bonuses;
 }
 
 function buildStatsGrid(baseStats, equipmentBonuses) {
     const statNames = ['strength', 'dexterity', 'intelligence', 'constitution', 'wisdom', 'charisma'];
-    
+
     let gridHTML = '<div class="grid grid-cols-1 gap-2">';
-    
+
     statNames.forEach(statName => {
         const baseStat = baseStats[statName] || 10;
         const equipBonus = equipmentBonuses[statName] || 0;
         const totalStat = baseStat + equipBonus;
         const modifier = Math.floor((totalStat - 10) / 2);
         const modifierSign = modifier >= 0 ? '+' : '';
-        
+
         const statDisplayName = statName.charAt(0).toUpperCase() + statName.slice(1);
-        
+
         gridHTML += `
             <div class="flex justify-between items-center py-2 border-b border-amber-700/30">
                 <span class="font-semibold">${statDisplayName}:</span>
@@ -3836,18 +3860,18 @@ function buildStatsGrid(baseStats, equipmentBonuses) {
             </div>
         `;
     });
-    
+
     // Add combat stats
     const attackBonus = equipmentBonuses.attack;
     const defenseBonus = equipmentBonuses.defense;
     const damageBonus = equipmentBonuses.damage;
-    
+
     if (attackBonus || defenseBonus || damageBonus) {
         gridHTML += `
             <div class="mt-3 pt-3 border-t border-amber-700/50">
                 <h6 class="font-bold mb-2 text-sm">Combat Bonuses:</h6>
         `;
-        
+
         if (attackBonus) {
             gridHTML += `
                 <div class="flex justify-between py-1">
@@ -3856,7 +3880,7 @@ function buildStatsGrid(baseStats, equipmentBonuses) {
                 </div>
             `;
         }
-        
+
         if (defenseBonus) {
             gridHTML += `
                 <div class="flex justify-between py-1">
@@ -3865,7 +3889,7 @@ function buildStatsGrid(baseStats, equipmentBonuses) {
                 </div>
             `;
         }
-        
+
         if (damageBonus) {
             gridHTML += `
                 <div class="flex justify-between py-1">
@@ -3874,28 +3898,28 @@ function buildStatsGrid(baseStats, equipmentBonuses) {
                 </div>
             `;
         }
-        
+
         gridHTML += '</div>';
     }
-    
+
     gridHTML += '</div>';
     return gridHTML;
 }
 
 function buildEquipmentSummary() {
     if (!player.equipment) return '<p class="text-gray-600">No equipment data available.</p>';
-    
+
     const equippedItems = Object.entries(player.equipment).filter(([slot, item]) => item !== null);
-    
+
     if (equippedItems.length === 0) {
         return '<p class="text-gray-600">No items currently equipped.</p>';
     }
-    
+
     let summaryHTML = '<div class="grid grid-cols-1 md:grid-cols-2 gap-3">';
-    
+
     equippedItems.forEach(([slot, item]) => {
         const slotDisplayName = slot.charAt(0).toUpperCase() + slot.slice(1).replace(/([A-Z])/g, ' $1');
-        
+
         summaryHTML += `
             <div class="flex items-center gap-3 p-2 bg-amber-100 rounded border">
                 <div class="flex-grow">
@@ -3910,7 +3934,7 @@ function buildEquipmentSummary() {
             </div>
         `;
     });
-    
+
     summaryHTML += '</div>';
     return summaryHTML;
 }
