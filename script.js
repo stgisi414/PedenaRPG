@@ -1251,7 +1251,7 @@ function extractNPCNames(aiResponse) {
             updatePlayerStatsDisplay();
             break;
 
-
+    }
 // Manual fix for Mara relationship (can be called from console)
 function fixMaraRelationship() {
     if (!player.relationships) {
