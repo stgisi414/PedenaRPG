@@ -532,12 +532,36 @@ function loadGame() {
 }
 
 function rollDice(diceString) {
-    const [num, sides] = diceString.split('d').map(Number);
-    let total = 0;
-    for (let i = 0; i < num; i++) {
-        total += Math.floor(Math.random() * sides) + 1;
+    if (!diceString || typeof diceString !== 'string') {
+        return Math.floor(Math.random() * 6) + 1; // Default 1d6
     }
-    return total;
+    
+    try {
+        // Handle format like "3d8" or "1d4+1"
+        const cleanDice = diceString.trim().split(' ')[0]; // Remove any damage type suffix
+        const [dicePart, modifier] = cleanDice.split('+');
+        const [num, sides] = dicePart.split('d').map(Number);
+        
+        // Validate numbers
+        if (isNaN(num) || isNaN(sides) || num < 1 || sides < 1) {
+            return Math.floor(Math.random() * 6) + 1; // Default 1d6
+        }
+        
+        let total = 0;
+        for (let i = 0; i < Math.min(num, 20); i++) { // Cap at 20 dice for safety
+            total += Math.floor(Math.random() * sides) + 1;
+        }
+        
+        // Add modifier if present
+        if (modifier && !isNaN(parseInt(modifier))) {
+            total += parseInt(modifier);
+        }
+        
+        return Math.max(1, total); // Ensure at least 1 damage
+    } catch (error) {
+        console.error('Error rolling dice:', error, 'String:', diceString);
+        return Math.floor(Math.random() * 6) + 1; // Default 1d6
+    }
 }
 
 // AI Interaction Functions (Gemini API Calls)
@@ -2488,8 +2512,72 @@ window.buyShopItem = buyShopItem;
                     
                     // Apply spell damage if it has any
                     if (spellDef.damage && player.currentEnemy) {
-                        const damage = rollDice(spellDef.damage);
-                        displayMessage(`The spell deals ${damage} ${spellDef.school} damage!`, 'combat');
+                        let damage = 0;
+                        
+                        // Handle different damage formats
+                        if (typeof spellDef.damage === 'string') {
+                            if (spellDef.damage.includes('d')) {
+                                // Standard dice notation like "3d8"
+                                damage = rollDice(spellDef.damage);
+                            } else if (spellDef.damage.includes('+')) {
+                                // Handle format like "1d4+1 force"
+                                const damagePart = spellDef.damage.split(' ')[0]; // Get "1d4+1"
+                                const parts = damagePart.split('+');
+                                damage = rollDice(parts[0]) + parseInt(parts[1] || 0);
+                            } else {
+                                // Try to parse as a number
+                                damage = parseInt(spellDef.damage) || 8;
+                            }
+                        } else if (typeof spellDef.damage === 'number') {
+                            damage = spellDef.damage;
+                        } else {
+                            damage = 8; // Default damage
+                        }
+                        
+                        // Ensure damage is a valid number
+                        if (isNaN(damage) || damage < 1) {
+                            damage = Math.floor(Math.random() * 8) + 3; // 3-10 damage
+                        }
+                        
+                        // Apply damage to enemy if in combat
+                        if (player.currentEnemy) {
+                            player.currentEnemy.hp = Math.max(0, player.currentEnemy.hp - damage);
+                            displayMessage(`The spell deals ${damage} ${spellDef.school} damage!`, 'combat');
+                            
+                            // Update enemy HP display
+                            const enemyHpDisplay = document.getElementById('enemy-hp-display');
+                            if (enemyHpDisplay) {
+                                enemyHpDisplay.textContent = player.currentEnemy.hp;
+                            }
+                            
+                            // Check if enemy is defeated
+                            if (player.currentEnemy.hp <= 0) {
+                                displayMessage(`${player.currentEnemy.name} is defeated by your spell!`, 'success');
+                                
+                                // Reward gold and XP
+                                const goldReward = Math.floor(Math.random() * 40) + 20;
+                                const xpReward = Math.floor(Math.random() * 25) + 15;
+                                
+                                updateGold(goldReward, 'magical victory');
+                                gainExperience(xpReward);
+                                
+                                displayMessage(`You gained ${goldReward} gold and ${xpReward} XP!`, 'success');
+                                
+                                player.currentEnemy = null;
+                                // Remove inline combat interface
+                                const inlineCombat = document.getElementById('inline-combat-interface');
+                                if (inlineCombat) {
+                                    inlineCombat.remove();
+                                }
+                                checkQuestCompletion(`defeated enemy with ${randomSpell}`);
+                                saveGame();
+                            } else {
+                                // Enemy retaliates
+                                setTimeout(() => enemyAttack(), 1500);
+                            }
+                        } else {
+                            displayMessage(`The spell deals ${damage} ${spellDef.school} damage!`, 'combat');
+                        }
                     }
                 } else {
                     // Fallback effects
