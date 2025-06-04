@@ -3630,48 +3630,6 @@ function displayCharacterBackground() {
         statsGridHTML += '</div>';
     }
 
-    // --- Get Relationships Data ---
-    const relationships = RelationshipMiddleware.getAllRelationships(player.name);
-    let relationshipsHTML = '';
-    
-    if (relationships.length > 0) {
-        relationshipsHTML = '<div class="grid grid-cols-1 gap-2">';
-        relationships.slice(0, 5).forEach(rel => { // Show top 5 relationships
-            const trustColor = rel.trustLevel >= 70 ? 'text-green-600' : rel.trustLevel >= 40 ? 'text-yellow-600' : 'text-red-600';
-            const relationshipColor = {
-                'ally': 'text-blue-600',
-                'friendly': 'text-green-600',
-                'neutral': 'text-gray-600',
-                'hostile': 'text-orange-600',
-                'enemy': 'text-red-600',
-                'romantic': 'text-pink-600'
-            }[rel.relationshipLevel] || 'text-gray-600';
-
-            relationshipsHTML += `
-                <div class="parchment-box p-2 bg-amber-50/50">
-                    <div class="flex justify-between items-center mb-1">
-                        <h6 class="font-bold text-sm">${rel.npcName}</h6>
-                        <span class="text-xs px-1 py-0.5 rounded ${relationshipColor} font-semibold">${rel.relationshipLevel}</span>
-                    </div>
-                    <div class="grid grid-cols-2 gap-1 text-xs text-gray-600">
-                        <p><strong>Trust:</strong> <span class="${trustColor}">${rel.trustLevel}/100</span></p>
-                        <p><strong>Met at:</strong> ${rel.locationMet}</p>
-                    </div>
-                    ${rel.lastConversation ? `
-                        <p class="text-xs italic mt-1 text-amber-700">"${rel.lastConversation.text.substring(0, 60)}${rel.lastConversation.text.length > 60 ? '...' : ''}"</p>
-                    ` : ''}
-                </div>
-            `;
-        });
-        relationshipsHTML += '</div>';
-        
-        if (relationships.length > 5) {
-            relationshipsHTML += `<p class="text-xs text-center mt-2 text-gray-600">... and ${relationships.length - 5} more relationships</p>`;
-        }
-    } else {
-        relationshipsHTML = '<p class="text-center text-gray-600 text-sm">No relationships established yet.</p>';
-    }
-
     // --- Constructing the innerHTML for backgroundContentDisplay ---
     backgroundContentDisplay.innerHTML = `
         <div class="parchment-box p-4">
@@ -3690,16 +3648,6 @@ function displayCharacterBackground() {
             <div class="mt-4 pt-4 border-t border-amber-700/30">
                 <h6 class="font-bold text-lg mb-2 text-amber-700">Character Statistics</h6>
                 ${statsGridHTML}
-            </div>
-
-            <div class="mt-4 pt-4 border-t border-amber-700/30">
-                <div class="flex justify-between items-center mb-2">
-                    <h6 class="font-bold text-lg text-amber-700">Relationships</h6>
-                    <button onclick="displayRelationships()" class="btn-parchment text-xs py-1 px-2 bg-blue-600 hover:bg-blue-700 text-white">
-                        View All
-                    </button>
-                </div>
-                ${relationshipsHTML}
             </div>
 
             <div class="mt-4 pt-4 border-t border-amber-700/30">
