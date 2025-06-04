@@ -1558,73 +1558,194 @@ async function fleeCombat() {
     }
 }
 
-// Item receival handler for story events
-async function handleItemReceival(command) {
-    // Determine if this is a quest-related or story item
-    const isQuestItem = command.toLowerCase().includes('quest') ||
-        player.quests.some(q => !q.completed);
-
-    const context = {
-        questContext: isQuestItem ? {
-            id: Date.now(),
-            importance: 'major',
-            description: command
-        } : null,
-        locationContext: player.currentLocation,
-        playerLevel: player.level,
-        playerClass: player.class
-    };
-
-    // Generate contextual item using AI
-    const itemPrompt = `Based on the player's action: "${command}"
-
-    Player: ${player.name} (Level ${player.level} ${player.class})
-    Location: ${player.currentLocation}
-
-    Generate a specific item name and description that fits this scenario. The item should be meaningful to the story.
-    Format: "Item Name: [name] | Description: [description] | Type: [scroll/book/magical/artifact] | Rarity: [COMMON/UNCOMMON/RARE/EPIC/LEGENDARY]"`;
-
-    const aiResponse = await callGeminiAPI(itemPrompt, 0.8, 300, true);
-
-    if (aiResponse) {
-        const generatedItem = parseAIItemResponse(aiResponse, context);
-        if (generatedItem) {
-            // Ensure inventory array exists
-            if (!player.inventory) {
-                player.inventory = [];
-            }
-
-            // Add item to inventory
-            player.inventory.push(generatedItem);
-
-            // Save to local storage immediately
-            ItemManager.saveInventoryToStorage(player);
-
-            displayMessage(`You received: ${generatedItem.name}!`, 'success');
-            displayMessage(`${generatedItem.description}`, 'info');
-            displayMessage(`Item added to inventory. You now have ${player.inventory.length} items.`, 'info');
-
-            // Apply any immediate effects
-            if (generatedItem.effects && generatedItem.effects.length > 0) {
-                const effectResult = ItemManager.applyItemEffects(player, generatedItem);
-                if (effectResult.success) {
-                    displayMessage(effectResult.message, 'success');
-                }
-            }
-
-            updatePlayerStatsDisplay();
-            saveGame();
-
-            // Log for debugging
-            console.log('Item added to inventory:', generatedItem);
-            console.log('Current inventory count:', player.inventory.length);
-        } else {
-            displayMessage('Failed to generate item from AI response.', 'error');
-            console.log('Failed to parse AI response:', aiResponse);
-        }
-    } else {
-        displayMessage('Failed to generate item due to AI error.', 'error');
+// Enhanced item pickup handler that detects specific items from story context
+async function handleItemPickup(command, storyContext = '') {
+    console.log('Processing item pickup:', command);
+    
+    // Extract item names from the command and story context
+    const pickupItems = extractItemsFromText(command, storyContext);
+    
+    if (pickupItems.length === 0) {
+        displayMessage("You don't see anything specific to take.", 'info');
+        return;
     }
+
+    // Ensure inventory exists
+    if (!player.inventory) {
+        player.inventory = [];
+    }
+
+    let itemsAdded = 0;
+    
+    for (const itemName of pickupItems) {
+        const generatedItem = generateItemFromDescription(itemName, {
+            locationContext: player.currentLocation,
+            playerLevel: player.level,
+            playerClass: player.class,
+            storyContext: storyContext
+        });
+
+        if (generatedItem) {
+            // Add to inventory using ItemManager
+            ItemManager.addItemToInventory(player, generatedItem);
+            
+            displayMessage(`You picked up: ${generatedItem.name}!`, 'success');
+            displayMessage(`${generatedItem.description}`, 'info');
+            
+            itemsAdded++;
+        }
+    }
+
+    if (itemsAdded > 0) {
+        displayMessage(`${itemsAdded} item(s) added to inventory. You now have ${player.inventory.length} items total.`, 'info');
+        updatePlayerStatsDisplay();
+        saveGame();
+    }
+}
+
+// Extract item names from command and story context
+function extractItemsFromText(command, storyContext = '') {
+    const combinedText = `${command} ${storyContext}`.toLowerCase();
+    const items = [];
+    
+    // Common item pickup patterns
+    const itemPatterns = [
+        /(?:take|grab|pick up|get|collect)\s+(?:the\s+)?([^,.\n]+?)(?:\s+(?:and|,|\n)|$)/g,
+        /(?:bronze|iron|steel|silver|gold|ancient|rusty|dented|worn|weathered|magical)\s+([a-z]+(?:\s+[a-z]+)*)/g,
+        /(?:helmet|sword|shield|armor|weapon|blade|axe|bow|staff|ring|amulet|potion|scroll|book|gem|crystal)/g
+    ];
+    
+    // Extract from story context (items mentioned in previous responses)
+    const storyItemMatches = storyContext.match(/(?:bronze helmet|short sword|leather jerkin|parchment|sword|helmet|armor|weapon|blade|axe|bow|staff|ring|amulet|potion|scroll|book|gem|crystal|equipment)/gi);
+    if (storyItemMatches) {
+        items.push(...storyItemMatches.map(item => item.trim()));
+    }
+    
+    // Extract from command
+    let match;
+    for (const pattern of itemPatterns) {
+        while ((match = pattern.exec(combinedText)) !== null) {
+            const item = match[1] || match[0];
+            if (item && item.length > 2) {
+                items.push(item.trim());
+            }
+        }
+    }
+    
+    // Remove duplicates and filter out common words
+    const filteredItems = [...new Set(items)].filter(item => 
+        !['the', 'and', 'or', 'a', 'an', 'it', 'them', 'that', 'this'].includes(item.toLowerCase())
+    );
+    
+    console.log('Extracted items:', filteredItems);
+    return filteredItems;
+}
+
+// Generate item using world-items system based on description
+function generateItemFromDescription(itemName, context) {
+    try {
+        // Clean up item name
+        const cleanName = itemName.replace(/^(the|a|an)\s+/i, '').trim();
+        
+        // Determine item category and properties from name
+        const itemData = categorizeItemFromName(cleanName);
+        
+        // Use ItemGenerator to create the item
+        const generatedItem = ItemGenerator.generateItem({
+            category: itemData.category,
+            rarity: itemData.rarity,
+            locationContext: context.locationContext,
+            playerLevel: context.playerLevel
+        });
+        
+        // Override with specific name and properties if detected
+        if (itemData.specificName) {
+            generatedItem.name = itemData.specificName;
+        }
+        
+        if (itemData.description) {
+            generatedItem.description = itemData.description;
+        }
+        
+        return generatedItem;
+        
+    } catch (error) {
+        console.error('Error generating item:', error);
+        return null;
+    }
+}
+
+// Categorize item based on name/description
+function categorizeItemFromName(itemName) {
+    const name = itemName.toLowerCase();
+    
+    // Specific item mappings
+    const specificItems = {
+        'bronze helmet': {
+            category: itemCategories.ARMOR,
+            rarity: 'COMMON',
+            specificName: 'Dented Bronze Helmet',
+            description: 'A weathered gladiatorial helmet with scratches and dents from countless battles.'
+        },
+        'dented bronze helmet': {
+            category: itemCategories.ARMOR,
+            rarity: 'COMMON',
+            specificName: 'Dented Bronze Helmet',
+            description: 'A weathered gladiatorial helmet with scratches and dents from countless battles.'
+        },
+        'short sword': {
+            category: itemCategories.WEAPON,
+            rarity: 'COMMON',
+            specificName: 'Rusty Gladiatorial Short Sword',
+            description: 'A sturdy short sword used in arena combat, showing signs of age but still serviceable.'
+        },
+        'rusty short sword': {
+            category: itemCategories.WEAPON,
+            rarity: 'COMMON',
+            specificName: 'Rusty Gladiatorial Short Sword',
+            description: 'A sturdy short sword used in arena combat, showing signs of age but still serviceable.'
+        },
+        'leather jerkin': {
+            category: itemCategories.ARMOR,
+            rarity: 'COMMON',
+            specificName: 'Patched Leather Jerkin',
+            description: 'A leather vest with numerous patches and repairs, worn by gladiators for basic protection.'
+        },
+        'parchment': {
+            category: itemCategories.SCROLL,
+            rarity: 'UNCOMMON',
+            specificName: 'Mysterious Parchment',
+            description: 'A rolled-up piece of parchment with faded writing, possibly containing important information.'
+        }
+    };
+    
+    // Check for specific items first
+    if (specificItems[name]) {
+        return specificItems[name];
+    }
+    
+    // General categorization
+    if (name.includes('helmet') || name.includes('helm') || name.includes('hat')) {
+        return { category: itemCategories.ARMOR, rarity: 'COMMON' };
+    }
+    if (name.includes('sword') || name.includes('blade') || name.includes('dagger')) {
+        return { category: itemCategories.WEAPON, rarity: 'COMMON' };
+    }
+    if (name.includes('armor') || name.includes('jerkin') || name.includes('vest')) {
+        return { category: itemCategories.ARMOR, rarity: 'COMMON' };
+    }
+    if (name.includes('potion') || name.includes('elixir')) {
+        return { category: itemCategories.CONSUMABLE, rarity: 'COMMON' };
+    }
+    if (name.includes('scroll') || name.includes('parchment')) {
+        return { category: itemCategories.SCROLL, rarity: 'UNCOMMON' };
+    }
+    if (name.includes('ring') || name.includes('amulet') || name.includes('necklace')) {
+        return { category: itemCategories.JEWELRY, rarity: 'UNCOMMON' };
+    }
+    
+    // Default to magical item
+    return { category: itemCategories.MAGICAL, rarity: 'COMMON' };
 }
 
 function parseAIItemResponse(aiResponse, context) {
@@ -2173,6 +2294,10 @@ async function executeCustomCommand(command) {
         return;
     }
 
+    // Check if this is an item pickup command
+    const pickupKeywords = ['take', 'grab', 'pick up', 'get', 'collect', 'acquire'];
+    const isPickupCommand = pickupKeywords.some(keyword => command.toLowerCase().includes(keyword));
+    
     // For all other commands, use general AI processing with exploration context
     const explorationContext = getExplorationContextString();
     
@@ -2191,6 +2316,11 @@ IMPORTANT: If the player is trying to interact with something from recent explor
         if (response) {
             displayMessage(response, 'info');
             addToConversationHistory('assistant', response);
+            
+            // Handle item pickup if detected
+            if (isPickupCommand) {
+                await handleItemPickup(command, response);
+            }
             
             // Check for quest completion
             checkQuestCompletion(command + ' ' + response);
@@ -2607,9 +2737,9 @@ function displayInventory() {
 
     // Show equipped items section
     inventoryHTML += `
-        <div class="mb-6">
+        <div class="mb-6 w-full">
             <h5 class="text-xl font-bold mb-3 text-blue-600">Equipped Items</h5>
-            <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
+            <div class="grid grid-cols-1 gap-3 w-full">
                 ${buildEquipmentDisplay()}
             </div>
         </div>
@@ -2617,7 +2747,7 @@ function displayInventory() {
 
     // Show inventory items section
     inventoryHTML += `
-        <div class="mb-6">
+        <div class="mb-6 w-full">
             <h5 class="text-xl font-bold mb-3 text-yellow-600">Inventory Items</h5>
             <p class="text-sm text-gray-600 mb-3">Items: ${player.inventory ? player.inventory.length : 0} | Gold: ${player.gold}</p>
     `;
@@ -2625,7 +2755,7 @@ function displayInventory() {
     if (!player.inventory || player.inventory.length === 0) {
         inventoryHTML += '<p class="text-center text-gray-600">Your inventory is empty.</p>';
     } else {
-        inventoryHTML += '<div class="grid grid-cols-1 md:grid-cols-2 gap-3">';
+        inventoryHTML += '<div class="grid grid-cols-1 gap-3 w-full">';
         player.inventory.forEach((item, index) => {
             inventoryHTML += buildInventoryItemDisplay(item, index);
         });
@@ -2670,25 +2800,29 @@ function buildEquipmentDisplay() {
         const item = player.equipment[slotData.slot];
         if (item) {
             return `
-                <div class="parchment-box p-2 text-center">
-                    <div class="mb-1">
+                <div class="parchment-box p-2 flex items-center gap-3 w-full">
+                    <div class="flex-shrink-0">
                         <i class="gi ${slotData.icon} text-xl text-green-600"></i>
                     </div>
-                    <h6 class="font-bold text-sm">${slotData.name}</h6>
-                    <p class="text-xs text-green-700">${item.name}</p>
-                    <button onclick="unequipItem('${slotData.slot}')" class="btn-parchment text-xs mt-1 py-1 px-2">
+                    <div class="flex-grow">
+                        <h6 class="font-bold text-sm">${slotData.name}</h6>
+                        <p class="text-xs text-green-700">${item.name}</p>
+                    </div>
+                    <button onclick="unequipItem('${slotData.slot}')" class="btn-parchment text-xs py-1 px-2 flex-shrink-0">
                         Unequip
                     </button>
                 </div>
             `;
         } else {
             return `
-                <div class="parchment-box p-2 text-center border-dashed border-gray-400">
-                    <div class="mb-1">
+                <div class="parchment-box p-2 flex items-center gap-3 w-full border-dashed border-gray-400">
+                    <div class="flex-shrink-0">
                         <i class="gi ${slotData.icon} text-xl text-gray-400"></i>
                     </div>
-                    <h6 class="font-bold text-sm text-gray-500">${slotData.name}</h6>
-                    <p class="text-xs text-gray-500">Empty</p>
+                    <div class="flex-grow">
+                        <h6 class="font-bold text-sm text-gray-500">${slotData.name}</h6>
+                        <p class="text-xs text-gray-500">Empty</p>
+                    </div>
                 </div>
             `;
         }
@@ -2700,17 +2834,17 @@ function buildInventoryItemDisplay(item, index) {
     const isConsumable = item.type === 'consumable' || (item.effect && (item.effect.type === 'heal' || item.effect.type === 'mana'));
     
     return `
-        <div class="parchment-box p-3 mb-2">
-            <div class="flex justify-between items-start mb-2">
+        <div class="parchment-box p-2 w-full">
+            <div class="flex justify-between items-start mb-1">
                 <h6 class="font-bold text-lg">${item.name}</h6>
                 <span class="text-xs px-2 py-1 rounded ${getRarityColor(item.rarity || 'COMMON')}">${item.rarity || 'COMMON'}</span>
             </div>
-            <p class="text-sm text-amber-700 mb-2">${item.description || 'No description'}</p>
+            <p class="text-sm text-amber-700 mb-1">${item.description || 'No description'}</p>
             
             ${item.damage ? `<p class="text-xs text-red-600">Damage: ${item.damage}</p>` : ''}
             ${item.defense ? `<p class="text-xs text-blue-600">Defense: ${item.defense}</p>` : ''}
             ${item.effect ? `<p class="text-xs text-purple-600">Effect: ${getEffectDescription(item.effect)}</p>` : ''}
-            ${item.value ? `<p class="text-xs text-green-600 mb-2">Value: ${item.value} gold</p>` : ''}
+            ${item.value ? `<p class="text-xs text-green-600 mb-1">Value: ${item.value} gold</p>` : ''}
             
             <div class="flex gap-2 flex-wrap">
                 ${canEquip ? `<button onclick="equipItem(${index})" class="btn-parchment text-xs py-1 px-2 bg-green-600 hover:bg-green-700">Equip</button>` : ''}
