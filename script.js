@@ -362,7 +362,7 @@ function updateGold(amount, reason = '') {
     console.log(`updateGold: Amount: ${amount}, Reason: ${reason}, Old Gold: ${oldGold}, New Gold: ${player.gold}`); // ADD THIS LOG
 
     if (amount > 0) {
-        displayMessage(`You gained <span class="math-inline">\{Number\(amount\)\} gold</span>{reason ? ` (${reason})` : ''}!`, 'success');
+        displayMessage(`You gained <span class="math-inline">${Number(amount)} gold</span>${reason ? ` (${reason})` : ''}!`, 'success');
     } else if (amount < 0) {
         const actualLoss = oldGold - player.gold; // Recalculate actual loss after Math.max(0,...)
         displayMessage(`You lost ${Math.abs(Number(amount))} gold${reason ? ` (${reason})` : ''}!`, 'error');
@@ -2509,6 +2509,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // Refresh shop display
             showShop();
+
+            const inventoryInterface = document.getElementById('inventory-interface');
+            if (inventoryInterface && !inventoryInterface.classList.contains('hidden') && typeof displayInventory === 'function') {
+                console.log("buyShopItem: Explicitly refreshing inventory display.");
+                displayInventory();
+            }
         }
         // Make sure window.buyShopItem is updated if you are using inline HTML onclick
         if (typeof window !== 'undefined') {
@@ -2974,48 +2980,84 @@ function createCharacter() {
 
 function displayInventory() {
     // Hide other interfaces
-    const interfaces = ['combat-interface', 'shop-interface', 'skills-interface', 'quest-interface', 'background-interface', 'progression-interface'];
-    interfaces.forEach(id => {
+    const interfacesToHide = ['shop-interface', 'skills-interface', 'quest-interface', 'combat-interface', 'background-interface', 'progression-interface'];
+    interfacesToHide.forEach(id => {
         const element = document.getElementById(id);
         if (element) element.classList.add('hidden');
     });
 
-    inventoryInterface.classList.remove('hidden');
+    const inventoryInterface = document.getElementById('inventory-interface');
+    if (inventoryInterface) {
+        inventoryInterface.classList.remove('hidden');
+    } else {
+        console.error("inventoryInterface element not found!");
+        return;
+    }
 
-    // Build complete inventory display
+    // Update status effects before displaying
+    if (typeof ItemManager !== 'undefined' && ItemManager.updateStatusEffects) {
+        ItemManager.updateStatusEffects(player);
+    } else if (typeof window.ItemManager !== 'undefined' && window.ItemManager.updateStatusEffects) {
+        window.ItemManager.updateStatusEffects(player);
+    }
+
+    console.log("displayInventory: Rendering inventory. Items count:", player.inventory ? player.inventory.length : 'undefined');
+
     let inventoryHTML = '';
 
-    // Show equipped items section
+    // Gold Display (dedicated box, spans full width on medium screens if parent is 2-col)
     inventoryHTML += `
-        <div class="mb-6 w-full">
-            <h5 class="text-xl font-bold mb-3 text-blue-600">Equipped Items</h5>
-            <div class="grid grid-cols-1 gap-3 w-full">
-                ${buildEquipmentDisplay()}
-            </div>
-        </div>
-    `;
+        <div class="parchment-box p-3 mb-4 text-center md:col-span-2">
+            <p class="font-bold text-xl">Gold: ${player.gold}</p>
+        </div>`;
 
-    // Show inventory items section
+    // Active Status Effects (spans full width on medium screens if parent is 2-col)
+    if (player.statusEffects && player.statusEffects.length > 0) {
+        inventoryHTML += `<div class="parchment-box p-3 mb-4 md:col-span-2"><h4 class="font-bold mb-2">Active Effects:</h4>`;
+        player.statusEffects.forEach(effect => {
+            const timeLeft = Math.max(0, Math.floor(((effect.expiresAt || 0) - Date.now()) / 1000));
+            inventoryHTML += `<p class="text-sm ${effect.type === 'positive' ? 'text-green-700' : 'text-red-700'}">${effect.name} (${timeLeft}s): ${effect.description}</p>`;
+        });
+        inventoryHTML += `</div>`;
+    }
+
+    // Equipped Items (section spans full width, internal grid is now 2-column on medium+)
     inventoryHTML += `
-        <div class="mb-6 w-full">
+        <div class="mb-6 w-full md:col-span-2"> 
+            <h5 class="text-xl font-bold mb-3 text-blue-600">Equipped Items</h5>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 w-full"> 
+                ${typeof buildEquipmentDisplay === 'function' ? buildEquipmentDisplay() : ''}
+            </div>
+        </div>`;
+
+    // Inventory Items section (section spans full width, internal grid is single column)
+    inventoryHTML += `
+        <div class="mb-6 w-full md:col-span-2"> 
             <h5 class="text-xl font-bold mb-3 text-yellow-600">Inventory Items</h5>
-            <p class="text-sm text-gray-600 mb-3">Items: ${player.inventory ? player.inventory.length : 0} | Gold: ${player.gold}</p>
+            <p class="text-sm text-gray-600 mb-3">Items: ${player.inventory ? player.inventory.length : 0}</p>
+            <div class="grid grid-cols-1 gap-4 w-full"> 
     `;
 
     if (!player.inventory || player.inventory.length === 0) {
         inventoryHTML += '<p class="text-center text-gray-600">Your inventory is empty.</p>';
     } else {
-        inventoryHTML += '<div class="grid grid-cols-1 gap-3 w-full">';
         player.inventory.forEach((item, index) => {
-            inventoryHTML += buildInventoryItemDisplay(item, index);
+            inventoryHTML += typeof buildInventoryItemDisplay === 'function' ? buildInventoryItemDisplay(item, index) : ``;
         });
-        inventoryHTML += '</div>';
     }
+    inventoryHTML += `
+            </div>
+        </div>
+    `;
 
-    inventoryHTML += '</div>';
-
-    inventoryItemsDisplay.innerHTML = inventoryHTML;
+    const inventoryItemsDisplay = document.getElementById('inventory-items');
+    if (inventoryItemsDisplay) {
+        inventoryItemsDisplay.innerHTML = inventoryHTML;
+    } else {
+        console.error("inventoryItemsDisplay element not found in displayInventory!");
+    }
 }
+
 
 function buildEquipmentDisplay() {
     if (!player.equipment) {
@@ -3131,44 +3173,93 @@ function getEffectDescription(effect) {
 
 // Item action functions
 function equipItem(itemIndex) {
-    // Your definitive equipItem function logic here
-    // For example, the version from around source line 1332 in 
-    // Pasted--Note-ES6-imports-removed-to-fix-global-function-access-issue-Basic-placeholder-objects-for-c-1749055095348.txt
-    console.log(`equipItem called with index: ${itemIndex}, current inventory length: ${player.inventory ? player.inventory.length : 'undefined'}`);
-
-    if (!player.inventory || itemIndex < 0 || itemIndex >= player.inventory.length) {
-        displayMessage(`Error: Cannot equip. Invalid item index ${itemIndex} for inventory of length ${player.inventory ? player.inventory.length : '0'}.`, 'error');
-        console.error(`Invalid item index: ${itemIndex} for inventory of length ${player.inventory ? player.inventory.length : '0'}`);
+    // --- Start of Debugging Logs ---
+    console.log("--- equipItem called ---");
+    console.log("Item index:", itemIndex);
+    if (!player.inventory || !player.inventory[itemIndex]) {
+        displayMessage("Item not found in inventory at index: " + itemIndex, 'error');
+        console.error("Item not found in inventory at index:", itemIndex, "Current inventory:", JSON.stringify(player.inventory));
         return;
     }
-    const itemToEquip = player.inventory[itemIndex];
+    const item = player.inventory[itemIndex];
+    console.log("Item to equip:", JSON.stringify(item, null, 2));
+    console.log("Current player.equipment state:", JSON.stringify(player.equipment, null, 2));
+    // --- End of Debugging Logs ---
 
-    if (!itemToEquip.slot) {
-        displayMessage("This item cannot be equipped.", 'error');
-        return;
-    }
-
-    if (!player.equipment.hasOwnProperty(itemToEquip.slot)) {
-        displayMessage("Invalid equipment slot.", 'error');
+    if (!item.slot) {
+        displayMessage("This item cannot be equipped (no slot defined).", 'error');
         return;
     }
 
-    if (player.equipment[itemToEquip.slot]) {
-        const oldItem = player.equipment[itemToEquip.slot];
+    // Initialize equipment object and slots if they don't exist
+    if (!player.equipment) {
+        player.equipment = {};
+    }
+    const defaultSlots = { head: null, chest: null, hands: null, legs: null, feet: null, mainHand: null, offHand: null, amulet: null, ring1: null, ring2: null };
+    for (const slotKey in defaultSlots) {
+        if (player.equipment[slotKey] === undefined) {
+            player.equipment[slotKey] = null;
+        }
+    }
+
+    let targetSlot = item.slot; // Default targetSlot is the item's defined slot
+
+    // Special handling for rings to find an available slot or replace ring1
+    if (item.type === 'jewelry' && (item.slot === 'ring' || item.slot === 'ring1' || item.slot === 'ring2')) { // More specific check for rings
+        console.log("Processing as a ring. Item slot:", item.slot);
+        console.log("ring1 currently:", player.equipment.ring1 ? player.equipment.ring1.name : "Empty");
+        console.log("ring2 currently:", player.equipment.ring2 ? player.equipment.ring2.name : "Empty");
+
+        if (player.equipment.ring1 === null) {
+            targetSlot = 'ring1';
+            console.log("Targeting empty ring1 slot.");
+        } else if (player.equipment.ring2 === null) {
+            targetSlot = 'ring2';
+            console.log("Targeting empty ring2 slot.");
+        } else {
+            // Both slots are full, default to replacing ring1
+            targetSlot = 'ring1';
+            displayMessage("Both ring slots are full. Replacing the ring in the first slot.", "info");
+            console.log("Both ring slots full. Targeting ring1 for replacement.");
+        }
+    } else {
+        console.log(`Item is not a ring or has a specific non-ring slot. Target slot: ${targetSlot}`);
+    }
+
+    // Check if the targetSlot is valid in player.equipment
+    if (!player.equipment.hasOwnProperty(targetSlot)) {
+        displayMessage(`Cannot equip: Invalid target slot '${targetSlot}' on player equipment object.`, 'error');
+        console.error(`Invalid target slot: ${targetSlot}. Player equipment keys: ${Object.keys(player.equipment)}`);
+        return;
+    }
+
+    // Unequip existing item in the targetSlot if there is one
+    if (player.equipment[targetSlot] !== null) {
+        const oldItem = player.equipment[targetSlot];
+        if (!player.inventory) player.inventory = []; // Ensure inventory array exists
         player.inventory.push(oldItem);
-        displayMessage(`Unequipped ${oldItem.name}.`, 'info');
+        displayMessage(`Unequipped ${oldItem.name} from ${targetSlot}.`, 'info');
+        console.log(`Unequipped ${oldItem.name} from ${targetSlot}.`);
     }
 
-    player.equipment[itemToEquip.slot] = itemToEquip;
-    player.inventory.splice(itemIndex, 1);
-    displayMessage(`Equipped ${itemToEquip.name}.`, 'success');
+    // Equip the new item
+    player.equipment[targetSlot] = item;
+    player.inventory.splice(itemIndex, 1); // Remove equipped item from inventory
 
-    if (itemToEquip.effects && window.ItemManager && typeof window.ItemManager.applyItemEffects === 'function') {
-        window.ItemManager.applyItemEffects(player, itemToEquip);
+    displayMessage(`Equipped ${item.name} in ${targetSlot}!`, 'success');
+    console.log(`Equipped ${item.name} in ${targetSlot}.`);
+
+    // Apply item effects
+    if (item.effects && item.effects.length > 0) { // Check effects array has content
+        if (typeof ItemManager !== 'undefined' && typeof ItemManager.applyItemEffects === 'function') {
+            ItemManager.applyItemEffects(player, item);
+        } else if (typeof window.ItemManager !== 'undefined' && typeof window.ItemManager.applyItemEffects === 'function') {
+            window.ItemManager.applyItemEffects(player, item); // Fallback to window if needed
+        }
     }
 
     updatePlayerStatsDisplay();
-    displayInventory(); // Refresh display
+    displayInventory(); // Refresh inventory display
     saveGame();
 }
 
@@ -3279,26 +3370,144 @@ function dropItem(itemIndex) {
 
 function displayCharacterBackground() {
     // Hide other interfaces
-    const interfaces = ['combat-interface', 'shop-interface', 'inventory-interface', 'skills-interface', 'quest-interface', 'progression-interface'];
-    interfaces.forEach(id => {
+    const interfacesToHide = ['combat-interface', 'shop-interface', 'inventory-interface', 'skills-interface', 'quest-interface', 'progression-interface'];
+    interfacesToHide.forEach(id => {
         const element = document.getElementById(id);
         if (element) element.classList.add('hidden');
     });
 
-    backgroundInterface.classList.remove('hidden');
+    const backgroundInterface = document.getElementById('background-interface');
+    if (backgroundInterface) {
+        backgroundInterface.classList.remove('hidden');
+    } else {
+        console.error("backgroundInterface element not found!");
+        return; // Exit if the main container isn't found
+    }
+
+    const backgroundContentDisplay = document.getElementById('background-content');
+    if (!backgroundContentDisplay) {
+        console.error("backgroundContentDisplay element not found!");
+        return; // Exit if the content display area isn't found
+    }
+
+    // --- Data Preparation for Stats ---
+    // Ensure player and player.stats exist, providing defaults if not
+    const baseStats = player && player.stats ? player.stats : { 
+        strength: 10, dexterity: 10, intelligence: 10, 
+        constitution: 10, wisdom: 10, charisma: 10 
+    };
+
+    let statsGridHTML = "";
+    // Check if the necessary helper functions for detailed stats exist
+    if (typeof calculateEquipmentBonuses === 'function' && typeof buildStatsGrid === 'function') {
+        const equipmentBonuses = calculateEquipmentBonuses(); // This function calculates bonuses from equipped items
+        statsGridHTML = buildStatsGrid(baseStats, equipmentBonuses); // This function formats the stats into HTML
+    } else {
+        // Fallback to a simpler stats display if helper functions are missing
+        console.warn("Detailed stats functions (calculateEquipmentBonuses or buildStatsGrid) missing. Using basic stats display.");
+        statsGridHTML = '<div class="grid grid-cols-1 gap-1 text-sm">'; // Simpler grid
+        const statNames = ['strength', 'dexterity', 'intelligence', 'constitution', 'wisdom', 'charisma'];
+        statNames.forEach(statName => {
+            const statValue = baseStats[statName] || 10;
+            const modifier = Math.floor((statValue - 10) / 2);
+            const modifierSign = modifier >= 0 ? '+' : '';
+            const statDisplayName = statName.charAt(0).toUpperCase() + statName.slice(1);
+            statsGridHTML += `
+                <div class="flex justify-between items-center py-1 border-b border-amber-700/20">
+                    <span class="font-semibold">${statDisplayName}:</span>
+                    <span class="font-bold">${statValue} (${modifierSign}${modifier})</span>
+                </div>`;
+        });
+        statsGridHTML += '</div>';
+    }
+
+    // --- Constructing the innerHTML for backgroundContentDisplay ---
     backgroundContentDisplay.innerHTML = `
         <div class="parchment-box p-4">
-            <h5 class="font-bold text-xl mb-3">${player.name}</h5>
-            <p class="mb-2"><strong>Class:</strong> ${player.class}</p>
-            <p class="mb-2"><strong>Gender:</strong> ${player.gender}</p>
-            <p class="mb-4"><strong>Level:</strong> ${player.level}</p>
-            <div class="mb-4">
-                <h6 class="font-bold mb-2">Background Story:</h6>
-                <p class="italic">${player.background || 'No background story available.'}</p>
+
+            <h5 class="font-bold text-2xl mb-3 text-center text-amber-800">${player.name || 'Character Name'}</h5>
+
+            <div class="grid grid-cols-2 gap-x-4 gap-y-2 mb-4 text-sm">
+                <p><strong>Class:</strong> ${player.class || 'N/A'}</p>
+                <p><strong>Level:</strong> ${player.level || 1}</p>
+                <p><strong>Gender:</strong> ${player.gender || 'N/A'}</p>
+                <p><strong>HP:</strong> ${player.hp !== undefined ? player.hp : 'N/A'} / ${player.maxHp !== undefined ? player.maxHp : 'N/A'}</p>
+                <p><strong>XP:</strong> ${player.exp !== undefined ? player.exp : 0} / ${player.expToNextLevel !== undefined ? player.expToNextLevel : 100}</p>
+                <p><strong>Gold:</strong> ${player.gold !== undefined ? player.gold : 0}</p>
+            </div>
+
+            <div class="mt-4 pt-4 border-t border-amber-700/30">
+                <h6 class="font-bold text-lg mb-2 text-amber-700">Character Statistics</h6>
+                ${statsGridHTML}
+            </div>
+
+            <div class="mt-4 pt-4 border-t border-amber-700/30">
+                <h6 class="font-bold text-lg mb-2 text-amber-700">Background Story</h6>
+                <p class="italic text-sm leading-relaxed">${player.background || 'No background story available.'}</p>
             </div>
         </div>
     `;
 }
+
+// IMPORTANT: Ensure the helper functions calculateEquipmentBonuses() and buildStatsGrid()
+// are defined in your script.js and are working correctly.
+// If they are missing, the fallback basic stats display will be used.
+
+// Example structure for calculateEquipmentBonuses (if you need to re-add/verify):
+/*
+function calculateEquipmentBonuses() {
+    const bonuses = { strength: 0, dexterity: 0, intelligence: 0, constitution: 0, wisdom: 0, charisma: 0, attack: 0, defense: 0, damage: 0 };
+    if (!player || !player.equipment) return bonuses;
+
+    Object.values(player.equipment).forEach(item => {
+        if (!item) return;
+        if (item.statBonus) {
+            Object.entries(item.statBonus).forEach(([stat, bonus]) => {
+                if (bonuses.hasOwnProperty(stat)) bonuses[stat] += bonus;
+            });
+        }
+        if (item.defense) bonuses.defense += Number(item.defense) || 0;
+        // Add other bonus calculations as needed (e.g., from item.effects)
+    });
+    return bonuses;
+}
+*/
+
+// Example structure for buildStatsGrid (if you need to re-add/verify):
+/*
+function buildStatsGrid(baseStats, equipmentBonuses) {
+    let gridHTML = '<div class="grid grid-cols-1 gap-1 text-sm">';
+    const statNames = ['strength', 'dexterity', 'intelligence', 'constitution', 'wisdom', 'charisma'];
+
+    statNames.forEach(statName => {
+        const baseStatValue = baseStats[statName] || 10;
+        const equipBonusValue = equipmentBonuses[statName] || 0;
+        const totalStat = baseStatValue + equipBonusValue;
+        const modifier = Math.floor((totalStat - 10) / 2);
+        const modifierSign = modifier >= 0 ? '+' : '';
+        const statDisplayName = statName.charAt(0).toUpperCase() + statName.slice(1);
+
+        gridHTML += `
+            <div class="flex justify-between items-center py-1 border-b border-amber-700/20">
+                <span class="font-semibold">${statDisplayName}:</span>
+                <div class="text-right">
+                    <span class="font-bold">${totalStat}</span>
+                    <span class="text-xs text-amber-600">(${modifierSign}${modifier})</span>
+                    ${equipBonusValue !== 0 ? `<span class="text-xs text-blue-500 ml-1">[${equipBonusValue > 0 ? '+' : ''}${equipBonusValue} equip]</span>` : ''}
+                </div>
+            </div>
+        `;
+    });
+    // Add combat stats if available in equipmentBonuses
+    if (equipmentBonuses.defense) {
+         gridHTML += `<div class="flex justify-between items-center py-1 border-b border-amber-700/20"><span class="font-semibold">Armor Bonus:</span><span class="font-bold">${equipmentBonuses.defense}</span></div>`;
+    }
+    // Add more combat stats like attack bonus if calculated
+
+    gridHTML += '</div>';
+    return gridHTML;
+}
+*/
 
 if (typeof window !== 'undefined') {
     window.equipItem = equipItem;

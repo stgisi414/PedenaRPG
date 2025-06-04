@@ -116,10 +116,10 @@ If no transaction is detected, return {"hasTransaction": false}
         }
 
         // Explicitly refresh UI if changes occurred
-        if (itemsChanged) {
-            // If the inventory screen is currently visible, refresh it
+        if (itemsChanged) { // itemsChanged should be true if an item was added/removed
             const inventoryInterface = document.getElementById('inventory-interface');
             if (inventoryInterface && !inventoryInterface.classList.contains('hidden') && typeof window.displayInventory === 'function') {
+                console.log("TransactionMiddleware: Explicitly refreshing inventory display.");
                 window.displayInventory();
             }
         }
