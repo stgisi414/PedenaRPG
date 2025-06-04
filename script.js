@@ -651,7 +651,46 @@ function createNPC(name, description, location) {
 }
 
 function saveNPCToLocation(npc, location) {
-    if (!gameWorld.npcs.hasjson\n?/g, '').replace(/```\n?/g, '').trim();
+    if (!gameWorld.npcs.has(location)) {
+        gameWorld.npcs.set(location, []);
+    }
+    gameWorld.npcs.get(location).push(npc);
+}
+
+function getNPCsInLocation(location) {
+    return gameWorld.npcs.get(location) || [];
+}
+
+// Movement handling function
+async function handleStructuredMovement(command, destination) {
+    try {
+        const movementPrompt = `
+Player ${player.name} (Level ${player.level} ${player.class}) wants to: "${command}"
+Current location: ${player.currentLocation}
+Destination: ${destination}
+
+Respond with ONLY valid JSON in this exact format:
+{
+    "canMove": true/false,
+    "newLocation": "exact location name",
+    "description": "movement description",
+    "encounterChance": 0.0-1.0,
+    "encounterType": "combat/social/discovery",
+    "goldCost": 0,
+    "travelTime": "time description"
+}
+
+Make the location name proper and descriptive.`;
+
+        const response = await callGeminiAPI(movementPrompt, 0.3, 400, false);
+        if (!response) {
+            throw new Error("No response from AI");
+        }
+
+        // Parse JSON response
+        let movementData;
+        try {
+            const cleanResponse = response.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
             const jsonMatch = cleanResponse.match(/\{[\s\S]*\}/);
 
             if (jsonMatch) {
@@ -719,7 +758,9 @@ function saveNPCToLocation(npc, location) {
 
         // Update displays and save
         updatePlayerStatsDisplay();
-        LocationManager.saveLocationToHistory(movementData.newLocation, player.name);
+        if (LocationManager && LocationManager.saveLocationToHistory) {
+            LocationManager.saveLocationToHistory(movementData.newLocation, player.name);
+        }
         addToConversationHistory('assistant', `${player.name} traveled from ${oldLocation} to ${movementData.newLocation}`);
         saveGame();
 
@@ -1877,6 +1918,115 @@ Use the name "${npcName}" throughout the description.`;
     saveConversationHistory();
 }
 
+// Generate character background using AI
+async function generateCharacterBackground() {
+    const name = charNameInput.value.trim();
+    const charClass = charClassSelect.value;
+    const gender = Array.from(charGenderRadios).find(radio => radio.checked)?.value;
+
+    if (!name || !charClass || !gender) {
+        alert("Please fill in character name, class, and gender first.");
+        return;
+    }
+
+    generateBackgroundBtn.disabled = true;
+    generateBackgroundBtn.textContent = "Generating...";
+
+    const prompt = `Create a background story for ${name}, a ${gender} ${charClass} in the fantasy realm of Pedena. 
+    Make it 2-3 paragraphs, interesting, and appropriate for a fantasy RPG character. 
+    Include their motivations and how they became an adventurer.`;
+
+    try {
+        const background = await callGeminiAPI(prompt, 0.8, 400);
+        if (background) {
+            charBackgroundTextarea.value = background;
+        } else {
+            charBackgroundTextarea.value = `${name} is a ${charClass} who seeks adventure in the realm of Pedena.`;
+        }
+    } catch (error) {
+        console.error("Error generating background:", error);
+        charBackgroundTextarea.value = `${name} is a ${charClass} who seeks adventure in the realm of Pedena.`;
+    }
+
+    generateBackgroundBtn.disabled = false;
+    generateBackgroundBtn.textContent = "Generate Background";
+}
+
+// Execute custom commands
+async function executeCustomCommand(command) {
+    if (!command.trim()) return;
+
+    displayMessage(`> ${command}`, 'info');
+    addToConversationHistory('user', command);
+
+    // Check for movement commands
+    const movementPatterns = [
+        /(?:go|travel|move|head|walk|run)\s+(?:to\s+)?(.+)/i,
+        /(?:visit|enter)\s+(?:the\s+)?(.+)/i,
+        /(?:leave|exit)\s+(?:the\s+)?(.+?)(?:\s+and\s+(?:go|head)\s+(?:to\s+)?(.+))?/i
+    ];
+
+    let basicMovementMatch = false;
+    let destination = null;
+
+    for (const pattern of movementPatterns) {
+        const match = command.match(pattern);
+        if (match) {
+            basicMovementMatch = true;
+            destination = match[2] || match[1]; // Use second capture group if available, otherwise first
+            break;
+        }
+    }
+
+    if (basicMovementMatch && destination) {
+        // Clean up the destination name
+        destination = destination.replace(/^(the|a|an)\s+/i, '').trim();
+        destination = destination.replace(/\s+(and|then|,).*$/i, '').trim();
+        
+        await handleStructuredMovement(command, destination);
+        return;
+    }
+
+    // Check for other command types
+    if (command.toLowerCase().includes('talk') || command.toLowerCase().includes('speak')) {
+        await startConversation();
+        return;
+    }
+
+    if (command.toLowerCase().includes('explore') || command.toLowerCase().includes('look around')) {
+        await explore();
+        return;
+    }
+
+    // For all other commands, use general AI processing
+    const contextPrompt = `
+${player.name} (${player.class}, Level ${player.level}) in ${player.currentLocation} says: "${command}"
+
+Current status: HP ${player.hp}/${player.maxHp}, Gold ${player.gold}
+
+Respond as a Dungeon Master. Describe what happens in 1-3 sentences. Be engaging and appropriate for a fantasy RPG.
+`;
+
+    try {
+        const response = await callGeminiAPI(contextPrompt, 0.7, 300, true);
+        if (response) {
+            displayMessage(response, 'info');
+            addToConversationHistory('assistant', response);
+            
+            // Check for quest completion
+            checkQuestCompletion(command + ' ' + response);
+            
+            // Save conversation history
+            saveConversationHistory();
+        } else {
+            displayMessage("Nothing interesting happens.", 'info');
+        }
+    } catch (error) {
+        console.error("Error processing command:", error);
+        displayMessage("You attempt your action, but nothing notable occurs.", 'info');
+    }
+}
+
 // Initialize game
 document.addEventListener('DOMContentLoaded', () => {
     // Check if there's a saved game to enable load button
@@ -2044,6 +2194,9 @@ document.addEventListener('DOMContentLoaded', () => {
             ` : ''}
         `;
     };
+
+    // Add main event listeners
+    addMainEventListeners();
 
     // Make functions globally accessible
     window.displayCharacterProgression = displayCharacterProgression;
