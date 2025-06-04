@@ -3181,12 +3181,47 @@ function getRarityColor(rarity) {
 function getEffectDescription(effect) {
     if (!effect) return 'Unknown effect';
 
-    if (effect.type === 'heal') return `Heals ${effect.amount} HP`;
-    if (effect.type === 'mana') return `Restores ${effect.amount} mana`;
-    if (effect.type === 'buff') return `+${effect.amount} ${effect.stat} for ${effect.duration}s`;
-    if (effect.type === 'status') return `${effect.effect} for ${effect.duration}s`;
+    if (effect.type === 'heal') {
+        return `Heals ${effect.amount || 'a moderate amount of'} HP`; // Added fallback for amount
+    }
+    if (effect.type === 'mana') {
+        return `Restores ${effect.amount || 'a moderate amount of'} mana`; // Added fallback for amount
+    }
+    if (effect.type === 'buff') {
+        if (effect.status && typeof statusEffects !== 'undefined' && statusEffects[effect.status]) {
+            // This is a named status effect like "swift"
+            const statusDef = statusEffects[effect.status];
+            let description = statusDef.name || effect.status.charAt(0).toUpperCase() + effect.status.slice(1); // Use defined name or capitalize status
+            if (effect.duration) {
+                description += ` for ${effect.duration}s`;
+            }
+            // Optionally, you could append statusDef.description here if you want more detail, e.g.
+            // description += ` (${statusDef.description})`;
+            return description; // Example: "Swift for 120s"
+        } else if (effect.amount && effect.stat) {
+            // This handles direct stat buffs like {type: "buff", amount: 2, stat: "strength", duration: 60}
+            return `+${effect.amount} ${effect.stat}${effect.duration ? ` for ${effect.duration}s` : ''}`;
+        } else if (effect.description) {
+            // If the effect object itself has a description property
+            return effect.description;
+        } else {
+            // Generic fallback for buff type
+            return `A temporary buff${effect.duration ? ` for ${effect.duration}s` : ''}.`;
+        }
+    }
+    if (effect.type === 'status') {
+        // This was likely intended for items that apply a status from the item.effects array
+        // but can also be a fallback if item.effect itself is {type: "status", effect: "some_effect_name"}
+        let statusName = effect.effect || effect.status || 'Unknown status'; // Try to get the status name
+        return `Applies ${statusName.replace(/_/g, ' ')}${effect.duration ? ` for ${effect.duration}s` : ''}`;
+    }
 
-    return effect.description || 'Special effect';
+    // Fallback if no specific type matches but effect.description exists
+    if (effect.description) {
+        return effect.description;
+    }
+
+    return 'Special effect'; // Generic fallback for any other case
 }
 
 // Item action functions

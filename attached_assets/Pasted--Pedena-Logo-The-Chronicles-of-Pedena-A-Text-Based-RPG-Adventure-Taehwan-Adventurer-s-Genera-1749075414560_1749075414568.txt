@@ -1,0 +1,332 @@
+
+Pedena Logo
+The Chronicles of Pedena
+A Text-Based RPG Adventure
+
+Taehwan - Adventurer's General Store, Elyrium
+Level: 7 HP: 140/140
+Game loaded!
+
+Welcome back, Taehwan! You are in Riftal Emporium, Elyrium.
+
+> travel to the Adventurer's General Store
+
+Taehwan strides through the bustling streets of Elyrium, arriving at the well-stocked Adventurer's General Store.
+
+You arrive at Adventurer's General Store, Elyrium.
+
+Travel time: 5 minutes
+
+Game saved!
+
+> Buy a matchbook for 1 gold
+
+The shopkeeper, a gruff dwarf with a surprisingly neatly-trimmed beard, eyes your request with a raised eyebrow. He produces a small, brass matchbook, its cover embossed with a rather crude depiction of a dragon. "One gold piece, as requested," he grunts, handing it over with a surprisingly deft flick of his wrist.
+
+You lost 1 gold (purchase)!
+
+Game saved!
+
+Added to inventory: Brass Matchbook
+
+Small brass matchbook with a crude dragon embossed on the cover.
+
+Game saved!
+
+Exploring the area...
+
+Taehwan finds a dusty, leather-bound journal tucked away on a high shelf, almost hidden behind a stack of maps. The cover is unmarked, but a faint, almost imperceptible magical aura emanates from it. Genevieve Haggler, the store's owner, is polishing a particularly ornate dagger behind the counter, seemingly oblivious to Taehwan's presence.
+
+You can interact with: journal, genevieve haggler, ornate dagger (on counter), high shelf
+
+> Talk to the genevieve haggler
+
+Looking for someone to talk to...
+
+You see Botanist Lyra. Appearance: A wizened woman with bright, inquisitive eyes, her fingers stained a multitude of earthy greens and browns. She wears a simple, practical tunic patched with various fabrics, and a leather satchel overflowing with dried herbs and strange roots hangs from her shoulder. A faint scent of chamomile and something subtly…musky… clings to her. Botanist Lyra says: "Excuse me, young adventurer, but have you perhaps seen a particularly rare specimen of Nightshade Bloom? It has iridescent petals and a scent like burnt sugar..."
+
+> No but i got this cosmic chronic i conjured from earlier
+
+Botanist Lyra's eyes widen, her interest piqued. A knowing smile plays on her lips as she leans closer, inhaling deeply. "Cosmic Chronic, you say? That's... quite a rare find. Tell me more about its properties, and perhaps we can discuss a trade."
+
+Added to inventory: Cosmic Chronic
+
+A rare magical item mentioned in the narrative.
+
+Game saved!
+
+You gained 14 gold (item sale)!
+
+Game saved!
+
+Sold Cosmic Chronic for 14 gold.
+
+Game saved!
+
+> Cosmic Chronic UNCOMMON A potent bud with immediate and overwhelming hallucinatory effects. Effect: Swift for 120s Value: 15 gold
+
+Botanist Lyra, eyes gleaming with avarice, carefully assesses the Cosmic Chronic, her fingers tracing its luminescent surface. She nods slowly, a shrewd glint in her eyes, then offers, "Fifteen gold pieces is a fair price... but I'll sweeten the deal. I'll add a rare potion of healing in exchange for this extraordinary…herb."
+
+You lost 15 gold (trade)!
+
+Game saved!
+
+Added to inventory: Cosmic Chronic
+
+luminescent surface
+
+Added to inventory: Potion of Healing
+
+rare potion of healing
+
+Added to inventory: extraordinary herb
+
+extraordinary herb
+
+Game saved!
+
+Enter Command:
+Type your action here (e.g., 'examine the mysterious door', 'talk to the merchant', 'cast fireball')...
+
+Execute
+
+Save Game
+
+New Quest
+
+Inventory
+
+Shop
+
+Progression
+
+Background
+
+Rest
+
+Explore
+
+Cast Spell
+
+Pray
+Your Inventory
+Gold: 733
+
+Equipped Items
+Main Hand
+Light Crossbow
+
+Unequip
+Off Hand
+Empty
+
+Head
+Mithril Helmet
+
+Unequip
+Chest
+Mithril Breastplate
+
+Unequip
+Hands
+Mithril Gauntlets
+
+Unequip
+Legs
+Mithril Leggings
+
+Unequip
+Feet
+Mithril Boots
+
+Unequip
+Amulet
+Necklace of Fire Resistance (Minor)
+
+Unequip
+Ring 1
+Dusty Ring
+
+Unequip
+Ring 2
+Ring of Sustenance
+
+Unequip
+Inventory Items
+Items: 19
+
+Healing Potion
+COMMON
+Restores a moderate amount of health.
+
+Effect: Heals 30 HP
+
+Value: 8 gold
+
+Use
+Sell
+Drop
+Crossbow Bolts (20)
+COMMON
+Bundle of 20 heavy crossbow bolts.
+
+Value: 4 gold
+
+Sell
+Drop
+Bolt Quiver
+COMMON
+Sturdy case designed to hold crossbow bolts safely.
+
+Value: 10 gold
+
+Sell
+Drop
+Steel Dagger
+COMMON
+Quick and silent blade for rogues.
+
+Damage: 1d4
+
+Value: 5 gold
+
+Equip
+Sell
+Drop
+Lumiel Serathim (High Celestial Language)
+RARE
+A flowing Tengwar-like text written in High Celestial (Angelic Chorus). The writing seems to shimmer with otherworldly power. Contains: "The stars shine upon your path, wanderer of the ol..."
+
+Value: 62 gold
+
+Sell
+Drop
+Charred Obsidian Shard
+RARE
+A jagged shard of obsidian, seemingly broken from the spire itself. It pulses faintly with a malevolent energy, and feels strangely warm to the touch despite the chilling air of the chamber. Runes, barely visible, seem to writhe across its surface, hinting at a forgotten power. Touching it elicits a faint whisper in your mind, a promise of untold power… and a terrible price. (Rare)
+
+Value: 25 gold
+
+Sell
+Drop
+The Obsidian Phallus
+RARE
+A pulsating, obsidian shard, warm to the touch, radiating a faint, infernal energy. Its surface seems to writhe subtly, mimicking the rhythm of a heartbeat. Holding it, Taehwan feels a surge of primal energy, a potent mixture of lust and dark power. A faint whisper seems to emanate from the shard, promising forbidden pleasures and untold strength... at a price. (Rare)
+
+Value: 25 gold
+
+Sell
+Drop
+The Obsidian Pheromone
+RARE
+A small, obsidian shard, pulsing with a faint inner light, radiating a potent, intoxicating pheromone. Touching it triggers an intense surge of primal desire, but prolonged contact risks overwhelming the user with uncontrollable urges. The shard seems to resonate with the succubus's power. (Rare)
+
+Value: 25 gold
+
+Sell
+Drop
+The Succubus's Whisper
+RARE
+A small, obsidian shard, warm to the touch, pulsing faintly with inner light. It seems to hum with a barely perceptible energy, and the faint scent of musky pheromones clings to its surface. Touching it evokes a fleeting vision of the succubus's languid movements and predatory smile. (Rare)
+
+Value: 25 gold
+
+Sell
+Drop
+The Obsidian Shroud of Patience
+EPIC
+A dark, obsidian amulet pulsating with faint inner light. Wearing it grants the wearer increased magical resilience and a measure of control over their emotions, specifically suppressing impulsive urges and enhancing focus. The amulet subtly absorbs ambient magical energy, slowly replenishing its power. Its surface is etched with ancient runes that whisper of self-control and unwavering resolve. (Epic)
+
+Value: 25 gold
+
+Sell
+Drop
+Sealed Scroll
+UNCOMMON
+A single, rolled parchment sealed with faded crimson wax. No guarantees on the destination.
+
+Value: 17 gold
+
+Sell
+Drop
+Shopkeeper's Soul
+UNCOMMON
+A soul claimed through necromancy.
+
+Value: 17 gold
+
+Sell
+Drop
+Potion of Greater Healing
+COMMON
+A reward for completing a quest
+
+Value: 35 gold
+
+Sell
+Drop
+Scroll of Fireball
+COMMON
+A reward for completing a quest
+
+Value: 35 gold
+
+Sell
+Drop
+Cosmic Chronic
+UNCOMMON
+A potent bud with immediate and overwhelming hallucinatory effects.
+
+Effect: Swift for 120s
+
+Value: 15 gold
+
+Use
+Sell
+Drop
+Brass Matchbook
+COMMON
+Small brass matchbook with a crude dragon embossed on the cover.
+
+Effect: A temporary buff for 600s.
+
+Value: 8 gold
+
+Use
+Sell
+Drop
+Cosmic Chronic
+EPIC
+luminescent surface
+
+Value: 42 gold
+
+Sell
+Drop
+Potion of Healing
+RARE
+rare potion of healing
+
+Effect: Applies ethereal for 60s
+
+Value: 28 gold
+
+Use
+Sell
+Drop
+extraordinary herb
+UNCOMMON
+extraordinary herb
+
+Effect: Swift for 120s
+
+Value: 16 gold
+
+Use
+Sell
+Drop
+Close Inventory
+© 2025 Pedena RPG. Powered by Gemini API & the spirit of adventure.
+
+
+Reset Progression
