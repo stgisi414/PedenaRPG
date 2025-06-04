@@ -1094,14 +1094,6 @@ async function generateTreasureEncounter() {
     saveGame();
 }
 
-async function generateEventEncounter() {
-    displayMessage("🌟 Something interesting happens...", 'exploration');
-
-    const events = [
-        'weather_change',
-        'mysterious_sign',
-        'helpful_spirit',
-
 // Enhanced relationship detection function
 function checkRelationshipChanges(playerCommand, aiResponse) {
     const combinedText = (playerCommand + ' ' + aiResponse).toLowerCase();
@@ -1225,33 +1217,6 @@ function extractNPCNames(aiResponse) {
     return [...new Set(names)]; // Remove duplicates
 }
 
-        'ancient_relic',
-        'crossroads_choice'
-    ];
-
-    const eventType = events[Math.floor(Math.random() * events.length)];
-
-    switch (eventType) {
-        case 'weather_change':
-            const weathers = ['begins to rain', 'clears up beautifully', 'becomes foggy', 'grows windy'];
-            const weather = weathers[Math.floor(Math.random() * weathers.length)];
-            displayMessage(`🌤️ The weather ${weather}, affecting your journey.`, 'info');
-            break;
-
-        case 'mysterious_sign':
-            displayMessage("🪧 You find a weathered signpost with mysterious directions carved into it.", 'exploration');
-            displayMessage("The ancient words seem to point toward hidden paths and secret locations.", 'info');
-            break;
-
-        case 'helpful_spirit':
-            const hpHeal = Math.floor(player.maxHp * 0.25);
-            player.hp = Math.min(player.maxHp, player.hp + hpHeal);
-            displayMessage("👻 A benevolent spirit appears and blesses you with healing energy!", 'success');
-            displayMessage(`❤️ You recover ${hpHeal} HP.`, 'success');
-            updatePlayerStatsDisplay();
-            break;
-
-    }
 // Manual fix for Mara relationship (can be called from console)
 function fixMaraRelationship() {
     if (!player.relationships) {
@@ -1291,6 +1256,39 @@ function autoFixMaraRelationship() {
         }
     }
 }
+
+async function generateEventEncounter() {
+    displayMessage("🌟 Something interesting happens...", 'exploration');
+
+    const events = [
+        'weather_change',
+        'mysterious_sign',
+        'helpful_spirit',
+        'ancient_relic',
+        'crossroads_choice'
+    ];
+
+    const eventType = events[Math.floor(Math.random() * events.length)];
+
+    switch (eventType) {
+        case 'weather_change':
+            const weathers = ['begins to rain', 'clears up beautifully', 'becomes foggy', 'grows windy'];
+            const weather = weathers[Math.floor(Math.random() * weathers.length)];
+            displayMessage(`🌤️ The weather ${weather}, affecting your journey.`, 'info');
+            break;
+
+        case 'mysterious_sign':
+            displayMessage("🪧 You find a weathered signpost with mysterious directions carved into it.", 'exploration');
+            displayMessage("The ancient words seem to point toward hidden paths and secret locations.", 'info');
+            break;
+
+        case 'helpful_spirit':
+            const hpHeal = Math.floor(player.maxHp * 0.25);
+            player.hp = Math.min(player.maxHp, player.hp + hpHeal);
+            displayMessage("👻 A benevolent spirit appears and blesses you with healing energy!", 'success');
+            displayMessage(`❤️ You recover ${hpHeal} HP.`, 'success');
+            updatePlayerStatsDisplay();
+            break;
 
         case 'ancient_relic':
             displayMessage("🏛️ You discover the ruins of an ancient structure, worn down by time.", 'exploration');
