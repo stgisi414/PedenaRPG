@@ -365,7 +365,7 @@ function updateGold(amount, reason = '') {
         displayMessage(`You gained <span class="math-inline">\{Number\(amount\)\} gold</span>{reason ? ` (${reason})` : ''}!`, 'success');
     } else if (amount < 0) {
         const actualLoss = oldGold - player.gold; // Recalculate actual loss after Math.max(0,...)
-        displayMessage(`You gained <span class="math-inline">${Number(amount)} gold</span>${reason ? ` (${reason})` : ''}!`, 'success');
+        displayMessage(`You lost ${Math.abs(Number(amount))} gold${reason ? ` (${reason})` : ''}!`, 'error');
     }
 
     updatePlayerStatsDisplay();
