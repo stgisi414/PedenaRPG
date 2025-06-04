@@ -2484,10 +2484,10 @@ window.buyShopItem = buyShopItem;
             const questCount = activeQuests.length;
             if (questCount > 0) {
                 questBtn.innerHTML = `<i class="gi gi-scroll-unfurled mr-2"></i>Quests (${questCount})`;
-                questBtn.classList.add('text-yellow-400');
+                questBtn.classList.add('text-bronze-400');
             } else {
                 questBtn.innerHTML = `<i class="gi gi-scroll-unfurled mr-2"></i>New Quest`;
-                questBtn.classList.remove('text-yellow-400');
+                questBtn.classList.remove('text-bronze-400');
             }
         }
     };
