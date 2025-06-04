@@ -2415,6 +2415,23 @@ IMPORTANT: If the player is trying to interact with something from recent explor
                 await handleItemPickup(command, response);
             }
 
+            // Check for transactions in the AI response
+            try {
+                const transactionData = await TransactionMiddleware.detectTransaction(response, player, {
+                    command: command,
+                    location: player.currentLocation
+                });
+                
+                if (transactionData && transactionData.hasTransaction) {
+                    const transactionResults = await TransactionMiddleware.processTransaction(transactionData, player);
+                    if (transactionResults && transactionResults.length > 0) {
+                        console.log('Transaction processed:', transactionResults);
+                    }
+                }
+            } catch (transactionError) {
+                console.error('Transaction processing error:', transactionError);
+            }
+
             // Check for quest completion
             checkQuestCompletion(command + ' ' + response);
 
@@ -2668,6 +2685,7 @@ document.addEventListener('DOMContentLoaded', () => {
     window.ItemGenerator = ItemGenerator;
     window.itemCategories = itemCategories;
     window.itemRarity = itemRarity;
+    window.TransactionMiddleware = TransactionMiddleware;
     
     // Make other functions globally accessible if needed by other parts of the code or for debugging
     window.LocationManager = typeof LocationManager !== 'undefined' ? LocationManager : {};
