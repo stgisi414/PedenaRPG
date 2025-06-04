@@ -177,6 +177,20 @@ function getConversationContext() {
     return contextString;
 }
 
+function getActiveQuestsContext() {
+    if (!player.quests || player.quests.length === 0) {
+        return "Active Quests: None";
+    }
+    
+    const activeQuests = player.quests.filter(q => !q.completed);
+    if (activeQuests.length === 0) {
+        return "Active Quests: None (all completed)";
+    }
+    
+    const questSummaries = activeQuests.map(q => `"${q.title}": ${q.objective || q.description}`).join('; ');
+    return `Active Quests (${activeQuests.length}): ${questSummaries}`;
+}
+
 function saveConversationHistory() {
     localStorage.setItem('pedenaConversationHistory', JSON.stringify(conversationHistory));
 }
@@ -413,6 +427,94 @@ function updatePlayerStatsDisplay() {
     playerNameDisplay.textContent = `${player.name} - ${player.currentLocation}`;
     playerLevelDisplay.textContent = `Level: ${player.level}`;
     playerHpDisplay.textContent = `HP: ${player.hp}/${player.maxHp}`;
+}
+
+function updateQuestButton() {
+    const activeQuests = player.quests ? player.quests.filter(q => !q.completed) : [];
+    const questBtn = document.getElementById('new-quest-btn');
+    
+    if (questBtn) {
+        if (activeQuests.length > 0) {
+            questBtn.innerHTML = '<i class="gi gi-scroll-unfurled mr-2"></i>View Quests';
+            questBtn.title = `${activeQuests.length} active quest(s)`;
+        } else {
+            questBtn.innerHTML = '<i class="gi gi-scroll-unfurled mr-2"></i>New Quest';
+            questBtn.title = 'Generate a new quest';
+        }
+    }
+}
+
+function markQuestComplete(questId) {
+    const quest = player.quests.find(q => q.id === questId);
+    if (quest && !quest.completed) {
+        quest.completed = true;
+        displayMessage(`Quest completed: ${quest.title}!`, 'success');
+        
+        // Award quest rewards
+        if (quest.rewards) {
+            if (quest.rewards.gold > 0) {
+                updateGold(quest.rewards.gold, 'quest reward');
+            }
+            if (quest.rewards.experience > 0) {
+                CharacterManager.gainExperience(player, quest.rewards.experience);
+                displayMessage(`You gained ${quest.rewards.experience} experience!`, 'success');
+            }
+        }
+        
+        updateQuestButton();
+        saveGame();
+    }
+}
+
+function displayQuests() {
+    questInterface.classList.remove('hidden');
+    skillsInterface.classList.add('hidden');
+    inventoryInterface.classList.add('hidden');
+    shopInterface.classList.add('hidden');
+    combatInterface.classList.add('hidden');
+    backgroundInterface.classList.add('hidden');
+    
+    const questList = document.getElementById('quest-list');
+    questList.innerHTML = '';
+    
+    if (!player.quests || player.quests.length === 0) {
+        questList.innerHTML = '<p class="text-center text-amber-700">No quests available. Generate a new quest to begin your adventure!</p>';
+        return;
+    }
+    
+    const activeQuests = player.quests.filter(q => !q.completed);
+    const completedQuests = player.quests.filter(q => q.completed);
+    
+    if (activeQuests.length > 0) {
+        questList.innerHTML += '<h5 class="font-bold mb-3 text-green-700">Active Quests</h5>';
+        activeQuests.forEach(quest => {
+            const questDiv = document.createElement('div');
+            questDiv.className = 'parchment-box p-3 mb-3';
+            questDiv.innerHTML = `
+                <h6 class="font-bold text-lg mb-2">${quest.title}</h6>
+                <p class="mb-2">${quest.description}</p>
+                <p class="text-sm text-amber-700 mb-2"><strong>Objective:</strong> ${quest.objective || quest.description}</p>
+                <p class="text-sm text-green-600"><strong>Rewards:</strong> ${quest.rewards ? `${quest.rewards.gold} gold, ${quest.rewards.experience} XP` : '50 gold'}</p>
+                <p class="text-xs text-gray-600 mt-2">Created: ${quest.dateCreated}</p>
+                <button onclick="markQuestComplete('${quest.id}')" class="btn-parchment text-sm mt-2">Mark Complete</button>
+            `;
+            questList.appendChild(questDiv);
+        });
+    }
+    
+    if (completedQuests.length > 0) {
+        questList.innerHTML += '<h5 class="font-bold mb-3 mt-4 text-blue-700">Completed Quests</h5>';
+        completedQuests.forEach(quest => {
+            const questDiv = document.createElement('div');
+            questDiv.className = 'parchment-box p-3 mb-3 opacity-75';
+            questDiv.innerHTML = `
+                <h6 class="font-bold text-lg mb-2">${quest.title} ✓</h6>
+                <p class="mb-2">${quest.description}</p>
+                <p class="text-xs text-gray-600">Completed: ${quest.dateCreated}</p>
+            `;
+            questList.appendChild(questDiv);
+        });
+    }
 }
 
 function showScreen(screenId) {
