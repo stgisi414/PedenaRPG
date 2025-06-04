@@ -355,33 +355,30 @@ const enemies = [
 ];
 
 // Helper Functions
+// In script.js
 function updateGold(amount, reason = '') {
     const oldGold = player.gold;
-    player.gold = Math.max(0, player.gold + amount);
+    player.gold = Math.max(0, player.gold + Number(amount)); // Ensure amount is treated as a number
+    console.log(`updateGold: Amount: ${amount}, Reason: ${reason}, Old Gold: ${oldGold}, New Gold: ${player.gold}`); // ADD THIS LOG
 
     if (amount > 0) {
-        displayMessage(`You gained ${amount} gold${reason ? ` (${reason})` : ''}!`, 'success');
+        displayMessage(`You gained <span class="math-inline">\{Number\(amount\)\} gold</span>{reason ? ` (${reason})` : ''}!`, 'success');
     } else if (amount < 0) {
-        const actualLoss = oldGold - player.gold;
-        displayMessage(`You lost ${actualLoss} gold${reason ? ` (${reason})` : ''}.`, 'error');
+        const actualLoss = oldGold - player.gold; // Recalculate actual loss after Math.max(0,...)
+        displayMessage(`You gained <span class="math-inline">${Number(amount)} gold</span>${reason ? ` (${reason})` : ''}!`, 'success');
     }
 
     updatePlayerStatsDisplay();
 
-    // Refresh inventory display if it's currently open
     if (!inventoryInterface.classList.contains('hidden')) {
         displayInventory();
     }
-
-    // Refresh shop display if it's currently open (for updated affordable items)
     if (!shopInterface.classList.contains('hidden')) {
         displayShop();
     }
 
-    // Auto-save after gold changes
+    console.log(`updateGold: About to call saveGame(). Current player.gold is ${player.gold}`); // ADD THIS LOG
     saveGame();
-
-    console.log(`Gold updated: ${oldGold} -> ${player.gold} (change: ${amount})`);
 }
 
 function displayMessage(message, type = 'info') {
@@ -451,6 +448,9 @@ function saveGame() {
         CharacterManager.saveProgression(player);
     }
 
+    console.log(`saveGame: Player object being saved:`, JSON.parse(JSON.stringify(player))); // ADD THIS (JSON.parse(JSON.stringify()) for a clean clone log)
+    console.log(`saveGame: Saving player.gold = ${player.gold}`); // SPECIFIC GOLD LOG
+
     const saveData = {
         player: player,
         gameWorld: {
@@ -463,14 +463,15 @@ function saveGame() {
     localStorage.setItem('pedenaRPGSave', JSON.stringify(saveData));
     saveConversationHistory(); // Also save conversation separately
     displayMessage("Game saved!", 'success');
-    loadGameBtn.disabled = false; // Enable load game button if a save exists
+    if (loadGameBtn) loadGameBtn.disabled = false;
 }
 
 function loadGame() {
     const savedGame = localStorage.getItem('pedenaRPGSave');
     if (savedGame) {
+        console.log("loadGame: Raw data from localStorage ('pedenaRPGSave'):", savedGame.substring(0, 500) + "..."); // Log first 500 chars
         const saveData = JSON.parse(savedGame);
-
+        console.log("loadGame: Parsed saveData.player.gold from localStorage:", saveData.player ? saveData.player.gold : "N/A - saveData.player not found");
         // Handle old save format (just player data)
         if (saveData.player) {
             player = saveData.player;
@@ -502,6 +503,7 @@ function loadGame() {
             loadConversationHistory();
             ItemManager.loadInventoryFromStorage(player);
         }
+        console.log("loadGame: Global player.gold immediately after assignment from saved data:", player.gold);
 
         // Validate and fix stats after loading
         if (validateAndFixStats(player)) {
@@ -510,6 +512,7 @@ function loadGame() {
         }
 
         displayMessage("Game loaded!", 'success');
+        console.log("loadGame: Final player.gold after all loading steps:", player.gold);
         updatePlayerStatsDisplay();
         updateQuestButton(); // Update quest button based on saved quests
         showScreen('game-play-screen');
@@ -2421,7 +2424,7 @@ IMPORTANT: If the player is trying to interact with something from recent explor
                     command: command,
                     location: player.currentLocation
                 });
-                
+
                 if (transactionData && transactionData.hasTransaction) {
                     const transactionResults = await TransactionMiddleware.processTransaction(transactionData, player);
                     if (transactionResults && transactionResults.length > 0) {
@@ -2476,23 +2479,41 @@ document.addEventListener('DOMContentLoaded', () => {
                 displayMessage('Item no longer available.', 'error');
                 return;
             }
-            const item = window.currentShopInventory[itemIndex];
-            if (player.gold < item.value) {
-                displayMessage(`You need ${item.value} gold but only have ${player.gold} gold.`, 'error');
+
+            const item = window.currentShopInventory[itemIndex]; // item here has .name, .value, .price, .description etc.
+
+            if (player.gold < item.price) { // Check against item.price
+                displayMessage(`You need ${item.price} gold but only have ${player.gold} gold.`, 'error');
                 return;
             }
+
+            // Ensure inventory exists
             if (!player.inventory) {
                 player.inventory = [];
             }
-            updateGold(-item.value, 'shop purchase');
-            player.inventory.push(item);
-            displayMessage(`Purchased ${item.name} for ${item.value} gold!`, 'success');
+
+            // Purchase the item
+            updateGold(-item.price, 'shop purchase'); // Deduct item.price
+            const purchasedItem = { ...item }; // Create a copy
+            delete purchasedItem.price; // Optionally remove the shop-specific price from the inventory item
+            player.inventory.push(purchasedItem);
+            displayMessage(`Purchased ${item.name} for ${item.price} gold!`, 'success'); // Display item.price
+
+            // Remove item from shop inventory
             window.currentShopInventory.splice(itemIndex, 1);
-            ItemManager.saveInventoryToStorage(player);
+            // Save game state
+            if (typeof ItemManager !== 'undefined' && ItemManager.saveInventoryToStorage) {
+                ItemManager.saveInventoryToStorage(player);
+            }
             saveGame();
+
+            // Refresh shop display
             showShop();
         }
-        window.buyShopItem = buyShopItem; // Make it global if still needed by inline handlers
+        // Make sure window.buyShopItem is updated if you are using inline HTML onclick
+        if (typeof window !== 'undefined') {
+            window.buyShopItem = buyShopItem;
+        }
 
         // Small chance of random event while resting
         if (Math.random() < 0.1) {
@@ -2686,7 +2707,7 @@ document.addEventListener('DOMContentLoaded', () => {
     window.itemCategories = itemCategories;
     window.itemRarity = itemRarity;
     window.TransactionMiddleware = TransactionMiddleware;
-    
+
     // Make other functions globally accessible if needed by other parts of the code or for debugging
     window.LocationManager = typeof LocationManager !== 'undefined' ? LocationManager : {};
     window.GameActions = typeof GameActions !== 'undefined' ? GameActions : {};
@@ -3097,127 +3118,6 @@ function getRarityColor(rarity) {
     return colors[rarity] || colors['COMMON'];
 }
 
-function equipItem(itemIndex) {
-    if (!player.inventory || !player.inventory[itemIndex]) {
-        displayMessage("Item not found.", 'error');
-        return;
-    }
-
-    const item = player.inventory[itemIndex];
-
-    if (!item.slot) {
-        displayMessage("This item cannot be equipped.", 'error');
-        return;
-    }
-
-    // Initialize equipment if it doesn't exist
-    if (!player.equipment) {
-        player.equipment = {
-            head: null, chest: null, hands: null, legs: null, feet: null,
-            mainHand: null, offHand: null, amulet: null, ring1: null, ring2: null
-        };
-    }
-
-    // Handle special cases for rings
-    let targetSlot = item.slot;
-    if (item.slot === 'ring1' || item.slot === 'ring') {
-        if (!player.equipment.ring1) {
-            targetSlot = 'ring1';
-        } else if (!player.equipment.ring2) {
-            targetSlot = 'ring2';
-        } else {
-            targetSlot = 'ring1'; // Replace first ring
-        }
-    }
-
-    // Unequip existing item in that slot
-    if (player.equipment[targetSlot]) {
-        player.inventory.push(player.equipment[targetSlot]);
-        displayMessage(`Unequipped ${player.equipment[targetSlot].name}`, 'info');
-    }
-
-    // Equip the new item
-    player.equipment[targetSlot] = item;
-    player.inventory.splice(itemIndex, 1);
-
-    // Apply item effects
-    if (ItemManager && typeof ItemManager.applyItemEffects === 'function') {
-        ItemManager.applyItemEffects(player, item);
-    }
-
-    displayMessage(`Equipped ${item.name}!`, 'success');
-    updatePlayerStatsDisplay();
-    displayInventory();
-    saveGame();
-}
-
-function unequipItem(slot) {
-    if (!player.equipment || !player.equipment[slot]) {
-        displayMessage("No item equipped in that slot.", 'error');
-        return;
-    }
-
-    const item = player.equipment[slot];
-    player.equipment[slot] = null;
-    
-    if (!player.inventory) player.inventory = [];
-    player.inventory.push(item);
-
-    displayMessage(`Unequipped ${item.name}!`, 'success');
-    updatePlayerStatsDisplay();
-    displayInventory();
-    saveGame();
-}
-
-function useItem(itemIndex) {
-    if (!player.inventory || !player.inventory[itemIndex]) {
-        displayMessage("Item not found.", 'error');
-        return;
-    }
-
-    const item = player.inventory[itemIndex];
-    const result = ItemManager.useItem(player, item.id);
-    
-    displayMessage(result.message, result.success ? 'success' : 'error');
-    
-    if (result.success) {
-        updatePlayerStatsDisplay();
-        displayInventory();
-        saveGame();
-    }
-}
-
-function sellItem(itemIndex) {
-    if (!player.inventory || !player.inventory[itemIndex]) {
-        displayMessage("Item not found.", 'error');
-        return;
-    }
-
-    const item = player.inventory[itemIndex];
-    const sellPrice = Math.floor((item.value || 1) * 0.5); // Sell for 50% of value
-    
-    updateGold(sellPrice, 'item sale');
-    player.inventory.splice(itemIndex, 1);
-    
-    displayMessage(`Sold ${item.name} for ${sellPrice} gold!`, 'success');
-    displayInventory();
-    saveGame();
-}
-
-function dropItem(itemIndex) {
-    if (!player.inventory || !player.inventory[itemIndex]) {
-        displayMessage("Item not found.", 'error');
-        return;
-    }
-
-    const item = player.inventory[itemIndex];
-    player.inventory.splice(itemIndex, 1);
-    
-    displayMessage(`Dropped ${item.name}.`, 'info');
-    displayInventory();
-    saveGame();
-}
-
 function getEffectDescription(effect) {
     if (!effect) return 'Unknown effect';
 
@@ -3231,40 +3131,40 @@ function getEffectDescription(effect) {
 
 // Item action functions
 function equipItem(itemIndex) {
-    if (!player.inventory || !player.inventory[itemIndex]) {
-        displayMessage("Item not found.", 'error');
+    // Your definitive equipItem function logic here
+    // For example, the version from around source line 1332 in 
+    // Pasted--Note-ES6-imports-removed-to-fix-global-function-access-issue-Basic-placeholder-objects-for-c-1749055095348.txt
+    console.log(`equipItem called with index: ${itemIndex}, current inventory length: ${player.inventory ? player.inventory.length : 'undefined'}`);
+
+    if (!player.inventory || itemIndex < 0 || itemIndex >= player.inventory.length) {
+        displayMessage(`Error: Cannot equip. Invalid item index ${itemIndex} for inventory of length ${player.inventory ? player.inventory.length : '0'}.`, 'error');
+        console.error(`Invalid item index: ${itemIndex} for inventory of length ${player.inventory ? player.inventory.length : '0'}`);
         return;
     }
+    const itemToEquip = player.inventory[itemIndex];
 
-    const item = player.inventory[itemIndex];
-
-    if (!item.slot) {
+    if (!itemToEquip.slot) {
         displayMessage("This item cannot be equipped.", 'error');
         return;
     }
 
-    // Check if slot is valid
-    if (!player.equipment.hasOwnProperty(item.slot)) {
+    if (!player.equipment.hasOwnProperty(itemToEquip.slot)) {
         displayMessage("Invalid equipment slot.", 'error');
         return;
     }
 
-    // If something is already equipped in that slot, unequip it first
-    if (player.equipment[item.slot]) {
-        const oldItem = player.equipment[item.slot];
+    if (player.equipment[itemToEquip.slot]) {
+        const oldItem = player.equipment[itemToEquip.slot];
         player.inventory.push(oldItem);
         displayMessage(`Unequipped ${oldItem.name}.`, 'info');
     }
 
-    // Equip the new item
-    player.equipment[item.slot] = item;
+    player.equipment[itemToEquip.slot] = itemToEquip;
     player.inventory.splice(itemIndex, 1);
+    displayMessage(`Equipped ${itemToEquip.name}.`, 'success');
 
-    displayMessage(`Equipped ${item.name}.`, 'success');
-
-    // Apply item effects if any
-    if (item.effects && window.ItemManager) {
-        ItemManager.applyItemEffects(player, item);
+    if (itemToEquip.effects && window.ItemManager && typeof window.ItemManager.applyItemEffects === 'function') {
+        window.ItemManager.applyItemEffects(player, itemToEquip);
     }
 
     updatePlayerStatsDisplay();
@@ -3398,4 +3298,18 @@ function displayCharacterBackground() {
             </div>
         </div>
     `;
+}
+
+if (typeof window !== 'undefined') {
+    window.equipItem = equipItem;
+    window.unequipItem = unequipItem;
+    window.useItem = useItem;
+    window.sellItem = sellItem;
+    window.dropItem = dropItem;
+    // ... and any other functions called by inline HTML event handlers
+    /* window.displayCharacterBackground = displayCharacterBackground;
+    window.displayInventory = displayInventory;
+    window.showShop = showShop;
+    window.displayCharacterProgression = displayCharacterProgression;
+    */
 }

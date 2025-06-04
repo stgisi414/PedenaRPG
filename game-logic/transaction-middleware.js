@@ -58,50 +58,89 @@ If no transaction is detected, return {"hasTransaction": false}
     }
 
     static async processTransaction(transactionData, player) {
+        console.log("TransactionMiddleware: processTransaction called with data:", JSON.stringify(transactionData, null, 2)); // ADD THIS LOG
         if (!transactionData.hasTransaction) return;
 
         const results = [];
+        let goldActuallyChanged = false;
+        let itemsChanged = false;
 
         // Process gold change
         if (transactionData.goldChange !== 0) {
-            const reason = transactionData.transactionType === 'purchase' ? 'item purchase' : 
-                         transactionData.transactionType === 'sale' ? 'item sale' :
-                         transactionData.transactionType === 'reward' ? 'quest reward' : 'transaction';
-            window.updateGold(transactionData.goldChange, reason);
+            const goldAmount = Number(transactionData.goldChange);
+            if (!isNaN(goldAmount) && typeof window.updateGold === 'function') {
+                window.updateGold(goldAmount, transactionData.transactionType || 'transaction');
+                // window.updateGold should call updatePlayerStatsDisplay() and saveGame()
+                goldActuallyChanged = true;
+            } else {
+                console.error("Invalid goldChange amount or updateGold function missing:", transactionData.goldChange);
+                if(typeof window.updateGold !== 'function') window.displayMessage("Error: updateGold function not found.", "error");
+            }
         }
 
-        // Process items based on transaction type
+        // Process items
         if (transactionData.items && transactionData.items.length > 0) {
             if (transactionData.transactionType === 'sale') {
-                // For sales, remove items from inventory
                 for (const itemData of transactionData.items) {
-                    const removed = this.removeItemFromInventory(player, itemData.name);
-                    if (removed) {
-                        results.push(removed);
-                        window.displayMessage(`Sold: ${removed.name}`, 'success');
-                    } else {
-                        window.displayMessage(`Could not find ${itemData.name} to sell`, 'error');
+                    if (typeof this.removeItemFromInventory === 'function') {
+                        const removed = this.removeItemFromInventory(player, itemData.name);
+                        if (removed) {
+                            results.push(removed);
+                            if (typeof window.displayMessage === 'function') window.displayMessage(`Sold: ${removed.name}`, 'success');
+                            itemsChanged = true;
+                        } else {
+                            if (typeof window.displayMessage === 'function') window.displayMessage(`Could not find ${itemData.name} to sell`, 'error');
+                        }
                     }
                 }
-            } else {
-                // For purchases/rewards/loot, add items to inventory
+            } else { // Purchases, rewards, loot
                 for (const itemData of transactionData.items) {
-                    const generatedItem = this.generateStructuredItem(itemData, player);
-                    if (generatedItem) {
-                        window.ItemManager.addItemToInventory(player, generatedItem);
-                        results.push(generatedItem);
-
-                        window.displayMessage(`Added to inventory: ${generatedItem.name}`, 'success');
-                        if (generatedItem.description) {
-                            window.displayMessage(generatedItem.description, 'info');
+                    if (typeof this.generateStructuredItem === 'function' && typeof window.ItemManager !== 'undefined' && typeof window.ItemManager.addItemToInventory === 'function') {
+                        const generatedItem = this.generateStructuredItem(itemData, player);
+                        if (generatedItem) {
+                            window.ItemManager.addItemToInventory(player, generatedItem); // This should also save inventory to localStorage via ItemManager's own method
+                            results.push(generatedItem);
+                            if (typeof window.displayMessage === 'function') {
+                                window.displayMessage(`Added to inventory: ${generatedItem.name}`, 'success');
+                                if (generatedItem.description) {
+                                    window.displayMessage(generatedItem.description, 'info');
+                                }
+                            }
+                            itemsChanged = true;
                         }
+                    } else {
+                        console.error("generateStructuredItem or ItemManager.addItemToInventory missing.");
                     }
                 }
             }
         }
 
-        // Save game after transaction
-        window.saveGame();
+        // Explicitly refresh UI if changes occurred
+        if (itemsChanged) {
+            // If the inventory screen is currently visible, refresh it
+            const inventoryInterface = document.getElementById('inventory-interface');
+            if (inventoryInterface && !inventoryInterface.classList.contains('hidden') && typeof window.displayInventory === 'function') {
+                window.displayInventory();
+            }
+        }
+
+        // updateGold already calls updatePlayerStatsDisplay.
+        // If gold didn't change but items did, updatePlayerStatsDisplay might not have been called.
+        // However, player stats display usually only shows gold, HP, level which updateGold handles.
+        // If you have other stats (like inventory count shown in main UI) that need update,
+        // you might need a more general UI update function here.
+
+        // Ensure game is saved if any significant change happened
+        // Note: updateGold and ItemManager.addItemToInventory (if it calls saveInventoryToStorage)
+        // might already call saveGame or save parts of the state.
+        // A final saveGame here ensures atomicity of the transaction's effects.
+        if (goldActuallyChanged || itemsChanged) {
+            if (typeof window.saveGame === 'function') {
+                window.saveGame();
+            } else {
+                console.error("saveGame function not found on window.");
+            }
+        }
 
         return results;
     }
@@ -110,7 +149,7 @@ If no transaction is detected, return {"hasTransaction": false}
         try {
             // Use ItemGenerator with enhanced context
             const context = {
-                category: window.itemCategories[itemData.category] || window.itemCategories.MAGICAL,
+                category: (typeof window !== 'undefined' && window.itemCategories && window.itemCategories[itemData.category]) || (typeof window !== 'undefined' && window.itemCategories && window.itemCategories.MAGICAL),
                 rarity: itemData.rarity || 'COMMON',
                 locationContext: player.currentLocation,
                 playerLevel: player.level,
@@ -118,8 +157,11 @@ If no transaction is detected, return {"hasTransaction": false}
                 narrativeContext: itemData.description
             };
 
-            const baseItem = window.ItemGenerator.generateItem(context);
-
+            const baseItem = (typeof window !== 'undefined' && window.ItemGenerator) ? window.ItemGenerator.generateItem(context) : null;
+            if (!baseItem) {
+                console.error("ItemGenerator.generateItem failed or ItemGenerator not found.");
+                return null;
+            }
             // Override with narrative-specific data
             if (itemData.name) {
                 baseItem.name = itemData.name;
@@ -135,16 +177,12 @@ If no transaction is detected, return {"hasTransaction": false}
 
             if (baseItem.isEquippable && itemData.slot && itemData.slot !== 'null') {
                 baseItem.slot = itemData.slot;
-                baseItem.type = window.itemCategories.ARMOR; // Ensure it's treated as equipment
+                baseItem.type = (typeof window !== 'undefined' && window.itemCategories) ? window.itemCategories.ARMOR : 'armor'; // Ensure it's treated as equipment
             }
-
-            // Add equipment-specific properties based on slot
-            if (baseItem.isEquippable) {
+            if (baseItem.isEquippable && typeof this.addEquipmentProperties === 'function') {
                 this.addEquipmentProperties(baseItem, itemData);
             }
-
             return baseItem;
-
         } catch (error) {
             console.error('Error generating structured item:', error);
             return null;
@@ -159,14 +197,14 @@ If no transaction is detected, return {"hasTransaction": false}
             case 'hands':
             case 'feet':
                 if (!item.armor) {
-                    item.armor = Math.max(1, Math.floor(window.itemRarity[item.rarity]?.multiplier || 1));
+                    item.armor = Math.max(1, Math.floor(((typeof window !== 'undefined' && window.itemRarity && window.itemRarity[item.rarity])?.multiplier || 1)));
                 }
                 break;
             case 'mainHand':
                 if (!item.damage) {
                     const damageMap = {
                         'COMMON': '1d6', 'UNCOMMON': '1d8', 'RARE': '1d10', 
-                        'EPIC': '2d6', 'LEGENDARY': '2d8', 'ARTIFACT': '2d10'
+                        'EPIC': '2d6', 'LEGENDARY': '2d8', 'ARTIFACT': '2d10', 'MYTHIC': '3d6'
                     };
                     item.damage = damageMap[item.rarity] || '1d6';
                 }
@@ -174,7 +212,6 @@ If no transaction is detected, return {"hasTransaction": false}
             case 'amulet':
             case 'ring1':
             case 'ring2':
-                // Jewelry typically has magical effects
                 if (!item.effects || item.effects.length === 0) {
                     item.effects = ['magical_enhancement'];
                 }
@@ -184,23 +221,15 @@ If no transaction is detected, return {"hasTransaction": false}
 
     static removeItemFromInventory(player, itemName) {
         if (!player.inventory || player.inventory.length === 0) return null;
-
-        // Find item by name (case-insensitive)
         const itemIndex = player.inventory.findIndex(item => 
             item.name.toLowerCase().includes(itemName.toLowerCase()) ||
             itemName.toLowerCase().includes(item.name.toLowerCase())
         );
-
         if (itemIndex === -1) return null;
-
-        // Remove and return the item
         const removedItem = player.inventory.splice(itemIndex, 1)[0];
-
-        // Save inventory after removal
-        if (window.ItemManager && window.ItemManager.saveInventoryToStorage) {
+        if (typeof window.ItemManager !== 'undefined' && typeof window.ItemManager.saveInventoryToStorage === 'function') {
             window.ItemManager.saveInventoryToStorage(player);
         }
-
         return removedItem;
     }
 }
