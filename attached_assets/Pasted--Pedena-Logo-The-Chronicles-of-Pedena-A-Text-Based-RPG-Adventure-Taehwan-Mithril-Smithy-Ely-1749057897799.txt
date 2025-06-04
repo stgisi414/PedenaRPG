@@ -1,0 +1,212 @@
+
+Pedena Logo
+The Chronicles of Pedena
+A Text-Based RPG Adventure
+
+Taehwan - Mithril Smithy, Elyrium
+Level: 7 HP: 140/140
+Game loaded!
+
+Welcome back, Taehwan! You are in Mithril Smithy, Elyrium.
+
+Unequipped Light Crossbow.
+
+Equipped Steel Dagger.
+
+Game saved!
+
+Unequipped Steel Dagger.
+
+Equipped Light Crossbow.
+
+Game saved!
+
+Enter Command:
+Type your action here (e.g., 'examine the mysterious door', 'talk to the merchant', 'cast fireball')...
+
+Execute
+
+Save Game
+
+New Quest
+
+Inventory
+
+Shop
+
+Progression
+
+Background
+
+Rest
+
+Explore
+
+Cast Spell
+
+Pray
+Your Inventory
+Equipped Items
+Main Hand
+Light Crossbow
+
+Unequip
+Off Hand
+Empty
+
+Head
+Empty
+
+Chest
+Leather Armor
+
+Unequip
+Hands
+Empty
+
+Legs
+Empty
+
+Feet
+Mithril Leggings
+
+Unequip
+Amulet
+Empty
+
+Ring 1
+Empty
+
+Ring 2
+Empty
+
+Inventory Items
+Items: 14 | Gold: 1315
+
+Healing Potion
+COMMON
+Restores a moderate amount of health.
+
+Effect: Heals 30 HP
+
+Value: 8 gold
+
+Use
+Sell
+Drop
+Crossbow Bolts (20)
+COMMON
+Bundle of 20 heavy crossbow bolts.
+
+Value: 4 gold
+
+Sell
+Drop
+Bolt Quiver
+COMMON
+Sturdy case designed to hold crossbow bolts safely.
+
+Value: 10 gold
+
+Sell
+Drop
+Lumiel Serathim (High Celestial Language)
+RARE
+A luminous text written in High Celestial. The writing seems to shimmer with otherworldly power.
+
+Value: 62 gold
+
+Sell
+Drop
+Charred Obsidian Shard
+RARE
+A jagged shard of obsidian, seemingly broken from the spire itself. It pulses faintly with a malevolent energy, and feels strangely warm to the touch despite the chilling air of the chamber. Runes, barely visible, seem to writhe across its surface, hinting at a forgotten power. Touching it elicits a faint whisper in your mind, a promise of untold power… and a terrible price.
+
+Value: 25 gold
+
+Sell
+Drop
+The Obsidian Phallus
+RARE
+A pulsating, obsidian shard, warm to the touch, radiating a faint, infernal energy. Its surface seems to writhe subtly, mimicking the rhythm of a heartbeat. Holding it, Taehwan feels a surge of primal energy, a potent mixture of lust and dark power. A faint whisper seems to emanate from the shard, promising forbidden pleasures and untold strength... at a price.
+
+Value: 25 gold
+
+Sell
+Drop
+The Obsidian Pheromone
+RARE
+A small, obsidian shard, pulsing with a faint inner light, radiating a potent, intoxicating pheromone. Touching it triggers an intense surge of primal desire, but prolonged contact risks overwhelming the user with uncontrollable urges. The shard seems to resonate with the succubus's power.
+
+Effect: ethereal for 60s
+
+Value: 25 gold
+
+Sell
+Drop
+The Succubus's Whisper
+RARE
+A small, obsidian shard, warm to the touch, pulsing faintly with inner light. It seems to hum with a barely perceptible energy, and the faint scent of musky pheromones clings to its surface. Touching it evokes a fleeting vision of the succubus's languid movements and predatory smile.
+
+Value: 25 gold
+
+Sell
+Drop
+The Succubus's Whisper
+RARE
+A small, obsidian shard, warm to the touch, pulsing faintly with an inner light. Its surface is etched with intricate, almost invisible runes that seem to shift and writhe when held. It emits a faint, alluring scent, similar to the succubus's intoxicating perfume, but subtly different, hinting at a deeper, more primal pleasure. Holding it evokes a feeling of intense, focused desire, but only for experiences that offer true, unadulterated pleasure. Attempts to use it for purely carnal gratification result in a chilling wave of emptiness.
+
+Value: 25 gold
+
+Sell
+Drop
+The Obsidian Shroud of Patience
+EPIC
+A dark, obsidian amulet pulsating with faint inner light. Wearing it grants the wearer increased magical resilience and a measure of control over their emotions, specifically suppressing impulsive urges and enhancing focus. The amulet subtly absorbs ambient magical energy, slowly replenishing its power. Its surface is etched with ancient runes that whisper of self-control and unwavering resolve.
+
+Effect: ethereal for 60s
+
+Value: 25 gold
+
+Sell
+Drop
+Ring of Sustenance
+UNCOMMON
+A well-crafted item of decent quality. It is a jewelry. It seems to possess properties like: reduces need for food water.
+
+Value: 15 gold
+
+Sell
+Drop
+Necklace of Fire Resistance (Minor)
+UNCOMMON
+A well-crafted item of decent quality. It is a jewelry. It seems to possess properties like: fire resistance small.
+
+Value: 17 gold
+
+Sell
+Drop
+Mithril Leggings
+RARE
+Finely crafted mithril leggings, their surface shimmering with an ethereal light. Increase agility and provide a comforting sense of protection.
+
+Value: 8 gold
+
+Sell
+Drop
+Steel Dagger
+COMMON
+Quick and silent blade for rogues.
+
+Damage: 1d4
+
+Value: 5 gold
+
+Equip
+Sell
+Drop
+Close Inventory
+© 2025 Pedena RPG. Powered by Gemini API & the spirit of adventure.
+
+
+Reset Progression

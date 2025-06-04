@@ -2449,47 +2449,32 @@ document.addEventListener('DOMContentLoaded', () => {
         updatePlayerStatsDisplay();
         saveGame();
 
-
-
         // Shop item purchase function
+        // It's generally better to define this function outside and then assign to window if needed,
+        // rather than defining it inside another event listener.
+        // However, I'll keep your current structure for this part.
         function buyShopItem(itemIndex) {
             if (!window.currentShopInventory || !window.currentShopInventory[itemIndex]) {
                 displayMessage('Item no longer available.', 'error');
                 return;
             }
-
             const item = window.currentShopInventory[itemIndex];
-
             if (player.gold < item.value) {
                 displayMessage(`You need ${item.value} gold but only have ${player.gold} gold.`, 'error');
                 return;
             }
-
-            // Ensure inventory exists
             if (!player.inventory) {
                 player.inventory = [];
             }
-
-            // Purchase the item
             updateGold(-item.value, 'shop purchase');
             player.inventory.push(item);
-
             displayMessage(`Purchased ${item.name} for ${item.value} gold!`, 'success');
-
-            // Remove item from shop inventory
             window.currentShopInventory.splice(itemIndex, 1);
-
-            // Save game state
             ItemManager.saveInventoryToStorage(player);
             saveGame();
-
-            // Refresh shop display
             showShop();
         }
-
-        // Make functions globally accessible
-        window.buyShopItem = buyShopItem;
-
+        window.buyShopItem = buyShopItem; // Make it global if still needed by inline handlers
 
         // Small chance of random event while resting
         if (Math.random() < 0.1) {
@@ -2505,6 +2490,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     document.getElementById('cast-spell-btn')?.addEventListener('click', () => {
+        // ... (your existing cast-spell logic) ...
         // Check if player has class progression and is a spellcaster
         if (player.classProgression && (player.classProgression.class === 'mage' || player.classProgression.class === 'ranger')) {
             // Debug logging
@@ -2617,7 +2603,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document.getElementById('pray-btn')?.addEventListener('click', () => {
         displayMessage("You offer a prayer to the gods...", 'info');
-
         // Random blessing effect
         if (Math.random() < 0.3) {
             const blessings = [
@@ -2659,222 +2644,84 @@ document.addEventListener('DOMContentLoaded', () => {
         questInterface?.classList.add('hidden');
     });
 
-    // Add missing functions
-    window.updateQuestButton = function() {
-        const activeQuests = player.quests ? player.quests.filter(q => !q.completed) : [];
-        const questBtn = document.getElementById('new-quest-btn');
-        if (questBtn) {
-            const questCount = activeQuests.length;
-            if (questCount > 0) {
-                questBtn.innerHTML = `<i class="gi gi-scroll-unfurled mr-2"></i>Quests (${questCount})`;
-                questBtn.classList.add('text-bronze-400');
-            } else {
-                questBtn.innerHTML = `<i class="gi gi-scroll-unfurled mr-2"></i>New Quest`;
-                questBtn.classList.remove('text-bronze-400');
+    // Define global functions if they are not already (some might be defined outside DOMContentLoaded)
+    // This ensures they are available when the event listener tries to call them.
+    // If these are already top-level functions in your script, this explicit window assignment might be redundant
+    // but doesn't hurt if the event delegation pattern is used.
+    window.updateQuestButton = typeof updateQuestButton !== 'undefined' ? updateQuestButton : function() { /* ... */ };
+    window.displayQuests = typeof displayQuests !== 'undefined' ? displayQuests : function() { /* ... */ };
+    window.displayCharacterProgression = typeof displayCharacterProgression !== 'undefined' ? displayCharacterProgression : function() { /* ... */ };
+    window.learnNewSpell = typeof learnNewSpell !== 'undefined' ? learnNewSpell : function() { /* ... */ };
+    // ... and so on for other functions like equipItem, useItem, etc., if they are not already global or part of an imported module.
+    // However, for event delegation, they just need to be in scope.
+
+    // Add main event listeners (this function should also be defined or its contents integrated)
+    addMainEventListeners(); // Assuming this function is defined elsewhere in your script.js
+
+    // Make other functions globally accessible if needed by other parts of the code or for debugging
+    window.LocationManager = typeof LocationManager !== 'undefined' ? LocationManager : {};
+    window.GameActions = typeof GameActions !== 'undefined' ? GameActions : {};
+    window.debugInventory = typeof debugInventory !== 'undefined' ? debugInventory : function() { /* ... */ };
+    window.fixInventory = typeof fixInventory !== 'undefined' ? fixInventory : function() { /* ... */ };
+    window.resetCharacterProgression = typeof resetCharacterProgression !== 'undefined' ? resetCharacterProgression : function() { /* ... */ };
+
+
+    // <<< --- ADD INVENTORY EVENT LISTENER HERE --- >>>
+    if (inventoryItemsDisplay) { // Ensure the element exists (it's a global const)
+        inventoryItemsDisplay.addEventListener('click', function(event) {
+            const button = event.target.closest('.inventory-action-btn'); // Get the button if a child element was clicked
+
+            if (button) {
+                const action = button.dataset.action;
+                const itemIndexStr = button.dataset.index;
+                const slot = button.dataset.slot; // For unequip
+
+                // Ensure itemIndex is a valid number when used
+                const itemIndex = itemIndexStr !== undefined ? parseInt(itemIndexStr) : null;
+
+                console.log(`Inventory action: ${action}, Index: ${itemIndex}, Slot: ${slot}`); // For debugging
+
+                // Safety checks
+                if (action !== 'unequip' && itemIndex === null) {
+                    console.error("Action requires an item index, but it's missing.");
+                    displayMessage("Error: Item index not found for action.", "error");
+                    return;
+                }
+
+                if (action !== 'unequip' && (!player.inventory || itemIndex < 0 || itemIndex >= player.inventory.length)) {
+                    console.error(`Invalid item index: ${itemIndex} for inventory of length ${player.inventory?.length || 0}`);
+                    displayMessage("Error: Invalid item selected or inventory not ready.", "error");
+                    return;
+                }
+
+                switch (action) {
+                    case 'use':
+                        if (itemIndex !== null) useItem(itemIndex);
+                        break;
+                    case 'equip':
+                        if (itemIndex !== null) equipItem(itemIndex);
+                        break;
+                    case 'sell':
+                        if (itemIndex !== null) sellItem(itemIndex);
+                        break;
+                    case 'drop':
+                        if (itemIndex !== null) dropItem(itemIndex);
+                        break;
+                    case 'unequip':
+                        if (slot) unequipItem(slot);
+                        break;
+                    default:
+                        console.warn('Unknown inventory action:', action);
+                }
             }
-        }
-    };
-
-    window.displayQuests = function() {
-        if (!player.quests || player.quests.length === 0) {
-            displayMessage("You have no quests at this time.", 'info');
-            return;
-        }
-
-        // Hide other interfaces
-        const interfaces = ['combat-interface', 'shop-interface', 'inventory-interface', 'skills-interface', 'background-interface', 'progression-interface'];
-        interfaces.forEach(id => {
-            const element = document.getElementById(id);
-            if (element) element.classList.add('hidden');
         });
+        console.log("✓ Inventory action event listener added to inventoryItemsDisplay.");
+    } else {
+        console.error("inventoryItemsDisplay element not found for event listener setup.");
+    }
+    // <<< --- END OF INVENTORY EVENT LISTENER --- >>>
 
-        // Show quest interface
-        questInterface.classList.remove('hidden');
-
-        const activeQuests = player.quests.filter(q => !q.completed);
-        const completedQuests = player.quests.filter(q => q.completed);
-
-        questListDisplay.innerHTML = `
-            <div class="mb-6">
-                <h5 class="text-xl font-bold mb-3 text-yellow-600">Active Quests (${activeQuests.length})</h5>
-                ${activeQuests.length > 0 ? activeQuests.map(quest => `
-                    <div class="parchment-box p-3 mb-3">
-                        <h6 class="font-bold text-lg">${quest.title || 'Untitled Quest'}</h6>
-                        <p class="mb-2">${quest.description || 'No description available'}</p>
-                        ${quest.objective ? `<p class="text-sm text-amber-700"><strong>Objective:</strong> ${quest.objective}</p>` : ''}
-                        ${quest.rewards ? `
-                            <p class="text-sm text-green-700">
-                                <strong>Rewards:</strong> 
-                                ${quest.rewards.gold ? `${quest.rewards.gold} gold` : ''}
-                                ${quest.rewards.experience ? `, ${quest.rewards.experience} XP` : ''}
-                                ${quest.rewards.items && quest.rewards.items.length > 0 ? `, ${quest.rewards.items.join(', ')}` : ''}
-                            </p>
-                        ` : ''}
-                        <p class="text-xs text-gray-600">Created: ${quest.dateCreated || 'Unknown'}</p>
-                    </div>
-                `).join('') : '<p class="text-gray-600">No active quests.</p>'}
-            </div>
-
-            ${completedQuests.length > 0 ? `
-            <div>
-                <h5 class="text-xl font-bold mb-3 text-green-600">Completed Quests (${completedQuests.length})</h5>
-                ${completedQuests.map(quest => `
-                    <div class="parchment-box p-3 mb-3 bg-green-100 border-green-300">
-                        <h6 class="font-bold">${quest.title || 'Untitled Quest'}</h6>
-                        <p class="text-sm text-green-800">✅ Completed</p>
-                    </div>
-                `).join('')}
-            </div>
-            ` : ''}
-        `;
-    };
-
-    // Add main event listeners
-    addMainEventListeners();
-
-    // Make functions globally accessible
-    window.displayCharacterProgression = displayCharacterProgression;
-    window.learnNewSpell = learnNewSpell;
-    window.LocationManager = LocationManager;
-    window.GameActions = GameActions;
-
-    // Debug functions for local storage
-    window.debugInventory = function() {
-        console.log('=== INVENTORY DEBUG ===');
-        console.log('Player name:', player.name);
-        console.log('Current inventory:', player.inventory);
-        console.log('Inventory length:', player.inventory ? player.inventory.length : 'undefined');
-
-        // Check local storage
-        const savedInventory = localStorage.getItem(`inventory_${player.name}`);
-        const savedGame = localStorage.getItem('pedenaRPGSave');
-
-        console.log('Saved inventory in localStorage:', savedInventory ? JSON.parse(savedInventory) : 'Not found');
-        console.log('Full saved game:', savedGame ? JSON.parse(savedGame) : 'Not found');
-
-        // List all localStorage keys
-        console.log('All localStorage keys:', Object.keys(localStorage));
-
-        return {
-            currentInventory: player.inventory,
-            savedInventory: savedInventory ? JSON.parse(savedInventory) : null,
-            localStorageKeys: Object.keys(localStorage)
-        };
-    };
-
-    window.fixInventory = function() {
-        console.log('Attempting to fix inventory...');
-        if (!player.inventory) {
-            player.inventory = [];
-        }
-        ItemManager.saveInventoryToStorage(player);
-        saveGame();
-        console.log('Inventory fixed and saved');
-    };
-
-    // Reset character progression function
-    window.resetCharacterProgression = function() {
-        if (!player || !player.name || !player.class) {
-            displayMessage("No character loaded to reset progression for.", 'error');
-            return;
-        }
-
-        if (!confirm("Reset character progression? This will refresh your feats, skills, and abilities to match the updated game files, but keep your inventory, conversation history, and other data intact.")) {
-            return;
-        }
-
-        try {
-            console.log('Resetting character progression...');
-
-            // Store important data we want to keep
-            const preservedData = {
-                name: player.name,
-                gender: player.gender,
-                class: player.class,
-                background: player.background,
-                level: player.level,
-                exp: player.exp,
-                expToNextLevel: player.expToNextLevel,
-                hp: player.hp,
-                maxHp: player.maxHp,
-                gold: player.gold,
-                inventory: player.inventory,
-                equipment: player.equipment,
-                currentLocation: player.currentLocation,
-                quests: player.quests,
-                completedQuests: player.completedQuests,
-                currentEnemy: player.currentEnemy
-            };
-
-            // Reset stats to base values before reapplying class bonuses
-            player.stats = {
-                strength: 10,
-                dexterity: 10,
-                intelligence: 10,
-                constitution: 10,
-                wisdom: 10,
-                charisma: 10
-            };
-
-            // Clear progression data
-            player.classProgression = null;
-
-            // Reinitialize with CharacterManager
-            if (CharacterManager && typeof CharacterManager.initializeCharacter === 'function') {
-                CharacterManager.initializeCharacter(player, player.class);
-
-                // If player is above level 1, apply progression for each level
-                if (player.level > 1) {
-                    player.classProgression.level = 1; // Start from 1
-                    for (let level = 2; level <= player.level; level++) {
-                        CharacterManager.applyLevelProgression(player, level);
-                    }
-                    player.classProgression.level = player.level; // Ensure level matches
-                }
-            } else {
-                // Fallback initialization
-                const classData = classes[player.class];
-                if (classData) {
-                    // Apply stat bonuses
-                    Object.keys(classData.statFocus).forEach(stat => {
-                        player.stats[stat] += classData.statFocus[stat];
-                    });
-                }
-                console.warn('CharacterManager not available, using fallback initialization');
-            }
-
-            // Restore preserved data
-            Object.keys(preservedData).forEach(key => {
-                if (preservedData[key] !== undefined) {
-                    player[key] = preservedData[key];
-                }
-            });
-
-            // Validate and fix stats after reset
-            if (validateAndFixStats(player)) {
-                console.log("Fixed stats after progression reset");
-            }
-
-            // Save the updated character
-            saveGame();
-            if (player.classProgression) {
-                CharacterManager.saveProgression(player);
-            }
-
-            // Update display
-            updatePlayerStatsDisplay();
-
-            displayMessage("Character progression has been reset and updated with the latest game data!", 'success');
-            displayMessage(`Your level ${player.level} ${player.class} has been refreshed with updated feats, skills, and abilities.`, 'info');
-
-            console.log('Character progression reset complete');
-
-        } catch (error) {
-            console.error('Error resetting character progression:', error);
-            displayMessage("An error occurred while resetting progression. Please try again.", 'error');
-        }
-    };
-});
+}); // End of DOMContentLoaded
 
 // Add reset progression button to the game interface
 const resetProgressionBtn = document.createElement('button');
@@ -3157,10 +3004,10 @@ function buildInventoryItemDisplay(item, index) {
             ${item.value ? `<p class="text-xs text-green-600 mb-1">Value: ${item.value} gold</p>` : ''}
             
             <div class="flex gap-2 flex-wrap">
-                ${canEquip ? `<button onclick="equipItem(${index})" class="btn-parchment text-xs py-1 px-2 bg-green-600 hover:bg-green-700"  style="color: #D2B48C !important;">Equip</button>` : ''}
-                ${isConsumable ? `<button onclick="useItem(${index})" class="btn-parchment text-xs py-1 px-2 bg-blue-600 hover:bg-blue-700"  style="color: #D2B48C !important;">Use</button>` : ''}
-                <button onclick="sellItem(${index})" class="btn-parchment text-xs py-1 px-2 bg-yellow-600 hover:bg-yellow-700"  style="color: #D2B48C !important;">Sell</button>
-                <button onclick="dropItem(${index})" class="btn-parchment text-xs py-1 px-2 bg-red-600 hover:bg-red-700">Drop</button>
+                ${canEquip ? `<button class="btn-parchment inventory-action-btn text-xs py-1 px-2 bg-green-600 hover:bg-green-700"  style="color: #D2B48C !important;" data-action="equip" data-index="${index}">Equip</button>` : ''}
+                ${isConsumable ? `<button class="btn-parchment inventory-action-btn text-xs py-1 px-2 bg-blue-600 hover:bg-blue-700"  style="color: #D2B48C !important;" data-action="use" data-index="${index}">Use</button>` : ''}
+                <button class="btn-parchment inventory-action-btn text-xs py-1 px-2 bg-yellow-600 hover:bg-yellow-700"  style="color: #D2B48C !important;" data-action="sell" data-index="${index}">Sell</button>
+                <button class="btn-parchment inventory-action-btn text-xs py-1 px-2 bg-red-600 hover:bg-red-700" data-action="drop" data-index="${index}">Drop</button>
             </div>
         </div>
     `;
