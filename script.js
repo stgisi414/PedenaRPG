@@ -6,6 +6,7 @@ import { GameActions } from './game-logic/game-actions.js';
 import { LocationManager } from './game-logic/location-manager.js';
 import { classProgression, spellDefinitions, abilityDefinitions } from './game-logic/class-progression.js';
 import { ItemGenerator, ItemManager, itemCategories, itemRarity, statusEffects } from './assets/world-items.js';
+import { TransactionMiddleware } from './game-logic/transaction-middleware.js';
 
 const GEMINI_API_KEY = 'AIzaSyDIFeql6HUpkZ8JJlr_kuN0WDFHUyOhijA'; // Replace with your actual Gemini API Key
 const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`;
