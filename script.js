@@ -3141,10 +3141,10 @@ function buildInventoryItemDisplay(item, index) {
             ${item.value ? `<p class="text-xs text-green-600 mb-1">Value: ${item.value} gold</p>` : ''}
             
             <div class="flex gap-2 flex-wrap">
-                ${canEquip ? `<button onclick="equipItem(${index})" class="btn-parchment text-xs py-1 px-2 bg-green-600 hover:bg-green-700">Equip</button>` : ''}
-                ${isConsumable ? `<button onclick="useItem(${index})" class="btn-parchment text-xs py-1 px-2 bg-blue-600 hover:bg-blue-700">Use</button>` : ''}
-                <button onclick="sellItem(${index})" class="btn-parchment text-xs py-1 px-2 bg-yellow-600 hover:bg-yellow-700">Sell</button>
-                <button onclick="dropItem(${index})" class="btn-parchment text-xs py-1 px-2 bg-red-600 hover:bg-red-700">Drop</button>
+                ${canEquip ? `<button onclick="equipItem(${index})" class="btn-parchment text-xs py-1 px-2 bg-green-600 hover:bg-green-700"  style="color: #D2B48C !important;">Equip</button>` : ''}
+                ${isConsumable ? `<button onclick="useItem(${index})" class="btn-parchment text-xs py-1 px-2 bg-blue-600 hover:bg-blue-700"  style="color: #D2B48C !important;">Use</button>` : ''}
+                <button onclick="sellItem(${index})" class="btn-parchment text-xs py-1 px-2 bg-yellow-600 hover:bg-yellow-700"  style="color: #D2B48C !important;">Sell</button>
+                <button onclick="dropItem(${index})" class="btn-parchment text-xs py-1 px-2 bg-red-600 hover:bg-red-700"  style="color: #D2B48C !important;">Drop</button>
             </div>
         </div>
     `;
