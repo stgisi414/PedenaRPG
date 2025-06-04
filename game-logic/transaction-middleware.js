@@ -2,8 +2,30 @@
 export class TransactionMiddleware {
 
     static async detectTransaction(aiResponse, player, gameContext) {
+        // First, check if the response contains explicit transaction indicators
+        const transactionKeywords = [
+            'you buy', 'you purchase', 'you sell', 'you trade', 'you pay',
+            'costs', 'price', 'gold pieces', 'for sale', 'merchant offers',
+            'shopkeeper', 'vendor', 'buy for', 'sell for', 'trade for',
+            'you lost.*gold', 'you gained.*gold', 'you receive.*gold',
+            'added to inventory', 'removed from inventory'
+        ];
+
+        const hasTransactionKeywords = transactionKeywords.some(keyword => 
+            aiResponse.toLowerCase().includes(keyword.toLowerCase()) ||
+            new RegExp(keyword, 'i').test(aiResponse)
+        );
+
+        // Don't even attempt transaction detection if no keywords are present
+        if (!hasTransactionKeywords) {
+            console.log("TransactionMiddleware: No transaction keywords detected, skipping analysis");
+            return { hasTransaction: false };
+        }
+
         const transactionPrompt = `
-Analyze this game narrative response for any transactions or item exchanges:
+STRICT TRANSACTION ANALYSIS - Only detect ACTUAL completed transactions, not descriptions or mentions.
+
+Analyze this game narrative response for COMPLETED transactions or item exchanges:
 
 "${aiResponse}"
 
@@ -11,9 +33,22 @@ Player context: ${player.name} (Level ${player.level} ${player.class})
 Current gold: ${player.gold}
 Location: ${player.currentLocation}
 
+CRITICAL RULES:
+1. ONLY detect transactions that have ACTUALLY HAPPENED in this response
+2. Look for explicit indicators like "you buy", "you sell", "you pay", "costs X gold", "you receive"
+3. DO NOT detect transactions for:
+   - Item descriptions or mentions
+   - Offers that weren't accepted
+   - Items being shown or examined
+   - Past transactions being referenced
+   - Hypothetical scenarios
+
+4. REQUIRE explicit confirmation that a transaction occurred (like "you lost X gold" or "you gained X gold")
+
 Respond with ONLY valid JSON in this exact format:
 {
     "hasTransaction": true/false,
+    "confidence": 0.0-1.0,
     "transactionType": "purchase/sale/gift/loot/trade/reward",
     "items": [
         {
@@ -34,9 +69,10 @@ Respond with ONLY valid JSON in this exact format:
 IMPORTANT NOTES:
 - For PURCHASES: goldChange should be negative (player loses gold), items are added to inventory
 - For SALES: goldChange should be positive (player gains gold), items are removed from inventory
-- For sales, the item names should match what the player actually has in inventory
+- Only set confidence to 0.8+ if you're absolutely certain a transaction occurred
+- If confidence is below 0.7, set hasTransaction to false
 
-If no transaction is detected, return {"hasTransaction": false}
+If no actual transaction is detected, return {"hasTransaction": false, "confidence": 0.0}
 `;
 
         try {
@@ -48,6 +84,21 @@ If no transaction is detected, return {"hasTransaction": false}
 
             if (jsonMatch) {
                 const transactionData = JSON.parse(jsonMatch[0]);
+                
+                // Apply confidence threshold - only process high-confidence transactions
+                if (transactionData.confidence && transactionData.confidence < 0.7) {
+                    console.log(`TransactionMiddleware: Low confidence transaction (${transactionData.confidence}), ignoring`);
+                    return { hasTransaction: false };
+                }
+                
+                // Additional validation - ensure transaction has meaningful data
+                if (transactionData.hasTransaction && 
+                    (!transactionData.items || transactionData.items.length === 0) && 
+                    transactionData.goldChange === 0) {
+                    console.log("TransactionMiddleware: Transaction flagged but no items or gold change detected, ignoring");
+                    return { hasTransaction: false };
+                }
+                
                 return transactionData;
             }
         } catch (error) {
