@@ -1800,19 +1800,44 @@ Potential characters in the area:
 - ${potentialNPC}
 - ${potentialMerchant}
 
-Generate a brief exploration result (1-2 sentences) that includes:
-1. What they discover (location, item, person, or event)
-2. A specific choice or action they can take
-3. Use the named characters if mentioning NPCs
+Generate a brief exploration result that includes:
+1. What they discover (location feature, item, person, or event)
+2. Specific interactable elements they can engage with
+3. Use named characters if mentioning NPCs
 4. Keep it appropriate for their level
 
-Format: Just the exploration result, no extra text.
+IMPORTANT: If you mention any objects, creatures, or interactive elements, they should be consistently available for future interactions.
+
+Format the response as:
+DISCOVERY: [What they find]
+INTERACTABLE: [Comma-separated list of things they can interact with]
+
+Example:
+DISCOVERY: You discover a moss-covered altar with strange runes, and a small wooden box sits in a hidden compartment.
+INTERACTABLE: altar, wooden box, runes
 `;
 
     const explorationResult = await callGeminiAPI(explorePrompt, 0.7, 300);
 
     if (explorationResult) {
-        displayMessage(explorationResult, 'exploration');
+        // Parse the structured response
+        const discoveryMatch = explorationResult.match(/DISCOVERY:\s*(.+?)(?=\nINTERACTABLE:|$)/s);
+        const interactableMatch = explorationResult.match(/INTERACTABLE:\s*(.+?)$/s);
+        
+        const discovery = discoveryMatch ? discoveryMatch[1].trim() : explorationResult;
+        const interactables = interactableMatch 
+            ? interactableMatch[1].split(',').map(s => s.trim().toLowerCase())
+            : [];
+
+        displayMessage(discovery, 'exploration');
+        
+        // Store exploration context
+        addExplorationContext(discovery, interactables);
+        addToConversationHistory('assistant', discovery);
+        
+        if (interactables.length > 0) {
+            displayMessage(`You can interact with: ${interactables.join(', ')}`, 'info');
+        }
     } else {
         displayMessage("The area seems quiet. You don't find anything of interest.", 'info');
     }
@@ -1907,6 +1932,47 @@ async function talkToNPC(npcName) {
     } else {
         displayMessage(`${npcName} doesn't seem interested in talking right now.`);
     }
+}
+
+// Enhanced exploration context storage
+let currentExplorationContext = {
+    discoveries: [],
+    activeElements: [],
+    lastExploration: null
+};
+
+function addExplorationContext(discovery, interactableElements = []) {
+    currentExplorationContext.discoveries.push({
+        discovery: discovery,
+        timestamp: Date.now(),
+        location: player.currentLocation
+    });
+    
+    // Add interactable elements
+    interactableElements.forEach(element => {
+        if (!currentExplorationContext.activeElements.includes(element)) {
+            currentExplorationContext.activeElements.push(element);
+        }
+    });
+    
+    currentExplorationContext.lastExploration = discovery;
+    
+    // Keep only last 5 discoveries
+    if (currentExplorationContext.discoveries.length > 5) {
+        currentExplorationContext.discoveries = currentExplorationContext.discoveries.slice(-5);
+    }
+}
+
+function getExplorationContextString() {
+    if (currentExplorationContext.discoveries.length === 0) return '';
+    
+    const recent = currentExplorationContext.discoveries.slice(-3);
+    const contextString = recent.map(d => d.discovery).join(' ');
+    const activeElements = currentExplorationContext.activeElements.length > 0 
+        ? `\n\nCurrently visible/interactable: ${currentExplorationContext.activeElements.join(', ')}`
+        : '';
+    
+    return `\n\nRECENT EXPLORATION CONTEXT:\n${contextString}${activeElements}`;
 }
 
 // Auto-generate world event
@@ -2047,13 +2113,17 @@ async function executeCustomCommand(command) {
         return;
     }
 
-    // For all other commands, use general AI processing
+    // For all other commands, use general AI processing with exploration context
+    const explorationContext = getExplorationContextString();
+    
     const contextPrompt = `
 ${player.name} (${player.class}, Level ${player.level}) in ${player.currentLocation} says: "${command}"
 
-Current status: HP ${player.hp}/${player.maxHp}, Gold ${player.gold}
+Current status: HP ${player.hp}/${player.maxHp}, Gold ${player.gold}${explorationContext}
 
 Respond as a Dungeon Master. Describe what happens in 1-3 sentences. Be engaging and appropriate for a fantasy RPG.
+
+IMPORTANT: If the player is trying to interact with something from recent exploration (box, altar, runes, etc.), acknowledge and respond to that interaction based on the exploration context above.
 `;
 
     try {
