@@ -1,0 +1,202 @@
+[{id: "bolts", name: "Crossbow Bolts (20)", type: "ammunition", value: 4,…},…]
+0
+: 
+{id: "bolts", name: "Crossbow Bolts (20)", type: "ammunition", value: 4,…}
+1
+: 
+{id: "bolt_quiver", name: "Bolt Quiver", type: "tool", value: 10,…}
+2
+: 
+{id: "dagger", name: "Steel Dagger", type: "weapon", slot: "mainHand", damage: "1d4", value: 5,…}
+3
+: 
+{name: "Lumiel Serathim (High Celestial Language)", type: "book", rarity: "RARE",…}
+4
+: 
+{id: "item_1748997791410_y6cwsg4i8", name: "Charred Obsidian Shard", type: "artifact", rarity: "RARE",…}
+5
+: 
+{id: "item_1748997828359_7ejy0zdm9", name: "The Obsidian Phallus", type: "artifact", rarity: "RARE",…}
+6
+: 
+{id: "item_1748998068057_tv2im83dj", name: "The Obsidian Pheromone", rarity: "RARE",…}
+7
+: 
+{id: "item_1748998183668_9zc10v7od", name: "The Succubus's Whisper", type: "artifact", rarity: "RARE",…}
+8
+: 
+{id: "item_1748999094779_13bg9rlm6", name: "The Obsidian Shroud of Patience", rarity: "EPIC",…}
+9
+: 
+{id: "item_1749014130413_1p6nes4fb", name: "Ring of Sustenance", rarity: "UNCOMMON",…}
+10
+: 
+{id: "item_1749014259801_j1qlx5ozy", name: "Necklace of Fire Resistance (Minor)", rarity: "UNCOMMON",…}
+11
+: 
+{id: "item_1749015634873_zpr8hpi40", name: "Mithril Leggings", armor: 4, rarity: "RARE",…}
+12
+: 
+{id: "item_1749066653473_ghw2ec2tn", name: "Mithril Breastplate", armor: 10, rarity: "LEGENDARY",…}
+13
+: 
+{id: "item_1749067551717_3gx8ssb8v", name: "Mithril Helmet", armor: 3, rarity: "EPIC",…}
+14
+: 
+{id: "item_1749069127752_4h8rqpkqo", name: "Mithril Gauntlets", armor: 1, rarity: "RARE",…}
+15
+: 
+{id: "item_1749072118635_c15az0yhc", name: "Dusty Ring", rarity: "RARE", effects: ["natural_armor_1"],…}
+color
+: 
+"#0070DD"
+context
+: 
+{category: "jewelry", rarity: "RARE", locationContext: "Riftal Emporium, Elyrium", playerLevel: 7,…}
+description
+: 
+"Dusty ring with an ethereal glow, hinting at potent magic."
+effects
+: 
+["natural_armor_1"]
+generatedAt
+: 
+1749072118635
+id
+: 
+"item_1749072118635_c15az0yhc"
+isEquippable
+: 
+true
+isUsable
+: 
+false
+name
+: 
+"Dusty Ring"
+rarity
+: 
+"RARE"
+slot
+: 
+"ring1"
+type
+: 
+"armor"
+value
+: 
+23
+16
+: 
+{id: "item_1749073799230_hb57qbxbh", name: "Sealed Scroll", charges: 15, spell: "firebolt_moderate",…}
+17
+: 
+{id: "item_1749074215947_53ky75ogg", name: "Shopkeeper's Soul", rarity: "UNCOMMON",…}
+18
+: 
+{id: 1749074376196.5742, name: "Potion of Greater Healing", type: "quest_reward",…}
+19
+: 
+{id: 1749074376201.3738, name: "Scroll of Fireball", type: "quest_reward",…}
+20
+: 
+{id: "item_1749075111841_cutlicrsc", name: "Brass Matchbook", rarity: "COMMON",…}
+21
+: 
+{id: "item_1749075379091_aigi5d0ou", name: "Potion of Healing", rarity: "RARE",…}
+22
+: 
+{id: "item_1749075379095_46f8cdhc6", name: "extraordinary herb", rarity: "UNCOMMON",…}
+23
+: 
+{id: "item_1749078273149_30blwytdb", name: "Dragon's Breath (3 tankards)", rarity: "COMMON",…}
+24
+: 
+{id: "item_1749083841960_s3r72qbwu", name: "Tankards of meade", rarity: "COMMON",…}
+25
+: 
+{id: "item_1749014259801_j1qlx5ozy", name: "Necklace of Fire Resistance (Minor)", rarity: "UNCOMMON",…}
+26
+: 
+{id: "item_1749088141846_pay1jwl7l", name: "ivory amulet", rarity: "null",…}
+27
+: 
+{id: "item_1749101453221_ei8wbnyup", name: "scroll", rarity: "COMMON", effects: ["defense_aura_tiny"],…}
+28
+: 
+{id: "item_1749102539113_8qpp2e3e0", name: "Ring of Protection +1", rarity: "UNCOMMON",…}
+color
+: 
+"#1EFF00"
+context
+: 
+{category: "jewelry", rarity: "UNCOMMON", locationContext: "Mara's Cottage", playerLevel: 8}
+description
+: 
+"A well-crafted item of decent quality. It is a jewelry. It seems to possess properties like: armor class 1."
+effects
+: 
+["armor_class_1"]
+generatedAt
+: 
+1749102539113
+id
+: 
+"item_1749102539113_8qpp2e3e0"
+name
+: 
+"Ring of Protection +1"
+rarity
+: 
+"UNCOMMON"
+type
+: 
+"jewelry"
+value
+: 
+12
+29
+: 
+{id: "item_1749102539118_hum6sm3js", name: "Sparking Wand", charges: 10, spell: "magic_missile_weak",…}
+charges
+: 
+10
+color
+: 
+"#FFFFFF"
+context
+: 
+{category: "magical", rarity: "COMMON", locationContext: "Mara's Cottage", playerLevel: 8}
+description
+: 
+"A common, serviceable item. It is a magical. Specifically, a wands. It seems to possess properties like: spell focus tiny."
+effects
+: 
+["spell_focus_tiny"]
+generatedAt
+: 
+1749102539118
+id
+: 
+"item_1749102539118_hum6sm3js"
+name
+: 
+"Sparking Wand"
+rarity
+: 
+"COMMON"
+spell
+: 
+"magic_missile_weak"
+subType
+: 
+"wands"
+type
+: 
+"magical"
+value
+: 
+9
+30
+: 
+{id: "item_1749102539121_i56u7wlig", name: "Orb of Minor Warding", rarity: "COMMON",…}
