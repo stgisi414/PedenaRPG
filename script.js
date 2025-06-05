@@ -555,10 +555,10 @@ function loadGame() {
         console.log("loadGame: Final player.gold after all loading steps:", player.gold);
         updatePlayerStatsDisplay();
         updateQuestButton(); // Update quest button based on saved quests
-        
+
         // Auto-fix relationships based on conversation history
         //autoFixMaraRelationship();
-        
+
         showScreen('game-play-screen');
         displayMessage(`Welcome back, ${player.name}! You are in ${player.currentLocation}.`);
 
@@ -975,7 +975,7 @@ async function generateCombatEncounter() {
     // Use intelligent enemy generation for random encounters too
     const randomEncounterCommand = "encounter a hostile creature";
     const enemyEncounter = await CombatSystem.generateSpecificEnemyEncounter(randomEncounterCommand, player);
-    
+
     if (enemyEncounter) {
         displayMessage("⚔️ A hostile creature blocks your path!", 'combat');
         displayMessage(enemyEncounter.narrative, 'combat');
@@ -983,18 +983,18 @@ async function generateCombatEncounter() {
     } else {
         // Fallback to basic encounter if AI fails
         displayMessage("⚔️ A hostile creature blocks your path!", 'combat');
-        
+
         const basicEnemy = {
             name: 'Hostile Creature',
-            hp: 20 + (player.level * 5),
-            maxHp: 20 + (player.level * 5),
-            currentHp: 20 + (player.level * 5),
-            attack: 8 + (player.level * 2),
-            defense: 1 + player.level,
-            level: player.level,
+            hp: 20 + (player.level * 3),
+            maxHp: 20 + (player.level * 3),
+            currentHp: 20 + (player.level * 3),
+            attack: 8 + (player.level * 1.333),
+            defense: 1 + (player.level * 0.75),
+            level: Math.max(1, player.level - Math.floor(Math.random() * 3) - 1),
             type: 'Beast'
         };
-        
+
         await CombatSystem.initiateCombat(player, basicEnemy, player.currentLocation);
     }
 }
@@ -1067,7 +1067,7 @@ async function generateTreasureEncounter() {
 // Enhanced relationship detection function
 function checkRelationshipChanges(playerCommand, aiResponse) {
     const combinedText = (playerCommand + ' ' + aiResponse).toLowerCase();
-    
+
     // Romantic relationship patterns
     const romanticPatterns = [
         /(?:be my|will you be my|become my) (?:girlfriend|boyfriend|partner|lover)/,
@@ -1093,7 +1093,7 @@ function checkRelationshipChanges(playerCommand, aiResponse) {
 
     // Extract NPC names from the conversation
     const npcNames = extractNPCNames(aiResponse);
-    
+
     npcNames.forEach(npcName => {
         const currentRelationship = player.relationships[npcName];
         let relationshipChanged = false;
@@ -1102,16 +1102,16 @@ function checkRelationshipChanges(playerCommand, aiResponse) {
 
         // Check for romantic development
         if (romanticPatterns.some(pattern => pattern.test(combinedText))) {
-            if (combinedText.includes(npcName.toLowerCase()) || 
+            if (combinedText.includes(npcName.toLowerCase()) ||
                 combinedText.includes('mara') || // Special case for current conversation
                 aiResponse.toLowerCase().includes('kiss') ||
                 aiResponse.toLowerCase().includes('girlfriend') ||
                 aiResponse.toLowerCase().includes('yours')) {
-                
+
                 newStatus = 'romantic';
                 trustChange = 30;
                 relationshipChanged = true;
-                
+
                 displayMessage(`💕 Your relationship with ${npcName} has blossomed into romance!`, 'success');
             }
         }
@@ -1147,24 +1147,24 @@ function checkRelationshipChanges(playerCommand, aiResponse) {
 // Function to extract NPC names from AI responses
 function extractNPCNames(aiResponse) {
     const names = [];
-    
+
     // Known NPCs from conversation history
     const knownNPCs = Object.keys(player.relationships || {});
-    
+
     // Check for known NPCs in the response
     knownNPCs.forEach(name => {
         if (aiResponse.toLowerCase().includes(name.toLowerCase())) {
             names.push(name);
         }
     });
-    
+
     // Common NPC name patterns in the response
     const namePatterns = [
         /([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*?)(?:\s+(?:says|whispers|shouts|laughs|smiles|nods|looks|eyes|face))/g,
         /([A-Z][a-z]+)(?:'s\s+(?:eyes|face|voice|smile|laugh))/g,
         /([A-Z][a-z]+)(?:\s+(?:bursts|leans|wraps|kisses))/g
     ];
-    
+
     namePatterns.forEach(pattern => {
         let match;
         while ((match = pattern.exec(aiResponse)) !== null) {
@@ -1178,12 +1178,12 @@ function extractNPCNames(aiResponse) {
             }
         }
     });
-    
+
     // Special case: if "Mara" is mentioned, include her
     if (aiResponse.toLowerCase().includes('mara') && !names.includes('Mara')) {
         names.push('Mara');
     }
-    
+
     return [...new Set(names)]; // Remove duplicates
 }
 
@@ -1192,17 +1192,17 @@ function fixMaraRelationship() {
     if (!player.relationships) {
         player.relationships = {};
     }
-    
+
     player.relationships['Mara Moneymaker'] = {
         status: 'romantic',
         trust: 85,
         interactions: 5,
         lastInteraction: Date.now()
     };
-    
+
     displayMessage("💕 Relationship with Mara Moneymaker updated to romantic!", 'success');
     saveGame();
-    
+
     // Refresh background display if it's open
     const backgroundInterface = document.getElementById('background-interface');
     if (backgroundInterface && !backgroundInterface.classList.contains('hidden')) {
@@ -1224,9 +1224,9 @@ function resetCharacterProgression() {
     try {
         const currentLevel = player.level;
         const currentClass = player.class;
-        
+
         displayMessage("Resetting character progression...", 'info');
-        
+
         // Backup important data
         const backupData = {
             name: player.name,
@@ -1244,19 +1244,15 @@ function resetCharacterProgression() {
             expToNextLevel: player.expToNextLevel
         };
 
-        // Reset HP to base values
-        player.hp = 100;
-        player.maxHp = 100;
-
         // Reinitialize character progression
         if (CharacterManager && typeof CharacterManager.initializeCharacter === 'function') {
             CharacterManager.initializeCharacter(player, currentClass);
-            
+
             // Apply progression for each level from 2 to current level
             for (let level = 2; level <= currentLevel; level++) {
                 CharacterManager.applyLevelProgression(player, level);
             }
-            
+
             // Restore backed up data
             player.name = backupData.name;
             player.level = backupData.level;
@@ -1271,27 +1267,27 @@ function resetCharacterProgression() {
             player.quests = backupData.quests;
             player.exp = backupData.exp;
             player.expToNextLevel = backupData.expToNextLevel;
-            
+
             displayMessage("✅ Character progression reset successfully!", 'success');
             displayMessage(`Reinitialized as Level ${currentLevel} ${currentClass} with updated abilities and spells.`, 'info');
-            
+
             // Save the updated progression
             CharacterManager.saveProgression(player);
             saveGame();
-            
+
             // Update displays
             updatePlayerStatsDisplay();
-            
+
             // Refresh progression display if it's open
             const progressionInterface = document.getElementById('progression-interface');
             if (progressionInterface && !progressionInterface.classList.contains('hidden')) {
                 displayCharacterProgression();
             }
-            
+
         } else {
             displayMessage("CharacterManager not available for progression reset.", 'error');
         }
-        
+
     } catch (error) {
         console.error('Error resetting character progression:', error);
         displayMessage("Error occurred while resetting progression. Check console for details.", 'error');
@@ -1305,21 +1301,21 @@ function autoFixMaraRelationship() {
         console.log('autoFixMaraRelationship: Player or relationships not initialized yet');
         return;
     }
-    
+
     // Ensure conversationHistory exists and has messages
     if (!conversationHistory || !conversationHistory.messages || conversationHistory.messages.length === 0) {
         console.log('autoFixMaraRelationship: No conversation history available');
         return;
     }
-    
+
     const conversationText = conversationHistory.messages.slice(-10).map(m => m.content).join(' ').toLowerCase();
-    
+
     if ((conversationText.includes('mara') && conversationText.includes('girlfriend')) ||
         (conversationText.includes('mara') && conversationText.includes('kiss')) ||
         (conversationText.includes('glad to be yours'))) {
-        
+
         const maraRelationship = player.relationships['Mara Moneymaker'] || player.relationships['Mara'];
-        
+
         if (!maraRelationship || maraRelationship.status !== 'romantic') {
             console.log('Auto-fixing Mara relationship based on conversation history');
             //fixMaraRelationship();
@@ -1397,7 +1393,7 @@ async function generateQuest() {
         displayMessage(`Objective: ${quest.objective}`, 'info');
         displayMessage(`Rewards: ${quest.rewards.gold} gold, ${quest.rewards.experience} XP${quest.rewards.items.length > 0 ? ', ' + quest.rewards.items.join(', ') : ''}`, 'info');
         displayMessage(`Difficulty: ${quest.difficulty} | Estimated Time: ${quest.estimatedTime}`, 'info');
-        
+
         if (quest.complications) {
             displayMessage(`Complication: ${quest.complications}`, 'info');
         }
@@ -1521,9 +1517,9 @@ function checkQuestCompletion(playerAction) {
 
                 if (hasQuestKeyword && hasActionTrigger) {
                     completionScore += pattern.weight;
-                    console.log('Pattern match found:', { 
-                        pattern: pattern.keywords, 
-                        questKeyword: hasQuestKeyword, 
+                    console.log('Pattern match found:', {
+                        pattern: pattern.keywords,
+                        questKeyword: hasQuestKeyword,
                         actionTrigger: hasActionTrigger,
                         weight: pattern.weight,
                         score: completionScore
@@ -1534,7 +1530,7 @@ function checkQuestCompletion(playerAction) {
             // Enhanced target/object matching - require specific targets mentioned in quest
             const questTargets = extractQuestTargets(questText);
             const actionTargets = extractQuestTargets(actionText);
-            
+
             if (questTargets.length > 0) {
                 const targetMatches = questTargets.filter(target => actionTargets.includes(target));
                 if (targetMatches.length > 0) {
@@ -1559,7 +1555,7 @@ function checkQuestCompletion(playerAction) {
             if (quest.title) {
                 const titleWords = quest.title.toLowerCase().split(' ').filter(word => word.length > 3);
                 const titleMatches = titleWords.filter(word => actionText.includes(word));
-                
+
                 if (titleMatches.length >= Math.max(2, Math.ceil(titleWords.length * 0.6))) {
                     completionScore += 2;
                     console.log('Quest title substantial match:', { titleWords, titleMatches, actionText });
@@ -1567,9 +1563,9 @@ function checkQuestCompletion(playerAction) {
             }
 
             // Only complete quest if score meets threshold
-            const requiredScore = quest.difficulty === 'Easy' ? 3 : 
-                                quest.difficulty === 'Medium' ? 4 : 
-                                quest.difficulty === 'Hard' ? 5 : 6;
+            const requiredScore = quest.difficulty === 'Easy' ? 3 :
+                quest.difficulty === 'Medium' ? 4 :
+                    quest.difficulty === 'Hard' ? 5 : 6;
 
             isCompleted = completionScore >= requiredScore;
 
@@ -1584,7 +1580,7 @@ function checkQuestCompletion(playerAction) {
                 console.log('Quest completed!', quest.title);
                 quest.completed = true;
                 quest.dateCompleted = new Date().toLocaleDateString();
-                
+
                 displayMessage(`🎉 Quest completed: ${quest.title || 'Unknown Quest'}!`, 'success');
 
                 // Reset quest pagination since completed quests changed
@@ -1617,13 +1613,13 @@ function checkQuestCompletion(playerAction) {
                                     id: Date.now() + Math.random(),
                                     name: itemName.trim(),
                                     type: 'quest_reward',
-                                    rarity: quest.difficulty === 'Easy' ? 'COMMON' : 
-                                           quest.difficulty === 'Medium' ? 'UNCOMMON' : 
-                                           quest.difficulty === 'Hard' ? 'RARE' : 'EPIC',
+                                    rarity: quest.difficulty === 'Easy' ? 'COMMON' :
+                                        quest.difficulty === 'Medium' ? 'UNCOMMON' :
+                                            quest.difficulty === 'Hard' ? 'RARE' : 'EPIC',
                                     description: `A valuable reward earned by completing the quest: ${quest.title}`,
                                     value: Math.max(20, player.level * 10 + (quest.difficulty === 'Hard' ? 50 : 0))
                                 };
-                                
+
                                 if (!player.inventory) player.inventory = [];
                                 player.inventory.push(rewardItem);
                                 displayMessage(`🎁 You received: ${rewardItem.name}!`, 'success');
@@ -1632,13 +1628,13 @@ function checkQuestCompletion(playerAction) {
                     }
                 } else {
                     // Enhanced fallback reward system for legacy quests
-                    const difficultyMultiplier = quest.difficulty === 'Easy' ? 1.0 : 
-                                                quest.difficulty === 'Medium' ? 1.5 : 
-                                                quest.difficulty === 'Hard' ? 2.0 : 2.5;
-                                                
+                    const difficultyMultiplier = quest.difficulty === 'Easy' ? 1.0 :
+                        quest.difficulty === 'Medium' ? 1.5 :
+                            quest.difficulty === 'Hard' ? 2.0 : 2.5;
+
                     goldAwarded = Math.floor((50 + player.level * 25) * difficultyMultiplier);
                     xpAwarded = Math.floor((25 + player.level * 15) * difficultyMultiplier);
-                    
+
                     console.log('Fallback quest rewards:', {
                         questTitle: quest.title,
                         difficulty: quest.difficulty,
@@ -1695,7 +1691,7 @@ function extractQuestTargets(text) {
         'temple', 'ruins', 'cave', 'tower', 'castle', 'fortress',
         'village', 'town', 'city', 'settlement'
     ];
-    
+
     return commonTargets.filter(target => text.includes(target));
 }
 
@@ -2101,7 +2097,7 @@ function categorizeItemFromName(itemName) {
 async function generateGeminiQuest() {
     // Get conversation context for quest relevance
     const conversationContext = getConversationContext();
-    
+
     // Determine quest category and theme based on player and context
     const questData = QuestTaskGenerator.generateQuest(player, {
         currentLocation: player.currentLocation,
@@ -2187,13 +2183,13 @@ Make the quest feel personal and relevant to ${player.name}'s journey. Use the c
         // Parse the JSON response
         const cleanResponse = response.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
         const jsonMatch = cleanResponse.match(/\{[\s\S]*\}/);
-        
+
         if (!jsonMatch) {
             throw new Error("No valid JSON found in response");
         }
 
         const geminiQuest = JSON.parse(jsonMatch[0]);
-        
+
         // Enhance with additional data and validation
         const enhancedQuest = {
             id: Date.now().toString(),
@@ -2222,15 +2218,15 @@ Make the quest feel personal and relevant to ${player.name}'s journey. Use the c
         };
 
         console.log('Generated Gemini quest:', enhancedQuest);
-        
+
         // Add to conversation history for future context
         addToConversationHistory('assistant', `New quest generated: ${enhancedQuest.title} - ${enhancedQuest.description}`);
-        
+
         return enhancedQuest;
 
     } catch (error) {
         console.error("Error generating Gemini quest:", error);
-        
+
         // Fallback to original quest system if Gemini fails
         console.log("Falling back to template-based quest generation");
         return {
@@ -2349,7 +2345,7 @@ function updateQuestButton() {
 
     const activeQuests = player.quests.filter(q => !q.completed);
     const completedQuests = player.quests.filter(q => q.completed);
-    
+
     if (activeQuests.length > 0) {
         questBtn.innerHTML = `<i class="gi gi-scroll-unfurled mr-2"></i>Quests (${activeQuests.length})`;
         questBtn.title = `${activeQuests.length} active quest(s), ${completedQuests.length} completed`;
@@ -2411,7 +2407,7 @@ function displayQuests() {
                     <h5 class="text-xl font-bold mb-3 text-yellow-600">Active Quests (${activeQuests.length})</h5>
                     <div class="grid grid-cols-1 gap-4">
             `;
-            
+
             activeQuests.forEach((quest, index) => {
                 questHTML += `
                     <div class="parchment-box p-4">
@@ -2437,7 +2433,7 @@ function displayQuests() {
                     </div>
                 `;
             });
-            
+
             questHTML += `
                     </div>
                 </div>
@@ -2458,7 +2454,7 @@ function displayQuests() {
                     </div>
                     <div class="grid grid-cols-1 gap-3">
             `;
-            
+
             paginatedQuests.forEach(quest => {
                 questHTML += `
                     <div class="parchment-box p-3 bg-green-50">
@@ -2471,7 +2467,7 @@ function displayQuests() {
                     </div>
                 `;
             });
-            
+
             questHTML += `
                     </div>
             `;
@@ -2513,7 +2509,7 @@ function displayQuests() {
     }
 
     questListDisplay.innerHTML = questHTML;
-    
+
     // Add event listener for generate quest button
     const generateQuestBtn = document.getElementById('generate-quest-btn');
     if (generateQuestBtn) {
@@ -2845,7 +2841,7 @@ async function startConversation() {
         displayMessage(npcMessage);
         addToConversationHistory('assistant', npcMessage);
         gameWorld.lastNPCInteraction = npc.id;
-        
+
         // Update relationship - small positive interaction for talking
         updateRelationship(npc.name, 0, 2);
         displayMessage(`Your relationship with ${npc.name} has slightly improved.`, 'info');
@@ -2884,7 +2880,7 @@ Use the name "${npcName}" throughout the description.`;
             const encounterMessage = npcInfo;
             displayMessage(encounterMessage);
             addToConversationHistory('assistant', encounterMessage);
-            
+
             // Initialize relationship for new NPC
             updateRelationship(npcName, 0, 5);
             displayMessage(`You've established a new relationship with ${npcName}.`, 'info');
@@ -2978,15 +2974,15 @@ async function executeCustomCommand(command) {
     // Check for combat initiation commands
     const combatKeywords = ['attack', 'fight', 'battle', 'combat', 'engage', 'strike', 'assault'];
     const isCombatCommand = combatKeywords.some(keyword => command.toLowerCase().includes(keyword));
-    
+
     if (isCombatCommand) {
         // Use intelligent enemy generation based on the specific command
         const enemyEncounter = await CombatSystem.generateSpecificEnemyEncounter(command, player);
-        
+
         if (enemyEncounter) {
             // Display the narrative setup
             displayMessage(enemyEncounter.narrative, 'combat');
-            
+
             // Initiate combat with the specific enemy
             await CombatSystem.initiateCombat(player, enemyEncounter.enemy, player.currentLocation);
         } else {
@@ -3140,7 +3136,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // Remove item from shop inventory
             window.currentShopInventory.splice(itemIndex, 1);
-            
+
             // Save game state
             if (typeof ItemManager !== 'undefined' && ItemManager.saveInventoryToStorage) {
                 ItemManager.saveInventoryToStorage(player);
@@ -3345,89 +3341,89 @@ document.addEventListener('DOMContentLoaded', () => {
     addMainEventListeners(); // Assuming this function is defined elsewhere in your script.js
 
     // Pagination control functions
-function changeCompletedQuestsPage(direction) {
-    const completedQuests = player.quests ? player.quests.filter(q => q.completed) : [];
-    const totalPages = Math.ceil(completedQuests.length / questPagination.itemsPerPage);
-    
-    questPagination.completedQuestsPage += direction;
-    questPagination.completedQuestsPage = Math.max(0, Math.min(questPagination.completedQuestsPage, totalPages - 1));
-    
-    displayQuests(); // Refresh the display
-}
+    function changeCompletedQuestsPage(direction) {
+        const completedQuests = player.quests ? player.quests.filter(q => q.completed) : [];
+        const totalPages = Math.ceil(completedQuests.length / questPagination.itemsPerPage);
 
-function changeInventoryPage(direction) {
-    const unequippedItems = player.inventory ? player.inventory.filter(item => {
-        if (!player.equipment) return true;
-        return !Object.values(player.equipment).some(equippedItem => 
-            equippedItem && equippedItem.id === item.id
-        );
-    }) : [];
-    
-    const totalPages = Math.ceil(unequippedItems.length / inventoryPagination.itemsPerPage);
-    
-    inventoryPagination.currentPage += direction;
-    inventoryPagination.currentPage = Math.max(0, Math.min(inventoryPagination.currentPage, totalPages - 1));
-    
-    displayInventory(); // Refresh the display
-}
+        questPagination.completedQuestsPage += direction;
+        questPagination.completedQuestsPage = Math.max(0, Math.min(questPagination.completedQuestsPage, totalPages - 1));
 
-// Reset pagination when inventory or quests change significantly
-function resetInventoryPagination() {
-    inventoryPagination.currentPage = 0;
-}
-
-function resetQuestPagination() {
-    questPagination.completedQuestsPage = 0;
-}
-
-// Abandon quest function
-function abandonQuest(questId) {
-    if (!player.quests || player.quests.length === 0) {
-        displayMessage("No quests to abandon.", 'error');
-        return;
+        displayQuests(); // Refresh the display
     }
 
-    const questIndex = player.quests.findIndex(quest => quest.id === questId);
-    if (questIndex === -1) {
-        displayMessage("Quest not found.", 'error');
-        return;
+    function changeInventoryPage(direction) {
+        const unequippedItems = player.inventory ? player.inventory.filter(item => {
+            if (!player.equipment) return true;
+            return !Object.values(player.equipment).some(equippedItem =>
+                equippedItem && equippedItem.id === item.id
+            );
+        }) : [];
+
+        const totalPages = Math.ceil(unequippedItems.length / inventoryPagination.itemsPerPage);
+
+        inventoryPagination.currentPage += direction;
+        inventoryPagination.currentPage = Math.max(0, Math.min(inventoryPagination.currentPage, totalPages - 1));
+
+        displayInventory(); // Refresh the display
     }
 
-    const quest = player.quests[questIndex];
-    
-    if (quest.completed) {
-        displayMessage("Cannot abandon a completed quest.", 'error');
-        return;
+    // Reset pagination when inventory or quests change significantly
+    function resetInventoryPagination() {
+        inventoryPagination.currentPage = 0;
     }
 
-    if (confirm(`Are you sure you want to abandon "${quest.title}"? This action cannot be undone.`)) {
-        // Remove the quest from the player's quest list
-        player.quests.splice(questIndex, 1);
-        
-        displayMessage(`Abandoned quest: ${quest.title}`, 'info');
-        
-        // Reset quest pagination since active quests changed
-        resetQuestPagination();
-        
-        // Update quest button
-        updateQuestButton();
-        
-        // Refresh quest display if it's open
-        const questInterface = document.getElementById('quest-interface');
-        if (questInterface && !questInterface.classList.contains('hidden')) {
-            displayQuests();
+    function resetQuestPagination() {
+        questPagination.completedQuestsPage = 0;
+    }
+
+    // Abandon quest function
+    function abandonQuest(questId) {
+        if (!player.quests || player.quests.length === 0) {
+            displayMessage("No quests to abandon.", 'error');
+            return;
         }
-        
-        // Save game state
-        saveGame();
-        
-        // Add to conversation history
-        addToConversationHistory('assistant', `${player.name} abandoned the quest: ${quest.title}`);
-        saveConversationHistory();
-    }
-}
 
-// Make required functions globally available for TransactionMiddleware and other modules
+        const questIndex = player.quests.findIndex(quest => quest.id === questId);
+        if (questIndex === -1) {
+            displayMessage("Quest not found.", 'error');
+            return;
+        }
+
+        const quest = player.quests[questIndex];
+
+        if (quest.completed) {
+            displayMessage("Cannot abandon a completed quest.", 'error');
+            return;
+        }
+
+        if (confirm(`Are you sure you want to abandon "${quest.title}"? This action cannot be undone.`)) {
+            // Remove the quest from the player's quest list
+            player.quests.splice(questIndex, 1);
+
+            displayMessage(`Abandoned quest: ${quest.title}`, 'info');
+
+            // Reset quest pagination since active quests changed
+            resetQuestPagination();
+
+            // Update quest button
+            updateQuestButton();
+
+            // Refresh quest display if it's open
+            const questInterface = document.getElementById('quest-interface');
+            if (questInterface && !questInterface.classList.contains('hidden')) {
+                displayQuests();
+            }
+
+            // Save game state
+            saveGame();
+
+            // Add to conversation history
+            addToConversationHistory('assistant', `${player.name} abandoned the quest: ${quest.title}`);
+            saveConversationHistory();
+        }
+    }
+
+    // Make required functions globally available for TransactionMiddleware and other modules
     window.callGeminiAPI = callGeminiAPI;
     window.updateGold = updateGold;
     window.displayMessage = displayMessage;
@@ -3769,7 +3765,7 @@ function displayInventory() {
     const unequippedItems = player.inventory ? player.inventory.filter(item => {
         // Check if this item is currently equipped in any slot
         if (!player.equipment) return true;
-        return !Object.values(player.equipment).some(equippedItem => 
+        return !Object.values(player.equipment).some(equippedItem =>
             equippedItem && equippedItem.id === item.id
         );
     }) : [];
@@ -4216,9 +4212,9 @@ function displayCharacterBackground() {
 
     // --- Data Preparation for Stats ---
     // Ensure player and player.stats exist, providing defaults if not
-    const baseStats = player && player.stats ? player.stats : { 
-        strength: 10, dexterity: 10, intelligence: 10, 
-        constitution: 10, wisdom: 10, charisma: 10 
+    const baseStats = player && player.stats ? player.stats : {
+        strength: 10, dexterity: 10, intelligence: 10,
+        constitution: 10, wisdom: 10, charisma: 10
     };
 
     let statsGridHTML = "";
@@ -4253,7 +4249,7 @@ function displayCharacterBackground() {
             const relationshipColor = getRelationshipColor(relationship.status);
             const trust = relationship.trust || 0;
             const trustBar = Math.max(0, Math.min(100, trust));
-            
+
             relationshipsHTML += `
                 <div class="flex justify-between items-center py-2 border-b border-amber-700/20">
                     <div class="flex-grow">

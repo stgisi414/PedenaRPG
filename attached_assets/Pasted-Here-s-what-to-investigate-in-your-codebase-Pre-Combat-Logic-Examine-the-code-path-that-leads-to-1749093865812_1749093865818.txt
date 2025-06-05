@@ -1,0 +1,21 @@
+Here's what to investigate in your codebase:
+
+Pre-Combat Logic:
+
+Examine the code path that leads to combat. This typically involves executeCustomCommand in script.js, which might call functions like generateCombatEncounter or other logic before CombatSystem.initiateCombat is invoked.
+Look for any lines of code in this path that might re-initialize the player object or parts of it, particularly player.hp, player.maxHp, or player.stats. The default player object in script.js has hp: 100, maxHp: 100.
+CharacterManager Calls:
+
+While CharacterManager.initializeCharacter and applyLevelProgression correctly calculate up to 140 HP for a Level 8 Mage (as per your class-progression.js), ensure these functions are not being inadvertently called with incorrect parameters (e.g., reset to level 1 data) before combat starts.
+Debugging with Logs/Breakpoints:
+
+The most effective way to pinpoint this will be to add logging statements or use breakpoints:
+Log player.hp and player.maxHp immediately after loadGame() completes.
+Log them at the beginning of executeCustomCommand().
+Log them within any function called by executeCustomCommand that leads to starting combat (e.g., generateCombatEncounter in script.js).
+Log them at the very beginning of CombatSystem.initiateCombat().
+Log them immediately before this.getPlayerReference() is called within CombatSystem.displayCombatStart().
+This trace will show exactly when the HP values change from 140 to 100.
+The issue is not likely with displayCombatStart using the wrong internal variable (it correctly uses actualPlayer from getPlayerReference()), nor with updatePlayerStatsDisplay() not being called. The problem is the state of the global player object when the combat system accesses it. The CombatSystem is correctly reporting the (wrong) 100/100 HP it finds, and then subsequent UI updates correctly reflect damage taken based on that incorrect starting value.
+
+Focus your debugging on finding what part of your code modifies the global player.hp and player.maxHp from their loaded 140/140 state down to 100/100 before the combat sequence fully displays its initial status.
