@@ -226,6 +226,10 @@ Focus on terrain, lighting, and immediate surroundings that could affect the fig
 
     static buildPlayerActionPrompt(currentPlayer, enemy, actionType, command) {
 
+        // Get complete character progression for AI context
+        const progression = typeof window !== 'undefined' && window.CharacterManager ? 
+            window.CharacterManager.getCharacterProgression(currentPlayer) : null;
+
         const contextData = {
             turn: this.combatState.turnNumber,
             player: {
@@ -234,15 +238,45 @@ Focus on terrain, lighting, and immediate surroundings that could affect the fig
                 level: currentPlayer.level,
                 hp: currentPlayer.hp,
                 maxHp: currentPlayer.maxHp,
+                exp: currentPlayer.exp,
+                gold: currentPlayer.gold,
                 weapon: currentPlayer.equipment?.mainHand?.name || 'unarmed',
-                armor: this.calculatePlayerDefense(currentPlayer)
+                armor: this.calculatePlayerDefense(currentPlayer),
+                stats: currentPlayer.stats || {},
+                equipment: currentPlayer.equipment || {},
+                inventory: currentPlayer.inventory || [],
+                // Complete progression data
+                progression: progression ? {
+                    knownSpells: progression.spells.known.map(s => ({
+                        name: s.name,
+                        level: s.definition?.level || 'Unknown',
+                        description: s.definition?.description || 'No description'
+                    })),
+                    cantrips: progression.cantrips.map(c => ({
+                        name: c.name,
+                        description: c.definition?.description || 'No description'
+                    })),
+                    abilities: progression.abilities.map(a => ({
+                        name: a.name,
+                        description: a.definition?.description || 'No description',
+                        cooldown: a.definition?.cooldown || 0
+                    })),
+                    feats: progression.feats.map(f => ({
+                        name: f.name,
+                        description: f.definition?.description || 'No description'
+                    })),
+                    spellSlots: progression.spellSlots || {},
+                    features: progression.features || []
+                } : null
             },
             enemy: {
                 name: enemy.name,
                 hp: enemy.currentHp,
                 maxHp: enemy.maxHp,
                 type: enemy.type || 'creature',
-                level: enemy.level || 1
+                level: enemy.level || 1,
+                attack: enemy.attack || 8,
+                defense: enemy.defense || 0
             },
             environment: this.combatState.environment.description,
             recentActions: this.combatState.combatLog.slice(-2),
@@ -257,6 +291,12 @@ CONTEXT: ${JSON.stringify(contextData, null, 2)}
 
 PLAYER ACTION: ${actionType} - "${command}"
 
+IMPORTANT: The player has access to ALL their spells, abilities, cantrips, and inventory items listed above.
+- Consider their full spell repertoire when they attempt to cast spells
+- Factor in their class abilities and feats for enhanced effects
+- Account for their equipment and inventory for tactical options
+- Respect spell slot limitations and ability cooldowns
+
 Process this combat action and respond with ONLY valid JSON:
 {
     "success": true/false,
@@ -266,16 +306,23 @@ Process this combat action and respond with ONLY valid JSON:
     "enemyHpChange": 0,
     "effects": [],
     "criticalHit": false,
-    "actionComplete": true/false
+    "actionComplete": true/false,
+    "spellSlotUsed": 0,
+    "abilityUsed": "",
+    "itemUsed": ""
 }
 
 Rules:
 - Make combat dramatic and engaging
-- Consider player level, equipment, and enemy type
-- Critical hits occur ~10% of the time on attacks
+- Consider player's FULL progression: spells, abilities, feats, equipment, inventory
+- For spell casting: Check if player knows the spell and has appropriate spell slots
+- For abilities: Consider cooldowns and usage limitations
+- Critical hits occur ~10% of the time on attacks, more often with certain feats
 - Defensive actions reduce incoming damage
 - Failed actions should still have narrative descriptions
-- Keep damage reasonable (1-20 for most attacks)
+- Scale damage based on spell level, abilities, and equipment (5-50+ for high-level spells)
+- Factor in feats like "Spell Power" for enhanced spell damage
+- Consider metamagic options and spell modifications from feats
 `;
     }
 
@@ -370,14 +417,22 @@ Rules:
                 maxHp: enemy.maxHp,
                 type: enemy.type || 'creature',
                 level: enemy.level || 1,
-                attack: enemy.attack || 8
+                attack: enemy.attack || 8,
+                defense: enemy.defense || 0
             },
             player: {
                 name: player.name,
+                class: player.class,
+                level: player.level,
                 hp: player.hp,
                 maxHp: player.maxHp,
                 defense: this.calculatePlayerDefense(player),
-                level: player.level
+                stats: player.stats || {},
+                equipment: player.equipment || {},
+                // Basic spell/ability awareness for enemy tactics
+                hasSpells: player.classProgression?.knownSpells?.length > 0,
+                spellcasterLevel: player.level,
+                armorClass: this.calculatePlayerDefense(player) + 10
             },
             environment: this.combatState.environment.description,
             recentActions: this.combatState.combatLog.slice(-2)
@@ -438,6 +493,28 @@ Make the enemy action feel intelligent and appropriate for the creature type.
             if (defense > 0 && actualDamage !== Math.abs(result.playerHpChange)) {
                 if (typeof window.displayMessage === 'function') {
                     window.displayMessage(`Your armor absorbs ${Math.abs(result.playerHpChange) - actualDamage} damage!`, 'combat');
+                }
+            }
+        }
+
+        // Process spell slot usage and ability cooldowns for player actions
+        if (actor === 'player' && actualPlayer.classProgression) {
+            if (result.spellSlotUsed && result.spellSlotUsed > 0) {
+                // Deduct spell slot usage (this would need to be implemented in CharacterManager)
+                if (typeof window.displayMessage === 'function') {
+                    window.displayMessage(`Used a level ${result.spellSlotUsed} spell slot.`, 'info');
+                }
+            }
+            
+            if (result.abilityUsed && typeof window.CharacterManager !== 'undefined') {
+                // Mark ability as used (CharacterManager handles cooldowns)
+                window.CharacterManager.useAbility(actualPlayer, result.abilityUsed);
+            }
+
+            if (result.itemUsed && actualPlayer.inventory) {
+                // Handle item consumption if needed
+                if (typeof window.displayMessage === 'function') {
+                    window.displayMessage(`Used ${result.itemUsed}.`, 'info');
                 }
             }
         }
