@@ -1520,17 +1520,36 @@ export class ItemGenerator {
         const jewelryCategories = Object.keys(itemTemplates.jewelry);
         const jewelryType = jewelryCategories[Math.floor(Math.random() * jewelryCategories.length)];
         const jewelries = itemTemplates.jewelry[jewelryType];
-        const selected = this.selectFromTemplates(jewelries, rarity, itemCategories.JEWELRY);
-        return selected || this.generateCustomJewelry(rarity, jewelryType);
+        const selected = this.selectFromTemplates(jewelries, rarity, 'armor'); // Changed to 'armor'
+        
+        // If we got a template item, ensure it has the correct type
+        if (selected) {
+            selected.type = 'armor';
+            return selected;
+        }
+        
+        return this.generateCustomJewelry(rarity, jewelryType);
     }
 
     static generateCustomJewelry(rarity, jewelryType = 'rings') {
         const prefix = dynamicItemPrefixes[Math.floor(Math.random() * dynamicItemPrefixes.length)];
         const jewelryBaseName = jewelryType.slice(0,-1); // ring from rings
+        
+        // Determine the correct slot based on jewelry type
+        let slot;
+        if (jewelryType === 'rings') {
+            slot = Math.random() < 0.5 ? 'ring1' : 'ring2';
+        } else if (jewelryType === 'amulets') {
+            slot = 'amulet';
+        } else {
+            slot = jewelryType.slice(0,-1); // fallback to singular form
+        }
+        
         return {
             name: `${prefix} ${jewelryBaseName.charAt(0).toUpperCase() + jewelryBaseName.slice(1)} ${dynamicItemSuffixes[Math.floor(Math.random() * dynamicItemSuffixes.length)]}`,
-            type: itemCategories.JEWELRY,
+            type: 'armor', // Changed from itemCategories.JEWELRY to 'armor'
             subType: jewelryType,
+            slot: slot, // Added slot property
             rarity: rarity,
             effects: this.generateMagicalEffects(rarity), // Jewelry often has magical effects
             description: `An ornate piece of ${jewelryBaseName.toLowerCase()} that feels ${prefix.toLowerCase()} to the touch.`
