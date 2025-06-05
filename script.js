@@ -2333,43 +2333,6 @@ Make the quest feel personal and relevant to ${player.name}'s journey. Use the c
     }
 }
 
-        'parchment': {
-            category: itemCategories.SCROLL,
-            rarity: 'UNCOMMON',
-            specificName: 'Mysterious Parchment',
-            description: 'A rolled-up piece of parchment with faded writing, possibly containing important information.'
-        }
-    };
-
-    // Check for specific items first
-    if (specificItems[name]) {
-        return specificItems[name];
-    }
-
-    // General categorization
-    if (name.includes('helmet') || name.includes('helm') || name.includes('hat')) {
-        return { category: itemCategories.ARMOR, rarity: 'COMMON' };
-    }
-    if (name.includes('sword') || name.includes('blade') || name.includes('dagger')) {
-        return { category: itemCategories.WEAPON, rarity: 'COMMON' };
-    }
-    if (name.includes('armor') || name.includes('jerkin') || name.includes('vest')) {
-        return { category: itemCategories.ARMOR, rarity: 'COMMON' };
-    }
-    if (name.includes('potion') || name.includes('elixir')) {
-        return { category: itemCategories.CONSUMABLE, rarity: 'COMMON' };
-    }
-    if (name.includes('scroll') || name.includes('parchment')) {
-        return { category: itemCategories.SCROLL, rarity: 'UNCOMMON' };
-    }
-    if (name.includes('ring') || name.includes('amulet') || name.includes('necklace')) {
-        return { category: itemCategories.JEWELRY, rarity: 'UNCOMMON' };
-    }
-
-    // Default to magical item
-    return { category: itemCategories.MAGICAL, rarity: 'COMMON' };
-}
-
 function parseAIItemResponse(aiResponse, context) {
     try {
         // Extract item details from AI response
