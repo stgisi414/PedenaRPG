@@ -10,6 +10,7 @@ import { ItemGenerator, ItemManager, itemCategories, itemRarity, statusEffects }
 import { TransactionMiddleware } from './game-logic/transaction-middleware.js';
 import { ItemExchangeMiddleware } from './game-logic/item-exchange-middleware.js';
 import { CombatSystem } from './game-logic/combat-system.js';
+import { AlignmentSystem } from './game-logic/alignment-system.js';
 
 const GEMINI_API_KEY = 'AIzaSyDIFeql6HUpkZ8JJlr_kuN0WDFHUyOhijA'; // Replace with your actual Gemini API Key
 const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`;
@@ -52,7 +53,8 @@ let player = {
     quests: [],
     relationships: {}, // NPC relationships: { npcName: { status: 'neutral', trust: 50, interactions: 0 } }
     currentLocation: 'Pedena Town Square',
-    currentEnemy: null // For combat
+    currentEnemy: null, // For combat
+    alignment: null // Will be initialized by AlignmentSystem
 };
 
 // Utility function to validate and fix character stats
@@ -159,7 +161,7 @@ let conversationHistory = {
     maxMessages: 75
 };
 
-function addToConversationHistory(role, content) {
+async function addToConversationHistory(role, content) {
     conversationHistory.messages.push({
         role: role,
         content: content,
@@ -170,6 +172,40 @@ function addToConversationHistory(role, content) {
     if (conversationHistory.messages.length > conversationHistory.maxMessages) {
         conversationHistory.messages = conversationHistory.messages.slice(-conversationHistory.maxMessages);
     }
+
+    // Add to alignment system for assessment
+    if (role === 'assistant' && conversationHistory.messages.length >= 2) {
+        const lastUserMessage = conversationHistory.messages
+            .slice(-2)
+            .find(msg => msg.role === 'user');
+        
+        if (lastUserMessage) {
+            const alignmentChange = await AlignmentSystem.addMessage(
+                lastUserMessage.content, 
+                content
+            );
+            
+            if (alignmentChange !== null) {
+                await processAlignmentChange(alignmentChange);
+            }
+        }
+    }
+}
+
+async function processAlignmentChange(change) {
+    const result = AlignmentSystem.updateAlignment(player, change);
+    
+    if (result.changed) {
+        const changeText = change > 0 ? 'improved' : change < 0 ? 'declined' : 'remained stable';
+        displayMessage(`Your moral standing has ${changeText}. You are now ${result.newType.replace('_', ' ')}.`, 
+                      change > 0 ? 'success' : change < 0 ? 'error' : 'info');
+        
+        if (Math.abs(change) > 0) {
+            displayMessage(AlignmentSystem.getAlignmentDescription(player), 'info');
+        }
+    }
+    
+    saveGame();
 }
 
 function updateRelationship(npcName, statusChange = 0, trustChange = 0, npcDescription = null) {
@@ -177,10 +213,16 @@ function updateRelationship(npcName, statusChange = 0, trustChange = 0, npcDescr
         player.relationships = {};
     }
 
+    // Initialize alignment and get modifiers
+    AlignmentSystem.initializeAlignment(player);
+    const alignmentModifier = AlignmentSystem.getAlignmentModifier(player);
+
     if (!player.relationships[npcName]) {
+        // Apply alignment modifier to initial trust
+        const baseTrust = 50 + alignmentModifier.npcTrustModifier;
         player.relationships[npcName] = {
             status: 'neutral',
-            trust: 50,
+            trust: Math.max(0, Math.min(100, baseTrust)),
             interactions: 0,
             lastInteraction: Date.now(),
             metAt: player.currentLocation,
@@ -190,7 +232,10 @@ function updateRelationship(npcName, statusChange = 0, trustChange = 0, npcDescr
     }
 
     const relationship = player.relationships[npcName];
-    relationship.trust = Math.max(0, Math.min(100, relationship.trust + trustChange));
+    
+    // Apply alignment modifier to trust changes
+    const modifiedTrustChange = trustChange + (alignmentModifier.npcTrustModifier * 0.1);
+    relationship.trust = Math.max(0, Math.min(100, relationship.trust + modifiedTrustChange));
     relationship.interactions++;
     relationship.lastInteraction = Date.now();
     
@@ -3358,24 +3403,77 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     document.getElementById('pray-btn')?.addEventListener('click', () => {
+        // Initialize alignment if not present
+        AlignmentSystem.initializeAlignment(player);
+        
+        const alignmentInfo = AlignmentSystem.getAlignmentDisplayInfo(player);
+        const prayerEffects = alignmentInfo.modifier.prayerEffects;
+        
         displayMessage("You offer a prayer to the gods...", 'info');
-        // Random blessing effect
-        if (Math.random() < 0.3) {
-            const blessings = [
-                { effect: () => player.hp = Math.min(player.maxHp, player.hp + 5), msg: "You feel blessed with minor healing." },
-                { effect: () => updateGold(Math.floor(Math.random() * 10) + 5, 'divine blessing'), msg: "You find a few coins that weren't there before." },
-                { effect: () => { }, msg: "You feel a sense of peace and protection." }
-            ];
-            const blessing = blessings[Math.floor(Math.random() * blessings.length)];
-            blessing.effect();
-            setTimeout(() => {
-                displayMessage(blessing.msg, 'success');
+        
+        setTimeout(() => {
+            if (prayerEffects.length > 0) {
+                const effect = prayerEffects[0];
+                
+                // Apply healing
+                if (effect.healAmount) {
+                    const oldHp = player.hp;
+                    player.hp = Math.min(player.maxHp, player.hp + effect.healAmount);
+                    const actualHeal = player.hp - oldHp;
+                    if (actualHeal > 0) {
+                        displayMessage(`${effect.name}: You recover ${actualHeal} HP!`, 'success');
+                    }
+                }
+                
+                // Apply gold bonus (for neutral alignments)
+                if (effect.goldBonus) {
+                    updateGold(effect.goldBonus, 'divine fortune');
+                    displayMessage(`Fortune smiles upon you! You found ${effect.goldBonus} gold!`, 'success');
+                }
+                
+                // Apply stat bonuses temporarily
+                if (effect.statBonus) {
+                    Object.entries(effect.statBonus).forEach(([stat, bonus]) => {
+                        if (player.stats[stat] !== undefined) {
+                            player.stats[stat] += bonus;
+                        }
+                    });
+                    
+                    // Set timer to remove stat bonuses
+                    setTimeout(() => {
+                        Object.entries(effect.statBonus).forEach(([stat, bonus]) => {
+                            if (player.stats[stat] !== undefined) {
+                                player.stats[stat] -= bonus;
+                            }
+                        });
+                        displayMessage(`The ${effect.name.toLowerCase()} effect has worn off.`, 'info');
+                        updatePlayerStatsDisplay();
+                        saveGame();
+                    }, effect.duration * 1000);
+                }
+                
+                // Apply status effects
+                if (effect.effects && player.statusEffects) {
+                    effect.effects.forEach(statusEffect => {
+                        if (!player.statusEffects) player.statusEffects = [];
+                        player.statusEffects.push({
+                            name: effect.name,
+                            description: effect.description,
+                            expiresAt: Date.now() + (effect.duration * 1000),
+                            type: alignmentInfo.type.includes('evil') || alignmentInfo.type === 'malevolent' ? 'negative' : 'positive'
+                        });
+                    });
+                }
+                
+                displayMessage(effect.description, 'success');
+                displayMessage(`Effect duration: ${Math.floor(effect.duration / 60)} minutes`, 'info');
+                
                 updatePlayerStatsDisplay();
                 saveGame();
-            }, 1000);
-        } else {
-            setTimeout(() => displayMessage("The gods listen but remain silent.", 'info'), 1000);
-        }
+            } else {
+                displayMessage("The gods listen but remain silent.", 'info');
+            }
+        }, 1000);
     });
 
     // Add event listeners for progression and quest buttons
@@ -3508,6 +3606,7 @@ document.addEventListener('DOMContentLoaded', () => {
     window.TransactionMiddleware = TransactionMiddleware;
     window.ItemExchangeMiddleware = ItemExchangeMiddleware;
     window.CombatSystem = CombatSystem;
+    window.AlignmentSystem = AlignmentSystem;
     window.player = player; // Make player globally accessible
 
     // Make other functions globally accessible if needed by other parts of the code or for debugging
@@ -4167,6 +4266,41 @@ function buildStatsGrid(baseStats, equipmentBonuses) {
     return gridHTML;
 }
 
+function buildAlignmentDisplay() {
+    AlignmentSystem.initializeAlignment(player);
+    const alignmentInfo = AlignmentSystem.getAlignmentDisplayInfo(player);
+    
+    return `
+        <div class="grid grid-cols-1 gap-2 text-sm">
+            <div class="flex justify-between items-center py-2 border-b border-amber-700/20">
+                <span class="font-semibold">Alignment:</span>
+                <span class="font-bold ${alignmentInfo.color}">${alignmentInfo.type.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}</span>
+            </div>
+            <div class="flex justify-between items-center py-2 border-b border-amber-700/20">
+                <span class="font-semibold">Moral Score:</span>
+                <span class="font-bold">${alignmentInfo.score >= 0 ? '+' : ''}${alignmentInfo.score}</span>
+            </div>
+            <div class="py-2">
+                <p class="text-xs italic text-amber-700">${alignmentInfo.description}</p>
+            </div>
+            <div class="grid grid-cols-2 gap-2 text-xs text-gray-600">
+                <div>
+                    <strong>NPC Trust:</strong> ${alignmentInfo.modifier.npcTrustModifier >= 0 ? '+' : ''}${alignmentInfo.modifier.npcTrustModifier}
+                </div>
+                <div>
+                    <strong>Shop Prices:</strong> ${Math.round((alignmentInfo.modifier.shopPriceModifier - 1) * 100)}%
+                </div>
+                <div>
+                    <strong>Quest Rewards:</strong> ${Math.round((alignmentInfo.modifier.questRewardModifier - 1) * 100)}%
+                </div>
+                <div>
+                    <strong>Assessments:</strong> ${player.alignment?.totalAssessments || 0}
+                </div>
+            </div>
+        </div>
+    `;
+}
+
 // Item action functions
 function equipItem(itemIndex) {
     // --- Start of Debugging Logs ---
@@ -4493,6 +4627,11 @@ function displayCharacterBackground() {
             <div class="mt-4 pt-4 border-t border-amber-700/30">
                 <h6 class="font-bold text-lg mb-2 text-amber-700">Character Statistics</h6>
                 ${statsGridHTML}
+            </div>
+
+            <div class="mt-4 pt-4 border-t border-amber-700/30">
+                <h6 class="font-bold text-lg mb-2 text-amber-700">Moral Alignment</h6>
+                ${buildAlignmentDisplay()}
             </div>
 
             <div class="mt-4 pt-4 border-t border-amber-700/30">
