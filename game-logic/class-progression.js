@@ -216,7 +216,7 @@ export const classProgression = {
             8: {
                 hp: 4,
                 features: ["Ability Score Improvement"],
-                abilities: ["Arcane Infusion", "Mind Blank"],
+                abilities: ["Arcane Infusion", "Mind Blank (Self)"],
                 feats: ["Potent Cantrips"],
                 spells: ["Teleport (Long Range)", "Maze", "Forcecage"], // Added more 7th, started 8th
                 cantrips: ["Blade Ward"]
