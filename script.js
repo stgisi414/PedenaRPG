@@ -3864,7 +3864,7 @@ function processRichText(text) {
     processed = processed.replace(/~~(.*?)~~/g, '<span class="rt-strikethrough">$1</span>');
     
     // Special effects with custom syntax
-    // Colors: {red:text}, {green:text}, etc.
+    // Colors: {red:text}, {green:text}, etc. and single word colors {magical}, {infernal}, etc.
     processed = processed.replace(/\{red:(.*?)\}/g, '<span class="rt-color-red">$1</span>');
     processed = processed.replace(/\{green:(.*?)\}/g, '<span class="rt-color-green">$1</span>');
     processed = processed.replace(/\{blue:(.*?)\}/g, '<span class="rt-color-blue">$1</span>');
@@ -3873,6 +3873,41 @@ function processRichText(text) {
     processed = processed.replace(/\{silver:(.*?)\}/g, '<span class="rt-color-silver">$1</span>');
     processed = processed.replace(/\{crimson:(.*?)\}/g, '<span class="rt-color-crimson">$1</span>');
     processed = processed.replace(/\{emerald:(.*?)\}/g, '<span class="rt-color-emerald">$1</span>');
+    
+    // Handle contextual color words - map to appropriate colors
+    processed = processed.replace(/\{magical\}/g, '<span class="rt-color-purple">magical</span>');
+    processed = processed.replace(/\{infernal energy\}/g, '<span class="rt-color-red">infernal energy</span>');
+    processed = processed.replace(/\{infernal\}/g, '<span class="rt-color-red">infernal</span>');
+    processed = processed.replace(/\{peaceful\}/g, '<span class="rt-color-green">peaceful</span>');
+    processed = processed.replace(/\{molten rock\}/g, '<span class="rt-color-crimson">molten rock</span>');
+    processed = processed.replace(/\{molten\}/g, '<span class="rt-color-crimson">molten</span>');
+    processed = processed.replace(/\{ash\}/g, '<span class="rt-color-silver">ash</span>');
+    processed = processed.replace(/\{sulfur\}/g, '<span class="rt-color-gold">sulfur</span>');
+    processed = processed.replace(/\{flames\}/g, '<span class="rt-color-red">flames</span>');
+    processed = processed.replace(/\{lava flows\}/g, '<span class="rt-color-crimson">lava flows</span>');
+    processed = processed.replace(/\{lava\}/g, '<span class="rt-color-crimson">lava</span>');
+    processed = processed.replace(/\{bridges\}/g, '<span class="rt-color-silver">bridges</span>');
+    processed = processed.replace(/\{epic\}/g, '<span class="rt-color-gold">epic</span>');
+    processed = processed.replace(/\{hellish\}/g, '<span class="rt-color-red">hellish</span>');
+    processed = processed.replace(/\{portal\}/g, '<span class="rt-color-blue">portal</span>');
+    
+    // Generic fallback for any remaining single-word colors in braces
+    processed = processed.replace(/\{([a-zA-Z\s]+)\}/g, function(match, word) {
+        // If it wasn't caught by specific rules above, apply a default color based on context
+        if (word.includes('fire') || word.includes('flame') || word.includes('burn')) {
+            return `<span class="rt-color-red">${word}</span>`;
+        } else if (word.includes('magic') || word.includes('arcane') || word.includes('mystic')) {
+            return `<span class="rt-color-purple">${word}</span>`;
+        } else if (word.includes('nature') || word.includes('green') || word.includes('forest')) {
+            return `<span class="rt-color-green">${word}</span>`;
+        } else if (word.includes('water') || word.includes('ice') || word.includes('blue')) {
+            return `<span class="rt-color-blue">${word}</span>`;
+        } else if (word.includes('gold') || word.includes('treasure') || word.includes('divine')) {
+            return `<span class="rt-color-gold">${word}</span>`;
+        } else {
+            return `<span class="rt-color-purple">${word}</span>`; // Default to purple for unknown
+        }
+    });
     
     // Fonts: [medieval:text], [magic:text], etc.
     processed = processed.replace(/\[medieval:(.*?)\]/g, '<span class="rt-font-medieval">$1</span>');
