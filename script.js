@@ -504,7 +504,8 @@ function displayMessage(message, type = 'info') {
 }
 
 function updatePlayerStatsDisplay() {
-    playerNameDisplay.textContent = `${player.name} - ${player.currentLocation}`;
+    const locationText = processRichText(player.currentLocation);
+    playerNameDisplay.innerHTML = `${player.name} - ${locationText}`;
     playerLevelDisplay.textContent = `Level: ${player.level}`;
     playerHpDisplay.textContent = `HP: ${player.hp}/${player.maxHp}`;
 }
