@@ -4391,14 +4391,19 @@ function buildEquipmentDisplay() {
 
     return equipmentSlots.map(slotData => {
         const item = player.equipment[slotData.slot];
-        // --- THIS IS THE KEY CHANGE ---
         const iconClass = item ? getIconForItem(item) : slotData.icon;
+        
+        // Check if icon is an emoji (doesn't start with 'ra-')
+        const isEmoji = !iconClass.startsWith('ra-');
 
         if (item) {
             return `
                 <div class="parchment-box p-2 flex items-center gap-3 w-full">
                     <div class="flex-shrink-0">
-                        <i class="ra ${iconClass} text-xl text-green-600"></i>
+                        ${isEmoji ? 
+                            `<span class="text-xl text-green-600">${iconClass}</span>` : 
+                            `<i class="ra ${iconClass} text-xl text-green-600"></i>`
+                        }
                     </div>
                     <div class="flex-grow">
                         <h6 class="font-bold text-sm">${slotData.name}</h6>
@@ -4413,7 +4418,10 @@ function buildEquipmentDisplay() {
             return `
                 <div class="parchment-box p-2 flex items-center gap-3 w-full border-dashed border-gray-400">
                     <div class="flex-shrink-0">
-                        <i class="ra ${iconClass} text-xl text-gray-400"></i>
+                        ${isEmoji ? 
+                            `<span class="text-xl text-gray-400">${iconClass}</span>` : 
+                            `<i class="ra ${iconClass} text-xl text-gray-400"></i>`
+                        }
                     </div>
                     <div class="flex-grow">
                         <h6 class="font-bold text-sm text-gray-500">${slotData.name}</h6>
