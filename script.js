@@ -2560,6 +2560,34 @@ let inventoryPagination = {
 };
 
 // Display quests interface with pagination
+// Function to strip all rich text formatting from quest text
+function stripRichTextFormatting(text) {
+    if (!text || typeof text !== 'string') return '';
+
+    return text
+        // Remove color formatting: {color:text}
+        .replace(/\{[^:]+:([^}]+)\}/g, '$1')
+        // Remove special effects: {{effect:text}}
+        .replace(/\{\{[\w-]+:([^}]+)\}\}/g, '$1')
+        // Remove font formatting: [font:text]
+        .replace(/\[\w+:([^}]+)\]/g, '$1')
+        // Remove markdown bold: **text**
+        .replace(/\*\*(.*?)\*\*/g, '$1')
+        // Remove markdown italic: *text*
+        .replace(/\*(.*?)\*/g, '$1')
+        // Remove markdown underline: __text__
+        .replace(/__(.*?)__/g, '$1')
+        // Remove markdown strikethrough: ~~text~~
+        .replace(/~~(.*?)~~/g, '$1')
+        // Remove any remaining curly braces
+        .replace(/[{}]/g, '')
+        // Remove any remaining square brackets
+        .replace(/[\[\]]/g, '')
+        // Clean up extra whitespace
+        .replace(/\s+/g, ' ')
+        .trim();
+}
+
 function displayQuests() {
     // Hide other interfaces
     const interfacesToHide = ['combat-interface', 'shop-interface', 'inventory-interface', 'skills-interface', 'background-interface', 'progression-interface'];
@@ -2599,31 +2627,12 @@ function displayQuests() {
             `;
 
             activeQuests.forEach((quest, index) => {
-                // Clean quest text by removing rich text formatting
-                const cleanTitle = quest.title ? quest.title.replace(/\{[^:]+:[^}]+\}/g, (match) => {
-                    const content = match.match(/\{[^:]+:([^}]+)\}/);
-                    return content ? content[1] : match;
-                }).replace(/\*\*(.*?)\*\*/g, '$1').replace(/\*(.*?)\*/g, '$1').replace(/\[\w+:(.*?)\]/g, '$1').replace(/\{\{[\w-]+:(.*?)\}\}/g, '$1') : '';
-
-                const cleanDescription = quest.description ? quest.description.replace(/\{[^:]+:[^}]+\}/g, (match) => {
-                    const content = match.match(/\{[^:]+:([^}]+)\}/);
-                    return content ? content[1] : match;
-                }).replace(/\*\*(.*?)\*\*/g, '$1').replace(/\*(.*?)\*/g, '$1').replace(/\[\w+:(.*?)\]/g, '$1').replace(/\{\{[\w-]+:(.*?)\}\}/g, '$1') : '';
-
-                const cleanObjective = quest.objective ? quest.objective.replace(/\{[^:]+:[^}]+\}/g, (match) => {
-                    const content = match.match(/\{[^:]+:([^}]+)\}/);
-                    return content ? content[1] : match;
-                }).replace(/\*\*(.*?)\*\*/g, '$1').replace(/\*(.*?)\*/g, '$1').replace(/\[\w+:(.*?)\]/g, '$1').replace(/\{\{[\w-]+:(.*?)\}\}/g, '$1') : '';
-
-                const cleanLocation = quest.location ? quest.location.replace(/\{[^:]+:[^}]+\}/g, (match) => {
-                    const content = match.match(/\{[^:]+:([^}]+)\}/);
-                    return content ? content[1] : match;
-                }).replace(/\*\*(.*?)\*\*/g, '$1').replace(/\*(.*?)\*/g, '$1').replace(/\[\w+:(.*?)\]/g, '$1').replace(/\{\{[\w-]+:(.*?)\}\}/g, '$1') : '';
-
-                const cleanQuestGiver = quest.questGiver ? quest.questGiver.replace(/\{[^:]+:[^}]+\}/g, (match) => {
-                    const content = match.match(/\{[^:]+:([^}]+)\}/);
-                    return content ? content[1] : match;
-                }).replace(/\*\*(.*?)\*\*/g, '$1').replace(/\*(.*?)\*/g, '$1').replace(/\[\w+:(.*?)\]/g, '$1').replace(/\{\{[\w-]+:(.*?)\}\}/g, '$1') : '';
+                // Clean quest text by removing all rich text formatting
+                const cleanTitle = stripRichTextFormatting(quest.title);
+                const cleanDescription = stripRichTextFormatting(quest.description);
+                const cleanObjective = stripRichTextFormatting(quest.objective);
+                const cleanLocation = stripRichTextFormatting(quest.location);
+                const cleanQuestGiver = stripRichTextFormatting(quest.questGiver);
 
                 questHTML += `
                     <div class="parchment-box p-4">
@@ -2672,16 +2681,9 @@ function displayQuests() {
             `;
 
             paginatedQuests.forEach(quest => {
-                // Clean quest text by removing rich text formatting
-                const cleanTitle = quest.title ? quest.title.replace(/\{[^:]+:[^}]+\}/g, (match) => {
-                    const content = match.match(/\{[^:]+:([^}]+)\}/);
-                    return content ? content[1] : match;
-                }).replace(/\*\*(.*?)\*\*/g, '$1').replace(/\*(.*?)\*/g, '$1').replace(/\[\w+:(.*?)\]/g, '$1').replace(/\{\{[\w-]+:(.*?)\}\}/g, '$1') : '';
-
-                const cleanDescription = quest.description ? quest.description.replace(/\{[^:]+:[^}]+\}/g, (match) => {
-                    const content = match.match(/\{[^:]+:([^}]+)\}/);
-                    return content ? content[1] : match;
-                }).replace(/\*\*(.*?)\*\*/g, '$1').replace(/\*(.*?)\*/g, '$1').replace(/\[\w+:(.*?)\]/g, '$1').replace(/\{\{[\w-]+:(.*?)\}\}/g, '$1') : '';
+                // Clean quest text by removing all rich text formatting
+                const cleanTitle = stripRichTextFormatting(quest.title);
+                const cleanDescription = stripRichTextFormatting(quest.description);
 
                 questHTML += `
                     <div class="parchment-box p-3 bg-green-50">
