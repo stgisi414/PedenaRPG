@@ -1,0 +1,66 @@
+Error generating combat environment: SyntaxError: Expected ',' or '}' after property value in JSON at position 1504 (line 8 column 4)
+    at JSON.parse (<anonymous>)
+    at CombatSystem.generateCombatEnvironment (combat-system.js:109:57)
+    at async CombatSystem.initiateCombat (combat-system.js:47:9)
+    at async generateCombatEncounter (script.js:1005:5)
+    at async executeCustomCommand (script.js:2980:9)
+generateCombatEnvironment @ combat-system.js:115
+await in generateCombatEnvironment
+initiateCombat @ combat-system.js:47
+generateCombatEncounter @ script.js:1005
+executeCustomCommand @ script.js:2980
+(anonymous) @ script.js:3590
+(anonymous) @ script.js:3597Understand this error
+combat-system.js:154 Uncaught (in promise) TypeError: Cannot read properties of undefined (reading 'name')
+    at CombatSystem.displayCombatInterface (combat-system.js:154:45)
+    at CombatSystem.initiateCombat (combat-system.js:50:14)
+    at async generateCombatEncounter (script.js:1005:5)
+    at async executeCustomCommand (script.js:2980:9)
+displayCombatInterface @ combat-system.js:154
+initiateCombat @ combat-system.js:50
+await in initiateCombat
+generateCombatEncounter @ script.js:1005
+executeCustomCommand @ script.js:2980
+(anonymous) @ script.js:3590
+(anonymous) @ script.js:3597Understand this error
+script.js:3589 Executing command: begin combat
+script.js:3589 Executing command: Fight
+combat-system.js:154 Uncaught (in promise) TypeError: Cannot read properties of undefined (reading 'name')
+    at CombatSystem.displayCombatInterface (combat-system.js:154:45)
+    at CombatSystem.initiateCombat (combat-system.js:50:14)
+    at async generateCombatEncounter (script.js:1005:5)
+    at async executeCustomCommand (script.js:2980:9)
+displayCombatInterface @ combat-system.js:154
+initiateCombat @ combat-system.js:50
+await in initiateCombat
+generateCombatEncounter @ script.js:1005
+executeCustomCommand @ script.js:2980
+(anonymous) @ script.js:3590
+(anonymous) @ script.js:3597Understand this error
+script.js:687 Response truncated due to MAX_TOKENS
+callGeminiAPI @ script.js:687
+await in callGeminiAPI
+generateCombatEnvironment @ combat-system.js:103
+initiateCombat @ combat-system.js:47
+generateCombatEncounter @ script.js:1005
+executeCustomCommand @ script.js:2980
+(anonymous) @ script.js:3590
+(anonymous) @ script.js:3597Understand this warning
+combat-system.js:115 Error generating combat environment: SyntaxError: Expected ',' or '}' after property value in JSON at position 1268 (line 8 column 4)
+    at JSON.parse (<anonymous>)
+    at CombatSystem.generateCombatEnvironment (combat-system.js:109:57)
+    at async CombatSystem.initiateCombat (combat-system.js:47:9)
+    at async generateCombatEncounter (script.js:1005:5)
+    at async executeCustomCommand (script.js:2980:9)
+generateCombatEnvironment @ combat-system.js:115
+await in generateCombatEnvironment
+initiateCombat @ combat-system.js:47
+generateCombatEncounter @ script.js:1005
+executeCustomCommand @ script.js:2980
+(anonymous) @ script.js:3590
+(anonymous) @ script.js:3597Understand this error
+combat-system.js:154 Uncaught (in promise) TypeError: Cannot read properties of undefined (reading 'name')
+    at CombatSystem.displayCombatInterface (combat-system.js:154:45)
+    at CombatSystem.initiateCombat (combat-system.js:50:14)
+    at async generateCombatEncounter (script.js:1005:5)
+    at async executeCustomCommand (script.js:2980:9)
