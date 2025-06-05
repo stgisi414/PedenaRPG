@@ -172,7 +172,7 @@ function addToConversationHistory(role, content) {
     }
 }
 
-function updateRelationship(npcName, statusChange = 0, trustChange = 0) {
+function updateRelationship(npcName, statusChange = 0, trustChange = 0, npcDescription = null) {
     if (!player.relationships) {
         player.relationships = {};
     }
@@ -182,7 +182,10 @@ function updateRelationship(npcName, statusChange = 0, trustChange = 0) {
             status: 'neutral',
             trust: 50,
             interactions: 0,
-            lastInteraction: Date.now()
+            lastInteraction: Date.now(),
+            metAt: player.currentLocation,
+            description: npcDescription || "A person you've encountered in your travels.",
+            firstMeeting: new Date().toLocaleDateString()
         };
     }
 
@@ -190,6 +193,11 @@ function updateRelationship(npcName, statusChange = 0, trustChange = 0) {
     relationship.trust = Math.max(0, Math.min(100, relationship.trust + trustChange));
     relationship.interactions++;
     relationship.lastInteraction = Date.now();
+    
+    // Update description if provided
+    if (npcDescription && !relationship.description.includes(npcDescription)) {
+        relationship.description = npcDescription;
+    }
 
     // Update status based on trust level
     if (relationship.trust >= 80) {
@@ -1220,9 +1228,12 @@ function fixMaraRelationship() {
 
     player.relationships['Mara Moneymaker'] = {
         status: 'romantic',
-        trust: 85,
-        interactions: 5,
-        lastInteraction: Date.now()
+        trust: 95,
+        interactions: 8,
+        lastInteraction: Date.now(),
+        metAt: 'Pedena Town Square',
+        description: 'A charismatic and wealthy merchant who has captured your heart. She runs a successful trading business and has become your romantic partner.',
+        firstMeeting: new Date().toLocaleDateString()
     };
 
     displayMessage("💕 Relationship with Mara Moneymaker updated to romantic!", 'success');
@@ -2903,7 +2914,7 @@ async function startConversation() {
         gameWorld.lastNPCInteraction = npc.id;
 
         // Update relationship - small positive interaction for talking
-        updateRelationship(npc.name, 0, 2);
+        updateRelationship(npc.name, 0, 2, npc.description);
         displayMessage(`Your relationship with ${npc.name} has slightly improved.`, 'info');
     } else {
         // Create new NPC
@@ -2941,8 +2952,8 @@ Use the name "${npcName}" throughout the description.`;
             displayMessage(encounterMessage);
             addToConversationHistory('assistant', encounterMessage);
 
-            // Initialize relationship for new NPC
-            updateRelationship(npcName, 0, 5);
+            // Initialize relationship for new NPC with description
+            updateRelationship(npcName, 0, 5, npcInfo);
             displayMessage(`You've established a new relationship with ${npcName}.`, 'info');
         } else {
             const fallbackMessage = "You don't see anyone interesting to talk to right now.";
@@ -4409,7 +4420,7 @@ function displayCharacterBackground() {
     // --- Data Preparation for Relationships ---
     let relationshipsHTML = "";
     if (player.relationships && Object.keys(player.relationships).length > 0) {
-        relationshipsHTML = '<div class="grid grid-cols-1 gap-2 text-sm">';
+        relationshipsHTML = '<div class="grid grid-cols-1 gap-4 text-sm">';
         Object.entries(player.relationships).forEach(([npcName, relationship]) => {
             // Add null check for relationship object
             if (!relationship || typeof relationship !== 'object') {
@@ -4421,17 +4432,46 @@ function displayCharacterBackground() {
             const relationshipColor = getRelationshipColor(status);
             const trust = relationship.trust || 0;
             const trustBar = Math.max(0, Math.min(100, trust));
+            const interactions = relationship.interactions || 0;
+            const metAt = relationship.metAt || 'Unknown location';
+            const firstMeeting = relationship.firstMeeting || 'Some time ago';
+            const description = relationship.description || 'A person you\'ve encountered.';
 
             relationshipsHTML += `
-                <div class="flex justify-between items-center py-2 border-b border-amber-700/20">
-                    <div class="flex-grow">
-                        <span class="font-semibold">${npcName}</span>
-                        <span class="text-xs ${relationshipColor} ml-2">(${status})</span>
-                        <div class="w-full bg-gray-200 rounded-full h-2 mt-1">
-                            <div class="bg-green-500 h-2 rounded-full" style="width: ${trustBar}%"></div>
+                <div class="parchment-box p-3 border border-amber-700/30 rounded">
+                    <div class="flex justify-between items-start mb-2">
+                        <div class="flex-grow">
+                            <h6 class="font-bold text-base">${npcName}</h6>
+                            <span class="text-xs ${relationshipColor} font-semibold">(${status.charAt(0).toUpperCase() + status.slice(1)})</span>
+                        </div>
+                        <div class="text-right">
+                            <span class="text-xs text-gray-600">Trust: ${trust}/100</span>
+                            <div class="w-24 bg-gray-200 rounded-full h-2 mt-1">
+                                <div class="bg-green-500 h-2 rounded-full transition-all duration-300" style="width: ${trustBar}%"></div>
+                            </div>
                         </div>
                     </div>
-                    <span class="text-xs text-gray-600 ml-2">${trust}/100</span>
+                    
+                    <p class="text-xs text-amber-700 mb-2 italic">${description}</p>
+                    
+                    <div class="grid grid-cols-2 gap-2 text-xs text-gray-600">
+                        <div>
+                            <strong>First met:</strong><br>
+                            ${firstMeeting}
+                        </div>
+                        <div>
+                            <strong>Location:</strong><br>
+                            ${metAt}
+                        </div>
+                        <div>
+                            <strong>Interactions:</strong><br>
+                            ${interactions} times
+                        </div>
+                        <div>
+                            <strong>Last seen:</strong><br>
+                            ${relationship.lastInteraction ? new Date(relationship.lastInteraction).toLocaleDateString() : 'Recently'}
+                        </div>
+                    </div>
                 </div>`;
         });
         relationshipsHTML += '</div>';
