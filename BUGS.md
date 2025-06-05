@@ -78,17 +78,37 @@
 
 ## 🎯 Enhancement Opportunities
 
-### 10. Location Memory System
+### 10. Multi-Member Combat System
+- **Problem**: Combat is limited to 1v1 encounters
+- **Impact**: Limited tactical depth, no party-based gameplay or group encounters
+- **Solution**: 
+  - Implement party system for multiple allied characters
+  - Support for fighting groups of enemies simultaneously
+  - Turn order management for multiple participants
+  - Coordinated attacks and group abilities
+  - Party formation and positioning mechanics
+  - Shared experience and loot distribution
+  - AI coordination for enemy groups
+- **Features Needed**:
+  - Party management UI and commands
+  - Multi-target combat actions
+  - Formation and positioning system
+  - Group buff/debuff effects
+  - Ally AI for NPC party members
+  - Enemy group generation and tactics
+- **Priority**: HIGH (Major gameplay enhancement)
+
+### 11. Location Memory System
 - **Problem**: Locations not properly cached/remembered
 - **Impact**: Repetitive location descriptions, no sense of world persistence
 - **Solution**: Implement proper location caching in `LocationManager`
 
-### 11. NPC Interaction System
+### 12. NPC Interaction System
 - **Problem**: NPCs not properly tracked or remembered
 - **Impact**: Inconsistent NPC behavior and dialogue
 - **Solution**: Enhance NPC memory and relationship tracking
 
-### 12. Inventory Management
+### 13. Inventory Management
 - **Problem**: Item effects not properly applied
 - **Impact**: Equipment and consumables don't provide expected benefits
 - **Solution**: Fix item application system in inventory functions
@@ -115,9 +135,10 @@
 1. **Phase 1 (Critical)**: Fix equipment equip buttons and starting experience
 2. **Phase 2 (Critical)**: Repair combat flee system and movement structured prompting
 3. **Phase 3 (High)**: Fix quest system JSON handling and rewards
-4. **Phase 4 (Medium)**: Implement class-specific UI and proper item icons
-5. **Phase 5 (Medium)**: Standardize AI response parsing and minor UI issues
-6. **Phase 6 (Low)**: Address game save spamming and generic inventory icons
+4. **Phase 4 (High)**: Implement multi-member combat system for enhanced gameplay
+5. **Phase 5 (Medium)**: Implement class-specific UI and proper item icons
+6. **Phase 6 (Medium)**: Standardize AI response parsing and minor UI issues
+7. **Phase 7 (Low)**: Address game save spamming and generic inventory icons
 
 ## 🔍 Investigation Needed
 
@@ -131,6 +152,11 @@
 - [ ] Check item effect application
 - [ ] Validate combat damage calculations
 - [ ] Investigate game save frequency and improve user experience
+- [ ] Design multi-member combat turn order system
+- [ ] Plan party formation and positioning mechanics
+- [ ] Research group AI coordination algorithms
+- [ ] Design UI for managing multiple party members
+- [ ] Plan experience and loot sharing mechanics
 
 ## 📝 Notes
 
