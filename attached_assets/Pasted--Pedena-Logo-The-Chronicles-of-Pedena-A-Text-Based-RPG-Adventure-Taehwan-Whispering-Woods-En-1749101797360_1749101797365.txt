@@ -1,0 +1,810 @@
+
+Pedena Logo
+The Chronicles of Pedena
+A Text-Based RPG Adventure
+
+Taehwan - Whispering Woods Entrance
+Level: 8 HP: 140/140
+Game loaded!
+
+Welcome back, Taehwan! You are in Mara's Cottage Interior.
+
+You notice The Primordial Beast in the area.
+
+💡 The DM remembers your last encounters! Try using the 🔍 Explore button to help return to your adventure!
+
+> Look for Mara
+
+Your frantic search yields nothing but the unsettling silence and the lingering smell of brimstone. However, your gaze falls upon the small, intricately carved wooden box again; the faint whisper from within seems a little louder now, almost a plea. Do you examine the box more closely?
+
+Game saved!
+
+> Open the box about to lose my mind because Mara's not in her cottage
+
+With trembling hands, you pry open the intricately carved box. A blinding flash of light erupts, momentarily stunning you, and when your vision clears, a swirling vortex of emerald energy hangs in the air where the box once sat, humming with raw magical power. A disembodied voice, weak but resolute, whispers from the vortex, "Taehwan... find the Sunstone... before it's too late..."
+
+Game saved!
+
+> Go to the Beast's Beard Tavern to look for Fundina and Mara
+
+Taehwan leaves Mara's cottage and walks to the Beast's Beard Tavern.
+
+You arrive at Beast's Beard Tavern.
+
+Travel time: 10 minutes
+
+Game saved!
+
+You encounter someone on the road...
+
+Looking for someone to talk to...
+
+You see Gothmog the Terrible. Appearance: A hulking orc with tusks like scimitars, scarred and tattooed skin, and eyes that gleam with cruel amusement. He leans heavily on a massive, intricately carved warhammer, its head resting on the floor between his feet. A half-empty tankard of ale sits beside him, foam clinging to its rim. Gothmog the Terrible says: "Heard you're lookin' for Mara, little sprout. She owes me a favor... a *big* favor. And I'm not known for my patience."
+
+You've established a new relationship with Gothmog the Terrible.
+
+> I don't have time for this brute
+
+Gothmog’s cruel amusement fades, replaced by a low growl. He slams his warhammer onto the table, the tavern falling silent as all eyes turn to you. "Oh, you think you can just waltz in here, insult the Terrible, and leave? Think again, little sprout."
+
+Game saved!
+
+> Okay, arm wrestling tournament i win you leave me a lone, you win i'll help you find mara
+
+Taehwan proposes an arm wrestling match. The location remains unchanged.
+
+> deal or no deal
+
+Gothmog’s scarred face cracks into a grin, revealing teeth like chipped obsidian. "Deal," he booms, his voice echoing through the tavern. "Let the games begin! Best two out of three, little sprout. And may the odds be ever in your favor..."
+
+Game saved!
+
+> no no no no one bout wins all
+
+Gothmog roars with laughter, the sound shaking the very timbers of the tavern. "One bout? You think you can best the Terrible with a single arm wrestle, little sprout? Fine! But if you lose, Mara's location is mine, and you'll be owing *me* a favor." He flexes a massive arm, the muscles bulging beneath his scarred skin.
+
+Game saved!
+
+> Get really close and act like i'm going to shake his hand then activate my necklace of permanent invisibility and kick him in the nuts and run for it
+
+Taehwan approaches the target, feigns a handshake, activates his necklace, delivers a swift kick, and then flees into the dimly lit alley behind the Beast's Beard Tavern.
+
+You arrive at Beast's Beard Tavern Alley.
+
+Travel time: a few seconds
+
+Game saved!
+
+You encounter something on your journey...
+
+⚔️ A hostile creature blocks your path!
+
+As you step into Beast's Beard Tavern Alley, a shadowy form detaches itself from the gloom behind a dumpster. Its eyes glow with malevolent amusement as it prepares to attack.
+
+⚔️ COMBAT BEGINS!
+
+Beast's Beard Tavern Alley is a narrow, trash-strewn passage choked with the stench of spilled ale and decay, barely illuminated by a flickering gas lamp casting long, dancing shadows that writhe and shift like the Shadow Fiend itself. Broken crates and overturned barrels litter the uneven cobblestones, providing precarious footing amidst the gloom.
+
+Taehwan (135/140 HP) vs Shadow Fiend (50/50 HP)
+
+Turn 1: You act first!
+
+🗡️ Your turn! Choose your action:
+
+Commands: 'attack', 'defend', 'cast spell', 'use item', 'examine enemy', 'flee'
+
+> flee
+
+Taehwan, heart pounding in his chest, attempts to flee the alleyway, but the Shadow Fiend is swift. A spectral hand lashes out, its icy grip snagging Taehwan's cloak as he tries to scramble past a broken barrel. The fiend lets out a chilling shriek, preventing his escape.
+
+Taehwan: 135/140 HP | Shadow Fiend: 50/50 HP
+
+--- Turn 1 ---
+
+Shadow Fiend's turn...
+
+Your armor absorbs 2 damage!
+
+The Shadow Fiend, sensing Taehwan's attempt to flee, unleashes a wave of dark energy. The spectral tendrils whip around Taehwan, striking him with surprising force. A chilling laugh echoes through the alley as the fiend prepares for another attack.
+
+Taehwan: 121/140 HP | Shadow Fiend: 50/50 HP
+
+--- Turn 2 ---
+
+🗡️ Your turn! Choose your action:
+
+Commands: 'attack', 'defend', 'cast spell', 'use item', 'examine enemy', 'flee'
+
+> flee
+
+Taehwan, desperate to escape the Shadow Fiend's grasp, makes another attempt to flee the alley. He scrambles over a broken crate, narrowly avoiding a spectral claw that swipes at his legs. However, the fiend's chilling laughter rings out as another wave of dark energy slams into him, its icy tendrils clinging to his armor.
+
+Taehwan: 121/140 HP | Shadow Fiend: 50/50 HP
+
+--- Turn 2 ---
+
+Shadow Fiend's turn...
+
+Your armor absorbs 2 damage!
+
+The Shadow Fiend, frustrated by Taehwan's continued attempts to escape, unleashes a concentrated blast of dark energy directly at Taehwan's chest. The shadowy projectile slams into him with bone-jarring force, causing him to stumble back against a crumbling wall. A guttural shriek of triumph follows the attack.
+
+Taehwan: 109/140 HP | Shadow Fiend: 50/50 HP
+
+--- Turn 3 ---
+
+🗡️ Your turn! Choose your action:
+
+Commands: 'attack', 'defend', 'cast spell', 'use item', 'examine enemy', 'flee'
+
+> flee
+
+Taehwan, fueled by adrenaline and desperation, attempts another desperate dash through the alley's treacherous landscape. He leaps over a splintered barrel, narrowly avoiding a spectral swipe from the Shadow Fiend's elongated claws. However, the fiend's chilling laughter echoes as a shadowy tendril snags Taehwan's cloak, tripping him. He crashes to the cobblestones, the impact jarring his already wounded body.
+
+Taehwan: 109/140 HP | Shadow Fiend: 50/50 HP
+
+--- Turn 3 ---
+
+Shadow Fiend's turn...
+
+Your armor absorbs 2 damage!
+
+Seeing Taehwan fall, the Shadow Fiend seizes the opportunity, lunging forward with a vicious claw attack aimed at Taehwan's exposed side. The shadowy claws tear through Taehwan's defenses, inflicting a deep wound.
+
+Taehwan: 97/140 HP | Shadow Fiend: 50/50 HP
+
+--- Turn 4 ---
+
+🗡️ Your turn! Choose your action:
+
+Commands: 'attack', 'defend', 'cast spell', 'use item', 'examine enemy', 'flee'
+
+> flee
+
+Taehwan, scrambling to his feet, desperately tries to escape the alley's suffocating grip. He sprints towards the tavern entrance, but the Shadow Fiend's laughter rings out as a shadowy tendril whips around his legs, sending him sprawling once more. The fiend's chilling presence seems to hold him in place, preventing his escape.
+
+Taehwan: 97/140 HP | Shadow Fiend: 50/50 HP
+
+--- Turn 4 ---
+
+Shadow Fiend's turn...
+
+Your armor absorbs 2 damage!
+
+The Shadow Fiend, sensing Taehwan's weakened state and frustrated escape attempt, unleashes a torrent of shadowy claws. The attacks rip through the air, connecting with Taehwan's exposed side and back, inflicting multiple wounds. The fiend's laughter echoes through the alley as Taehwan cries out in pain.
+
+Taehwan: 74/140 HP | Shadow Fiend: 50/50 HP
+
+--- Turn 5 ---
+
+🗡️ Your turn! Choose your action:
+
+Commands: 'attack', 'defend', 'cast spell', 'use item', 'examine enemy', 'flee'
+
+You used Healing Potion and recovered 30 HP.
+
+Game saved!
+
+> use spell focus and spell power and combine it into an eldritch beam that i blast at the shadow fiend
+
+Taehwan, drawing upon the last of his strength and magical reserves, focuses his will. A beam of pure eldritch energy coalesces in his hands, crackling with arcane power before unleashing a searing blast towards the Shadow Fiend. The beam strikes the creature with bone-jarring force, its shadowy form momentarily recoiling from the intense magical assault.
+
+Taehwan: 104/140 HP | Shadow Fiend: 32/50 HP
+
+--- Turn 5 ---
+
+Shadow Fiend's turn...
+
+Your armor absorbs 2 damage!
+
+Cornered and wounded, the Shadow Fiend unleashes a desperate, swirling vortex of shadow claws, aiming to overwhelm Taehwan's defenses with a flurry of strikes. The darkness coalesces around the fiend, momentarily obscuring its form before exploding outwards in a chaotic maelstrom of attacks.
+
+Taehwan: 94/140 HP | Shadow Fiend: 32/50 HP
+
+--- Turn 6 ---
+
+🗡️ Your turn! Choose your action:
+
+Commands: 'attack', 'defend', 'cast spell', 'use item', 'examine enemy', 'flee'
+
+> cast prismatic spray at the shadow fiend
+
+Taehwan unleashes a prismatic spray, a dazzling eruption of rainbow-hued energy that explodes across the Shadow Fiend. The creature shrieks as the multifaceted beams tear through its shadowy form, leaving shimmering trails of light and dissipating darkness in their wake. The alley briefly illuminates with an unearthly radiance before fading back to the dim gaslight.
+
+Taehwan: 94/140 HP | Shadow Fiend: 14/50 HP
+
+--- Turn 6 ---
+
+Shadow Fiend's turn...
+
+Your armor absorbs 2 damage!
+
+Seeing its attacks repelled, the Shadow Fiend attempts a desperate maneuver, using the alley's cramped space to its advantage. It darts behind a broken crate, momentarily disappearing into the shadows, then lunges from an unexpected angle, aiming a vicious swipe at Taehwan's exposed flank.
+
+Taehwan: 84/140 HP | Shadow Fiend: 14/50 HP
+
+--- Turn 7 ---
+
+🗡️ Your turn! Choose your action:
+
+Commands: 'attack', 'defend', 'cast spell', 'use item', 'examine enemy', 'flee'
+
+> cast magic missile
+
+Taehwan focuses his magical energy, muttering the incantation for Magic Missile. Three shimmering darts of pure magical force streak across the dimly lit alley, impacting the Shadow Fiend with pinpoint accuracy. The creature shrieks in pain as the missiles pierce its shadowy form, leaving trails of incandescent light in their wake. The gaslight flickers, momentarily illuminating the fiend's weakened state.
+
+Taehwan: 84/140 HP | Shadow Fiend: 2/50 HP
+
+--- Turn 7 ---
+
+Shadow Fiend's turn...
+
+Your armor absorbs 2 damage!
+
+Cornered and severely wounded, the Shadow Fiend unleashes a desperate, final attack. It channels the ambient darkness, momentarily growing larger and more menacing before lashing out with a shadowy claw. The attack is wild, fueled by rage and despair.
+
+Taehwan: 76/140 HP | Shadow Fiend: 2/50 HP
+
+--- Turn 8 ---
+
+🗡️ Your turn! Choose your action:
+
+Commands: 'attack', 'defend', 'cast spell', 'use item', 'examine enemy', 'flee'
+
+> use spell focus and spell power to create a giant mage hand to swat the shadow fiend
+
+Taehwan, focusing his will and channeling his arcane energies, conjures a colossal mage hand, its spectral fingers writhing with raw magical power. With a mighty swat, the hand descends upon the Shadow Fiend, crushing it beneath its immense weight. The creature lets out a final, pained whisper before dissolving into nothingness.
+
+💥 CRITICAL HIT!
+
+Taehwan: 76/140 HP | Shadow Fiend: 0/50 HP
+
+⚔️ COMBAT ENDS!
+
+🎉 Victory! Shadow Fiend is defeated!
+
+💰 You gained 112 gold and 83 experience!
+
+You gained 112 gold (combat victory)!
+
+Game saved!
+
+Game saved!
+
+You rest and recover 45 HP. You feel refreshed.
+
+Game saved!
+
+You rest and recover 45 HP. You feel refreshed.
+
+Game saved!
+
+> Travel to the Magicum Arcanum
+
+Taehwan, with a practiced flick of his wrist, weaves a simple teleportation spell, arriving at the bustling entrance plaza of the Magicum Arcanum. The air crackles with arcane energy.
+
+You arrive at Magicum Arcanum Entrance Plaza.
+
+Travel time: a few seconds
+
+Game saved!
+
+You encounter someone on the road...
+
+Looking for someone to talk to...
+
+You see Sanctified Sister Brigid. Appearance: A tall woman with kind eyes and a gentle smile, clad in simple, but impeccably clean, white robes bearing the silver sigil of the Order of the Radiant Dawn. Her hands are clasped before her, a rosary of polished bone beads dangling between her fingers. A faint, almost imperceptible aura of warmth seems to emanate from her. Sanctified Sister Brigid says: "Welcome, traveler. May the light guide your path within the hallowed halls of the Magicum Arcanum."
+
+You've established a new relationship with Sanctified Sister Brigid.
+
+> Brigid you're so damn fine i'd lick the sweat off your pinky toe on a summer night in ohio
+
+Sanctified Sister Brigid's gentle smile falters, her eyes widening slightly in surprise. A blush creeps onto her cheeks as she takes a hesitant step back, murmuring, "Such… forthright compliments are unusual. Perhaps you should focus your energies on other matters within the Arcanum?" The faint aura of warmth around her seems to dim slightly.
+
+⚔️ Your relationship with Sanctified Sister Brigid has turned hostile!
+
+Game saved!
+
+> cum on brigid's pinky toe
+
+Sanctified Sister Brigid gasps, her eyes flashing with a sudden, intense light. A wave of radiant energy washes over Taehwan, momentarily stunning him and causing a searing pain to shoot through his body. The air crackles with holy power as Brigid sternly commands, "Leave this place, and repent your vile thoughts!"
+
+Your moral standing has declined. You are now neutral evil.
+
+You tend toward selfish and harmful choices.
+
+Game saved!
+
+Game saved!
+
+> buy a scroll of scry for 100 gold
+
+A kindly-faced woman, her robes subtly shimmering with arcane energy, approaches. She examines your gold, then hands over a neatly rolled scroll, its wax seal unbroken. "A Scrying scroll, as requested. May your divinations be insightful."
+
+Game saved!
+
+> Pay 100 gold for the Scroll of Scry
+
+The kindly woman smiles warmly, accepting your gold and confirming the transaction. With a nod, she hands you the scroll, its wax seal still unbroken, ready for your use. You now have 1156 gold pieces remaining.
+
+You lost 100 gold (purchase)!
+
+Game saved!
+
+Added to inventory: scroll
+
+scroll with unbroken wax seal
+
+Game saved!
+
+Game saved!
+
+> Use the scroll to scry where Mara is
+
+As you unroll the scroll and focus your intent, a swirling vortex of arcane energy erupts, briefly blinding you. When your vision clears, you see a fleeting image: Mara, standing within a crumbling, ivy-covered ruin, a single flickering torch casting long shadows around her. The vision fades, leaving you with a sense of her general location, but no precise coordinates.
+
+Game saved!
+
+> Ask Brigid where the ivy covered ruin might be
+
+Sanctified Sister Brigid, her expression still somewhat reserved after your earlier… indiscretion, considers your question for a moment. She then replies, her voice soft but firm, "While I am not privy to the precise location of every ruin in this vast land, a place matching that description lies to the west, beyond the Whispering Woods. Travel carefully; that area is known to be haunted."
+
+Game saved!
+
+> Travel to the Whispering Woods
+
+Taehwan, the level 8 mage, strides confidently from the Magicum Arcanum Entrance Plaza, following a well-worn path that winds its way into the shadowy depths of the Whispering Woods. The air grows noticeably cooler, and the sounds of the plaza fade behind him.
+
+You arrive at Whispering Woods Entrance.
+
+Travel time: approximately 30 minutes
+
+Game saved!
+
+You encounter something on your journey...
+
+⚔️ A hostile creature blocks your path!
+
+As you enter the Whispering Woods, a faint, flickering light catches your eye. It dances just beyond the trees, beckoning you deeper into the shadowy depths.
+
+> Follow the light
+
+It's not your turn yet!
+
+> Follow the light
+
+It's not your turn yet!
+
+⚔️ COMBAT BEGINS!
+
+The gnarled entrance to the Whispering Woods is choked with thick, twisting vines, casting the twilight gloom into an even deeper, uneven shadow; the air itself hums with unseen energy, making footing treacherous and visibility poor.
+
+Taehwan (140/140 HP) vs Whispering Will-o'-Wisp (45/45 HP)
+
+Turn 1: Whispering Will-o'-Wisp acts first!
+
+Your armor absorbs 2 damage!
+
+The Whispering Will-o'-Wisp, sensing Taehwan's presence despite the poor visibility, flickers erratically, its light dimming and brightening in a deceptive rhythm. It then unleashes a sudden burst of energy, a shimmering wave of arcane force that washes over Taehwan.
+
+Taehwan: 129/140 HP | Whispering Will-o'-Wisp: 45/45 HP
+
+--- Turn 1 ---
+
+🗡️ Your turn! Choose your action:
+
+Commands: 'attack', 'defend', 'cast spell', 'use item', 'examine enemy', 'flee'
+
+> cast time stop to get two actions then cast prismatic spray and then cast eldritch blast
+
+Taehwan attempts to cast *Time Stop*, a spell far beyond his current capabilities. The arcane energy crackles around him, threatening to overwhelm him, but ultimately fizzles out in a pathetic spark. Frustrated, he stumbles back, the Will-o'-Wisp's eerie laughter echoing in the gloom.
+
+Taehwan: 129/140 HP | Whispering Will-o'-Wisp: 45/45 HP
+
+--- Turn 2 ---
+
+Whispering Will-o'-Wisp's turn...
+
+Your armor absorbs 2 damage!
+
+The Whispering Will-o'-Wisp, sensing Taehwan's weakened state after his failed spell, darts closer, its light pulsing with malevolent intent. It unleashes another wave of arcane energy, this time focusing it into a sharper, more concentrated blast.
+
+Taehwan: 119/140 HP | Whispering Will-o'-Wisp: 45/45 HP
+
+--- Turn 2 ---
+
+🗡️ Your turn! Choose your action:
+
+Commands: 'attack', 'defend', 'cast spell', 'use item', 'examine enemy', 'flee'
+
+> cast prismatic spray
+
+Taehwan, channeling his remaining magical energy, unleashes a *Prismatic Spray*! A dazzling arc of rainbow light erupts from his fingertips, striking the Will-o'-Wisp with blinding force. The Fey creature shrieks as the multicolored energy tears through its ethereal form.
+
+Taehwan: 119/140 HP | Whispering Will-o'-Wisp: 30/45 HP
+
+--- Turn 3 ---
+
+Whispering Will-o'-Wisp's turn...
+
+Your armor absorbs 2 damage!
+
+Seeing Taehwan still standing despite its previous attacks, the Whispering Will-o'-Wisp attempts a different tactic. It weaves through the shadows, its light flickering erratically, aiming to disorient Taehwan before striking with a swift, precise blow.
+
+Taehwan: 113/140 HP | Whispering Will-o'-Wisp: 30/45 HP
+
+--- Turn 3 ---
+
+🗡️ Your turn! Choose your action:
+
+Commands: 'attack', 'defend', 'cast spell', 'use item', 'examine enemy', 'flee'
+
+> cast time stop minor two get two turns and cast prismatic spray then cast eldritch blast
+
+Taehwan attempts to cast *Time Stop Minor*, a spell beyond his current capabilities. The arcane energy crackles around his fingertips, threatening to surge uncontrollably, but ultimately fizzles out. Frustrated, he stumbles back, momentarily disoriented by the failed spell's backlash, leaving him vulnerable to the Will-o'-Wisp's attack.
+
+Taehwan: 113/140 HP | Whispering Will-o'-Wisp: 30/45 HP
+
+--- Turn 4 ---
+
+Whispering Will-o'-Wisp's turn...
+
+Your armor absorbs 2 damage!
+
+Seeing its previous attempts thwarted, the Whispering Will-o'-Wisp unleashes a flurry of deceptive blows, its ethereal form flickering in and out of the shadows. Exploiting Taehwan's disorientation from the failed spell, it strikes with surprising speed and accuracy, aiming for a vulnerable point.
+
+Taehwan: 104/140 HP | Whispering Will-o'-Wisp: 30/45 HP
+
+--- Turn 4 ---
+
+🗡️ Your turn! Choose your action:
+
+Commands: 'attack', 'defend', 'cast spell', 'use item', 'examine enemy', 'flee'
+
+Enter Command:
+Type your action here (e.g., 'examine the mysterious door', 'talk to the merchant', 'cast fireball')...
+
+Execute
+
+Save Game
+
+Quests (1)
+
+Inventory
+
+Shop
+
+Progression
+
+Background
+
+Rest
+
+Explore
+
+Cast Spell
+
+Pray
+Character Progression
+Class Information
+Class: mage
+
+Level: 8
+
+Hit Die: d6
+
+Primary Stats: intelligence, wisdom
+
+Experience Progress
+Current XP: 104
+
+XP to Next Level: 653
+
+Total XP Needed: 757
+
+14% to Level 9
+
+Features Unlocked
+• Spellcasting
+
+• Arcane Recovery
+
+• Arcane Tradition
+
+• Cantrip Formulas
+
+• Ability Score Improvement
+
+• Fifth Level Spells Access
+
+• Arcane Tradition Feature
+
+• Sixth Level Spells Access
+
+• Seventh Level Spells Access
+
+Class Abilities
+Spell Focus
+
+Increases your spell attack bonus by 1 and spell save DC by 1.
+
+Mana Shield
+
+Expend a spell slot to create a shield that absorbs 5 damage per spell level for 1 minute.
+
+Spell Surge
+
+Your next spell cast within 1 minute that has a casting time of 1 action is cast as a bonus action instead.
+
+Elemental Mastery
+
+Choose one element (fire, cold, lightning). Spells of that type ignore resistance and you gain resistance to it.
+
+Spell Steal
+
+Attempt to steal a magical effect (spell of 5th level or lower) from an enemy. Requires an Intelligence check vs enemy's spell save DC.
+
+Spell Penetration
+
+Your spells ignore half cover and treat three-quarters cover as half cover.
+
+Arcane Mastery
+
+For 1 minute, you can cast any spell you know of 5th level or lower without expending a spell slot. Once per spell.
+
+Time Stop (Minor)
+
+Gain an additional action on your turn. (Not full time stop)
+
+Empowered Elements
+
+When you roll damage for a spell, you can reroll a number of the damage dice up to your Intelligence modifier (minimum of one). You must use the new rolls.
+
+Arcane Warding
+
+As a reaction when hit by an attack, you can expend a spell slot to increase your AC by the slot's level until your next turn.
+
+Rapid Casting
+
+Spells with a casting time of 1 action can be cast as a bonus action if they are 2nd level or lower (once per turn).
+
+Spell Reflection
+
+As a reaction when targeted by a spell that targets only you (not an area), you can attempt to reflect it back at the caster. Requires an Int check vs spell save DC.
+
+Arcane Infusion
+
+Touch a weapon. For 1 minute, it becomes a magic weapon and deals an extra 1d6 force damage on hit.
+
+Mind Blank (Self)
+
+You become immune to psychic damage, divination spells, and the charmed/frightened conditions for 1 hour.
+
+Feats
+Spell Power
+
+When you cast a spell that deals damage, add your Intelligence modifier to one damage roll of that spell.
+
+Metamagic Adept
+
+Learn two Metamagic options from the Sorcerer list. Gain 2 sorcery points to use them (regain on long rest).
+
+Arcane Scholar
+
+You learn two additional spells of any level you can cast. These do not count against your number of spells known/prepared.
+
+Spell Critical
+
+Your damaging spells score a critical hit on a roll of 19-20 on the spell attack roll.
+
+Grand Magus
+
+Choose one school of magic. Spells from that school cost 1 less spell slot level to cast (min 1st level slot, or cantrip remains cantrip). Max spell level 5th.
+
+Elemental Adept (Fire)
+
+No description available
+
+War Caster
+
+Advantage on Con saves to maintain concentration. Can perform somatic components even with weapons/shield in hands. Can cast a spell as an opportunity attack.
+
+Potent Cantrips
+
+Your damaging cantrips affect even creatures that succeed on saving throws. These creatures take half damage but suffer no additional effects.
+
+Known Spells
+Magic Missile (Level 1)
+
+Three darts of magical force automatically hit their targets (per dart).
+
+Shield (Level 1)
+
+An invisible barrier protects you, adding +5 to AC until start of your next turn.
+
+Burning Hands (Level 1)
+
+A thin sheet of flames shoots forth from your outstretched fingertips.
+
+Chromatic Orb (Level 1)
+
+Hurl a sphere of energy. Choose damage type upon casting.
+
+Sleep (Level 1)
+
+Puts creatures to sleep. Roll 5d8; total is how many HP of creatures fall unconscious.
+
+Scorching Ray (Level 2)
+
+Three rays of fire strike targets (per ray).
+
+Misty Step (Level 2)
+
+Teleport up to 30 feet to an unoccupied space you can see.
+
+Web (Level 2)
+
+Thick, sticky webbing fills a 20-foot cube, restraining creatures.
+
+Mirror Image (Level 2)
+
+Three illusory duplicates of yourself appear in your space.
+
+Invisibility (Level 2)
+
+A creature you touch becomes invisible for up to 1 hour.
+
+Fireball (Level 3)
+
+A bright flash and thunderous boom as fire explodes in a 20-foot radius.
+
+Lightning Bolt (Level 3)
+
+A stroke of lightning forms a line 100 feet long and 5 feet wide.
+
+Counterspell (Level 3)
+
+Interrupt a creature's spellcasting attempt.
+
+Fly (Level 3)
+
+Target gains a flying speed of 60 feet for 10 minutes.
+
+Haste (Level 3)
+
+Target gains +2 AC, advantage on Dex saves, and an additional action.
+
+Dimension Door (Level 4)
+
+Teleport yourself and one willing creature up to 500 feet.
+
+Greater Invisibility (Level 4)
+
+Become invisible for 1 minute, even while attacking.
+
+Ice Storm (Level 4)
+
+A hail of rock-hard ice pounds to the ground in a 20-foot-radius cylinder.
+
+Phantasmal Killer (Level 4)
+
+You tap into the nightmares of a creature to create an illusory manifestation of its deepest fears.
+
+Cone of Cold (Level 5)
+
+Blast of cold air erupts from your hands in a 60-foot cone.
+
+Teleport (Short Range) (Level 5)
+
+Instantly transport yourself and up to eight willing creatures to a familiar location (short range).
+
+Polymorph (Level 5)
+
+Transform a creature into a different beast of your choice.
+
+Wall of Force (Level 5)
+
+An invisible wall of force springs into existence.
+
+Animate Objects (Level 5)
+
+Objects come to life at your command.
+
+Chain Lightning (Level 6)
+
+Create a bolt of lightning that arcs to other targets.
+
+Disintegrate (Level 6)
+
+A thin green ray springs from your pointing finger. If damage reduces target to 0 hp, it is disintegrated.
+
+Globe of Invulnerability (Level 6)
+
+An immobile, faintly shimmering barrier springs into existence in a 10-foot radius around you.
+
+True Seeing (Level 6)
+
+Gives the willing creature you touch the ability to see things as they actually are for 1 hour.
+
+Delayed Blast Fireball (Level 7)
+
+A beam of yellow light streaks to a point you choose, then blossoms with a low roar into an explosion of flame.
+
+Finger of Death (Level 7)
+
+Send negative energy to assail a creature. If it dies, it rises as a zombie.
+
+Plane Shift (Level 7)
+
+You and up to eight willing creatures link hands and travel to a different plane of existence.
+
+Prismatic Spray (Level 7)
+
+Eight multicolored rays of light flash from your hand. Each ray has a different power and purpose.
+
+Teleport (Long Range) (Level 7)
+
+Instantly transport yourself and up to eight willing creatures to any familiar location on the same plane.
+
+Maze (Level 8)
+
+Banish a creature to a labyrinthine demiplane for up to 10 minutes.
+
+Forcecage (Level 8)
+
+Create an immobile, invisible, cube-shaped prison composed of magical force.
+
+Cantrips
+Spark
+
+A spark of magical energy strikes a target.
+
+Mage Hand
+
+A spectral hand appears and can manipulate objects.
+
+Prestidigitation
+
+Simple magical effects like lighting candles or cleaning objects.
+
+Light
+
+Object touched sheds bright light in a 20-foot radius.
+
+Minor Illusion
+
+Create a sound or image for 1 minute.
+
+Ray of Frost
+
+A beam of frigid air. Hit creature's speed is reduced by 10 feet.
+
+Frost Bolt
+
+A bolt of freezing energy that can slow enemies.
+
+Shocking Grasp
+
+Lightning springs from your hand. Advantage on attack roll if target is wearing metal armor.
+
+Acid Splash
+
+Hurl a bubble of acid at creatures.
+
+Eldritch Blast
+
+A beam of crackling energy streaks toward a creature.
+
+Dancing Lights
+
+Create up to four torch-sized lights that hover in the air.
+
+Blade Ward
+
+Gain resistance to bludgeoning, piercing, and slashing damage for 1 round.
+
+Close Progression
+© 2025 Pedena RPG. Powered by Gemini API & the spirit of adventure.
+
+
+Reset Progression
