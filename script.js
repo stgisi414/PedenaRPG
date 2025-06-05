@@ -4816,6 +4816,29 @@ function buildEquipmentDisplay() {
         const isEmoji = !iconClass.startsWith('ra-');
 
         if (item) {
+            // Build combat stats display
+            let combatStats = [];
+            if (item.damage) combatStats.push(`Damage: ${item.damage}`);
+            if (item.armor) combatStats.push(`Armor: +${item.armor}`);
+            if (item.defense) combatStats.push(`Defense: +${item.defense}`);
+            if (item.attack) combatStats.push(`Attack: +${item.attack}`);
+            if (item.statBonus) {
+                Object.entries(item.statBonus).forEach(([stat, bonus]) => {
+                    combatStats.push(`${stat.charAt(0).toUpperCase() + stat.slice(1)}: +${bonus}`);
+                });
+            }
+            if (item.effects && Array.isArray(item.effects)) {
+                const combatEffects = item.effects.filter(effect => 
+                    effect.includes('strength') || effect.includes('dexterity') || 
+                    effect.includes('constitution') || effect.includes('defense') ||
+                    effect.includes('attack') || effect.includes('damage') ||
+                    effect.includes('armor') || effect.includes('resist')
+                );
+                combatEffects.forEach(effect => {
+                    combatStats.push(effect.replace(/_/g, ' '));
+                });
+            }
+
             return `
                 <div class="parchment-box p-2 flex items-center gap-3 w-full">
                     <div class="flex-shrink-0">
@@ -4826,7 +4849,13 @@ function buildEquipmentDisplay() {
                     </div>
                     <div class="flex-grow">
                         <h6 class="font-bold text-sm">${slotData.name}</h6>
-                        <p class="text-xs text-green-700">${item.name}</p>
+                        <p class="text-xs text-green-700 font-semibold">${item.name}</p>
+                        ${combatStats.length > 0 ? 
+                            `<div class="text-xs text-blue-600 mt-1">
+                                ${combatStats.map(stat => `<span class="block">${stat}</span>`).join('')}
+                            </div>` : 
+                            '<p class="text-xs text-gray-500 italic">No combat bonuses</p>'
+                        }
                     </div>
                     <button class="btn-parchment inventory-action-btn text-xs py-1 px-2 flex-shrink-0" data-action="unequip" data-slot="${slotData.slot}" style="color: #8B4513 !important;">
                         Unequip
