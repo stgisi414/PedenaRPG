@@ -610,6 +610,12 @@ function loadGame() {
         }
 
         displayMessage("Game loaded!", 'success');
+        
+        // Add helpful reminder about the Explore button
+        setTimeout(() => {
+            displayMessage("💡 The DM remembers your last encounters! Try using the 🔍 Explore button to help return to your adventure!", 'info');
+        }, 1000);
+        
         console.log("loadGame: Final player.gold after all loading steps:", player.gold);
 
         console.log(`[SCRIPT.JS] loadGame: player HP set to <span class="math-inline">${player.hp}/${player.maxHp}</span>`);
