@@ -79,9 +79,9 @@ export class CombatSystem {
         if (typeof window !== 'undefined' && window.globalThis && window.globalThis.player) {
             return window.globalThis.player;
         }
-        // Last resort fallback with warning
-        console.warn("CombatSystem: Could not find player object, using fallback");
-        return { name: 'Player', hp: 100, maxHp: 100, level: 1, class: 'Adventurer' };
+        // Last resort fallback with warning - should never happen
+        console.error("CombatSystem: Could not find player object! This is a critical error.");
+        return null;
     }
 
     static async generateCombatEnvironment(player, enemy, location) {
@@ -115,9 +115,12 @@ Focus on terrain, lighting, and immediate surroundings that could affect the fig
 
     static displayCombatStart(player, enemy) {
         if (typeof window.displayMessage === 'function') {
+            // Get the actual player reference to ensure correct HP values
+            const actualPlayer = this.getPlayerReference() || player;
+            
             window.displayMessage("⚔️ COMBAT BEGINS!", 'combat');
             window.displayMessage(this.combatState.environment.description, 'combat');
-            window.displayMessage(`${player.name} (${player.hp}/${player.maxHp} HP) vs ${enemy.name} (${enemy.currentHp}/${enemy.maxHp} HP)`, 'combat');
+            window.displayMessage(`${actualPlayer.name} (${actualPlayer.hp}/${actualPlayer.maxHp} HP) vs ${enemy.name} (${enemy.currentHp}/${enemy.maxHp} HP)`, 'combat');
 
             const turnOrder = this.combatState.turnOrder[0] === 'player' ? 'You act first!' : `${enemy.name} acts first!`;
             window.displayMessage(`Turn ${this.combatState.turnNumber}: ${turnOrder}`, 'combat');
@@ -349,6 +352,9 @@ Make the enemy action feel intelligent and appropriate for the creature type.
     }
 
     static async applyActionResults(result, player, enemy, actor) {
+        // Get the actual player reference
+        const actualPlayer = this.getPlayerReference() || player;
+        
         // Apply HP changes
         if (result.enemyHpChange && actor === 'player') {
             enemy.currentHp = Math.max(0, enemy.currentHp + result.enemyHpChange);
@@ -356,7 +362,6 @@ Make the enemy action feel intelligent and appropriate for the creature type.
         }
 
         if (result.playerHpChange && actor === 'enemy') {
-            const actualPlayer = this.getPlayerReference();
             const defense = this.calculatePlayerDefense(actualPlayer);
             const actualDamage = Math.max(1, Math.abs(result.playerHpChange) - defense);
             actualPlayer.hp = Math.max(0, actualPlayer.hp - actualDamage);
@@ -377,8 +382,8 @@ Make the enemy action feel intelligent and appropriate for the creature type.
                 window.displayMessage("💥 CRITICAL HIT!", 'success');
             }
 
-            // Display current HP status
-            const playerHpStatus = `${player.name}: ${player.hp}/${player.maxHp} HP`;
+            // Display current HP status using actual player values
+            const playerHpStatus = `${actualPlayer.name}: ${actualPlayer.hp}/${actualPlayer.maxHp} HP`;
             const enemyHpStatus = `${enemy.name}: ${enemy.currentHp}/${enemy.maxHp} HP`;
             window.displayMessage(`${playerHpStatus} | ${enemyHpStatus}`, 'info');
         }
