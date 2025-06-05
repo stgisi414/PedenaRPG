@@ -686,7 +686,7 @@ function rollDice(diceString) {
 }
 
 // AI Interaction Functions (Gemini API Calls)
-async function callGeminiAPI(prompt, temperature = 0.10, maxOutputTokens = 16000, includeContext = true) {
+async function callGeminiAPI(prompt, temperature = 0.10, maxOutputTokens = 32000, includeContext = true) {
     try {
         let fullPrompt = prompt;
 
