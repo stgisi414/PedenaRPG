@@ -1697,6 +1697,9 @@ function checkQuestCompletion(playerAction) {
                 quest.completed = true;
                 displayMessage(`🎉 Quest completed: ${quest.title || 'Unknown Quest'}!`, 'success');
 
+                // Reset quest pagination since completed quests changed
+                resetQuestPagination();
+
                 // Award rewards with enhanced parsing
                 let goldAwarded = 0;
                 let xpAwarded = 0;
@@ -2285,7 +2288,18 @@ function updateQuestButton() {
     }
 }
 
-// Display quests interface
+// Pagination state for quests and inventory
+let questPagination = {
+    completedQuestsPage: 0,
+    itemsPerPage: 5
+};
+
+let inventoryPagination = {
+    currentPage: 0,
+    itemsPerPage: 5
+};
+
+// Display quests interface with pagination
 function displayQuests() {
     // Hide other interfaces
     const interfacesToHide = ['combat-interface', 'shop-interface', 'inventory-interface', 'skills-interface', 'background-interface', 'progression-interface'];
@@ -2352,13 +2366,21 @@ function displayQuests() {
         }
 
         if (completedQuests.length > 0) {
+            const startIndex = questPagination.completedQuestsPage * questPagination.itemsPerPage;
+            const endIndex = Math.min(startIndex + questPagination.itemsPerPage, completedQuests.length);
+            const paginatedQuests = completedQuests.slice(startIndex, endIndex);
+            const totalPages = Math.ceil(completedQuests.length / questPagination.itemsPerPage);
+
             questHTML += `
                 <div class="mb-6">
-                    <h5 class="text-xl font-bold mb-3 text-green-600">Completed Quests (${completedQuests.length})</h5>
+                    <div class="flex justify-between items-center mb-3">
+                        <h5 class="text-xl font-bold text-green-600">Completed Quests (${completedQuests.length})</h5>
+                        ${totalPages > 1 ? `<span class="text-sm text-gray-600">Page ${questPagination.completedQuestsPage + 1} of ${totalPages}</span>` : ''}
+                    </div>
                     <div class="grid grid-cols-1 gap-3">
             `;
             
-            completedQuests.forEach(quest => {
+            paginatedQuests.forEach(quest => {
                 questHTML += `
                     <div class="parchment-box p-3 bg-green-50">
                         <div class="flex justify-between items-center">
@@ -2373,6 +2395,30 @@ function displayQuests() {
             
             questHTML += `
                     </div>
+            `;
+
+            // Add pagination controls for completed quests
+            if (totalPages > 1) {
+                questHTML += `
+                    <div class="flex justify-center items-center gap-2 mt-4">
+                        <button onclick="changeCompletedQuestsPage(-1)" 
+                                class="btn-parchment text-xs py-1 px-2 ${questPagination.completedQuestsPage === 0 ? 'opacity-50 cursor-not-allowed' : ''}"
+                                ${questPagination.completedQuestsPage === 0 ? 'disabled' : ''}>
+                            Previous
+                        </button>
+                        <span class="text-sm text-gray-600 mx-2">
+                            ${questPagination.completedQuestsPage + 1} / ${totalPages}
+                        </span>
+                        <button onclick="changeCompletedQuestsPage(1)" 
+                                class="btn-parchment text-xs py-1 px-2 ${questPagination.completedQuestsPage >= totalPages - 1 ? 'opacity-50 cursor-not-allowed' : ''}"
+                                ${questPagination.completedQuestsPage >= totalPages - 1 ? 'disabled' : ''}>
+                            Next
+                        </button>
+                    </div>
+                `;
+            }
+
+            questHTML += `
                 </div>
             `;
         }
@@ -2992,6 +3038,9 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             saveGame();
 
+            // Reset inventory pagination since items changed
+            resetInventoryPagination();
+
             // Refresh shop display
             showShop();
 
@@ -3186,7 +3235,43 @@ document.addEventListener('DOMContentLoaded', () => {
     // Add main event listeners (this function should also be defined or its contents integrated)
     addMainEventListeners(); // Assuming this function is defined elsewhere in your script.js
 
-    // Make required functions globally available for TransactionMiddleware and other modules
+    // Pagination control functions
+function changeCompletedQuestsPage(direction) {
+    const completedQuests = player.quests ? player.quests.filter(q => q.completed) : [];
+    const totalPages = Math.ceil(completedQuests.length / questPagination.itemsPerPage);
+    
+    questPagination.completedQuestsPage += direction;
+    questPagination.completedQuestsPage = Math.max(0, Math.min(questPagination.completedQuestsPage, totalPages - 1));
+    
+    displayQuests(); // Refresh the display
+}
+
+function changeInventoryPage(direction) {
+    const unequippedItems = player.inventory ? player.inventory.filter(item => {
+        if (!player.equipment) return true;
+        return !Object.values(player.equipment).some(equippedItem => 
+            equippedItem && equippedItem.id === item.id
+        );
+    }) : [];
+    
+    const totalPages = Math.ceil(unequippedItems.length / inventoryPagination.itemsPerPage);
+    
+    inventoryPagination.currentPage += direction;
+    inventoryPagination.currentPage = Math.max(0, Math.min(inventoryPagination.currentPage, totalPages - 1));
+    
+    displayInventory(); // Refresh the display
+}
+
+// Reset pagination when inventory or quests change significantly
+function resetInventoryPagination() {
+    inventoryPagination.currentPage = 0;
+}
+
+function resetQuestPagination() {
+    questPagination.completedQuestsPage = 0;
+}
+
+// Make required functions globally available for TransactionMiddleware and other modules
     window.callGeminiAPI = callGeminiAPI;
     window.updateGold = updateGold;
     window.displayMessage = displayMessage;
@@ -3208,6 +3293,8 @@ document.addEventListener('DOMContentLoaded', () => {
     window.resetCharacterProgression = typeof resetCharacterProgression !== 'undefined' ? resetCharacterProgression : function() { /* ... */ };
     window.generateQuest = generateQuest;
     window.displayQuests = displayQuests;
+    window.changeCompletedQuestsPage = changeCompletedQuestsPage;
+    window.changeInventoryPage = changeInventoryPage;
 
 
     // <<< --- ADD INVENTORY EVENT LISTENER HERE --- >>>
@@ -3528,17 +3615,25 @@ function displayInventory() {
         );
     }) : [];
 
+    const startIndex = inventoryPagination.currentPage * inventoryPagination.itemsPerPage;
+    const endIndex = Math.min(startIndex + inventoryPagination.itemsPerPage, unequippedItems.length);
+    const paginatedItems = unequippedItems.slice(startIndex, endIndex);
+    const totalPages = Math.ceil(unequippedItems.length / inventoryPagination.itemsPerPage);
+
     inventoryHTML += `
         <div class="mb-6 w-full md:col-span-2"> 
-            <h5 class="text-xl font-bold mb-3 text-yellow-600">Inventory Items</h5>
-            <p class="text-sm text-gray-600 mb-3">Items: ${unequippedItems.length}</p>
+            <div class="flex justify-between items-center mb-3">
+                <h5 class="text-xl font-bold text-yellow-600">Inventory Items</h5>
+                ${totalPages > 1 ? `<span class="text-sm text-gray-600">Page ${inventoryPagination.currentPage + 1} of ${totalPages}</span>` : ''}
+            </div>
+            <p class="text-sm text-gray-600 mb-3">Items: ${unequippedItems.length} total, showing ${paginatedItems.length}</p>
             <div class="grid grid-cols-1 gap-4 w-full"> 
     `;
 
     if (unequippedItems.length === 0) {
         inventoryHTML += '<p class="text-center text-gray-600">Your inventory is empty.</p>';
     } else {
-        unequippedItems.forEach((item, index) => {
+        paginatedItems.forEach((item, index) => {
             // Find the original index in the full inventory for the action buttons
             const originalIndex = player.inventory.findIndex(invItem => invItem.id === item.id);
             inventoryHTML += typeof buildInventoryItemDisplay === 'function' ? buildInventoryItemDisplay(item, originalIndex) : ``;
@@ -3546,6 +3641,30 @@ function displayInventory() {
     }
     inventoryHTML += `
             </div>
+    `;
+
+    // Add pagination controls for inventory
+    if (totalPages > 1) {
+        inventoryHTML += `
+            <div class="flex justify-center items-center gap-2 mt-4">
+                <button onclick="changeInventoryPage(-1)" 
+                        class="btn-parchment text-xs py-1 px-2 ${inventoryPagination.currentPage === 0 ? 'opacity-50 cursor-not-allowed' : ''}"
+                        ${inventoryPagination.currentPage === 0 ? 'disabled' : ''}>
+                    Previous
+                </button>
+                <span class="text-sm text-gray-600 mx-2">
+                    ${inventoryPagination.currentPage + 1} / ${totalPages}
+                </span>
+                <button onclick="changeInventoryPage(1)" 
+                        class="btn-parchment text-xs py-1 px-2 ${inventoryPagination.currentPage >= totalPages - 1 ? 'opacity-50 cursor-not-allowed' : ''}"
+                        ${inventoryPagination.currentPage >= totalPages - 1 ? 'disabled' : ''}>
+                    Next
+                </button>
+            </div>
+        `;
+    }
+
+    inventoryHTML += `
         </div>
     `;
 
