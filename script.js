@@ -3993,10 +3993,37 @@ function addMainEventListeners() {
             generateCharacterBackground();
         });
 
-        createCharacterBtn?.addEventListener('click', () => {
+        createCharacterBtn?.addEventListener('click', async () => {
             console.log('Create character button clicked');
             createCharacter();
+            await startNewGame(player);
         });
+
+        async function startNewGame(player) {
+            // 1. Generate Starting Narrative
+            const narrativePrompt = `Generate a short, exciting opening narrative for a new adventurer named ${player.name}, a Level 1 ${player.class}, who is just starting their journey in the city of ${player.currentLocation}.`;
+            const startingNarrative = await callGeminiAPI(narrativePrompt);
+            if (startingNarrative) {
+                displayMessage(startingNarrative, 'info');
+            }
+
+            // 2. Generate a Tutorial Quest
+            // You can create a specific function for a tutorial quest or use the existing one with specific context
+            const tutorialQuest = await generateQuest({
+                player,
+                questContext: {
+                    title: "Your First Steps",
+                    description: "A local needs help with a simple task. This is a good opportunity to learn the ropes.",
+                    difficulty: "Easy"
+                }
+            });
+
+            if (tutorialQuest) {
+                player.quests.push(tutorialQuest);
+                displayMessage(`New Quest: ${tutorialQuest.title} - ${tutorialQuest.objective}`, 'success');
+                updateQuestButton(); // Make sure this function updates the UI
+            }
+        }
 
         // Game play buttons
         executeCommandBtn?.addEventListener('click', () => {
