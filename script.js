@@ -1240,6 +1240,94 @@ function fixMaraRelationship() {
     }
 }
 
+// Reset character progression to match current class progression data
+function resetCharacterProgression() {
+    if (!player || !player.class) {
+        displayMessage("No character to reset progression for.", 'error');
+        return;
+    }
+
+    if (!confirm("Are you sure you want to reset your character progression? This will rebuild your abilities, spells, and feats based on your current level and class.")) {
+        return;
+    }
+
+    try {
+        const currentLevel = player.level;
+        const currentClass = player.class;
+        
+        displayMessage("Resetting character progression...", 'info');
+        
+        // Backup important data
+        const backupData = {
+            name: player.name,
+            level: currentLevel,
+            class: currentClass,
+            gender: player.gender,
+            background: player.background,
+            currentLocation: player.currentLocation,
+            gold: player.gold,
+            inventory: player.inventory,
+            equipment: player.equipment,
+            relationships: player.relationships,
+            quests: player.quests,
+            exp: player.exp,
+            expToNextLevel: player.expToNextLevel
+        };
+
+        // Reset HP to base values
+        player.hp = 100;
+        player.maxHp = 100;
+
+        // Reinitialize character progression
+        if (CharacterManager && typeof CharacterManager.initializeCharacter === 'function') {
+            CharacterManager.initializeCharacter(player, currentClass);
+            
+            // Apply progression for each level from 2 to current level
+            for (let level = 2; level <= currentLevel; level++) {
+                CharacterManager.applyLevelProgression(player, level);
+            }
+            
+            // Restore backed up data
+            player.name = backupData.name;
+            player.level = backupData.level;
+            player.class = backupData.class;
+            player.gender = backupData.gender;
+            player.background = backupData.background;
+            player.currentLocation = backupData.currentLocation;
+            player.gold = backupData.gold;
+            player.inventory = backupData.inventory;
+            player.equipment = backupData.equipment;
+            player.relationships = backupData.relationships;
+            player.quests = backupData.quests;
+            player.exp = backupData.exp;
+            player.expToNextLevel = backupData.expToNextLevel;
+            
+            displayMessage("✅ Character progression reset successfully!", 'success');
+            displayMessage(`Reinitialized as Level ${currentLevel} ${currentClass} with updated abilities and spells.`, 'info');
+            
+            // Save the updated progression
+            CharacterManager.saveProgression(player);
+            saveGame();
+            
+            // Update displays
+            updatePlayerStatsDisplay();
+            
+            // Refresh progression display if it's open
+            const progressionInterface = document.getElementById('progression-interface');
+            if (progressionInterface && !progressionInterface.classList.contains('hidden')) {
+                displayCharacterProgression();
+            }
+            
+        } else {
+            displayMessage("CharacterManager not available for progression reset.", 'error');
+        }
+        
+    } catch (error) {
+        console.error('Error resetting character progression:', error);
+        displayMessage("Error occurred while resetting progression. Check console for details.", 'error');
+    }
+}
+
 // Auto-fix Mara relationship if we detect she should be romantic but isn't
 function autoFixMaraRelationship() {
     // Ensure player and relationships exist before proceeding
