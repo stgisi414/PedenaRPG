@@ -3880,7 +3880,7 @@ function processRichText(text) {
     processed = processed.replace(/\[elegant:(.*?)\]/g, '<span class="rt-font-elegant">$1</span>');
     processed = processed.replace(/\[ancient:(.*?)\]/g, '<span class="rt-font-ancient">$1</span>');
     
-    // Effects: {{effect:text}}
+    // Effects: {{effect:text}} - Process in specific order to avoid conflicts
     processed = processed.replace(/\{\{highlight:(.*?)\}\}/g, '<span class="rt-highlight">$1</span>');
     processed = processed.replace(/\{\{blink:(.*?)\}\}/g, '<span class="rt-blink">$1</span>');
     processed = processed.replace(/\{\{wiggle:(.*?)\}\}/g, '<span class="rt-wiggle">$1</span>');

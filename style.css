@@ -350,10 +350,12 @@ h1, h2, h3, h4 {
     letter-spacing: 2px;
 }
 .rt-stretch-v {
-    transform: scaleY(1.5);
+    transform: scaleY(2.0);
     display: inline-block;
     font-weight: bold;
-    line-height: 0.8;
+    line-height: 0.6;
+    vertical-align: middle;
+    margin: 0 2px;
 }
 
 /* Enhanced glow effects */
