@@ -128,6 +128,11 @@ Focus on terrain, lighting, and immediate surroundings that could affect the fig
 
             const turnOrder = this.combatState.turnOrder[0] === 'player' ? 'You act first!' : `${enemy.name} acts first!`;
             window.displayMessage(`Turn ${this.combatState.turnNumber}: ${turnOrder}`, 'combat');
+            
+            // Force update the main UI display to ensure consistency
+            if (typeof window.updatePlayerStatsDisplay === 'function') {
+                window.updatePlayerStatsDisplay();
+            }
         }
     }
 
