@@ -2097,6 +2097,96 @@ function categorizeItemFromName(itemName) {
             specificName: 'Patched Leather Jerkin',
             description: 'A leather vest with numerous patches and repairs, worn by gladiators for basic protection.'
         },
+        'parchment': {
+            category: itemCategories.SCROLL,
+            rarity: 'UNCOMMON',
+            specificName: 'Mysterious Parchment',
+            description: 'A rolled-up piece of parchment with faded writing, possibly containing important information.'
+        },
+        'bronze coin': {
+            category: itemCategories.CURRENCY,
+            rarity: 'COMMON',
+            specificName: 'Ancient Bronze Coin',
+            description: 'A weathered bronze coin with worn markings, possibly from an old civilization.'
+        },
+        'iron key': {
+            category: itemCategories.TOOL,
+            rarity: 'COMMON',
+            specificName: 'Rusted Iron Key',
+            description: 'A heavy iron key, rusted with age but still functional.'
+        },
+        'healing potion': {
+            category: itemCategories.CONSUMABLE,
+            rarity: 'COMMON',
+            specificName: 'Minor Healing Potion',
+            description: 'A small vial containing a red liquid that glows faintly with restorative magic.'
+        },
+        'mana potion': {
+            category: itemCategories.CONSUMABLE,
+            rarity: 'COMMON',
+            specificName: 'Lesser Mana Potion',
+            description: 'A blue crystalline bottle filled with magical energy.'
+        }
+    };
+
+    // Check for specific items first
+    if (specificItems[name]) {
+        return specificItems[name];
+    }
+
+    // General categorization patterns
+    if (name.includes('helmet') || name.includes('helm') || name.includes('hat') || name.includes('cap')) {
+        return { category: itemCategories.ARMOR, rarity: 'COMMON' };
+    }
+    if (name.includes('sword') || name.includes('blade') || name.includes('dagger') || name.includes('knife')) {
+        return { category: itemCategories.WEAPON, rarity: 'COMMON' };
+    }
+    if (name.includes('axe') || name.includes('hammer') || name.includes('mace') || name.includes('staff')) {
+        return { category: itemCategories.WEAPON, rarity: 'COMMON' };
+    }
+    if (name.includes('bow') || name.includes('crossbow') || name.includes('spear') || name.includes('javelin')) {
+        return { category: itemCategories.WEAPON, rarity: 'COMMON' };
+    }
+    if (name.includes('armor') || name.includes('jerkin') || name.includes('vest') || name.includes('mail') || name.includes('plate')) {
+        return { category: itemCategories.ARMOR, rarity: 'COMMON' };
+    }
+    if (name.includes('shield') || name.includes('buckler')) {
+        return { category: itemCategories.ARMOR, rarity: 'COMMON' };
+    }
+    if (name.includes('gauntlets') || name.includes('gloves') || name.includes('boots') || name.includes('greaves')) {
+        return { category: itemCategories.ARMOR, rarity: 'COMMON' };
+    }
+    if (name.includes('potion') || name.includes('elixir') || name.includes('draught')) {
+        return { category: itemCategories.CONSUMABLE, rarity: 'COMMON' };
+    }
+    if (name.includes('scroll') || name.includes('parchment') || name.includes('tome')) {
+        return { category: itemCategories.SCROLL, rarity: 'UNCOMMON' };
+    }
+    if (name.includes('book') || name.includes('grimoire') || name.includes('codex')) {
+        return { category: itemCategories.BOOK, rarity: 'UNCOMMON' };
+    }
+    if (name.includes('ring') || name.includes('amulet') || name.includes('necklace') || name.includes('pendant')) {
+        return { category: itemCategories.JEWELRY, rarity: 'UNCOMMON' };
+    }
+    if (name.includes('gem') || name.includes('crystal') || name.includes('stone') || name.includes('orb')) {
+        return { category: itemCategories.MAGICAL, rarity: 'RARE' };
+    }
+    if (name.includes('coin') || name.includes('gold') || name.includes('silver') || name.includes('copper')) {
+        return { category: itemCategories.CURRENCY, rarity: 'COMMON' };
+    }
+    if (name.includes('key') || name.includes('lockpick') || name.includes('tool') || name.includes('kit')) {
+        return { category: itemCategories.TOOL, rarity: 'COMMON' };
+    }
+    if (name.includes('herb') || name.includes('ingredient') || name.includes('component') || name.includes('reagent')) {
+        return { category: itemCategories.CRAFTING, rarity: 'COMMON' };
+    }
+    if (name.includes('wand') || name.includes('rod') || name.includes('artifact') || name.includes('relic')) {
+        return { category: itemCategories.MAGICAL, rarity: 'UNCOMMON' };
+    }
+
+    // Default to magical item if no specific category matches
+    return { category: itemCategories.MAGICAL, rarity: 'COMMON' };
+}
 
 // Enhanced Gemini-powered quest generation with structured data
 async function generateGeminiQuest() {
