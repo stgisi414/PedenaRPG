@@ -972,37 +972,31 @@ async function generateRandomEncounter() {
 }
 
 async function generateCombatEncounter() {
-    displayMessage("⚔️ A hostile creature blocks your path!", 'combat');
-
-    // Scale enemy based on player level
-    const enemyTypes = [
-        { name: 'Goblin Scout', hp: 15, attack: 8, defense: 1, level: 1, type: 'Humanoid' },
-        { name: 'Wild Wolf', hp: 20, attack: 10, defense: 2, level: 1, type: 'Beast' },
-        { name: 'Bandit', hp: 25, attack: 12, defense: 3, level: 2, type: 'Humanoid' },
-        { name: 'Orc Warrior', hp: 35, attack: 15, defense: 4, level: 3, type: 'Humanoid' },
-        { name: 'Dark Mage', hp: 30, attack: 18, defense: 2, level: 4, type: 'Humanoid' },
-        { name: 'Hill Giant', hp: 50, attack: 22, defense: 5, level: 5, type: 'Giant' },
-        { name: 'Shadow Wraith', hp: 40, attack: 20, defense: 1, level: 6, type: 'Undead' },
-        { name: 'Fire Elemental', hp: 60, attack: 25, defense: 6, level: 7, type: 'Elemental' }
-    ];
-
-    // Select appropriate enemy for player level
-    const suitableEnemies = enemyTypes.filter(enemy => enemy.level <= player.level + 1);
-    const selectedEnemy = suitableEnemies[Math.floor(Math.random() * suitableEnemies.length)] || enemyTypes[0];
-
-    // Scale enemy stats
-    const levelDifference = Math.max(0, player.level - selectedEnemy.level);
-    const scaledEnemy = {
-        ...selectedEnemy,
-        hp: selectedEnemy.hp + (levelDifference * 5),
-        maxHp: selectedEnemy.hp + (levelDifference * 5),
-        currentHp: selectedEnemy.hp + (levelDifference * 5),
-        attack: selectedEnemy.attack + (levelDifference * 2),
-        name: levelDifference > 0 ? `Veteran ${selectedEnemy.name}` : selectedEnemy.name
-    };
-
-    // Use text-based combat system
-    await CombatSystem.initiateCombat(player, scaledEnemy, player.currentLocation);
+    // Use intelligent enemy generation for random encounters too
+    const randomEncounterCommand = "encounter a hostile creature";
+    const enemyEncounter = await CombatSystem.generateSpecificEnemyEncounter(randomEncounterCommand, player);
+    
+    if (enemyEncounter) {
+        displayMessage("⚔️ A hostile creature blocks your path!", 'combat');
+        displayMessage(enemyEncounter.narrative, 'combat');
+        await CombatSystem.initiateCombat(player, enemyEncounter.enemy, player.currentLocation);
+    } else {
+        // Fallback to basic encounter if AI fails
+        displayMessage("⚔️ A hostile creature blocks your path!", 'combat');
+        
+        const basicEnemy = {
+            name: 'Hostile Creature',
+            hp: 20 + (player.level * 5),
+            maxHp: 20 + (player.level * 5),
+            currentHp: 20 + (player.level * 5),
+            attack: 8 + (player.level * 2),
+            defense: 1 + player.level,
+            level: player.level,
+            type: 'Beast'
+        };
+        
+        await CombatSystem.initiateCombat(player, basicEnemy, player.currentLocation);
+    }
 }
 
 // Legacy combat interface removed - now handled by CombatSystem
@@ -2986,7 +2980,19 @@ async function executeCustomCommand(command) {
     const isCombatCommand = combatKeywords.some(keyword => command.toLowerCase().includes(keyword));
     
     if (isCombatCommand) {
-        await generateCombatEncounter();
+        // Use intelligent enemy generation based on the specific command
+        const enemyEncounter = await CombatSystem.generateSpecificEnemyEncounter(command, player);
+        
+        if (enemyEncounter) {
+            // Display the narrative setup
+            displayMessage(enemyEncounter.narrative, 'combat');
+            
+            // Initiate combat with the specific enemy
+            await CombatSystem.initiateCombat(player, enemyEncounter.enemy, player.currentLocation);
+        } else {
+            // If no plausible enemy found, don't start combat
+            displayMessage("There's nothing here to attack that makes sense.", 'info');
+        }
         return;
     }
 

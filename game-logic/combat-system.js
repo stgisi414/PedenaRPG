@@ -531,6 +531,104 @@ Make the enemy action feel intelligent and appropriate for the creature type.
         }
     }
 
+    // Generate specific enemy encounter based on player command
+    static async generateSpecificEnemyEncounter(command, player) {
+        const enemyInterpretationPrompt = `
+ENEMY ENCOUNTER INTERPRETATION
+
+Player Command: "${command}"
+Current Location: ${player.currentLocation}
+Player Level: ${player.level}
+Player Class: ${player.class}
+
+TASK: Analyze the command to determine what specific enemy the player wants to attack.
+
+Consider:
+1. What creature type is mentioned in the command?
+2. Does this creature make sense in the current location?
+3. What would be an appropriate power level for the player's level?
+4. If no specific creature is mentioned, what would be a logical enemy for this location?
+
+Respond with ONLY valid JSON:
+{
+    "enemyFound": true/false,
+    "enemyName": "specific enemy name",
+    "enemyType": "Beast/Humanoid/Undead/Elemental/Giant/Dragon/Fey",
+    "baseHp": 20,
+    "baseAttack": 10,
+    "baseDefense": 2,
+    "level": 2,
+    "description": "brief description of why this enemy is here",
+    "narrative": "1-2 sentence description of the encounter setup",
+    "plausible": true/false,
+    "reason": "explanation of why this enemy does/doesn't make sense here"
+}
+
+ENEMY GUIDELINES:
+- HP: 15-80 based on level and type
+- Attack: 8-30 based on level and type  
+- Defense: 1-8 based on level and type
+- Level should be within ±2 of player level
+- Enemy name should match what was mentioned or be appropriate for location
+
+LOCATION-APPROPRIATE ENEMIES:
+- Towns/Cities: Bandits, Thieves, Guards, Cultists
+- Wilderness: Wolves, Bears, Goblins, Orcs
+- Dungeons: Skeletons, Zombies, Traps, Dark creatures
+- Mountains: Giants, Dragons, Stone creatures
+- Forests: Wolves, Fey creatures, Rangers
+- Deserts: Sand creatures, Nomads, Elementals
+- Spires/Towers: Wraiths, Mages, Constructs
+
+If the requested enemy doesn't make sense for the location, set plausible to false and explain why.
+If no enemy is mentioned, suggest an appropriate one for the location.
+`;
+
+        try {
+            const response = await window.callGeminiAPI(enemyInterpretationPrompt, 0.8, 600, false);
+            if (!response) return null;
+
+            const cleanResponse = response.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+            const jsonMatch = cleanResponse.match(/\{[\s\S]*\}/);
+
+            if (jsonMatch) {
+                const enemyData = JSON.parse(jsonMatch[0]);
+                
+                if (!enemyData.plausible) {
+                    if (typeof window.displayMessage === 'function') {
+                        window.displayMessage(`${enemyData.reason}`, 'error');
+                    }
+                    return null;
+                }
+
+                if (enemyData.enemyFound) {
+                    // Scale enemy based on player level
+                    const levelDifference = Math.max(0, player.level - enemyData.level);
+                    const scaledEnemy = {
+                        name: levelDifference > 0 ? `Veteran ${enemyData.enemyName}` : enemyData.enemyName,
+                        hp: enemyData.baseHp + (levelDifference * 5),
+                        maxHp: enemyData.baseHp + (levelDifference * 5),
+                        currentHp: enemyData.baseHp + (levelDifference * 5),
+                        attack: enemyData.baseAttack + (levelDifference * 2),
+                        defense: enemyData.baseDefense + levelDifference,
+                        level: Math.max(enemyData.level, player.level - 1),
+                        type: enemyData.enemyType,
+                        description: enemyData.description
+                    };
+
+                    return {
+                        enemy: scaledEnemy,
+                        narrative: enemyData.narrative
+                    };
+                }
+            }
+        } catch (error) {
+            console.error('Error generating specific enemy encounter:', error);
+        }
+
+        return null;
+    }
+
     // Helper method to process combat commands from the main game loop
     static async handleCombatCommand(command) {
         if (!this.combatState.isActive) return false;
