@@ -2972,6 +2972,15 @@ async function executeCustomCommand(command) {
         return;
     }
 
+    // Check for combat initiation commands
+    const combatKeywords = ['attack', 'fight', 'battle', 'combat', 'engage', 'strike', 'assault'];
+    const isCombatCommand = combatKeywords.some(keyword => command.toLowerCase().includes(keyword));
+    
+    if (isCombatCommand) {
+        await generateCombatEncounter();
+        return;
+    }
+
     // Check for other command types
     if (command.toLowerCase().includes('talk') || command.toLowerCase().includes('speak')) {
         await startConversation();
