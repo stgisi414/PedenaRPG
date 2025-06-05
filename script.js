@@ -3435,6 +3435,7 @@ function abandonQuest(questId) {
     window.TransactionMiddleware = TransactionMiddleware;
     window.ItemExchangeMiddleware = ItemExchangeMiddleware;
     window.CombatSystem = CombatSystem;
+    window.player = player; // Make player globally accessible
 
     // Make other functions globally accessible if needed by other parts of the code or for debugging
     window.LocationManager = typeof LocationManager !== 'undefined' ? LocationManager : {};

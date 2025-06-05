@@ -68,9 +68,20 @@ export class CombatSystem {
     }
 
     static getPlayerReference() {
-        return window.player || 
-               (typeof player !== 'undefined' ? player : null) ||
-               { name: 'Player', hp: 100, maxHp: 100, level: 1, class: 'Adventurer' };
+        // Try multiple ways to get the player object
+        if (typeof window !== 'undefined' && window.player) {
+            return window.player;
+        }
+        if (typeof player !== 'undefined') {
+            return player;
+        }
+        // Check if script.js has the player in global scope
+        if (typeof window !== 'undefined' && window.globalThis && window.globalThis.player) {
+            return window.globalThis.player;
+        }
+        // Last resort fallback with warning
+        console.warn("CombatSystem: Could not find player object, using fallback");
+        return { name: 'Player', hp: 100, maxHp: 100, level: 1, class: 'Adventurer' };
     }
 
     static async generateCombatEnvironment(player, enemy, location) {
@@ -123,7 +134,9 @@ Focus on terrain, lighting, and immediate surroundings that could affect the fig
     static async processPlayerAction(player, enemy, actionType, command) {
         if (!this.combatState.isActive) return;
 
-        const actionPrompt = this.buildPlayerActionPrompt(player, enemy, actionType, command);
+        // Ensure we're using the actual player object
+        const actualPlayer = this.getPlayerReference();
+        const actionPrompt = this.buildPlayerActionPrompt(actualPlayer, enemy, actionType, command);
 
         try {
             const response = await window.callGeminiAPI(actionPrompt, 0.8, 500, false);
@@ -343,9 +356,10 @@ Make the enemy action feel intelligent and appropriate for the creature type.
         }
 
         if (result.playerHpChange && actor === 'enemy') {
-            const defense = this.calculatePlayerDefense(player);
+            const actualPlayer = this.getPlayerReference();
+            const defense = this.calculatePlayerDefense(actualPlayer);
             const actualDamage = Math.max(1, Math.abs(result.playerHpChange) - defense);
-            player.hp = Math.max(0, player.hp - actualDamage);
+            actualPlayer.hp = Math.max(0, actualPlayer.hp - actualDamage);
 
             if (defense > 0 && actualDamage !== Math.abs(result.playerHpChange)) {
                 if (typeof window.displayMessage === 'function') {
