@@ -3911,6 +3911,9 @@ function processRichText(text, messageType = null) {
     processed = processed.replace(/\{emerald:(.*?)\}/g, '<span class="rt-color-emerald">$1</span>');
     processed = processed.replace(/\{brown:(.*?)\}/g, '<span class="rt-color-brown">$1</span>');
 
+    // Shadow effects: {shadow:text}
+    processed = processed.replace(/\{shadow:(.*?)\}/g, '<span class="rt-shadow">$1</span>');
+
     // Handle contextual color words - map to appropriate colors
     processed = processed.replace(/\{magical\}/g, '<span class="rt-color-purple">magical</span>');
     processed = processed.replace(/\{infernal energy\}/g, '<span class="rt-color-red">infernal energy</span>');
