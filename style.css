@@ -183,8 +183,10 @@ h1, h2, h3, h4 {
 .ra-telescope:before { content: "🔭"; }
 .ra-potion:before { content: "🧪"; }
 .ra-helmet:before { content: "🪖"; }
+.ra-knight-helmet:before { content: "⛑️"; }
 .ra-gauntlet:before { content: "🧤"; }
 .ra-armor:before { content: "🛡️"; }
+.ra-vest:before { content: "🦺"; }
 .ra-boots:before { content: "👢"; }
 .ra-gem:before { content: "💎"; }
 .ra-ring:before { content: "💍"; }

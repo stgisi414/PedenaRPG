@@ -4302,14 +4302,10 @@ function getIconForItem(item) {
     // Prioritize specific slots for equipment
     if (item.slot) {
         switch (item.slot) {
-            case 'head': return 'ra-helmet';
-            case 'chest': 
-                if (name.includes('robe') || name.includes('cloth')) return 'ra-robe';
-                if (name.includes('heavy') || name.includes('plate')) return 'ra-heavy-armor';
-                if (name.includes('cloth')) return 'ra-cloth-armor';
-                return 'ra-armor';
+            case 'head': return 'ra-knight-helmet';
+            case 'chest': return 'ra-vest';
             case 'hands': return 'ra-gauntlet';
-            case 'legs': return 'ra-armor';
+            case 'legs': return '👖'; // Pants emoji
             case 'feet': return 'ra-boots';
             case 'amulet': return 'ra-gem';
             case 'ring1':
@@ -4379,10 +4375,10 @@ function buildEquipmentDisplay() {
     const equipmentSlots = [
         { slot: 'mainHand', name: 'Main Hand', icon: 'ra-sword' },
         { slot: 'offHand', name: 'Off Hand', icon: 'ra-shield' },
-        { slot: 'head', name: 'Head', icon: 'ra-helmet' },
-        { slot: 'chest', name: 'Chest', icon: 'ra-armor' },
+        { slot: 'head', name: 'Head', icon: 'ra-knight-helmet' },
+        { slot: 'chest', name: 'Chest', icon: 'ra-vest' },
         { slot: 'hands', name: 'Hands', icon: 'ra-gauntlet' },
-        { slot: 'legs', name: 'Legs', icon: 'ra-armor' },
+        { slot: 'legs', name: 'Legs', icon: '👖' },
         { slot: 'feet', name: 'Feet', icon: 'ra-boots' },
         { slot: 'amulet', name: 'Amulet', icon: 'ra-gem' },
         { slot: 'ring1', name: 'Ring 1', icon: 'ra-ring' },
