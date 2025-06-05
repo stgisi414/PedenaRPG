@@ -644,4 +644,5 @@ export class QuestTaskGenerator {
     }
 }
 
+export { questCategories, questThemes, questTemplates, questVariables, QuestTaskGenerator };
 export default { questCategories, questThemes, questTemplates, questVariables, QuestTaskGenerator };

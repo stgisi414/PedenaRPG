@@ -1,7 +1,7 @@
 // Import game data and assets
 import { gameData, GameDataManager } from './assets/game-data-loader.js';
 import { QuestCharacterGenerator } from './assets/quest-character-names.js';
-import { QuestTaskGenerator } from './assets/quest-tasks.js';
+import { QuestTaskGenerator, questCategories, questThemes, questTemplates, questVariables } from './assets/quest-tasks.js';
 import { CharacterManager } from './game-logic/character-manager.js';
 import { GameActions } from './game-logic/game-actions.js';
 import { LocationManager } from './game-logic/location-manager.js';
@@ -1414,16 +1414,8 @@ async function generateQuest() {
     }
 
     try {
-        // Generate quest context
-        const gameContext = {
-            currentLocation: player.currentLocation,
-            playerLevel: player.level,
-            playerClass: player.class,
-            recentQuests: player.quests.slice(-5) // Last 5 quests for variety
-        };
-
-        // Use the new quest generation system
-        const quest = QuestTaskGenerator.generateQuest(player, gameContext);
+        // Generate quest using Gemini AI with structured data
+        const quest = await generateGeminiQuest();
 
         // Add to player's quest list
         player.quests.push(quest);
@@ -2105,6 +2097,152 @@ function categorizeItemFromName(itemName) {
             specificName: 'Patched Leather Jerkin',
             description: 'A leather vest with numerous patches and repairs, worn by gladiators for basic protection.'
         },
+
+// Enhanced Gemini-powered quest generation with structured data
+async function generateGeminiQuest() {
+    // Get conversation context for quest relevance
+    const conversationContext = getConversationContext();
+    
+    // Determine quest category and theme based on player and context
+    const questData = QuestTaskGenerator.generateQuest(player, {
+        currentLocation: player.currentLocation,
+        playerLevel: player.level,
+        playerClass: player.class,
+        recentQuests: player.quests ? player.quests.slice(-3) : []
+    });
+
+    // Create structured prompt for Gemini with quest template data
+    const questPrompt = `
+QUEST GENERATION SYSTEM - Generate a detailed, immersive quest for an RPG
+
+PLAYER CONTEXT:
+- Name: ${player.name}
+- Class: ${player.class}
+- Level: ${player.level}
+- Current Location: ${player.currentLocation}
+- Gold: ${player.gold}
+- Recent Activities: ${conversationContext.slice(-500)}
+
+QUEST TEMPLATE DATA:
+- Category: ${questData.category}
+- Theme: ${questData.theme}  
+- Difficulty: ${questData.difficulty}
+- Base Title: ${questData.title}
+- Base Objective: ${questData.objective}
+- Suggested Location: ${questData.location}
+- Quest Giver: ${questData.questGiver}
+
+QUEST CATEGORIES REFERENCE:
+${JSON.stringify(questCategories, null, 2)}
+
+QUEST THEMES REFERENCE:
+${JSON.stringify(questThemes, null, 2)}
+
+WORLD CONTEXT:
+- Current NPCs in area: ${getNPCsInLocation(player.currentLocation).map(npc => npc.name).join(', ') || 'None'}
+- Player relationships: ${Object.keys(player.relationships || {}).slice(0, 3).join(', ') || 'None established'}
+
+INSTRUCTIONS:
+Create a rich, detailed quest that fits the template data but with enhanced narrative depth. The quest should:
+
+1. Have a compelling title that fits the theme
+2. Include vivid, immersive description (2-3 sentences)
+3. Clear, specific objective that matches the category
+4. Interesting complications or plot twists
+5. Rewards appropriate to difficulty and player level
+6. Consider the player's recent activities and location
+
+Respond with ONLY valid JSON in this exact format:
+{
+    "title": "Quest Title Here",
+    "description": "Rich, immersive description of the quest situation and background",
+    "objective": "Clear, specific objective the player must complete",
+    "category": "${questData.category}",
+    "theme": "${questData.theme}",
+    "difficulty": "${questData.difficulty}",
+    "location": "Specific location name",
+    "questGiver": "Name and brief description of quest giver",
+    "rewards": {
+        "gold": ${questData.rewards.gold},
+        "experience": ${questData.rewards.experience},
+        "items": ${JSON.stringify(questData.rewards.items)}
+    },
+    "requirements": ${JSON.stringify(questData.requirements)},
+    "estimatedTime": "${questData.estimatedTime}",
+    "complications": "Optional complication or plot twist",
+    "questType": "main/side/urgent",
+    "moralAlignment": "good/neutral/evil/ambiguous",
+    "consequencesOfFailure": "What happens if the quest fails",
+    "hiddenSecrets": "Optional hidden elements or revelations"
+}
+
+Make the quest feel personal and relevant to ${player.name}'s journey. Use the conversation context to reference recent events or encounters if appropriate.
+`;
+
+    try {
+        const response = await callGeminiAPI(questPrompt, 0.7, 1000, false);
+        if (!response) {
+            throw new Error("No response from Gemini API");
+        }
+
+        // Parse the JSON response
+        const cleanResponse = response.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+        const jsonMatch = cleanResponse.match(/\{[\s\S]*\}/);
+        
+        if (!jsonMatch) {
+            throw new Error("No valid JSON found in response");
+        }
+
+        const geminiQuest = JSON.parse(jsonMatch[0]);
+        
+        // Enhance with additional data and validation
+        const enhancedQuest = {
+            id: Date.now().toString(),
+            title: geminiQuest.title || questData.title,
+            description: geminiQuest.description || questData.description,
+            objective: geminiQuest.objective || questData.objective,
+            category: geminiQuest.category || questData.category,
+            theme: geminiQuest.theme || questData.theme,
+            difficulty: geminiQuest.difficulty || questData.difficulty,
+            location: geminiQuest.location || questData.location,
+            questGiver: geminiQuest.questGiver || questData.questGiver,
+            rewards: {
+                gold: Math.max(0, parseInt(geminiQuest.rewards?.gold) || questData.rewards.gold),
+                experience: Math.max(0, parseInt(geminiQuest.rewards?.experience) || questData.rewards.experience),
+                items: Array.isArray(geminiQuest.rewards?.items) ? geminiQuest.rewards.items : questData.rewards.items
+            },
+            requirements: Array.isArray(geminiQuest.requirements) ? geminiQuest.requirements : questData.requirements,
+            estimatedTime: geminiQuest.estimatedTime || questData.estimatedTime,
+            complications: geminiQuest.complications || questData.complications,
+            questType: geminiQuest.questType || 'side',
+            moralAlignment: geminiQuest.moralAlignment || 'neutral',
+            consequencesOfFailure: geminiQuest.consequencesOfFailure || null,
+            hiddenSecrets: geminiQuest.hiddenSecrets || null,
+            completed: false,
+            dateCreated: new Date().toLocaleDateString()
+        };
+
+        console.log('Generated Gemini quest:', enhancedQuest);
+        
+        // Add to conversation history for future context
+        addToConversationHistory('assistant', `New quest generated: ${enhancedQuest.title} - ${enhancedQuest.description}`);
+        
+        return enhancedQuest;
+
+    } catch (error) {
+        console.error("Error generating Gemini quest:", error);
+        
+        // Fallback to original quest system if Gemini fails
+        console.log("Falling back to template-based quest generation");
+        return {
+            ...questData,
+            id: Date.now().toString(),
+            completed: false,
+            dateCreated: new Date().toLocaleDateString()
+        };
+    }
+}
+
         'parchment': {
             category: itemCategories.SCROLL,
             rarity: 'UNCOMMON',
