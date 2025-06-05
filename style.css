@@ -219,101 +219,174 @@ h1, h2, h3, h4 {
 }
 
 /* Rich Text Effects */
-.rt-bold { font-weight: bold; }
-.rt-italic { font-style: italic; }
-.rt-underline { text-decoration: underline; }
-.rt-strikethrough { text-decoration: line-through; }
+.rt-bold { 
+    font-weight: bold; 
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+}
+.rt-italic { 
+    font-style: italic; 
+    letter-spacing: 0.5px;
+}
+.rt-underline { 
+    text-decoration: underline;
+    text-decoration-color: currentColor;
+    text-decoration-thickness: 2px;
+}
+.rt-strikethrough { 
+    text-decoration: line-through;
+    text-decoration-color: #DC2626;
+    text-decoration-thickness: 2px;
+}
 
-/* Blinking effect */
+/* Enhanced blinking effect */
 .rt-blink {
-    animation: blink 1.5s infinite;
+    animation: blink 1s infinite;
+    font-weight: bold;
 }
 @keyframes blink {
     0%, 50% { opacity: 1; }
-    51%, 100% { opacity: 0.3; }
+    51%, 100% { opacity: 0.2; }
 }
 
-/* Highlighted text with padding and border */
+/* Enhanced highlighted text with padding and border */
 .rt-highlight {
     background: linear-gradient(135deg, #FFD700, #FFA500);
-    color: #2d1810;
-    padding: 2px 6px;
+    color: #2d1810 !important;
+    padding: 3px 8px;
     border: 2px solid #DAA520;
-    border-radius: 4px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+    border-radius: 6px;
+    box-shadow: 0 3px 6px rgba(0,0,0,0.4), inset 0 1px 2px rgba(255,255,255,0.3);
     display: inline-block;
-    margin: 1px;
+    margin: 2px;
+    font-weight: bold;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
 }
 
-/* Color variations */
-.rt-color-red { color: #DC2626; }
-.rt-color-green { color: #059669; }
-.rt-color-blue { color: #2563EB; }
-.rt-color-purple { color: #7C3AED; }
-.rt-color-gold { color: #D97706; }
-.rt-color-silver { color: #6B7280; }
-.rt-color-crimson { color: #DC143C; }
-.rt-color-emerald { color: #10B981; }
-
-/* Google Fonts for specialized text */
-.rt-font-medieval {
-    font-family: 'Cinzel', serif;
+/* Enhanced color variations with better contrast */
+.rt-color-red { 
+    color: #DC2626 !important; 
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
     font-weight: 600;
 }
+.rt-color-green { 
+    color: #059669 !important; 
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+    font-weight: 600;
+}
+.rt-color-blue { 
+    color: #2563EB !important; 
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+    font-weight: 600;
+}
+.rt-color-purple { 
+    color: #7C3AED !important; 
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+    font-weight: 600;
+}
+.rt-color-gold { 
+    color: #D97706 !important; 
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
+    font-weight: bold;
+}
+.rt-color-silver { 
+    color: #94A3B8 !important; 
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+    font-weight: 600;
+}
+.rt-color-crimson { 
+    color: #DC143C !important; 
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+    font-weight: bold;
+}
+.rt-color-emerald { 
+    color: #10B981 !important; 
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+    font-weight: 600;
+}
+
+/* Google Fonts for specialized text - Import fonts */
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600&family=Creepster&family=Dancing+Script:wght@400;600&family=Uncial+Antiqua&display=swap');
+
+.rt-font-medieval {
+    font-family: 'Cinzel', serif !important;
+    font-weight: 600;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+}
 .rt-font-magic {
-    font-family: 'Creepster', cursive;
+    font-family: 'Creepster', cursive !important;
     font-weight: normal;
+    font-size: 1.1em;
+    letter-spacing: 1px;
 }
 .rt-font-elegant {
-    font-family: 'Dancing Script', cursive;
-    font-size: 1.2em;
+    font-family: 'Dancing Script', cursive !important;
+    font-size: 1.3em;
+    font-weight: 600;
+    letter-spacing: 0.5px;
 }
 .rt-font-ancient {
-    font-family: 'Uncial Antiqua', cursive;
+    font-family: 'Uncial Antiqua', cursive !important;
     font-weight: normal;
+    font-size: 1.1em;
+    letter-spacing: 0.5px;
 }
 
-/* Shadow effects */
+/* Enhanced shadow effects */
 .rt-shadow {
-    text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+    text-shadow: 3px 3px 6px rgba(0,0,0,0.9);
+    font-weight: bold;
 }
 .rt-shadow-glow {
-    text-shadow: 0 0 10px currentColor, 2px 2px 4px rgba(0,0,0,0.5);
+    text-shadow: 0 0 12px currentColor, 0 0 24px currentColor, 3px 3px 6px rgba(0,0,0,0.7);
+    font-weight: bold;
 }
 
-/* Stretch effects */
+/* Enhanced stretch effects */
 .rt-stretch-h {
-    transform: scaleX(1.5);
+    transform: scaleX(1.7);
     display: inline-block;
+    font-weight: bold;
+    letter-spacing: 2px;
 }
 .rt-stretch-v {
-    transform: scaleY(1.3);
+    transform: scaleY(1.5);
     display: inline-block;
+    font-weight: bold;
+    line-height: 0.8;
 }
 
-/* Glow effects */
+/* Enhanced glow effects */
 .rt-glow {
-    text-shadow: 0 0 8px currentColor, 0 0 16px currentColor;
-    animation: glow-pulse 2s infinite alternate;
+    text-shadow: 0 0 10px currentColor, 0 0 20px currentColor, 0 0 30px currentColor;
+    animation: glow-pulse 1.5s infinite alternate;
+    font-weight: bold;
 }
 @keyframes glow-pulse {
-    from { text-shadow: 0 0 8px currentColor, 0 0 16px currentColor; }
-    to { text-shadow: 0 0 12px currentColor, 0 0 24px currentColor; }
+    from { 
+        text-shadow: 0 0 10px currentColor, 0 0 20px currentColor, 0 0 30px currentColor;
+        transform: scale(1);
+    }
+    to { 
+        text-shadow: 0 0 15px currentColor, 0 0 30px currentColor, 0 0 45px currentColor;
+        transform: scale(1.05);
+    }
 }
 
-/* Wiggle effect */
+/* Enhanced wiggle effect */
 .rt-wiggle {
     display: inline-block;
-    animation: wiggle 0.8s infinite;
+    animation: wiggle 0.6s infinite;
+    font-weight: bold;
 }
 @keyframes wiggle {
-    0%, 7% { transform: rotateZ(0); }
-    15% { transform: rotateZ(-15deg); }
-    20% { transform: rotateZ(10deg); }
-    25% { transform: rotateZ(-10deg); }
-    30% { transform: rotateZ(6deg); }
-    35% { transform: rotateZ(-4deg); }
-    40%, 100% { transform: rotateZ(0); }
+    0%, 7% { transform: rotateZ(0) scale(1); }
+    15% { transform: rotateZ(-12deg) scale(1.05); }
+    20% { transform: rotateZ(8deg) scale(1.03); }
+    25% { transform: rotateZ(-8deg) scale(1.05); }
+    30% { transform: rotateZ(5deg) scale(1.02); }
+    35% { transform: rotateZ(-3deg) scale(1.01); }
+    40%, 100% { transform: rotateZ(0) scale(1); }
 }
 
 .shop-item {

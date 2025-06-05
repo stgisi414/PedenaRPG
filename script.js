@@ -708,43 +708,46 @@ Please respond as the DM, maintaining consistency with the conversation history 
         if (richTextEnabled) {
             fullPrompt += `
 
-RICH TEXT STYLING INSTRUCTIONS:
-Use these markdown-like tags to enhance your narrative responses with visual effects:
+🎨 RICH TEXT STYLING - MANDATORY USAGE:
+You MUST use rich text formatting in your responses. Apply multiple effects per response for immersion:
 
-TEXT FORMATTING:
-- **bold text** or __bold text__ for emphasis
-- *italic text* or _italic text_ for dramatic effect
-- ~~strikethrough~~ for crossed out text
+TEXT FORMATTING (use frequently):
+- **bold text** or __bold text__ for emphasis, important words, names
+- *italic text* or _italic text_ for thoughts, whispers, dramatic effect
+- ~~strikethrough~~ for crossed out, damaged, or negated text
 
-COLORS (use sparingly for impact):
-- {red:text} for danger, blood, fire
-- {green:text} for nature, success, healing
-- {blue:text} for water, magic, cold
-- {purple:text} for royal, mysterious, arcane
-- {gold:text} for treasure, divine, precious
-- {silver:text} for metallic, ethereal
-- {crimson:text} for intense red
-- {emerald:text} for vibrant green
+COLORS (use liberally to paint the scene):
+- {red:text} for danger, blood, fire, anger, warning signs
+- {green:text} for nature, success, healing, plants, life
+- {blue:text} for water, magic, cold, calm, sky, ice
+- {purple:text} for royal, mysterious, arcane, noble, magic
+- {gold:text} for treasure, divine, precious metals, wealth
+- {silver:text} for metallic, ethereal, moonlight, steel
+- {crimson:text} for intense red, battle, passion
+- {emerald:text} for vibrant green, gems, deep forest
 
-SPECIAL FONTS:
-- [medieval:text] for formal announcements, nobility
-- [magic:text] for spells, curses, supernatural
-- [elegant:text] for refined speech, poetry
-- [ancient:text] for old inscriptions, prophecies
+SPECIAL FONTS (use for atmosphere):
+- [medieval:text] for formal announcements, nobility, official documents
+- [magic:text] for spells, curses, supernatural phenomena
+- [elegant:text] for refined speech, poetry, aristocratic dialogue
+- [ancient:text] for old inscriptions, prophecies, runes, history
 
-VISUAL EFFECTS:
-- {{highlight:important text}} for key information
-- {{blink:urgent}} for urgent warnings
-- {{wiggle:exciting}} for exciting moments
-- {{shadow:ominous}} for dark, ominous text
-- {{glow:magical}} for magical effects
-- {{stretch-h:wide}} for stretched horizontal text
-- {{stretch-v:tall}} for stretched vertical text
-- {{glow-shadow:epic}} for epic moments
+VISUAL EFFECTS (use 2-4 per response):
+- {{highlight:important text}} for key information, clues, interactive items
+- {{blink:urgent}} for urgent warnings, immediate threats
+- {{wiggle:exciting}} for exciting moments, discoveries, celebrations
+- {{shadow:ominous}} for dark, ominous, threatening text
+- {{glow:magical}} for magical effects, enchanted items, spells
+- {{stretch-h:wide}} for stretched horizontal text, emphasis
+- {{stretch-v:tall}} for stretched vertical text, towering things
+- {{glow-shadow:epic}} for epic moments, legendary items, climactic events
 
-EXAMPLE: "The {gold:**ancient tome**} begins to {{glow:[magic:whisper forgotten secrets]}} as you {{wiggle:carefully}} open its weathered pages."
+MANDATORY EXAMPLES TO FOLLOW:
+- "The {gold:**ancient tome**} begins to {{glow:[magic:whisper forgotten secrets]}} as you {{wiggle:carefully}} open its weathered pages."
+- "A {crimson:*shadowy figure*} emerges from the {{shadow:darkness}}, wielding a {{highlight:[ancient:cursed blade]}}."
+- "The {emerald:**garden**} {{wiggle:bursts}} with {{glow:magical}} energy as {blue:*crystalline water*} flows from an {{highlight:[elegant:enchanted fountain]}}."
 
-Use these effects strategically to enhance immersion and emotional impact. Don't overuse - 1-3 effects per response maximum.`;
+REQUIREMENTS: Use at least 3-5 different formatting effects per response. Make descriptions vivid and visually striking. Every important noun should have color or formatting.`;
         }
 
         const response = await fetch(GEMINI_API_URL, {
