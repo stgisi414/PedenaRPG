@@ -190,6 +190,7 @@ h1, h2, h3, h4 {
 .ra-boots:before { content: "👢"; }
 .ra-gem:before { content: "💎"; }
 .ra-ring:before { content: "💍"; }
+.ra-target-arrows:before { content: "🏹"; }
 .ra-shield:before { content: "🛡️"; }
 .ra-bow:before { content: "🏹"; }
 .ra-dagger:before { content: "🗡️"; }

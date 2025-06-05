@@ -4343,8 +4343,12 @@ function getIconForItem(item) {
             if (subType.includes('amulet')) return 'ra-gem';
             return 'ra-gem';
         case 'tool':
-            if (name.includes('quiver')) return 'ra-bow';
+            if (name.includes('quiver')) return 'ra-target-arrows';
             return 'ra-wrench';
+        case 'ammunition':
+            if (name.includes('arrow')) return 'ra-target-arrows';
+            if (name.includes('bolt')) return 'ra-target-arrows';
+            return 'ra-target-arrows';
         case 'quest_reward':
             return 'ra-level-up';
         case 'magical': // For orbs, talismans, etc.
