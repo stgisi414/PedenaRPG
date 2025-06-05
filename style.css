@@ -156,51 +156,171 @@ h1, h2, h3, h4 {
     -moz-osx-font-smoothing: grayscale;
 }
 
-/* Fallback if Game Icons don't load - show text instead */
-.gi:before {
-    content: "⚔️"; /* Default sword emoji as fallback */
+/* Game Icons SVG Implementation - Themed for Pedena RPG */
+.gi {
+    display: inline-block;
+    width: 1em;
+    height: 1em;
+    vertical-align: middle;
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
 }
 
-.gi-person-pyromancer:before { content: "🧙"; }
-.gi-book-cover:before { content: "📖"; }
-.gi-crossed-swords:before { content: "⚔️"; }
-.gi-save-arrow:before { content: "💾"; }
-.gi-scroll-unfurled:before { content: "📜"; }
-.gi-knapsack:before { content: "🎒"; }
-.gi-shop:before { content: "🏪"; }
-.gi-level-up:before { content: "⬆️"; }
-.gi-night-sleep:before { content: "😴"; }
-.gi-magnifying-glass:before { content: "🔍"; }
-.gi-magic-swirl:before { content: "✨"; }
-.gi-holy-symbol:before { content: "✝️"; }
-.gi-prayer:before { content: "🙏"; }
-.gi-sword-brandish:before { content: "⚔️"; }
-.gi-run:before { content: "🏃"; }
-.gi-lightning-bolt:before { content: "⚡"; }
-.gi-scroll-quill:before { content: "📝"; }
-.gi-check-mark:before { content: "✅"; }
-.gi-cancel:before { content: "❌"; }
-.gi-telescope:before { content: "🔭"; }
-.gi-drink-me:before { content: "🧪"; }
-.gi-sword:before { content: "🗡️"; }
-.gi-chest-armor:before { content: "🛡️"; }
-.gi-helmet:before { content: "🪖"; }
-.gi-gauntlet:before { content: "🧤"; }
-.gi-leg-armor:before { content: "👖"; }
-.gi-boot-prints:before { content: "👢"; }
-.gi-gem-pendant:before { content: "💎"; }
-.gi-diamond-ring:before { content: "💍"; }
-.gi-round-shield:before { content: "🛡️"; }
-.gi-sword-brandish:before { content: "🗡️"; }
-.gi-bow-arrow:before { content: "🏹"; }
-.gi-magic-swirl:before { content: "✨"; }
-.gi-dagger-cross:before { content: "🔪"; }
-.gi-battle-axe:before { content: "🪓"; }
-.gi-armor-vest:before { content: "🦺"; }
-.gi-book-cover:before { content: "📖"; }
-.gi-wrench:before { content: "🔧"; }
-.gi-quiver:before { content: "🏹"; }
-.gi-extra-time:before { content: "⏳"; }
+/* Default fallback icon */
+.gi:before {
+    content: "";
+    display: none;
+}
+
+/* Individual Game Icons with SVG backgrounds - Themed in dark brown/amber colors */
+.gi-person-pyromancer {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Cpath fill='%23654321' d='M256 64c-35.3 0-64 28.7-64 64v32h128v-32c0-35.3-28.7-64-64-64z'/%3E%3Cpath fill='%234A2000' d='M192 160v96l64 32 64-32v-96H192z'/%3E%3C/svg%3E");
+}
+
+.gi-book-cover {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Cpath fill='%234A2000' d='M128 64v384l256-32V96L128 64z'/%3E%3Cpath fill='%23654321' d='M160 128h192v32H160zm0 64h192v32H160zm0 64h128v32H160z'/%3E%3C/svg%3E");
+}
+
+.gi-crossed-swords {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Cpath fill='%234A2000' d='M128 64l128 128-32 32-96-96-32 32 96 96-32 32L32 160l32-32 64 64z'/%3E%3Cpath fill='%23654321' d='M384 64l-128 128 32 32 96-96 32 32-96 96 32 32 128-128-32-32-64 64z'/%3E%3C/svg%3E");
+}
+
+.gi-save-arrow {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Cpath fill='%234A2000' d='M128 64v384h256V64H128zm64 64h128v64H192V128z'/%3E%3Cpath fill='%23654321' d='M256 256l-64 64h128l-64-64z'/%3E%3C/svg%3E");
+}
+
+.gi-scroll-unfurled {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Cpath fill='%23D2B48C' d='M64 128v256c0 32 16 48 48 48h288c32 0 48-16 48-48V128c0-32-16-48-48-48H112c-32 0-48 16-48 48z'/%3E%3Cpath fill='%234A2000' d='M128 192h256v32H128zm0 64h256v32H128zm0 64h192v32H128z'/%3E%3C/svg%3E");
+}
+
+.gi-knapsack {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Cpath fill='%234A2000' d='M192 64v64h128V64c0-32-32-64-64-64s-64 32-64 64z'/%3E%3Cpath fill='%23654321' d='M128 128v320c0 32 32 64 64 64h128c32 0 64-32 64-64V128H128z'/%3E%3C/svg%3E");
+}
+
+.gi-shop {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Cpath fill='%234A2000' d='M64 128l32-64h320l32 64v64L416 224v224H96V224l-32-32V128z'/%3E%3Cpath fill='%23654321' d='M128 256h256v32H128zm0 64h256v32H128zm0 64h256v32H128z'/%3E%3C/svg%3E");
+}
+
+.gi-level-up {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Cpath fill='%23D4AF37' d='M256 64l-96 96h64v192h64V160h64L256 64z'/%3E%3Cpath fill='%234A2000' d='M128 384h256v64H128z'/%3E%3C/svg%3E");
+}
+
+.gi-night-sleep {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Cpath fill='%234A2000' d='M256 64c-106 0-192 86-192 192s86 192 192 192c32 0 62-8 88-22-88-24-152-104-152-194s64-170 152-194c-26-14-56-22-88-22z'/%3E%3C/svg%3E");
+}
+
+.gi-magnifying-glass {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Ccircle cx='208' cy='208' r='144' fill='none' stroke='%234A2000' stroke-width='32'/%3E%3Cpath fill='%23654321' d='M338 338l116 116-22 22-116-116z'/%3E%3C/svg%3E");
+}
+
+.gi-magic-swirl {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Cpath fill='%23654321' d='M256 64c-106 0-192 86-192 192s86 192 192 192 192-86 192-192S362 64 256 64z'/%3E%3Cpath fill='%23D4AF37' d='M256 128c-70 0-128 58-128 128s58 128 128 128 128-58 128-128-58-128-128-128z'/%3E%3C/svg%3E");
+}
+
+.gi-holy-symbol {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Cpath fill='%23D4AF37' d='M256 64v128h-64v64h64v192h64V256h64v-64h-64V64h-64z'/%3E%3C/svg%3E");
+}
+
+.gi-prayer {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Cpath fill='%234A2000' d='M192 128v128l64 32 64-32V128c0-32-32-64-64-64s-64 32-64 64z'/%3E%3Cpath fill='%23654321' d='M128 288v160h256V288l-128 64-128-64z'/%3E%3C/svg%3E");
+}
+
+.gi-sword-brandish {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Cpath fill='%234A2000' d='M384 64L128 320l32 32 32-32 160-160 32 32L128 448l64 64 320-256-128-192z'/%3E%3Cpath fill='%23654321' d='M352 96l32 32-224 224-32-32L352 96z'/%3E%3C/svg%3E");
+}
+
+.gi-run {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Cpath fill='%234A2000' d='M256 64c-32 0-64 32-64 64v64l64 32 64-32v-64c0-32-32-64-64-64z'/%3E%3Cpath fill='%23654321' d='M192 224v128l64 96 64-96V224l-64-32-64 32z'/%3E%3C/svg%3E");
+}
+
+.gi-lightning-bolt {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Cpath fill='%23D4AF37' d='M320 64L192 256h96L224 448l128-192h-96L320 64z'/%3E%3C/svg%3E");
+}
+
+.gi-scroll-quill {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Cpath fill='%23D2B48C' d='M64 128v320h384V128H64z'/%3E%3Cpath fill='%234A2000' d='M96 192h224v32H96zm0 64h288v32H96zm0 64h256v32H96z'/%3E%3Cpath fill='%23654321' d='M384 64l64 64-32 32-64-64z'/%3E%3C/svg%3E");
+}
+
+.gi-check-mark {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Cpath fill='%23059669' d='M448 128L192 384 64 256l45-45 83 83 211-211z'/%3E%3C/svg%3E");
+}
+
+.gi-cancel {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Cpath fill='%23DC2626' d='M256 64C150 64 64 150 64 256s86 192 192 192 192-86 192-192S362 64 256 64zm96 288l-32 32-64-64-64 64-32-32 64-64-64-64 32-32 64 64 64-64 32 32-64 64 64 64z'/%3E%3C/svg%3E");
+}
+
+.gi-telescope {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Cpath fill='%234A2000' d='M64 256l128-64v128L64 256zm128-64l192-96v192l-192 96V192z'/%3E%3Cpath fill='%23654321' d='M384 96l64 32v256l-64 32V96z'/%3E%3C/svg%3E");
+}
+
+.gi-drink-me {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Cpath fill='%234A2000' d='M192 64v64h128V64h-128z'/%3E%3Cpath fill='%23654321' d='M160 128v288c0 32 32 64 64 64h64c32 0 64-32 64-64V128H160z'/%3E%3Cpath fill='%23DC2626' d='M192 160h128v128H192z'/%3E%3C/svg%3E");
+}
+
+.gi-sword {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Cpath fill='%234A2000' d='M256 32l-32 32v352l32 32 32-32V64l-32-32z'/%3E%3Cpath fill='%23654321' d='M224 416h64v64h-64zm-32-32h128v32H192z'/%3E%3C/svg%3E");
+}
+
+.gi-chest-armor {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Cpath fill='%234A2000' d='M128 128v256c0 32 32 64 64 64h128c32 0 64-32 64-64V128H128z'/%3E%3Cpath fill='%23654321' d='M160 160h192v32H160zm0 64h192v32H160z'/%3E%3C/svg%3E");
+}
+
+.gi-helmet {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Cpath fill='%234A2000' d='M256 64C186 64 128 122 128 192v128h256V192c0-70-58-128-128-128z'/%3E%3Cpath fill='%23654321' d='M96 320v64h320v-64H96z'/%3E%3C/svg%3E");
+}
+
+.gi-gauntlet {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Cpath fill='%234A2000' d='M128 128v128h64v128h64V256h64v128h64V256h64V128H128z'/%3E%3Cpath fill='%23654321' d='M160 384h192v64H160z'/%3E%3C/svg%3E");
+}
+
+.gi-leg-armor {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Cpath fill='%234A2000' d='M160 64v384h64V64h-64zm128 0v384h64V64h-64z'/%3E%3Cpath fill='%23654321' d='M128 448h256v32H128z'/%3E%3C/svg%3E");
+}
+
+.gi-boot-prints {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Cpath fill='%234A2000' d='M128 256v128c0 32 32 64 64 64h128c32 0 64-32 64-64V256H128z'/%3E%3Cpath fill='%23654321' d='M160 448h192v32H160zm-32-224h256v32H128z'/%3E%3C/svg%3E");
+}
+
+.gi-gem-pendant {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Cpath fill='%23D4AF37' d='M256 64l-64 128 64 64 64-64L256 64z'/%3E%3Cpath fill='%234A2000' d='M192 192l64 192 64-192-64-64-64 64z'/%3E%3C/svg%3E");
+}
+
+.gi-diamond-ring {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Ccircle cx='256' cy='256' r='192' fill='none' stroke='%23D4AF37' stroke-width='32'/%3E%3Cpath fill='%234A2000' d='M256 128l-32 64 32 32 32-32-32-64z'/%3E%3C/svg%3E");
+}
+
+.gi-round-shield {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Ccircle cx='256' cy='256' r='192' fill='%234A2000'/%3E%3Ccircle cx='256' cy='256' r='128' fill='%23654321'/%3E%3Ccircle cx='256' cy='256' r='64' fill='%23D4AF37'/%3E%3C/svg%3E");
+}
+
+.gi-bow-arrow {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Cpath fill='%234A2000' d='M64 128Q64 256 64 384q128-128 256-128'/%3E%3Cpath fill='%23654321' d='M320 224l128 32-128 32 32-32-32-32z'/%3E%3C/svg%3E");
+}
+
+.gi-dagger-cross {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Cpath fill='%234A2000' d='M256 32l-16 16v352l16 16 16-16V48l-16-16z'/%3E%3Cpath fill='%23654321' d='M240 416h32v64h-32zm-16-32h64v32h-64z'/%3E%3C/svg%3E");
+}
+
+.gi-battle-axe {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Cpath fill='%234A2000' d='M256 32v352h32V32h-32z'/%3E%3Cpath fill='%23654321' d='M128 128v128l128-64-128-64zm256 0l-128 64 128 64V128z'/%3E%3C/svg%3E");
+}
+
+.gi-armor-vest {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Cpath fill='%234A2000' d='M128 96v320c0 32 32 64 64 64h128c32 0 64-32 64-64V96L256 128 128 96z'/%3E%3Cpath fill='%23654321' d='M160 128h192v32H160z'/%3E%3C/svg%3E");
+}
+
+.gi-wrench {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Cpath fill='%234A2000' d='M128 128l128 128-32 32 128 128 64-64-128-128 32-32-128-128-64 64z'/%3E%3Cpath fill='%23654321' d='M352 352l32 32-32 32-32-32z'/%3E%3C/svg%3E");
+}
+
+.gi-quiver {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Cpath fill='%234A2000' d='M192 64v384h128V64H192z'/%3E%3Cpath fill='%23654321' d='M224 96h64v32h-64zm0 64h64v32h-64zm0 64h64v32h-64z'/%3E%3C/svg%3E");
+}
+
+.gi-extra-time {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Ccircle cx='256' cy='256' r='192' fill='none' stroke='%234A2000' stroke-width='32'/%3E%3Cpath fill='%23654321' d='M256 128v128l96 96 32-32-96-96V128h-32z'/%3E%3C/svg%3E");
+}
 
 
 /* Specific button colors for combat/shop/etc. */
