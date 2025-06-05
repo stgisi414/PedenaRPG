@@ -1,6 +1,7 @@
 // Import game data and assets
 import { gameData, GameDataManager } from './assets/game-data-loader.js';
 import { QuestCharacterGenerator } from './assets/quest-character-names.js';
+import { QuestTaskGenerator } from './assets/quest-tasks.js';
 import { CharacterManager } from './game-logic/character-manager.js';
 import { GameActions } from './game-logic/game-actions.js';
 import { LocationManager } from './game-logic/location-manager.js';
@@ -1412,84 +1413,19 @@ async function generateQuest() {
         player.quests = [];
     }
 
-    const questPrompt = `
-Generate a quest for ${player.name}, a level ${player.level} ${player.class} in ${player.currentLocation}.
-
-You must respond with ONLY valid JSON in this exact format:
-{
-    "title": "Quest Title",
-    "description": "Detailed quest description (2-3 sentences)",
-    "objective": "Clear objective statement",
-    "rewards": {
-        "gold": 50-500,
-        "experience": 25-200,
-        "items": ["item1", "item2"] or []
-    },
-    "difficulty": "Easy/Medium/Hard/Very Hard",
-    "estimatedTime": "time description",
-    "location": "quest location",
-    "questGiver": "NPC name or source",
-    "requirements": ["requirement1", "requirement2"] or []
-}
-
-Quest should be appropriate for level ${player.level}. 
-Reward scaling: Level 1-3: 50-150 gold, Level 4-6: 100-300 gold, Level 7+: 200-500 gold.
-Make it engaging and fantasy-appropriate.
-`;
-
     try {
-        const response = await callGeminiAPI(questPrompt, 0.7, 500, false);
-
-        if (!response) {
-            displayMessage("No new quests are available at this time.", 'info');
-            return;
-        }
-
-        // Extract JSON from response
-        let questData;
-        try {
-            const cleanResponse = response.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-            const jsonMatch = cleanResponse.match(/\{[\s\S]*\}/);
-            if (jsonMatch) {
-                questData = JSON.parse(jsonMatch[0]);
-            } else {
-                throw new Error("No JSON found in response");
-            }
-        } catch (parseError) {
-            console.error("Failed to parse quest JSON:", parseError, "Raw response:", response);
-            // Fallback to old system
-            await generateQuestFallback();
-            return;
-        }
-
-        // Validate required fields
-        if (!questData.title || !questData.description) {
-            console.error("Invalid quest data structure:", questData);
-            await generateQuestFallback();
-            return;
-        }
-
-        // Create quest object with proper defaults
-        const questId = Date.now().toString();
-        const quest = {
-            id: questId,
-            title: questData.title,
-            description: questData.description,
-            objective: questData.objective || questData.description,
-            completed: false,
-            rewards: {
-                gold: Math.max(50, parseInt(questData.rewards?.gold) || (50 + player.level * 25)),
-                experience: Math.max(25, parseInt(questData.rewards?.experience) || (25 + player.level * 15)),
-                items: questData.rewards?.items || []
-            },
-            difficulty: questData.difficulty || 'Medium',
-            estimatedTime: questData.estimatedTime || 'Unknown',
-            location: questData.location || player.currentLocation,
-            questGiver: questData.questGiver || 'Mysterious Stranger',
-            requirements: questData.requirements || [],
-            dateCreated: new Date().toLocaleDateString()
+        // Generate quest context
+        const gameContext = {
+            currentLocation: player.currentLocation,
+            playerLevel: player.level,
+            playerClass: player.class,
+            recentQuests: player.quests.slice(-5) // Last 5 quests for variety
         };
 
+        // Use the new quest generation system
+        const quest = QuestTaskGenerator.generateQuest(player, gameContext);
+
+        // Add to player's quest list
         player.quests.push(quest);
         saveGame();
         updateQuestButton();
@@ -1497,8 +1433,16 @@ Make it engaging and fantasy-appropriate.
         // Display quest information
         displayMessage(`New quest available: ${quest.title}`, 'success');
         displayMessage(quest.description, 'info');
+        displayMessage(`Objective: ${quest.objective}`, 'info');
         displayMessage(`Rewards: ${quest.rewards.gold} gold, ${quest.rewards.experience} XP${quest.rewards.items.length > 0 ? ', ' + quest.rewards.items.join(', ') : ''}`, 'info');
         displayMessage(`Difficulty: ${quest.difficulty} | Estimated Time: ${quest.estimatedTime}`, 'info');
+        
+        if (quest.complications) {
+            displayMessage(`Complication: ${quest.complications}`, 'info');
+        }
+
+        // Display quest giver and location
+        displayMessage(`Quest Giver: ${quest.questGiver} | Location: ${quest.location}`, 'info');
 
         // Refresh quest display if it's open
         const questInterface = document.getElementById('quest-interface');
