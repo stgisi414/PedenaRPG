@@ -2287,7 +2287,12 @@ function displayQuests() {
                     <div class="parchment-box p-4">
                         <div class="flex justify-between items-start mb-2">
                             <h6 class="font-bold text-lg">${quest.title}</h6>
-                            <span class="text-xs px-2 py-1 rounded bg-yellow-200 text-yellow-800">${quest.difficulty || 'Medium'}</span>
+                            <div class="flex items-center gap-2">
+                                <span class="text-xs px-2 py-1 rounded bg-yellow-200 text-yellow-800">${quest.difficulty || 'Medium'}</span>
+                                <button onclick="abandonQuest('${quest.id}')" class="btn-parchment text-xs py-1 px-2 bg-red-600 hover:bg-red-700 text-white" title="Abandon this quest">
+                                    <i class="gi gi-cancel mr-1"></i>Abandon
+                                </button>
+                            </div>
                         </div>
                         <p class="text-sm text-amber-700 mb-2">${quest.description}</p>
                         <p class="text-xs text-blue-600 mb-2"><strong>Objective:</strong> ${quest.objective || quest.description}</p>
@@ -3215,6 +3220,53 @@ function resetQuestPagination() {
     questPagination.completedQuestsPage = 0;
 }
 
+// Abandon quest function
+function abandonQuest(questId) {
+    if (!player.quests || player.quests.length === 0) {
+        displayMessage("No quests to abandon.", 'error');
+        return;
+    }
+
+    const questIndex = player.quests.findIndex(quest => quest.id === questId);
+    if (questIndex === -1) {
+        displayMessage("Quest not found.", 'error');
+        return;
+    }
+
+    const quest = player.quests[questIndex];
+    
+    if (quest.completed) {
+        displayMessage("Cannot abandon a completed quest.", 'error');
+        return;
+    }
+
+    if (confirm(`Are you sure you want to abandon "${quest.title}"? This action cannot be undone.`)) {
+        // Remove the quest from the player's quest list
+        player.quests.splice(questIndex, 1);
+        
+        displayMessage(`Abandoned quest: ${quest.title}`, 'info');
+        
+        // Reset quest pagination since active quests changed
+        resetQuestPagination();
+        
+        // Update quest button
+        updateQuestButton();
+        
+        // Refresh quest display if it's open
+        const questInterface = document.getElementById('quest-interface');
+        if (questInterface && !questInterface.classList.contains('hidden')) {
+            displayQuests();
+        }
+        
+        // Save game state
+        saveGame();
+        
+        // Add to conversation history
+        addToConversationHistory('assistant', `${player.name} abandoned the quest: ${quest.title}`);
+        saveConversationHistory();
+    }
+}
+
 // Make required functions globally available for TransactionMiddleware and other modules
     window.callGeminiAPI = callGeminiAPI;
     window.updateGold = updateGold;
@@ -3239,6 +3291,7 @@ function resetQuestPagination() {
     window.displayQuests = displayQuests;
     window.changeCompletedQuestsPage = changeCompletedQuestsPage;
     window.changeInventoryPage = changeInventoryPage;
+    window.abandonQuest = abandonQuest;
 
 
     // <<< --- ADD INVENTORY EVENT LISTENER HERE --- >>>
