@@ -2654,9 +2654,9 @@ function displayQuests() {
                         <div class="flex justify-between items-center mt-3">
                             <div class="text-xs text-gray-600">
                                 Rewards: ${quest.rewards?.gold || 50} gold, ${quest.rewards?.experience || 25} XP
-                                ${quest.rewards?.items?.length > 0 ? `, ${quest.rewards.items.join(', ')}` : ''}
+                                ${quest.rewards?.items?.length > 0 ? `, ${quest.rewards.items.map(item => stripRichTextFormatting(item)).join(', ')}` : ''}
                             </div>
-                        </div>
+                        </div></div>
                     </div>
                 `;
             });
