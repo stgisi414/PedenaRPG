@@ -712,8 +712,9 @@ Please respond as the DM, maintaining consistency with the conversation history 
 You MUST use rich text formatting in your responses. Apply multiple effects per response for immersion:
 
 TEXT FORMATTING (use frequently):
-- **bold text** or __bold text__ for emphasis, important words, names
-- *italic text* or _italic text_ for thoughts, whispers, dramatic effect
+- **bold text** for emphasis, important words, names
+- *italic text* for thoughts, whispers, dramatic effect, inner voice
+- __underline text__ for emphasis, important locations, special items
 - ~~strikethrough~~ for crossed out, damaged, or negated text
 
 COLORS (use liberally to paint the scene):
@@ -725,6 +726,7 @@ COLORS (use liberally to paint the scene):
 - {silver:text} for metallic, ethereal, moonlight, steel
 - {crimson:text} for intense red, battle, passion
 - {emerald:text} for vibrant green, gems, deep forest
+- {brown:text} for earth, wood, leather, natural materials
 
 SPECIAL FONTS (use for atmosphere):
 - [medieval:text] for formal announcements, nobility, official documents
@@ -3885,9 +3887,12 @@ function processRichText(text, messageType = null) {
     processed = processed.replace(/\*\*(.*?)\*\*/g, '<span class="rt-bold">$1</span>');
     processed = processed.replace(/__(.*?)__/g, '<span class="rt-bold">$1</span>');
     
-    // Italic: *text* or _text_
-    processed = processed.replace(/\*(.*?)\*/g, '<span class="rt-italic">$1</span>');
-    processed = processed.replace(/_(.*?)_/g, '<span class="rt-italic">$1</span>');
+    // Italic: *text* or _text_ (but not if already processed as bold)
+    processed = processed.replace(/(?<!\*)\*([^*]+?)\*(?!\*)/g, '<span class="rt-italic">$1</span>');
+    processed = processed.replace(/(?<!_)_([^_]+?)_(?!_)/g, '<span class="rt-italic">$1</span>');
+    
+    // Underline: __text__ (single underscore for underline when not used for bold)
+    processed = processed.replace(/__([^_]+?)__/g, '<span class="rt-underline">$1</span>');
     
     // Strikethrough: ~~text~~
     processed = processed.replace(/~~(.*?)~~/g, '<span class="rt-strikethrough">$1</span>');
@@ -3902,6 +3907,7 @@ function processRichText(text, messageType = null) {
     processed = processed.replace(/\{silver:(.*?)\}/g, '<span class="rt-color-silver">$1</span>');
     processed = processed.replace(/\{crimson:(.*?)\}/g, '<span class="rt-color-crimson">$1</span>');
     processed = processed.replace(/\{emerald:(.*?)\}/g, '<span class="rt-color-emerald">$1</span>');
+    processed = processed.replace(/\{brown:(.*?)\}/g, '<span class="rt-color-brown">$1</span>');
     
     // Handle contextual color words - map to appropriate colors
     processed = processed.replace(/\{magical\}/g, '<span class="rt-color-purple">magical</span>');
