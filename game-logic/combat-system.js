@@ -158,7 +158,7 @@ Focus on terrain, lighting, and immediate surroundings that could affect the fig
             const response = await window.callGeminiAPI(actionPrompt, 0.8, 500, false);
             const actionResult = this.parseActionResponse(response, actionType);
 
-            await this.applyActionResults(actionResult, player, enemy, 'player');
+            await this.applyActionResults(actionResult, actualPlayer, enemy, 'player');
 
             // Check for combat end
             if (this.checkCombatEnd(player, enemy)) {
@@ -284,13 +284,20 @@ Rules:
     }
 
     static async processEnemyTurn(player, enemy) {
-        const enemyPrompt = this.buildEnemyActionPrompt(player, enemy);
+        // Always use the actual player object from global reference
+        const actualPlayer = this.getPlayerReference();
+        if (!actualPlayer) {
+            console.error("CombatSystem: Could not get player reference for enemy turn processing");
+            return;
+        }
+        
+        const enemyPrompt = this.buildEnemyActionPrompt(actualPlayer, enemy);
 
         try {
             const response = await window.callGeminiAPI(enemyPrompt, 0.8, 500, false);
             const actionResult = this.parseActionResponse(response, 'enemy_action');
 
-            await this.applyActionResults(actionResult, player, enemy, 'enemy');
+            await this.applyActionResults(actionResult, actualPlayer, enemy, 'enemy');
 
             // Check for combat end
             if (this.checkCombatEnd(player, enemy)) {
@@ -455,16 +462,25 @@ Make the enemy action feel intelligent and appropriate for the creature type.
             if (typeof window.displayMessage === 'function') {
                 window.displayMessage(`${enemy.name}'s turn...`, 'combat');
             }
-            setTimeout(() => this.processEnemyTurn(player, enemy), 1500);
+            // Always use the actual player object from global reference
+            const actualPlayer = this.getPlayerReference();
+            setTimeout(() => this.processEnemyTurn(actualPlayer, enemy), 1500);
         }
     }
 
     static checkCombatEnd(player, enemy) {
-        if (player.hp <= 0) {
-            this.endCombat('defeat', player, enemy);
+        // Always use the actual player object from global reference
+        const actualPlayer = this.getPlayerReference();
+        if (!actualPlayer) {
+            console.error("CombatSystem: Could not get player reference for combat end check");
+            return false;
+        }
+        
+        if (actualPlayer.hp <= 0) {
+            this.endCombat('defeat', actualPlayer, enemy);
             return true;
         } else if (enemy.currentHp <= 0) {
-            this.endCombat('victory', player, enemy);
+            this.endCombat('victory', actualPlayer, enemy);
             return true;
         }
         return false;
@@ -654,8 +670,13 @@ If no enemy is mentioned, suggest an appropriate one for the location.
     static async handleCombatCommand(command) {
         if (!this.combatState.isActive) return false;
 
-        const player = this.getPlayerReference();
+        const actualPlayer = this.getPlayerReference();
         const enemy = this.combatState.currentEnemy;
+
+        if (!actualPlayer) {
+            console.error("CombatSystem: Could not get player reference for combat command");
+            return false;
+        }
 
         // Check if it's player's turn
         if (this.combatState.turnOrder[this.combatState.currentTurn] !== 'player') {
@@ -683,7 +704,7 @@ If no enemy is mentioned, suggest an appropriate one for the location.
             actionType = this.combatActions.EXAMINE;
         }
 
-        await this.processPlayerAction(player, enemy, actionType, command);
+        await this.processPlayerAction(actualPlayer, enemy, actionType, command);
         return true;
     }
 
