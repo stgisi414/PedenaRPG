@@ -1398,6 +1398,7 @@ Make it engaging and fantasy-appropriate.
 
         player.quests.push(quest);
         saveGame();
+        updateQuestButton();
 
         // Display quest information
         displayMessage(`New quest available: ${quest.title}`, 'success');
@@ -1443,6 +1444,7 @@ Make it engaging and appropriate for a fantasy RPG setting.
         displayMessage(`New quest available: ${quest.title}`, 'success');
         displayMessage(questDescription, 'quest');
         saveGame();
+        updateQuestButton();
     } else {
         displayMessage("No new quests are available at this time.", 'info');
     }
@@ -2161,6 +2163,131 @@ function displayLevelUpRewards(progression, oldLevel) {
         }
     }
 }
+// Update quest button text based on available quests
+function updateQuestButton() {
+    const questBtn = document.getElementById('new-quest-btn');
+    if (!questBtn || !player.quests) return;
+
+    const activeQuests = player.quests.filter(q => !q.completed);
+    const completedQuests = player.quests.filter(q => q.completed);
+    
+    if (activeQuests.length > 0) {
+        questBtn.innerHTML = `<i class="gi gi-scroll-unfurled mr-2"></i>Quests (${activeQuests.length})`;
+        questBtn.title = `${activeQuests.length} active quest(s), ${completedQuests.length} completed`;
+    } else if (completedQuests.length > 0) {
+        questBtn.innerHTML = `<i class="gi gi-scroll-unfurled mr-2"></i>Quest Log`;
+        questBtn.title = `${completedQuests.length} completed quest(s)`;
+    } else {
+        questBtn.innerHTML = `<i class="gi gi-scroll-unfurled mr-2"></i>New Quest`;
+        questBtn.title = 'Generate a new quest';
+    }
+}
+
+// Display quests interface
+function displayQuests() {
+    // Hide other interfaces
+    const interfacesToHide = ['combat-interface', 'shop-interface', 'inventory-interface', 'skills-interface', 'background-interface', 'progression-interface'];
+    interfacesToHide.forEach(id => {
+        const element = document.getElementById(id);
+        if (element) element.classList.add('hidden');
+    });
+
+    const questInterface = document.getElementById('quest-interface');
+    if (questInterface) {
+        questInterface.classList.remove('hidden');
+    }
+
+    const questListDisplay = document.getElementById('quest-list');
+    if (!questListDisplay) return;
+
+    let questHTML = '';
+
+    if (!player.quests || player.quests.length === 0) {
+        questHTML = `
+            <div class="text-center py-8">
+                <p class="text-gray-600 mb-4">No quests available yet.</p>
+                <button onclick="generateQuest()" class="btn-parchment">
+                    <i class="gi gi-scroll-unfurled mr-2"></i>Generate New Quest
+                </button>
+            </div>
+        `;
+    } else {
+        const activeQuests = player.quests.filter(q => !q.completed);
+        const completedQuests = player.quests.filter(q => q.completed);
+
+        if (activeQuests.length > 0) {
+            questHTML += `
+                <div class="mb-6">
+                    <h5 class="text-xl font-bold mb-3 text-yellow-600">Active Quests (${activeQuests.length})</h5>
+                    <div class="grid grid-cols-1 gap-4">
+            `;
+            
+            activeQuests.forEach((quest, index) => {
+                questHTML += `
+                    <div class="parchment-box p-4">
+                        <div class="flex justify-between items-start mb-2">
+                            <h6 class="font-bold text-lg">${quest.title}</h6>
+                            <span class="text-xs px-2 py-1 rounded bg-yellow-200 text-yellow-800">${quest.difficulty || 'Medium'}</span>
+                        </div>
+                        <p class="text-sm text-amber-700 mb-2">${quest.description}</p>
+                        <p class="text-xs text-blue-600 mb-2"><strong>Objective:</strong> ${quest.objective || quest.description}</p>
+                        ${quest.location ? `<p class="text-xs text-green-600 mb-2"><strong>Location:</strong> ${quest.location}</p>` : ''}
+                        ${quest.questGiver ? `<p class="text-xs text-purple-600 mb-2"><strong>Quest Giver:</strong> ${quest.questGiver}</p>` : ''}
+                        <div class="flex justify-between items-center mt-3">
+                            <div class="text-xs text-gray-600">
+                                Rewards: ${quest.rewards?.gold || 50} gold, ${quest.rewards?.experience || 25} XP
+                                ${quest.rewards?.items?.length > 0 ? `, ${quest.rewards.items.join(', ')}` : ''}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            questHTML += `
+                    </div>
+                </div>
+            `;
+        }
+
+        if (completedQuests.length > 0) {
+            questHTML += `
+                <div class="mb-6">
+                    <h5 class="text-xl font-bold mb-3 text-green-600">Completed Quests (${completedQuests.length})</h5>
+                    <div class="grid grid-cols-1 gap-3">
+            `;
+            
+            completedQuests.forEach(quest => {
+                questHTML += `
+                    <div class="parchment-box p-3 bg-green-50">
+                        <div class="flex justify-between items-center">
+                            <h6 class="font-bold">${quest.title}</h6>
+                            <span class="text-xs px-2 py-1 rounded bg-green-200 text-green-800">✓ Completed</span>
+                        </div>
+                        <p class="text-sm text-gray-600 mt-1">${quest.description}</p>
+                        <p class="text-xs text-gray-500 mt-1">Completed: ${quest.dateCompleted || 'Recently'}</p>
+                    </div>
+                `;
+            });
+            
+            questHTML += `
+                    </div>
+                </div>
+            `;
+        }
+
+        // Add generate new quest button
+        questHTML += `
+            <div class="text-center">
+                <button onclick="generateQuest()" class="btn-parchment bg-blue-600 hover:bg-blue-700">
+                    <i class="gi gi-scroll-unfurled mr-2"></i>Generate New Quest
+                </button>
+            </div>
+        `;
+    }
+
+    questListDisplay.innerHTML = questHTML;
+}
+
 function displayCharacterProgression() {
     if (!player.classProgression) {
         displayMessage("Character progression not available.", 'error');
@@ -2922,7 +3049,8 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     document.getElementById('new-quest-btn')?.addEventListener('click', () => {
-        if (player.quests && player.quests.filter(q => !q.completed).length > 0) {
+        // Always show quest interface if quests exist, allow generating new ones
+        if (player.quests && player.quests.length > 0) {
             displayQuests();
         } else {
             generateQuest();
