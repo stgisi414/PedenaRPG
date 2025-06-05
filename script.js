@@ -2599,10 +2599,36 @@ function displayQuests() {
             `;
 
             activeQuests.forEach((quest, index) => {
+                // Clean quest text by removing rich text formatting
+                const cleanTitle = quest.title ? quest.title.replace(/\{[^:]+:[^}]+\}/g, (match) => {
+                    const content = match.match(/\{[^:]+:([^}]+)\}/);
+                    return content ? content[1] : match;
+                }).replace(/\*\*(.*?)\*\*/g, '$1').replace(/\*(.*?)\*/g, '$1').replace(/\[\w+:(.*?)\]/g, '$1').replace(/\{\{[\w-]+:(.*?)\}\}/g, '$1') : '';
+
+                const cleanDescription = quest.description ? quest.description.replace(/\{[^:]+:[^}]+\}/g, (match) => {
+                    const content = match.match(/\{[^:]+:([^}]+)\}/);
+                    return content ? content[1] : match;
+                }).replace(/\*\*(.*?)\*\*/g, '$1').replace(/\*(.*?)\*/g, '$1').replace(/\[\w+:(.*?)\]/g, '$1').replace(/\{\{[\w-]+:(.*?)\}\}/g, '$1') : '';
+
+                const cleanObjective = quest.objective ? quest.objective.replace(/\{[^:]+:[^}]+\}/g, (match) => {
+                    const content = match.match(/\{[^:]+:([^}]+)\}/);
+                    return content ? content[1] : match;
+                }).replace(/\*\*(.*?)\*\*/g, '$1').replace(/\*(.*?)\*/g, '$1').replace(/\[\w+:(.*?)\]/g, '$1').replace(/\{\{[\w-]+:(.*?)\}\}/g, '$1') : '';
+
+                const cleanLocation = quest.location ? quest.location.replace(/\{[^:]+:[^}]+\}/g, (match) => {
+                    const content = match.match(/\{[^:]+:([^}]+)\}/);
+                    return content ? content[1] : match;
+                }).replace(/\*\*(.*?)\*\*/g, '$1').replace(/\*(.*?)\*/g, '$1').replace(/\[\w+:(.*?)\]/g, '$1').replace(/\{\{[\w-]+:(.*?)\}\}/g, '$1') : '';
+
+                const cleanQuestGiver = quest.questGiver ? quest.questGiver.replace(/\{[^:]+:[^}]+\}/g, (match) => {
+                    const content = match.match(/\{[^:]+:([^}]+)\}/);
+                    return content ? content[1] : match;
+                }).replace(/\*\*(.*?)\*\*/g, '$1').replace(/\*(.*?)\*/g, '$1').replace(/\[\w+:(.*?)\]/g, '$1').replace(/\{\{[\w-]+:(.*?)\}\}/g, '$1') : '';
+
                 questHTML += `
                     <div class="parchment-box p-4">
                         <div class="flex justify-between items-start mb-2">
-                            <h6 class="font-bold text-lg">${quest.title}</h6>
+                            <h6 class="font-bold text-lg">${cleanTitle}</h6>
                             <div class="flex items-center gap-2">
                                 <span class="text-xs px-2 py-1 rounded bg-yellow-200 text-yellow-800">${quest.difficulty || 'Medium'}</span>
                                 <button onclick="abandonQuest('${quest.id}')" class="btn-parchment text-xs py-1 px-2 bg-red-600 hover:bg-red-700 text-white" title="Abandon this quest">
@@ -2610,10 +2636,10 @@ function displayQuests() {
                                 </button>
                             </div>
                         </div>
-                        <p class="text-sm text-amber-700 mb-2">${quest.description}</p>
-                        <p class="text-xs text-blue-600 mb-2"><strong>Objective:</strong> ${quest.objective || quest.description}</p>
-                        ${quest.location ? `<p class="text-xs text-green-600 mb-2"><strong>Location:</strong> ${quest.location}</p>` : ''}
-                        ${quest.questGiver ? `<p class="text-xs text-purple-600 mb-2"><strong>Quest Giver:</strong> ${quest.questGiver}</p>` : ''}
+                        <p class="text-sm text-amber-700 mb-2">${cleanDescription}</p>
+                        <p class="text-xs text-blue-600 mb-2"><strong>Objective:</strong> ${cleanObjective || cleanDescription}</p>
+                        ${cleanLocation ? `<p class="text-xs text-green-600 mb-2"><strong>Location:</strong> ${cleanLocation}</p>` : ''}
+                        ${cleanQuestGiver ? `<p class="text-xs text-purple-600 mb-2"><strong>Quest Giver:</strong> ${cleanQuestGiver}</p>` : ''}
                         <div class="flex justify-between items-center mt-3">
                             <div class="text-xs text-gray-600">
                                 Rewards: ${quest.rewards?.gold || 50} gold, ${quest.rewards?.experience || 25} XP
@@ -2646,13 +2672,24 @@ function displayQuests() {
             `;
 
             paginatedQuests.forEach(quest => {
+                // Clean quest text by removing rich text formatting
+                const cleanTitle = quest.title ? quest.title.replace(/\{[^:]+:[^}]+\}/g, (match) => {
+                    const content = match.match(/\{[^:]+:([^}]+)\}/);
+                    return content ? content[1] : match;
+                }).replace(/\*\*(.*?)\*\*/g, '$1').replace(/\*(.*?)\*/g, '$1').replace(/\[\w+:(.*?)\]/g, '$1').replace(/\{\{[\w-]+:(.*?)\}\}/g, '$1') : '';
+
+                const cleanDescription = quest.description ? quest.description.replace(/\{[^:]+:[^}]+\}/g, (match) => {
+                    const content = match.match(/\{[^:]+:([^}]+)\}/);
+                    return content ? content[1] : match;
+                }).replace(/\*\*(.*?)\*\*/g, '$1').replace(/\*(.*?)\*/g, '$1').replace(/\[\w+:(.*?)\]/g, '$1').replace(/\{\{[\w-]+:(.*?)\}\}/g, '$1') : '';
+
                 questHTML += `
                     <div class="parchment-box p-3 bg-green-50">
                         <div class="flex justify-between items-center">
-                            <h6 class="font-bold">${quest.title}</h6>
+                            <h6 class="font-bold">${cleanTitle}</h6>
                             <span class="text-xs px-2 py-1 rounded bg-green-200 text-green-800">✓ Completed</span>
                         </div>
-                        <p class="text-sm text-gray-600 mt-1">${quest.description}</p>
+                        <p class="text-sm text-gray-600 mt-1">${cleanDescription}</p>
                         <p class="text-xs text-gray-500 mt-1">Completed: ${quest.dateCompleted || 'Recently'}</p>
                     </div>
                 `;
