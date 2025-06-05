@@ -495,8 +495,8 @@ function displayMessage(message, type = 'info') {
         icon = '<i class="gi gi-scroll-quill mr-2"></i>';
     }
 
-    // Process rich text if enabled
-    const processedMessage = processRichText(message);
+    // Process rich text if enabled (exclude background and combat messages)
+    const processedMessage = processRichText(message, type);
     
     p.innerHTML = icon + processedMessage;
     gameOutput.appendChild(p);
@@ -3857,8 +3857,13 @@ function toggleRichText() {
     displayMessage(`Rich text styling ${richTextEnabled ? 'enabled' : 'disabled'}.`, 'info');
 }
 
-function processRichText(text) {
+function processRichText(text, messageType = null) {
     if (!richTextEnabled) return text;
+    
+    // Skip rich text processing for background generation and combat messages
+    if (messageType === 'background' || messageType === 'combat') {
+        return text;
+    }
     
     // Process markdown-like syntax for rich text
     let processed = text;
