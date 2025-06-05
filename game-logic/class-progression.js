@@ -745,6 +745,7 @@ export const spellDefinitions = {
     "Control Weather (Localized)": { level: 8, school: "Transmutation", castingTime: "10 minutes", range: "Self (5-mile radius)", damage: null, description: "Take control of the weather within 5 miles of you for 8 hours (localized effects)." },
     "Earthquake (Localized)": { level: 8, school: "Evocation", castingTime: "1 action", range: "500 feet", damage: "Varies", description: "Create a seismic disturbance in a 100-foot radius on the ground." },
     "Maze": { level: 8, school: "Conjuration", castingTime: "1 action", range: "60 feet", damage: null, description: "Banish a creature to a labyrinthine demiplane for up to 10 minutes." },
+    "Forcecage": { level: 8, school: "Evocation", castingTime: "1 action", range: "100 feet", damage: null, description: "Create an immobile, invisible, cube-shaped prison composed of magical force." },
 
     // Level 9 Spells (Adding 12 new for a total of 12)
     "Meteor Swarm": { level: 9, school: "Evocation", castingTime: "1 action", range: "1 mile", damage: "20d6 fire + 20d6 bludgeoning", description: "Blazing orbs of fire plummet to the ground at four different points you can see within range." },
