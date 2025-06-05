@@ -4012,6 +4012,100 @@ function getRelationshipColor(status) {
     return colors[status] || colors['neutral'];
 }
 
+function calculateEquipmentBonuses() {
+    const bonuses = { 
+        strength: 0, dexterity: 0, intelligence: 0, 
+        constitution: 0, wisdom: 0, charisma: 0, 
+        attack: 0, defense: 0, damage: 0 
+    };
+    
+    if (!player || !player.equipment) return bonuses;
+
+    Object.values(player.equipment).forEach(item => {
+        if (!item) return;
+        
+        // Check for stat bonuses
+        if (item.statBonus) {
+            Object.entries(item.statBonus).forEach(([stat, bonus]) => {
+                if (bonuses.hasOwnProperty(stat)) {
+                    bonuses[stat] += bonus;
+                }
+            });
+        }
+        
+        // Add defense bonus
+        if (item.defense) {
+            bonuses.defense += Number(item.defense) || 0;
+        }
+        
+        // Add damage bonus
+        if (item.damage) {
+            bonuses.damage += Number(item.damage) || 0;
+        }
+        
+        // Check for effects that provide stat bonuses
+        if (item.effects && Array.isArray(item.effects)) {
+            item.effects.forEach(effect => {
+                if (effect.includes('strength_boost')) bonuses.strength += 1;
+                if (effect.includes('dexterity_boost')) bonuses.dexterity += 1;
+                if (effect.includes('intelligence_boost')) bonuses.intelligence += 1;
+                if (effect.includes('constitution_boost')) bonuses.constitution += 1;
+                if (effect.includes('wisdom_boost')) bonuses.wisdom += 1;
+                if (effect.includes('charisma_boost')) bonuses.charisma += 1;
+            });
+        }
+    });
+    
+    return bonuses;
+}
+
+function buildStatsGrid(baseStats, equipmentBonuses) {
+    let gridHTML = '<div class="grid grid-cols-1 gap-1 text-sm">';
+    const statNames = ['strength', 'dexterity', 'intelligence', 'constitution', 'wisdom', 'charisma'];
+
+    statNames.forEach(statName => {
+        const baseStatValue = baseStats[statName] || 10;
+        const equipBonusValue = equipmentBonuses[statName] || 0;
+        const totalStat = baseStatValue + equipBonusValue;
+        const modifier = Math.floor((totalStat - 10) / 2);
+        const modifierSign = modifier >= 0 ? '+' : '';
+        const statDisplayName = statName.charAt(0).toUpperCase() + statName.slice(1);
+
+        gridHTML += `
+            <div class="flex justify-between items-center py-1 border-b border-amber-700/20">
+                <span class="font-semibold">${statDisplayName}:</span>
+                <div class="text-right">
+                    <span class="font-bold">${totalStat}</span>
+                    <span class="text-xs text-amber-600">(${modifierSign}${modifier})</span>
+                    ${equipBonusValue !== 0 ? `<span class="text-xs text-blue-500 ml-1">[${equipBonusValue > 0 ? '+' : ''}${equipBonusValue} equip]</span>` : ''}
+                </div>
+            </div>
+        `;
+    });
+    
+    // Add combat stats if available in equipmentBonuses
+    if (equipmentBonuses.defense > 0) {
+        gridHTML += `
+            <div class="flex justify-between items-center py-1 border-b border-amber-700/20">
+                <span class="font-semibold">Armor Bonus:</span>
+                <span class="font-bold">+${equipmentBonuses.defense}</span>
+            </div>
+        `;
+    }
+    
+    if (equipmentBonuses.damage > 0) {
+        gridHTML += `
+            <div class="flex justify-between items-center py-1 border-b border-amber-700/20">
+                <span class="font-semibold">Damage Bonus:</span>
+                <span class="font-bold">+${equipmentBonuses.damage}</span>
+            </div>
+        `;
+    }
+
+    gridHTML += '</div>';
+    return gridHTML;
+}
+
 // Item action functions
 function equipItem(itemIndex) {
     // --- Start of Debugging Logs ---
@@ -4267,7 +4361,14 @@ function displayCharacterBackground() {
     if (player.relationships && Object.keys(player.relationships).length > 0) {
         relationshipsHTML = '<div class="grid grid-cols-1 gap-2 text-sm">';
         Object.entries(player.relationships).forEach(([npcName, relationship]) => {
-            const relationshipColor = getRelationshipColor(relationship.status);
+            // Add null check for relationship object
+            if (!relationship || typeof relationship !== 'object') {
+                console.warn(`Invalid relationship data for ${npcName}:`, relationship);
+                return; // Skip this relationship
+            }
+            
+            const status = relationship.status || 'neutral';
+            const relationshipColor = getRelationshipColor(status);
             const trust = relationship.trust || 0;
             const trustBar = Math.max(0, Math.min(100, trust));
 
@@ -4275,7 +4376,7 @@ function displayCharacterBackground() {
                 <div class="flex justify-between items-center py-2 border-b border-amber-700/20">
                     <div class="flex-grow">
                         <span class="font-semibold">${npcName}</span>
-                        <span class="text-xs ${relationshipColor} ml-2">(${relationship.status})</span>
+                        <span class="text-xs ${relationshipColor} ml-2">(${status})</span>
                         <div class="w-full bg-gray-200 rounded-full h-2 mt-1">
                             <div class="bg-green-500 h-2 rounded-full" style="width: ${trustBar}%"></div>
                         </div>
