@@ -24,7 +24,16 @@ export class CombatSystem {
         TACTICAL_MOVE: 'tactical_move'
     };
 
-    static async initiateCombat(player, enemy, environment = null) {
+    static async initiateCombat(playerInstance, enemy, environment = null) {
+        console.log(`[CS_INIT] initiateCombat received playerInstance: HP=<span class="math-inline">${playerInstance.hp}/${playerInstance.maxHp}</span>`);
+
+        if (window.player) {
+            console.log(`[CS_INIT] At START of initiateCombat, window.player (global) HP: <span class="math-inline">${window.player.hp}/${window.player.maxHp}</span>`);
+            console.log(`[CS_INIT] At START, is param player === window.player? ${player === window.player}`);
+        } else {
+            console.log(`[CS_INIT] At START of initiateCombat, window.player is not defined!`);
+        }
+
         this.combatState.isActive = true;
         this.combatState.currentEnemy = enemy;
         this.combatState.environment = environment;
@@ -45,14 +54,21 @@ export class CombatSystem {
         this.combatState.currentTurn = 0;
 
         // Generate dynamic combat environment
-        await this.generateCombatEnvironment(player, enemy, environment);
+        if (window.player) {
+            console.log(`[CS_INIT] BEFORE await generateCombatEnvironment: window.player (global) HP: <span class="math-inline">${window.player.hp}/${window.player.maxHp}</span>`);
+        }
+        await this.generateCombatEnvironment(playerInstance, enemy, environment);
+        if (window.player) {
+            // THIS IS THE CRITICAL CHECK:
+            console.log(`[CS_INIT] AFTER await generateCombatEnvironment: window.player (global) HP: <span class="math-inline">${window.player.hp}/${window.player.maxHp}</span>`);
+        }
 
         // Display combat start in main game output
-        this.displayCombatStart(player, enemy);
+        this.displayCombatStart(playerInstance, enemy);
 
         // Start first turn
         if (this.combatState.turnOrder[0] === 'enemy') {
-            setTimeout(() => this.processEnemyTurn(player, enemy), 2000);
+            setTimeout(() => this.processEnemyTurn(playerInstance, enemy), 2000);
         } else {
             this.displayPlayerTurnOptions();
         }
@@ -70,20 +86,27 @@ export class CombatSystem {
     static getPlayerReference() {
         // Try multiple ways to get the player object
         if (typeof window !== 'undefined' && window.player) {
+            console.log("[getPlayerReference] Condition 1: Returning 'window.player'.");
+            console.log(`[getPlayerReference] 'window.player' HP: ${window.player.hp}/${window.player.maxHp}`); // Log its state
             return window.player;
         }
+        // This 'player' would refer to a global variable 'player' if CombatSystem.js is not a module,
+        // or if 'player' is in its immediate outer scope. Unlikely to be the script.js module 'player'.
         if (typeof player !== 'undefined') {
+            console.log("[getPlayerReference] Condition 2: Returning 'player' (global or outer scope).");
+            console.log(`[getPlayerReference] 'player' (global or outer scope) HP: ${player.hp}/${player.maxHp}`); // Log its state
             return player;
         }
-        // Check if script.js has the player in global scope
         if (typeof window !== 'undefined' && window.globalThis && window.globalThis.player) {
+            console.log("[getPlayerReference] Condition 3: Returning 'window.globalThis.player'.");
+            console.log(`[getPlayerReference] 'window.globalThis.player' HP: ${window.globalThis.player.hp}/${window.globalThis.player.maxHp}`); // Log its state
             return window.globalThis.player;
         }
-        // Last resort fallback with warning - should never happen
+        // Last resort fallback
         console.error("CombatSystem: Could not find player object! This is a critical error.");
         return null;
     }
-
+    
     static async generateCombatEnvironment(player, enemy, location) {
         const environmentPrompt = `
 Generate a combat environment description for this battle:
@@ -114,24 +137,49 @@ Focus on terrain, lighting, and immediate surroundings that could affect the fig
     }
 
     static displayCombatStart(player, enemy) {
+        console.log(`[CS_DISPLAY_START] Using THE PASSED 'player' PARAMETER for HP: HP=${player.hp}/${player.maxHp}`);
+
         if (typeof window.displayMessage === 'function') {
             // Always use the global player reference for correct HP values
             const actualPlayer = this.getPlayerReference();
             if (!actualPlayer) {
-                console.error("CombatSystem: Could not get player reference for combat start display");
+                console.error("CombatSystem.displayCombatStart: actualPlayer from getPlayerReference() is null.");
+                // Fallback if actualPlayer (from window.player) is null,
+                // you might want to use the 'player' parameter passed to displayCombatStart as a direct fallback.
+                if (player) { // Check if the 'player' parameter to this function is valid
+                     console.log(`[COMBATSYSTEM.JS] displayCombatStart FALLBACK using passed 'player' param: HP=${player.hp}/${player.maxHp}`);
+                     if (typeof window.displayMessage === 'function') {
+                        // Potentially display using 'player.hp' if actualPlayer is not found.
+                        // This depends on whether 'player' passed here is guaranteed to be up-to-date.
+                         window.displayMessage(`<span class="math-inline">${playerToDisplay.name} (${playerToDisplay.hp}/${playerToDisplay.maxHp} HP)</span> vs <span class="math-inline">${enemy.name} (${enemy.currentHp}/${enemy.maxHp} HP)`, 'combat</span>');
+
+                         if (typeof window.updatePlayerStatsDisplay === 'function') {
+                             // updatePlayerStatsDisplay in script.js will use window.player.
+                             // This is fine if you also ensure window.player is kept in sync (Solution 1).
+                             // If not, changes made to playerToDisplay here won't reflect in main UI unless playerToDisplay IS window.player.
+                             window.updatePlayerStatsDisplay();
+                         }
+
+                     }
+                }
                 return;
             }
-            
-            window.displayMessage("⚔️ COMBAT BEGINS!", 'combat');
-            window.displayMessage(this.combatState.environment.description, 'combat');
-            window.displayMessage(`${actualPlayer.name} (${actualPlayer.hp}/${actualPlayer.maxHp} HP) vs ${enemy.name} (${enemy.currentHp}/${enemy.maxHp} HP)`, 'combat');
+            console.log(`[COMBATSYSTEM.JS] displayCombatStart using actualPlayer (from getPlayerReference): HP=${actualPlayer.hp}/${actualPlayer.maxHp}`);
 
-            const turnOrder = this.combatState.turnOrder[0] === 'player' ? 'You act first!' : `${enemy.name} acts first!`;
-            window.displayMessage(`Turn ${this.combatState.turnNumber}: ${turnOrder}`, 'combat');
-            
-            // Force update the main UI display to ensure consistency
-            if (typeof window.updatePlayerStatsDisplay === 'function') {
-                window.updatePlayerStatsDisplay();
+            if (typeof window.displayMessage === 'function') {
+                window.displayMessage("⚔️ COMBAT BEGINS!", 'combat');
+                if (this.combatState.environment && this.combatState.environment.description) {
+                     window.displayMessage(this.combatState.environment.description, 'combat');
+                }
+                // This message correctly uses actualPlayer from getPlayerReference
+                window.displayMessage(`${actualPlayer.name} (${actualPlayer.hp}/${actualPlayer.maxHp} HP) vs ${enemy.name} (${enemy.currentHp}/${enemy.maxHp} HP)`, 'combat');
+
+                const turnOrderMessage = this.combatState.turnOrder[0] === 'player' ? 'You act first!' : `${enemy.name} acts first!`;
+                window.displayMessage(`Turn ${this.combatState.turnNumber}: ${turnOrderMessage}`, 'combat');
+
+                if (typeof window.updatePlayerStatsDisplay === 'function') {
+                    window.updatePlayerStatsDisplay();
+                }
             }
         }
     }
@@ -143,7 +191,7 @@ Focus on terrain, lighting, and immediate surroundings that could affect the fig
         }
     }
 
-    static async processPlayerAction(player, enemy, actionType, command) {
+    static async processPlayerAction(currentPlayer, enemy, actionType, command) {
         if (!this.combatState.isActive) return;
 
         // Always use the actual player object from global reference
@@ -152,21 +200,21 @@ Focus on terrain, lighting, and immediate surroundings that could affect the fig
             console.error("CombatSystem: Could not get player reference for action processing");
             return;
         }
-        const actionPrompt = this.buildPlayerActionPrompt(actualPlayer, enemy, actionType, command);
+        const actionPrompt = this.buildPlayerActionPrompt(currentPlayer, enemy, actionType, command);
 
         try {
             const response = await window.callGeminiAPI(actionPrompt, 0.8, 500, false);
             const actionResult = this.parseActionResponse(response, actionType);
 
-            await this.applyActionResults(actionResult, actualPlayer, enemy, 'player');
+            await this.applyActionResults(actionResult, currentPlayer, enemy, 'player');
 
             // Check for combat end
-            if (this.checkCombatEnd(player, enemy)) {
+            if (this.checkCombatEnd(currentPlayer, enemy)) {
                 return;
             }
 
             // Progress to next turn
-            this.nextTurn(player, enemy);
+            this.nextTurn(currentPlayer, enemy);
 
         } catch (error) {
             console.error('Error processing player action:', error);
@@ -176,20 +224,18 @@ Focus on terrain, lighting, and immediate surroundings that could affect the fig
         }
     }
 
-    static buildPlayerActionPrompt(player, enemy, actionType, command) {
-        // Ensure we're using the most current player data
-        const actualPlayer = this.getPlayerReference() || player;
-        
+    static buildPlayerActionPrompt(currentPlayer, enemy, actionType, command) {
+
         const contextData = {
             turn: this.combatState.turnNumber,
             player: {
-                name: actualPlayer.name,
-                class: actualPlayer.class,
-                level: actualPlayer.level,
-                hp: actualPlayer.hp,
-                maxHp: actualPlayer.maxHp,
-                weapon: actualPlayer.equipment?.mainHand?.name || 'unarmed',
-                armor: this.calculatePlayerDefense(actualPlayer)
+                name: currentPlayer.name,
+                class: currentPlayer.class,
+                level: currentPlayer.level,
+                hp: currentPlayer.hp,
+                maxHp: currentPlayer.maxHp,
+                weapon: currentPlayer.equipment?.mainHand?.name || 'unarmed',
+                armor: this.calculatePlayerDefense(currentPlayer)
             },
             enemy: {
                 name: enemy.name,
@@ -290,7 +336,7 @@ Rules:
             console.error("CombatSystem: Could not get player reference for enemy turn processing");
             return;
         }
-        
+
         const enemyPrompt = this.buildEnemyActionPrompt(actualPlayer, enemy);
 
         try {
@@ -377,7 +423,7 @@ Make the enemy action feel intelligent and appropriate for the creature type.
     static async applyActionResults(result, player, enemy, actor) {
         // Get the actual player reference
         const actualPlayer = this.getPlayerReference() || player;
-        
+
         // Apply HP changes
         if (result.enemyHpChange && actor === 'player') {
             enemy.currentHp = Math.max(0, enemy.currentHp + result.enemyHpChange);
@@ -475,7 +521,7 @@ Make the enemy action feel intelligent and appropriate for the creature type.
             console.error("CombatSystem: Could not get player reference for combat end check");
             return false;
         }
-        
+
         if (actualPlayer.hp <= 0) {
             this.endCombat('defeat', actualPlayer, enemy);
             return true;
@@ -630,7 +676,7 @@ If no enemy is mentioned, suggest an appropriate one for the location.
 
             if (jsonMatch) {
                 const enemyData = JSON.parse(jsonMatch[0]);
-                
+
                 if (!enemyData.plausible) {
                     if (typeof window.displayMessage === 'function') {
                         window.displayMessage(`${enemyData.reason}`, 'error');

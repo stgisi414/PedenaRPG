@@ -515,6 +515,10 @@ function loadGame() {
         // Handle old save format (just player data)
         if (saveData.player) {
             player = saveData.player;
+            window.player = player;
+            console.log(`[SCRIPT.JS] After loadGame, window.player HP: <span class="math-inline">${window.player.hp}/${window.player.maxHp}</span>`); // Should be 140/140
+            console.log(`[SCRIPT.JS] After loadGame, is module player === window.player? ${player === window.player}`); // Should be true
+
             // Restore game world if it exists
             if (saveData.gameWorld) {
                 gameWorld.npcs = new Map(saveData.gameWorld.npcs);
@@ -540,6 +544,7 @@ function loadGame() {
         } else {
             // Old format - just player
             player = saveData;
+            window.player = player
             loadConversationHistory();
             ItemManager.loadInventoryFromStorage(player);
         }
@@ -553,6 +558,12 @@ function loadGame() {
 
         displayMessage("Game loaded!", 'success');
         console.log("loadGame: Final player.gold after all loading steps:", player.gold);
+
+        console.log(`[SCRIPT.JS] loadGame: player HP set to <span class="math-inline">${player.hp}/${player.maxHp}</span>`);
+        console.log(`[SCRIPT.JS] loadGame: window.player HP is now <span class="math-inline">${window.player.hp}/${window.player.maxHp}</span>`);
+        console.log(`[SCRIPT.JS] loadGame: is module player === window.player? ${player === window.player}`); // Should be true
+
+        
         updatePlayerStatsDisplay();
         updateQuestButton(); // Update quest button based on saved quests
 
@@ -979,6 +990,7 @@ async function generateCombatEncounter() {
     if (enemyEncounter) {
         displayMessage("⚔️ A hostile creature blocks your path!", 'combat');
         displayMessage(enemyEncounter.narrative, 'combat');
+        console.log(`[SCRIPT.JS] Before calling initiateCombat: HP=<span class="math-inline">${player.hp}/${player.maxHp}</span>`);
         await CombatSystem.initiateCombat(player, enemyEncounter.enemy, player.currentLocation);
     } else {
         // Fallback to basic encounter if AI fails
@@ -3581,6 +3593,15 @@ function addMainEventListeners() {
         loadGameBtn?.addEventListener('click', () => {
             console.log('Load game button clicked');
             loadGame();
+
+            console.log(`[SCRIPT.JS] After loadGame, module-scoped player HP: <span class="math-inline">${player.hp}/${player.maxHp}</span>`); // Should be 140/140
+            if (window.player) {
+                console.log(`[SCRIPT.JS] After loadGame, window.player HP: <span class="math-inline">${window.player.hp}/${window.player.maxHp}</span>`); // What is this?
+                console.log(`[SCRIPT.JS] After loadGame, is module player === window.player? ${player === window.player}`);
+            } else {
+                console.log(`[SCRIPT.JS] After loadGame, window.player is not yet defined (or not yet assigned).`);
+            }
+            
         });
 
         // Character creation
