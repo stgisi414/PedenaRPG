@@ -57,6 +57,10 @@ let player = {
     alignment: null // Will be initialized by AlignmentSystem
 };
 
+// Initialize Party and Multi-Combat Systems
+let partyManager;
+let multiCombatSystem;
+
 // Utility function to validate and fix character stats
 function validateAndFixStats(player) {
     const minStatValue = 10;
@@ -555,7 +559,8 @@ function saveGame() {
             locationMemory: Array.from(gameWorld.locationMemory.entries()),
             lastNPCInteraction: gameWorld.lastNPCInteraction
         },
-        conversationHistory: conversationHistory
+        conversationHistory: conversationHistory,
+        partyData: partyManager ? partyManager.getSaveData() : null
     };
     localStorage.setItem('pedenaRPGSave', JSON.stringify(saveData));
     saveConversationHistory(); // Also save conversation separately
@@ -599,6 +604,13 @@ function loadGame() {
             }
             // Load inventory and status effects from ItemManager
             ItemManager.loadInventoryFromStorage(player);
+            
+            // Load party data if available
+            if (saveData.partyData && partyManager) {
+                partyManager.loadSaveData(saveData.partyData);
+                console.log('Party data restored from save');
+                updatePartyUI();
+            }
         } else {
             // Old format - just player
             player = saveData;
@@ -2039,6 +2051,283 @@ async function fleeCombat() {
     }
 }
 
+// Party Management Functions
+function initializePartySystem() {
+    if (typeof PartyManager !== 'undefined') {
+        partyManager = new PartyManager();
+        multiCombatSystem = new MultiCombatSystem(partyManager);
+        
+        // Load party data if it exists in save
+        const savedGame = localStorage.getItem('pedenaRPGSave');
+        if (savedGame) {
+            const saveData = JSON.parse(savedGame);
+            if (saveData.partyData) {
+                partyManager.loadSaveData(saveData.partyData);
+            }
+        }
+        
+        console.log('Party and Multi-Combat systems initialized');
+    } else {
+        console.warn('PartyManager class not found - party features will be limited');
+    }
+}
+
+async function recruitNPC(npcName, npcData = null) {
+    if (!partyManager) {
+        displayMessage("Party system not available.", 'error');
+        return;
+    }
+
+    // If no npcData provided, try to find from recent NPCs
+    let npc = npcData;
+    if (!npc) {
+        const existingNPCs = getNPCsInLocation(player.currentLocation);
+        npc = existingNPCs.find(n => n.name.toLowerCase().includes(npcName.toLowerCase()));
+    }
+
+    if (!npc) {
+        // Create a basic NPC structure for recruitment
+        npc = {
+            id: `npc_${Date.now()}`,
+            name: npcName,
+            level: Math.max(1, player.level - 1),
+            health: 15 + (player.level * 3),
+            maxHealth: 15 + (player.level * 3),
+            ac: 10 + Math.floor(player.level / 2),
+            damage: '1d6',
+            skills: ['Basic Combat'],
+            equipment: {},
+            abilities: ['Attack', 'Defend'],
+            loyalty: 60
+        };
+    }
+
+    const result = partyManager.addMember(npc);
+    displayMessage(result.message, result.success ? 'success' : 'error');
+
+    if (result.success) {
+        // Update relationship
+        updateRelationship(npcName, 0, 20, `${npcName} has joined your party as a trusted companion.`);
+        
+        // Add party commands to UI
+        updatePartyUI();
+        saveGame();
+    }
+
+    return result;
+}
+
+function dismissPartyMember(memberId) {
+    if (!partyManager) {
+        displayMessage("Party system not available.", 'error');
+        return;
+    }
+
+    const result = partyManager.removeMember(memberId);
+    displayMessage(result.message, result.success ? 'success' : 'error');
+
+    if (result.success) {
+        updatePartyUI();
+        saveGame();
+    }
+
+    return result;
+}
+
+function displayPartyStatus() {
+    if (!partyManager) {
+        displayMessage("Party system not available.", 'error');
+        return;
+    }
+
+    const allMembers = partyManager.getAllMembers(player);
+    
+    if (allMembers.length === 1) {
+        displayMessage("You are traveling alone.", 'info');
+        return;
+    }
+
+    displayMessage("=== Party Status ===", 'info');
+    
+    allMembers.forEach(member => {
+        const status = member.isPlayer ? "(You)" : `(${member.position})`;
+        const healthStatus = `${member.health}/${member.maxHealth} HP`;
+        const loyaltyInfo = member.loyalty ? ` - Loyalty: ${member.loyalty}%` : '';
+        
+        displayMessage(`${member.name} ${status} - Level ${member.level} - ${healthStatus}${loyaltyInfo}`, 'info');
+    });
+
+    const bonuses = partyManager.getPartyBonuses();
+    if (bonuses.attack > 0 || bonuses.defense > 0 || bonuses.special.length > 0) {
+        displayMessage(`Party Bonuses: +${bonuses.attack} Attack, +${bonuses.defense} Defense`, 'success');
+        if (bonuses.special.length > 0) {
+            displayMessage(`Special Abilities: ${bonuses.special.join(', ')}`, 'success');
+        }
+    }
+}
+
+function updatePartyUI() {
+    if (!partyManager) return;
+
+    const partyCommands = partyManager.getPartyCommands();
+    
+    // Add party status to quick actions if party exists
+    if (partyManager.party.length > 0) {
+        // You could add party management buttons to the UI here
+        // For now, we'll just update the display when needed
+    }
+}
+
+// Multi-Combat Integration
+async function initiateMultiCombat(enemies) {
+    if (!multiCombatSystem || !partyManager) {
+        // Fallback to regular combat
+        return await CombatSystem.initiateCombat(player, enemies[0], player.currentLocation);
+    }
+
+    displayMessage("🔥 Multi-member combat begins!", 'combat');
+    
+    const combatResult = multiCombatSystem.startCombat(player, enemies);
+    
+    if (!combatResult.success) {
+        displayMessage("Failed to start multi-combat. Falling back to regular combat.", 'error');
+        return await CombatSystem.initiateCombat(player, enemies[0], player.currentLocation);
+    }
+
+    // Display initial combat state
+    displayCombatState();
+    
+    // Start combat loop
+    await processCombatTurns();
+}
+
+function displayCombatState() {
+    if (!multiCombatSystem || !multiCombatSystem.isActive) return;
+
+    const state = multiCombatSystem.getCombatState();
+    
+    displayMessage(`=== Round ${state.round} ===`, 'combat');
+    displayMessage(`Current Turn: ${state.currentTurn ? state.currentTurn.name : 'None'}`, 'info');
+    
+    // Display living allies
+    if (state.livingAllies.length > 0) {
+        displayMessage("Your Party:", 'info');
+        state.livingAllies.forEach(ally => {
+            displayMessage(`  ${ally.name}: ${ally.health}/${ally.maxHealth} HP`, 'info');
+        });
+    }
+    
+    // Display living enemies
+    if (state.livingEnemies.length > 0) {
+        displayMessage("Enemies:", 'info');
+        state.livingEnemies.forEach(enemy => {
+            displayMessage(`  ${enemy.name}: ${enemy.health}/${enemy.maxHealth} HP`, 'info');
+        });
+    }
+    
+    // Display recent combat log
+    const recentLog = state.combatLog.slice(-3);
+    recentLog.forEach(logEntry => {
+        displayMessage(logEntry, 'combat');
+    });
+}
+
+async function processCombatTurns() {
+    while (multiCombatSystem.isActive) {
+        const currentTurn = multiCombatSystem.getCurrentTurn();
+        
+        if (!currentTurn) {
+            displayMessage("Combat ended unexpectedly.", 'error');
+            break;
+        }
+
+        if (currentTurn.type === 'player') {
+            // Player turn - wait for player input
+            displayMessage(`It's your turn! Choose your action:`, 'info');
+            displayMessage(`Available actions: Attack, Defend, Use Ability, Flee`, 'info');
+            
+            // Set flag to indicate we're waiting for player input in multi-combat
+            multiCombatSystem.waitingForPlayerInput = true;
+            break; // Exit loop, player will trigger next turn via command
+            
+        } else {
+            // AI turn (NPC or enemy)
+            displayMessage(`${currentTurn.name} is acting...`, 'info');
+            
+            const result = await multiCombatSystem.processAITurn();
+            
+            if (result && result.combatEnded) {
+                handleCombatEnd(result);
+                break;
+            }
+            
+            // Brief pause between AI turns
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            
+            displayCombatState();
+        }
+    }
+}
+
+function handleCombatEnd(result) {
+    if (!result) return;
+
+    displayMessage(result.message, result.result === 'victory' ? 'success' : 'error');
+    
+    if (result.result === 'victory') {
+        // Calculate rewards
+        const baseXP = 50 * multiCombatSystem.enemies.length;
+        const baseGold = 30 * multiCombatSystem.enemies.length;
+        
+        // Distribute XP among party members
+        const playerXP = partyManager.distributeExperience(baseXP);
+        
+        gainExperience(playerXP);
+        updateGold(baseGold, 'multi-combat victory');
+        
+        displayMessage(`You gained ${playerXP} XP and ${baseGold} gold!`, 'success');
+        
+        // Check for level up
+        if (player.exp >= player.expToNextLevel) {
+            displayMessage("Level up achieved!", 'success');
+        }
+        
+        // Heal party members slightly after victory
+        partyManager.party.forEach(member => {
+            if (member.health > 0) {
+                const healAmount = Math.floor(member.maxHealth * 0.1);
+                member.health = Math.min(member.maxHealth, member.health + healAmount);
+            }
+        });
+        
+        displayMessage("Party members recover slightly from the victory.", 'success');
+        
+    } else if (result.result === 'defeat') {
+        // Handle party defeat
+        const goldLoss = Math.floor(player.gold * 0.2);
+        updateGold(-goldLoss, 'party defeat penalty');
+        
+        // Revive party members at low health
+        partyManager.party.forEach(member => {
+            if (member.health <= 0) {
+                member.health = Math.floor(member.maxHealth * 0.25);
+            }
+        });
+        
+        player.hp = Math.max(1, Math.floor(player.maxHp * 0.25));
+        
+        displayMessage("Your party has been defeated but manages to escape...", 'info');
+        displayMessage(`You lost ${goldLoss} gold in the retreat.`, 'error');
+    }
+    
+    // Clean up combat state
+    multiCombatSystem.isActive = false;
+    multiCombatSystem.waitingForPlayerInput = false;
+    
+    updatePlayerStatsDisplay();
+    saveGame();
+}
+
 // Enhanced item pickup handler that detects specific items from story context
 async function handleItemPickup(command, storyContext = '') {
     console.log('Processing item pickup:', command);
@@ -3236,6 +3525,83 @@ async function executeCustomCommand(command) {
         return;
     }
 
+    // Check for party management commands
+    if (command.toLowerCase().includes('recruit') || command.toLowerCase().includes('invite to party')) {
+        const npcNameMatch = command.match(/recruit\s+(.+)|invite\s+(.+)\s+to\s+party/i);
+        if (npcNameMatch) {
+            const npcName = npcNameMatch[1] || npcNameMatch[2];
+            await recruitNPC(npcName.trim());
+            return;
+        }
+    }
+
+    if (command.toLowerCase().includes('party status') || command.toLowerCase().includes('check party')) {
+        displayPartyStatus();
+        return;
+    }
+
+    if (command.toLowerCase().includes('dismiss') && command.toLowerCase().includes('party')) {
+        const memberMatch = command.match(/dismiss\s+(.+)\s+from\s+party|dismiss\s+(.+)/i);
+        if (memberMatch && partyManager && partyManager.party.length > 0) {
+            const memberName = memberMatch[1] || memberMatch[2];
+            const member = partyManager.party.find(m => m.name.toLowerCase().includes(memberName.toLowerCase()));
+            if (member) {
+                dismissPartyMember(member.id);
+            } else {
+                displayMessage(`No party member named "${memberName}" found.`, 'error');
+            }
+        }
+        return;
+    }
+
+    // Handle multi-combat player actions
+    if (multiCombatSystem && multiCombatSystem.isActive && multiCombatSystem.waitingForPlayerInput) {
+        let actionTaken = false;
+        
+        if (command.toLowerCase().includes('attack')) {
+            const result = await multiCombatSystem.processTurn('attack');
+            if (result.combatEnded) {
+                handleCombatEnd(result);
+            } else {
+                displayCombatState();
+                await processCombatTurns(); // Continue combat loop
+            }
+            actionTaken = true;
+        } else if (command.toLowerCase().includes('defend')) {
+            const result = await multiCombatSystem.processTurn('defend');
+            if (result.combatEnded) {
+                handleCombatEnd(result);
+            } else {
+                displayCombatState();
+                await processCombatTurns();
+            }
+            actionTaken = true;
+        } else if (command.toLowerCase().includes('ability') || command.toLowerCase().includes('spell')) {
+            const result = await multiCombatSystem.processTurn('ability');
+            if (result.combatEnded) {
+                handleCombatEnd(result);
+            } else {
+                displayCombatState();
+                await processCombatTurns();
+            }
+            actionTaken = true;
+        } else if (command.toLowerCase().includes('flee')) {
+            const result = await multiCombatSystem.processTurn('flee');
+            if (result.combatEnded) {
+                handleCombatEnd(result);
+            } else {
+                displayCombatState();
+                await processCombatTurns();
+            }
+            actionTaken = true;
+        }
+        
+        if (actionTaken) {
+            multiCombatSystem.waitingForPlayerInput = false;
+            return;
+        }
+    }
+
     // Check for other command types
     if (command.toLowerCase().includes('talk') || command.toLowerCase().includes('speak')) {
         await startConversation();
@@ -3729,6 +4095,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    // Initialize party system
+    initializePartySystem();
+
     // Make required functions globally available for TransactionMiddleware and other modules
     window.callGeminiAPI = callGeminiAPI;
     window.updateGold = updateGold;
@@ -3745,6 +4114,8 @@ document.addEventListener('DOMContentLoaded', () => {
     window.CombatSystem = CombatSystem;
     window.AlignmentSystem = AlignmentSystem;
     window.player = player; // Make player globally accessible
+    window.partyManager = partyManager;
+    window.multiCombatSystem = multiCombatSystem;
 
     // Make other functions globally accessible if needed by other parts of the code or for debugging
     window.LocationManager = typeof LocationManager !== 'undefined' ? LocationManager : {};
@@ -3759,6 +4130,10 @@ document.addEventListener('DOMContentLoaded', () => {
     window.abandonQuest = abandonQuest;
     window.cleanupRelationships = cleanupRelationships;
     window.fixMaraRelationship = fixMaraRelationship;
+    window.recruitNPC = recruitNPC;
+    window.dismissPartyMember = dismissPartyMember;
+    window.displayPartyStatus = displayPartyStatus;
+    window.initiateMultiCombat = initiateMultiCombat;
 
 
     // <<< --- ADD INVENTORY EVENT LISTENER HERE --- >>>
