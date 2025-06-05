@@ -208,6 +208,114 @@ h1, h2, h3, h4 {
     display: none !important;
 }
 
+/* Rich Text Styling System */
+.rich-text-toggle {
+    position: absolute;
+    top: 50px;
+    right: 10px;
+    z-index: 999;
+    font-size: 12px;
+    padding: 4px 8px;
+}
+
+/* Rich Text Effects */
+.rt-bold { font-weight: bold; }
+.rt-italic { font-style: italic; }
+.rt-underline { text-decoration: underline; }
+.rt-strikethrough { text-decoration: line-through; }
+
+/* Blinking effect */
+.rt-blink {
+    animation: blink 1.5s infinite;
+}
+@keyframes blink {
+    0%, 50% { opacity: 1; }
+    51%, 100% { opacity: 0.3; }
+}
+
+/* Highlighted text with padding and border */
+.rt-highlight {
+    background: linear-gradient(135deg, #FFD700, #FFA500);
+    color: #2d1810;
+    padding: 2px 6px;
+    border: 2px solid #DAA520;
+    border-radius: 4px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+    display: inline-block;
+    margin: 1px;
+}
+
+/* Color variations */
+.rt-color-red { color: #DC2626; }
+.rt-color-green { color: #059669; }
+.rt-color-blue { color: #2563EB; }
+.rt-color-purple { color: #7C3AED; }
+.rt-color-gold { color: #D97706; }
+.rt-color-silver { color: #6B7280; }
+.rt-color-crimson { color: #DC143C; }
+.rt-color-emerald { color: #10B981; }
+
+/* Google Fonts for specialized text */
+.rt-font-medieval {
+    font-family: 'Cinzel', serif;
+    font-weight: 600;
+}
+.rt-font-magic {
+    font-family: 'Creepster', cursive;
+    font-weight: normal;
+}
+.rt-font-elegant {
+    font-family: 'Dancing Script', cursive;
+    font-size: 1.2em;
+}
+.rt-font-ancient {
+    font-family: 'Uncial Antiqua', cursive;
+    font-weight: normal;
+}
+
+/* Shadow effects */
+.rt-shadow {
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+}
+.rt-shadow-glow {
+    text-shadow: 0 0 10px currentColor, 2px 2px 4px rgba(0,0,0,0.5);
+}
+
+/* Stretch effects */
+.rt-stretch-h {
+    transform: scaleX(1.5);
+    display: inline-block;
+}
+.rt-stretch-v {
+    transform: scaleY(1.3);
+    display: inline-block;
+}
+
+/* Glow effects */
+.rt-glow {
+    text-shadow: 0 0 8px currentColor, 0 0 16px currentColor;
+    animation: glow-pulse 2s infinite alternate;
+}
+@keyframes glow-pulse {
+    from { text-shadow: 0 0 8px currentColor, 0 0 16px currentColor; }
+    to { text-shadow: 0 0 12px currentColor, 0 0 24px currentColor; }
+}
+
+/* Wiggle effect */
+.rt-wiggle {
+    display: inline-block;
+    animation: wiggle 0.8s infinite;
+}
+@keyframes wiggle {
+    0%, 7% { transform: rotateZ(0); }
+    15% { transform: rotateZ(-15deg); }
+    20% { transform: rotateZ(10deg); }
+    25% { transform: rotateZ(-10deg); }
+    30% { transform: rotateZ(6deg); }
+    35% { transform: rotateZ(-4deg); }
+    40%, 100% { transform: rotateZ(0); }
+}
+
 .shop-item {
     background: linear-gradient(135deg, #2d1810, #4a2c1a);
     border: 2px solid #1a1a1a !important;

@@ -495,7 +495,10 @@ function displayMessage(message, type = 'info') {
         icon = '<i class="gi gi-scroll-quill mr-2"></i>';
     }
 
-    p.innerHTML = icon + message;
+    // Process rich text if enabled
+    const processedMessage = processRichText(message);
+    
+    p.innerHTML = icon + processedMessage;
     gameOutput.appendChild(p);
     gameOutput.scrollTop = gameOutput.scrollHeight; // Auto-scroll to bottom
 }
@@ -699,6 +702,49 @@ ${prompt}
 
 Please respond as the DM, maintaining consistency with the conversation history above.`;
             }
+        }
+
+        // Add rich text styling instructions if enabled
+        if (richTextEnabled) {
+            fullPrompt += `
+
+RICH TEXT STYLING INSTRUCTIONS:
+Use these markdown-like tags to enhance your narrative responses with visual effects:
+
+TEXT FORMATTING:
+- **bold text** or __bold text__ for emphasis
+- *italic text* or _italic text_ for dramatic effect
+- ~~strikethrough~~ for crossed out text
+
+COLORS (use sparingly for impact):
+- {red:text} for danger, blood, fire
+- {green:text} for nature, success, healing
+- {blue:text} for water, magic, cold
+- {purple:text} for royal, mysterious, arcane
+- {gold:text} for treasure, divine, precious
+- {silver:text} for metallic, ethereal
+- {crimson:text} for intense red
+- {emerald:text} for vibrant green
+
+SPECIAL FONTS:
+- [medieval:text] for formal announcements, nobility
+- [magic:text] for spells, curses, supernatural
+- [elegant:text] for refined speech, poetry
+- [ancient:text] for old inscriptions, prophecies
+
+VISUAL EFFECTS:
+- {{highlight:important text}} for key information
+- {{blink:urgent}} for urgent warnings
+- {{wiggle:exciting}} for exciting moments
+- {{shadow:ominous}} for dark, ominous text
+- {{glow:magical}} for magical effects
+- {{stretch-h:wide}} for stretched horizontal text
+- {{stretch-v:tall}} for stretched vertical text
+- {{glow-shadow:epic}} for epic moments
+
+EXAMPLE: "The {gold:**ancient tome**} begins to {{glow:[magic:whisper forgotten secrets]}} as you {{wiggle:carefully}} open its weathered pages."
+
+Use these effects strategically to enhance immersion and emotional impact. Don't overuse - 1-3 effects per response maximum.`;
         }
 
         const response = await fetch(GEMINI_API_URL, {
@@ -3508,6 +3554,14 @@ document.addEventListener('DOMContentLoaded', () => {
         displayQuests();
     });
 
+    // Add rich text toggle event listener
+    document.getElementById('rich-text-toggle')?.addEventListener('click', () => {
+        toggleRichText();
+    });
+
+    // Initialize rich text toggle state
+    updateRichTextToggle();
+
     // Add event listeners for interface exit buttons
     document.getElementById('exit-progression-btn')?.addEventListener('click', () => {
         document.getElementById('progression-interface')?.classList.add('hidden');
@@ -3757,10 +3811,83 @@ resetProgressionBtn.style.zIndex = '999';
 resetProgressionBtn.innerHTML = '<i class="gi gi-refresh mr-1"></i>Reset Progression';
 resetProgressionBtn.title = 'Reset character progression (feats, skills, abilities) to match updated game files';
 
+// Add rich text styling toggle button
+const richTextToggle = document.createElement('button');
+richTextToggle.id = 'rich-text-toggle';
+richTextToggle.className = 'btn-parchment rich-text-toggle bg-purple-600 hover:bg-purple-700 text-white';
+richTextToggle.innerHTML = '<i class="gi gi-magic-swirl mr-1"></i>Rich Text: OFF';
+richTextToggle.title = 'Toggle rich text styling for game messages';
+
 // Add to game container
 const gameContainer = document.getElementById('game-container');
 if (gameContainer) {
     gameContainer.appendChild(resetProgressionBtn);
+    gameContainer.appendChild(richTextToggle);
+}
+
+// Rich text styling system
+let richTextEnabled = localStorage.getItem('richTextEnabled') === 'true';
+
+function updateRichTextToggle() {
+    const toggle = document.getElementById('rich-text-toggle');
+    if (toggle) {
+        toggle.innerHTML = `<i class="gi gi-magic-swirl mr-1"></i>Rich Text: ${richTextEnabled ? 'ON' : 'OFF'}`;
+        toggle.className = `btn-parchment rich-text-toggle ${richTextEnabled ? 'bg-purple-600 hover:bg-purple-700' : 'bg-gray-600 hover:bg-gray-700'} text-white`;
+    }
+}
+
+function toggleRichText() {
+    richTextEnabled = !richTextEnabled;
+    localStorage.setItem('richTextEnabled', richTextEnabled.toString());
+    updateRichTextToggle();
+    displayMessage(`Rich text styling ${richTextEnabled ? 'enabled' : 'disabled'}.`, 'info');
+}
+
+function processRichText(text) {
+    if (!richTextEnabled) return text;
+    
+    // Process markdown-like syntax for rich text
+    let processed = text;
+    
+    // Bold: **text** or __text__
+    processed = processed.replace(/\*\*(.*?)\*\*/g, '<span class="rt-bold">$1</span>');
+    processed = processed.replace(/__(.*?)__/g, '<span class="rt-bold">$1</span>');
+    
+    // Italic: *text* or _text_
+    processed = processed.replace(/\*(.*?)\*/g, '<span class="rt-italic">$1</span>');
+    processed = processed.replace(/_(.*?)_/g, '<span class="rt-italic">$1</span>');
+    
+    // Strikethrough: ~~text~~
+    processed = processed.replace(/~~(.*?)~~/g, '<span class="rt-strikethrough">$1</span>');
+    
+    // Special effects with custom syntax
+    // Colors: {red:text}, {green:text}, etc.
+    processed = processed.replace(/\{red:(.*?)\}/g, '<span class="rt-color-red">$1</span>');
+    processed = processed.replace(/\{green:(.*?)\}/g, '<span class="rt-color-green">$1</span>');
+    processed = processed.replace(/\{blue:(.*?)\}/g, '<span class="rt-color-blue">$1</span>');
+    processed = processed.replace(/\{purple:(.*?)\}/g, '<span class="rt-color-purple">$1</span>');
+    processed = processed.replace(/\{gold:(.*?)\}/g, '<span class="rt-color-gold">$1</span>');
+    processed = processed.replace(/\{silver:(.*?)\}/g, '<span class="rt-color-silver">$1</span>');
+    processed = processed.replace(/\{crimson:(.*?)\}/g, '<span class="rt-color-crimson">$1</span>');
+    processed = processed.replace(/\{emerald:(.*?)\}/g, '<span class="rt-color-emerald">$1</span>');
+    
+    // Fonts: [medieval:text], [magic:text], etc.
+    processed = processed.replace(/\[medieval:(.*?)\]/g, '<span class="rt-font-medieval">$1</span>');
+    processed = processed.replace(/\[magic:(.*?)\]/g, '<span class="rt-font-magic">$1</span>');
+    processed = processed.replace(/\[elegant:(.*?)\]/g, '<span class="rt-font-elegant">$1</span>');
+    processed = processed.replace(/\[ancient:(.*?)\]/g, '<span class="rt-font-ancient">$1</span>');
+    
+    // Effects: {{effect:text}}
+    processed = processed.replace(/\{\{highlight:(.*?)\}\}/g, '<span class="rt-highlight">$1</span>');
+    processed = processed.replace(/\{\{blink:(.*?)\}\}/g, '<span class="rt-blink">$1</span>');
+    processed = processed.replace(/\{\{wiggle:(.*?)\}\}/g, '<span class="rt-wiggle">$1</span>');
+    processed = processed.replace(/\{\{shadow:(.*?)\}\}/g, '<span class="rt-shadow">$1</span>');
+    processed = processed.replace(/\{\{glow:(.*?)\}\}/g, '<span class="rt-glow">$1</span>');
+    processed = processed.replace(/\{\{stretch-h:(.*?)\}\}/g, '<span class="rt-stretch-h">$1</span>');
+    processed = processed.replace(/\{\{stretch-v:(.*?)\}\}/g, '<span class="rt-stretch-v">$1</span>');
+    processed = processed.replace(/\{\{glow-shadow:(.*?)\}\}/g, '<span class="rt-shadow-glow">$1</span>');
+    
+    return processed;
 }
 
 // Add main event listeners function
