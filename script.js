@@ -1160,8 +1160,16 @@ function checkRelationshipChanges(playerCommand, aiResponse) {
 function extractNPCNames(aiResponse) {
     const names = [];
 
-    // Known NPCs from conversation history
-    const knownNPCs = Object.keys(player.relationships || {});
+    // Known NPCs from conversation history (filter out technical terms)
+    const knownNPCs = Object.keys(player.relationships || {}).filter(name => {
+        // Filter out technical variable names and properties
+        const technicalTerms = [
+            'classProgression', 'passiveBonuses', 'statusEffects', 'inventory', 
+            'equipment', 'stats', 'skills', 'abilities', 'spells', 'quests',
+            'hp', 'maxHp', 'level', 'exp', 'gold', 'currentLocation'
+        ];
+        return !technicalTerms.includes(name);
+    });
 
     // Check for known NPCs in the response
     knownNPCs.forEach(name => {
@@ -1182,8 +1190,13 @@ function extractNPCNames(aiResponse) {
         while ((match = pattern.exec(aiResponse)) !== null) {
             const name = match[1].trim();
             if (name.length > 1 && name.length < 20 && !names.includes(name)) {
-                // Inside extractNPCNames function in script.js (or the pasted .txt file's version)
-                const excludeWords = ['The', 'A', 'An', 'You', 'Your', 'Game', 'Character', 'Player', 'He', 'She', 'Him', 'Her', 'They', 'Them', 'It', 'Says', 'Looks', 'Smiles', 'Laughs']; // Added pronouns and common verbs
+                // Enhanced exclusion list to prevent technical terms from becoming relationships
+                const excludeWords = [
+                    'The', 'A', 'An', 'You', 'Your', 'Game', 'Character', 'Player', 
+                    'He', 'She', 'Him', 'Her', 'They', 'Them', 'It', 'Says', 'Looks', 
+                    'Smiles', 'Laughs', 'Class', 'Level', 'Stats', 'Equipment', 'Inventory',
+                    'ClassProgression', 'PassiveBonuses', 'StatusEffects', 'Skills', 'Abilities'
+                ];
                 if (!excludeWords.includes(name)) {
                     names.push(name);
                 }
@@ -1219,6 +1232,41 @@ function fixMaraRelationship() {
     const backgroundInterface = document.getElementById('background-interface');
     if (backgroundInterface && !backgroundInterface.classList.contains('hidden')) {
         displayCharacterBackground();
+    }
+}
+
+// Clean up invalid relationships (removes technical variable names)
+function cleanupRelationships() {
+    if (!player.relationships) {
+        player.relationships = {};
+        return;
+    }
+
+    const technicalTerms = [
+        'classProgression', 'passiveBonuses', 'statusEffects', 'inventory', 
+        'equipment', 'stats', 'skills', 'abilities', 'spells', 'quests',
+        'hp', 'maxHp', 'level', 'exp', 'gold', 'currentLocation'
+    ];
+
+    let removedCount = 0;
+    technicalTerms.forEach(term => {
+        if (player.relationships[term]) {
+            delete player.relationships[term];
+            removedCount++;
+        }
+    });
+
+    if (removedCount > 0) {
+        displayMessage(`🧹 Cleaned up ${removedCount} invalid relationship entries.`, 'success');
+        saveGame();
+
+        // Refresh background display if it's open
+        const backgroundInterface = document.getElementById('background-interface');
+        if (backgroundInterface && !backgroundInterface.classList.contains('hidden')) {
+            displayCharacterBackground();
+        }
+    } else {
+        displayMessage("✅ No invalid relationships found to clean up.", 'info');
     }
 }
 
@@ -3462,6 +3510,8 @@ document.addEventListener('DOMContentLoaded', () => {
     window.changeCompletedQuestsPage = changeCompletedQuestsPage;
     window.changeInventoryPage = changeInventoryPage;
     window.abandonQuest = abandonQuest;
+    window.cleanupRelationships = cleanupRelationships;
+    window.fixMaraRelationship = fixMaraRelationship;
 
 
     // <<< --- ADD INVENTORY EVENT LISTENER HERE --- >>>
