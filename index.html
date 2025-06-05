@@ -5,18 +5,18 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pedena RPG: A Text-Based Adventure | AI-Powered Fantasy RPG</title>
-    
+
     <!-- Favicon -->
     <link rel="icon" type="image/png" href="assets/pedena-logo.png">
     <link rel="shortcut icon" type="image/png" href="assets/pedena-logo.png">
     <link rel="apple-touch-icon" href="assets/pedena-logo.png">
-    
+
     <!-- Meta Description and SEO -->
     <meta name="description" content="Embark on an epic AI-powered text-based RPG adventure in the realm of Pedena. Create your character, explore a dynamic world, complete quests, and battle monsters in this immersive fantasy RPG experience.">
     <meta name="keywords" content="RPG, text-based game, AI RPG, fantasy adventure, Pedena, character creation, quests, dungeons, magic">
     <meta name="author" content="Pedena RPG">
     <meta name="robots" content="index, follow">
-    
+
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://ai-rpg.quest/">
@@ -24,17 +24,17 @@
     <meta property="og:description" content="Embark on an epic AI-powered text-based RPG adventure in the realm of Pedena. Create your character, explore a dynamic world, complete quests, and battle monsters.">
     <meta property="og:image" content="https://ai-rpg.quest/assets/pedena-logo.png">
     <meta property="og:site_name" content="Pedena RPG">
-    
+
     <!-- Twitter -->
     <meta property="twitter:card" content="summary_large_image">
     <meta property="twitter:url" content="https://ai-rpg.quest/">
     <meta property="twitter:title" content="Pedena RPG: A Text-Based Adventure | AI-Powered Fantasy RPG">
     <meta property="twitter:description" content="Embark on an epic AI-powered text-based RPG adventure in the realm of Pedena. Create your character, explore a dynamic world, complete quests, and battle monsters.">
     <meta property="twitter:image" content="https://ai-rpg.quest/assets/pedena-logo.png">
-    
+
     <!-- Canonical URL -->
     <link rel="canonical" href="https://ai-rpg.quest/">
-    
+
     <!-- Theme Color -->
     <meta name="theme-color" content="#8B4513">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -44,9 +44,7 @@
         rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" type="text/css" href="style.css">
-    <link rel="stylesheet" href="https://game-icons.net/icons/game-icons.css">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/game-icons@1.4.2/dist/game-icons.min.css" crossorigin="anonymous">
-</head>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/rpg-awesome@0.2.0/css/rpg-awesome.min.css" crossorigin="anonymous"></head>
 
 <body class="bg-stone-800 text-stone-100 font-merriweather">
     <div id="game-container" class="max-w-4xl mx-auto p-8 rounded-lg shadow-xl relative overflow-hidden">
@@ -65,9 +63,9 @@
                     <h2 class="text-3xl font-bold mb-6 text-center">Welcome, Adventurer!</h2>
                     <div class="flex flex-col md:flex-row justify-center items-center gap-6">
                         <button id="new-game-btn" class="btn-parchment"><i
-                                class="gi gi-person-pyromancer gi-2x mr-2"></i>New Game</button>
+                                class="ra ra-player-king gi-2x mr-2"></i>New Game</button>
                         <button id="load-game-btn" class="btn-parchment" disabled><i
-                                class="gi gi-book-cover gi-2x mr-2"></i>Load Game</button>
+                                class="ra ra-book-cover gi-2x mr-2"></i>Load Game</button>
                     </div>
                 </section>
 
@@ -111,7 +109,7 @@
                             Background</button>
                     </div>
                     <button id="create-character-btn" class="btn-parchment w-full"><i
-                            class="gi gi-crossed-swords mr-2"></i>Start Adventure!</button>
+                            class="ra ra-crossed-swords mr-2"></i>Start Adventure!</button>
                 </section>
 
                 <section id="game-play-screen" class="hidden">
@@ -132,29 +130,29 @@
                             <input type="text" id="custom-command-input" class="input-parchment flex-1"
                                 placeholder="Type your action here (e.g., 'examine the mysterious door', 'talk to the merchant', 'cast fireball')...">
                             <button id="execute-command-btn" class="btn-parchment"><i
-                                    class="gi gi-lightning-bolt mr-2"></i>Execute</button>
+                                    class="ra ra-lightning-bolt mr-2"></i>Execute</button>
                         </div>
                     </div>
 
                     <div id="game-actions" class="grid grid-cols-2 md:grid-cols-6 gap-4">
-                        <button id="save-game-btn" class="btn-parchment"><i class="gi gi-save-arrow mr-2"></i>Save
+                        <button id="save-game-btn" class="btn-parchment"><i class="ra ra-save mr-2"></i>Save
                             Game</button>
-                        <button id="new-quest-btn" class="btn-parchment"><i class="gi gi-scroll-unfurled mr-2"></i>New
+                        <button id="new-quest-btn" class="btn-parchment"><i class="ra ra-scroll-unfurled mr-2"></i>New
                             Quest</button>
                         <button id="show-inventory-btn" class="btn-parchment"><i
-                                class="gi gi-knapsack mr-2"></i>Inventory</button>
-                        <button id="show-shop-btn" class="btn-parchment"><i class="gi gi-shop mr-2"></i>Shop</button>
+                                class="ra ra-backpack mr-2"></i>Inventory</button>
+                        <button id="show-shop-btn" class="btn-parchment"><i class="ra ra-store mr-2"></i>Shop</button>
                         <button id="show-progression-btn" class="btn-parchment"><i
-                                class="gi gi-level-up mr-2"></i>Progression</button>
+                                class="ra ra-level-up mr-2"></i>Progression</button>
                         <button id="show-background-btn" class="btn-parchment"><i
-                                class="gi gi-book-cover mr-2"></i>Background</button>
+                                class="ra ra-book mr-2"></i>Background</button>
                     </div>
 
                     <div id="quick-actions" class="grid grid-cols-2 md:grid-cols-4 gap-2 mt-4">
-                        <button id="rest-btn" class="btn-parchment text-sm"><i class="gi gi-night-sleep mr-2"></i>Rest</button>
-                        <button id="explore-btn" class="btn-parchment text-sm"><i class="gi gi-magnifying-glass mr-2"></i>Explore</button>
-                        <button id="cast-spell-btn" class="btn-parchment text-sm"><i class="gi gi-magic-swirl mr-2"></i>Cast Spell</button>
-                        <button id="pray-btn" class="btn-parchment text-sm"><i class="gi gi-prayer mr-2"></i>Pray</button>
+                        <button id="rest-btn" class="btn-parchment text-sm"><i class="ra ra-sleep mr-2"></i>Rest</button>
+                        <button id="explore-btn" class="btn-parchment text-sm"><i class="ra ra-magnifying-glass mr-2"></i>Explore</button>
+                        <button id="cast-spell-btn" class="btn-parchment text-sm"><i class="ra ra-magic-swirl mr-2"></i>Cast Spell</button>
+                        <button id="pray-btn" class="btn-parchment text-sm"><i class="ra ra-pray mr-2"></i>Pray</button>
                     </div>
 
                     <div id="combat-interface" class="hidden mt-6">
@@ -162,9 +160,9 @@
                         <div id="enemy-info" class="parchment-box p-4 mb-4 text-center"></div>
                         <div class="flex justify-center gap-4">
                             <button id="attack-btn" class="btn-parchment bg-red-700 hover:bg-red-800 text-white"><i
-                                    class="gi gi-sword-brandish mr-2"></i>Attack</button>
+                                    class="ra ra-sword mr-2"></i>Attack</button>
                             <button id="flee-btn" class="btn-parchment bg-gray-600 hover:bg-gray-700 text-white"><i
-                                    class="gi gi-run mr-2"></i>Flee</button>
+                                    class="ra ra-run mr-2"></i>Flee</button>
                         </div>
                     </div>
 

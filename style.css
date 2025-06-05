@@ -141,11 +141,11 @@ h1, h2, h3, h4 {
     word-wrap: break-word; /* Break long words */
 }
 
-/* Game Icons Adjustments */
-.gi {
+/* RPG Awesome Icon Adjustments */
+.ra {
     vertical-align: middle;
     display: inline-block;
-    font-family: 'game-icons' !important;
+    font-family: 'RPGAwesome' !important;
     speak: none;
     font-style: normal;
     font-weight: normal;
@@ -156,51 +156,51 @@ h1, h2, h3, h4 {
     -moz-osx-font-smoothing: grayscale;
 }
 
-/* Fallback if Game Icons don't load - show text instead */
-.gi:before {
+/* Fallback if RPG Awesome doesn't load - show emoji instead */
+.ra:before {
     content: "⚔️"; /* Default sword emoji as fallback */
 }
 
-.gi-person-pyromancer:before { content: "🧙"; }
-.gi-book-cover:before { content: "📖"; }
-.gi-crossed-swords:before { content: "⚔️"; }
-.gi-save-arrow:before { content: "💾"; }
-.gi-scroll-unfurled:before { content: "📜"; }
-.gi-knapsack:before { content: "🎒"; }
-.gi-shop:before { content: "🏪"; }
-.gi-level-up:before { content: "⬆️"; }
-.gi-night-sleep:before { content: "😴"; }
-.gi-magnifying-glass:before { content: "🔍"; }
-.gi-magic-swirl:before { content: "✨"; }
-.gi-holy-symbol:before { content: "✝️"; }
-.gi-prayer:before { content: "🙏"; }
-.gi-sword-brandish:before { content: "⚔️"; }
-.gi-run:before { content: "🏃"; }
-.gi-lightning-bolt:before { content: "⚡"; }
-.gi-scroll-quill:before { content: "📝"; }
-.gi-check-mark:before { content: "✅"; }
-.gi-cancel:before { content: "❌"; }
-.gi-telescope:before { content: "🔭"; }
-.gi-drink-me:before { content: "🧪"; }
-.gi-sword:before { content: "🗡️"; }
-.gi-chest-armor:before { content: "🛡️"; }
-.gi-helmet:before { content: "🪖"; }
-.gi-gauntlet:before { content: "🧤"; }
-.gi-leg-armor:before { content: "👖"; }
-.gi-boot-prints:before { content: "👢"; }
-.gi-gem-pendant:before { content: "💎"; }
-.gi-diamond-ring:before { content: "💍"; }
-.gi-round-shield:before { content: "🛡️"; }
-.gi-sword-brandish:before { content: "🗡️"; }
-.gi-bow-arrow:before { content: "🏹"; }
-.gi-magic-swirl:before { content: "✨"; }
-.gi-dagger-cross:before { content: "🔪"; }
-.gi-battle-axe:before { content: "🪓"; }
-.gi-armor-vest:before { content: "🦺"; }
-.gi-book-cover:before { content: "📖"; }
-.gi-wrench:before { content: "🔧"; }
-.gi-quiver:before { content: "🏹"; }
-.gi-extra-time:before { content: "⏳"; }
+/* Enhanced RPG Awesome icon fallbacks with emoji */
+.ra-player:before { content: "🧙"; }
+.ra-scroll-unfurled:before { content: "📜"; }
+.ra-crossed-swords:before { content: "⚔️"; }
+.ra-save:before { content: "💾"; }
+.ra-backpack:before { content: "🎒"; }
+.ra-gold-bar:before { content: "💰"; }
+.ra-level-up:before { content: "⬆️"; }
+.ra-book:before { content: "📖"; }
+.ra-bed:before { content: "🛏️"; }
+.ra-eye:before { content: "👁️"; }
+.ra-fireball:before { content: "🔥"; }
+.ra-prayer:before { content: "🙏"; }
+.ra-sword:before { content: "⚔️"; }
+.ra-boot:before { content: "👢"; }
+.ra-lightning:before { content: "⚡"; }
+.ra-quill:before { content: "🪶"; }
+.ra-check:before { content: "✅"; }
+.ra-cancel:before { content: "❌"; }
+.ra-telescope:before { content: "🔭"; }
+.ra-potion:before { content: "🧪"; }
+.ra-helmet:before { content: "🪖"; }
+.ra-gauntlet:before { content: "🧤"; }
+.ra-armor:before { content: "🛡️"; }
+.ra-boots:before { content: "👢"; }
+.ra-gem:before { content: "💎"; }
+.ra-ring:before { content: "💍"; }
+.ra-shield:before { content: "🛡️"; }
+.ra-bow:before { content: "🏹"; }
+.ra-dagger:before { content: "🗡️"; }
+.ra-axe:before { content: "🪓"; }
+.ra-wrench:before { content: "🔧"; }
+.ra-hourglass:before { content: "⏳"; }
+.ra-vest:before { content: "🦺"; }
+.ra-heavy-armor:before { content: "🛡️"; }
+.ra-cloth-armor:before { content: "👘"; }
+.ra-robe:before { content: "🥼"; }
+.ra-staff:before { content: "🪄"; }
+.ra-wand:before { content: "🪄"; }
+.ra-orb:before { content: "🔮"; }
 
 
 /* Specific button colors for combat/shop/etc. */

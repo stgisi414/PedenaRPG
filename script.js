@@ -481,18 +481,18 @@ function displayMessage(message, type = 'info') {
     let icon = '';
     if (type === 'combat') {
         p.classList.add('text-red-700', 'font-bold');
-        icon = '<i class="gi gi-sword-brandish mr-2"></i>';
+        icon = '<i class="ra ra-sword mr-2"></i>';
     } else if (type === 'success') {
         p.classList.add('text-green-700');
-        icon = '<i class="gi gi-check-mark mr-2"></i>';
+        icon = '<i class="ra ra-check mr-2"></i>';
     } else if (type === 'error') {
         p.classList.add('text-red-500');
-        icon = '<i class="gi gi-cancel mr-2"></i>';
+        icon = '<i class="ra ra-cancel mr-2"></i>';
     } else if (type === 'exploration') {
         p.classList.add('text-blue-600');
-        icon = '<i class="gi gi-telescope mr-2"></i>';
+        icon = '<i class="ra ra-telescope mr-2"></i>';
     } else if (type === 'info') {
-        icon = '<i class="gi gi-scroll-quill mr-2"></i>';
+        icon = '<i class="ra ra-quill mr-2"></i>';
     }
 
     // Process rich text if enabled (exclude background and combat messages)
@@ -3831,7 +3831,7 @@ resetProgressionBtn.style.cssText = `
     z-index: 999;
     font-size: 0.75rem;
 `;
-resetProgressionBtn.innerHTML = '<i class="gi gi-refresh mr-1"></i><span class="hidden sm:inline">Reset Progression</span><span class="sm:hidden">Reset</span>';
+resetProgressionBtn.innerHTML = '<i class="ra ra-recycle mr-1"></i><span class="hidden sm:inline">Reset Progression</span><span class="sm:hidden">Reset</span>';
 resetProgressionBtn.title = 'Reset character progression (feats, skills, abilities) to match updated game files';
 
 // Add rich text styling toggle button
@@ -3845,7 +3845,7 @@ richTextToggle.style.cssText = `
     z-index: 999;
     font-size: 0.75rem;
 `;
-richTextToggle.innerHTML = '<i class="gi gi-magic-swirl mr-1"></i><span class="hidden sm:inline">Rich Text: OFF</span><span class="sm:hidden">RT: OFF</span>';
+richTextToggle.innerHTML = '<i class="ra ra-fireball mr-1"></i><span class="hidden sm:inline">Rich Text: OFF</span><span class="sm:hidden">RT: OFF</span>';
 richTextToggle.title = 'Toggle rich text styling for game messages';
 
 // Add to game container
@@ -3862,7 +3862,7 @@ function updateRichTextToggle() {
     const toggle = document.getElementById('rich-text-toggle');
     if (toggle) {
         const status = richTextEnabled ? 'ON' : 'OFF';
-        toggle.innerHTML = `<i class="gi gi-magic-swirl mr-1"></i><span class="hidden sm:inline">Rich Text: ${status}</span><span class="sm:hidden">RT: ${status}</span>`;
+        toggle.innerHTML = `<i class="ra ra-fireball mr-1"></i><span class="hidden sm:inline">Rich Text: ${status}</span><span class="sm:hidden">RT: ${status}</span>`;
         toggle.className = `btn-parchment rich-text-toggle ${richTextEnabled ? 'bg-purple-600 hover:bg-purple-700' : 'bg-gray-600 hover:bg-gray-700'} text-white text-xs md:text-sm py-1 px-2`;
     }
 }
@@ -4110,23 +4110,23 @@ function updateQuickActionButtons() {
 
     switch (player.class.toLowerCase()) {
         case 'mage':
-            castSpellBtn.innerHTML = `<i class="gi gi-magic-swirl mr-2"></i>Cast Spell`;
+            castSpellBtn.innerHTML = `<i class="ra ra-fireball mr-2"></i>Cast Spell`;
             castSpellBtn.title = "Cast a spell from your spellbook";
             break;
         case 'warrior':
-            castSpellBtn.innerHTML = `<i class="gi gi-sword-brandish mr-2"></i>Use Ability`;
+            castSpellBtn.innerHTML = `<i class="ra ra-sword mr-2"></i>Use Ability`;
             castSpellBtn.title = "Use a powerful combat ability";
             break;
         case 'rogue':
-            castSpellBtn.innerHTML = `<i class="gi gi-scroll-quill mr-2"></i>Use Skill`;
+            castSpellBtn.innerHTML = `<i class="ra ra-dagger mr-2"></i>Use Skill`;
             castSpellBtn.title = "Use a special rogue skill";
             break;
         case 'ranger':
-            castSpellBtn.innerHTML = `<i class="gi gi-holy-symbol mr-2"></i>Use Technique`;
+            castSpellBtn.innerHTML = `<i class="ra ra-bow mr-2"></i>Use Technique`;
             castSpellBtn.title = "Use a ranger technique or nature-based ability";
             break;
         default:
-            castSpellBtn.innerHTML = `<i class="gi gi-magic-swirl mr-2"></i>Special Action`;
+            castSpellBtn.innerHTML = `<i class="ra ra-fireball mr-2"></i>Special Action`;
             castSpellBtn.title = "Perform a special action";
             break;
     }
@@ -4293,7 +4293,7 @@ function displayInventory() {
 }
 
 function getIconForItem(item) {
-    if (!item || !item.type) return 'gi-crossed-swords'; // Default icon
+    if (!item || !item.type) return 'ra-crossed-swords'; // Default icon
 
     const type = item.type.toLowerCase();
     const subType = item.subType ? item.subType.toLowerCase() : '';
@@ -4302,14 +4302,18 @@ function getIconForItem(item) {
     // Prioritize specific slots for equipment
     if (item.slot) {
         switch (item.slot) {
-            case 'head': return 'gi-helmet';
-            case 'chest': return 'gi-chest-armor';
-            case 'hands': return 'gi-gauntlet';
-            case 'legs': return 'gi-leg-armor';
-            case 'feet': return 'gi-boot-prints'; // A more distinct icon for boots
-            case 'amulet': return 'gi-gem-pendant';
+            case 'head': return 'ra-helmet';
+            case 'chest': 
+                if (name.includes('robe') || name.includes('cloth')) return 'ra-robe';
+                if (name.includes('heavy') || name.includes('plate')) return 'ra-heavy-armor';
+                if (name.includes('cloth')) return 'ra-cloth-armor';
+                return 'ra-armor';
+            case 'hands': return 'ra-gauntlet';
+            case 'legs': return 'ra-armor';
+            case 'feet': return 'ra-boots';
+            case 'amulet': return 'ra-gem';
             case 'ring1':
-            case 'ring2': return 'gi-diamond-ring';
+            case 'ring2': return 'ra-ring';
             case 'mainHand': // Fall through to weapon checks
             case 'offHand':  // Fall through to weapon/shield checks
                 break; // Continue below
@@ -4320,34 +4324,39 @@ function getIconForItem(item) {
     // Check by item type and name
     switch (type) {
         case 'weapon':
-            if (name.includes('bow')) return 'gi-bow-arrow';
-            if (name.includes('staff') || name.includes('wand')) return 'gi-magic-swirl';
-            if (name.includes('dagger')) return 'gi-dagger-cross';
-            if (name.includes('axe')) return 'gi-battle-axe';
-            return 'gi-sword-brandish';
+            if (name.includes('bow')) return 'ra-bow';
+            if (name.includes('staff')) return 'ra-staff';
+            if (name.includes('wand')) return 'ra-wand';
+            if (name.includes('dagger')) return 'ra-dagger';
+            if (name.includes('axe')) return 'ra-axe';
+            return 'ra-sword';
         case 'armor': // Fallback for armor without specific slots
-            if (item.slot === 'offHand') return 'gi-round-shield';
-            return 'gi-armor-vest';
+            if (item.slot === 'offHand') return 'ra-shield';
+            if (name.includes('robe')) return 'ra-robe';
+            if (name.includes('vest')) return 'ra-vest';
+            return 'ra-armor';
         case 'consumable':
-            if (name.includes('potion')) return 'gi-drink-me';
-            return 'gi-extra-time'; // Generic consumable
+            if (name.includes('potion')) return 'ra-potion';
+            return 'ra-hourglass'; // Generic consumable
         case 'book':
-            return 'gi-book-cover';
+            return 'ra-book';
         case 'scroll':
-            return 'gi-scroll-unfurled';
+            return 'ra-scroll-unfurled';
         case 'jewelry':
-            if (subType.includes('ring')) return 'gi-diamond-ring';
-            if (subType.includes('amulet')) return 'gi-gem-pendant';
-            return 'gi-gem-pendant';
+            if (subType.includes('ring')) return 'ra-ring';
+            if (subType.includes('amulet')) return 'ra-gem';
+            return 'ra-gem';
         case 'tool':
-            if (name.includes('quiver')) return 'gi-quiver';
-            return 'gi-wrench';
+            if (name.includes('quiver')) return 'ra-bow';
+            return 'ra-wrench';
         case 'quest_reward':
-            return 'gi-level-up';
+            return 'ra-level-up';
         case 'magical': // For orbs, talismans, etc.
-            return 'gi-magic-swirl';
+            if (name.includes('orb')) return 'ra-orb';
+            if (name.includes('wand')) return 'ra-wand';
+            return 'ra-orb';
         default:
-            return 'gi-crossed-swords'; // Default for unknown types
+            return 'ra-crossed-swords'; // Default for unknown types
     }
 }
 
@@ -4368,16 +4377,16 @@ function buildEquipmentDisplay() {
     }
 
     const equipmentSlots = [
-        { slot: 'mainHand', name: 'Main Hand', icon: 'gi-sword-brandish' },
-        { slot: 'offHand', name: 'Off Hand', icon: 'gi-round-shield' },
-        { slot: 'head', name: 'Head', icon: 'gi-helmet' },
-        { slot: 'chest', name: 'Chest', icon: 'gi-chest-armor' },
-        { slot: 'hands', name: 'Hands', icon: 'gi-gauntlet' },
-        { slot: 'legs', name: 'Legs', icon: 'gi-leg-armor' },
-        { slot: 'feet', name: 'Feet', icon: 'gi-boot-prints' },
-        { slot: 'amulet', name: 'Amulet', icon: 'gi-gem-pendant' },
-        { slot: 'ring1', name: 'Ring 1', icon: 'gi-diamond-ring' },
-        { slot: 'ring2', name: 'Ring 2', icon: 'gi-diamond-ring' }
+        { slot: 'mainHand', name: 'Main Hand', icon: 'ra-sword' },
+        { slot: 'offHand', name: 'Off Hand', icon: 'ra-shield' },
+        { slot: 'head', name: 'Head', icon: 'ra-helmet' },
+        { slot: 'chest', name: 'Chest', icon: 'ra-armor' },
+        { slot: 'hands', name: 'Hands', icon: 'ra-gauntlet' },
+        { slot: 'legs', name: 'Legs', icon: 'ra-armor' },
+        { slot: 'feet', name: 'Feet', icon: 'ra-boots' },
+        { slot: 'amulet', name: 'Amulet', icon: 'ra-gem' },
+        { slot: 'ring1', name: 'Ring 1', icon: 'ra-ring' },
+        { slot: 'ring2', name: 'Ring 2', icon: 'ra-ring' }
     ];
 
     return equipmentSlots.map(slotData => {
@@ -4389,7 +4398,7 @@ function buildEquipmentDisplay() {
             return `
                 <div class="parchment-box p-2 flex items-center gap-3 w-full">
                     <div class="flex-shrink-0">
-                        <i class="gi ${iconClass} text-xl text-green-600"></i>
+                        <i class="ra ${iconClass} text-xl text-green-600"></i>
                     </div>
                     <div class="flex-grow">
                         <h6 class="font-bold text-sm">${slotData.name}</h6>
@@ -4404,7 +4413,7 @@ function buildEquipmentDisplay() {
             return `
                 <div class="parchment-box p-2 flex items-center gap-3 w-full border-dashed border-gray-400">
                     <div class="flex-shrink-0">
-                        <i class="gi ${iconClass} text-xl text-gray-400"></i>
+                        <i class="ra ${iconClass} text-xl text-gray-400"></i>
                     </div>
                     <div class="flex-grow">
                         <h6 class="font-bold text-sm text-gray-500">${slotData.name}</h6>
@@ -4425,7 +4434,7 @@ function buildInventoryItemDisplay(item, index) {
     return `
         <div class="parchment-box p-3 w-full flex gap-3">
             <div class="flex-shrink-0 pt-1">
-                 <i class="gi ${iconClass} text-3xl text-amber-800"></i>
+                 <i class="ra ${iconClass} text-3xl text-amber-800"></i>
             </div>
             <div class="flex-grow">
                 <div class="flex justify-between items-start mb-1">
