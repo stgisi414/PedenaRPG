@@ -1001,7 +1001,7 @@ async function generateCombatEncounter() {
         name: levelDifference > 0 ? `Veteran ${selectedEnemy.name}` : selectedEnemy.name
     };
 
-    // Use new combat system
+    // Use text-based combat system
     await CombatSystem.initiateCombat(player, scaledEnemy, player.currentLocation);
 }
 
@@ -2970,6 +2970,15 @@ async function executeCustomCommand(command) {
 
         await handleStructuredMovement(command, destination);
         return;
+    }
+
+    // Check if we're in combat and handle combat commands
+    if (CombatSystem.combatState.isActive) {
+        const combatHandled = await CombatSystem.handleCombatCommand(command);
+        if (combatHandled) {
+            addToConversationHistory('user', command);
+            return;
+        }
     }
 
     // Check for combat initiation commands
