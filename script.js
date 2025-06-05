@@ -178,13 +178,13 @@ async function addToConversationHistory(role, content) {
         const lastUserMessage = conversationHistory.messages
             .slice(-2)
             .find(msg => msg.role === 'user');
-        
+
         if (lastUserMessage) {
             const alignmentChange = await AlignmentSystem.addMessage(
-                lastUserMessage.content, 
+                lastUserMessage.content,
                 content
             );
-            
+
             if (alignmentChange !== null) {
                 await processAlignmentChange(alignmentChange);
             }
@@ -194,17 +194,17 @@ async function addToConversationHistory(role, content) {
 
 async function processAlignmentChange(change) {
     const result = AlignmentSystem.updateAlignment(player, change);
-    
+
     if (result.changed) {
         const changeText = change > 0 ? 'improved' : change < 0 ? 'declined' : 'remained stable';
-        displayMessage(`Your moral standing has ${changeText}. You are now ${result.newType.replace('_', ' ')}.`, 
-                      change > 0 ? 'success' : change < 0 ? 'error' : 'info');
-        
+        displayMessage(`Your moral standing has ${changeText}. You are now ${result.newType.replace('_', ' ')}.`,
+            change > 0 ? 'success' : change < 0 ? 'error' : 'info');
+
         if (Math.abs(change) > 0) {
             displayMessage(AlignmentSystem.getAlignmentDescription(player), 'info');
         }
     }
-    
+
     saveGame();
 }
 
@@ -232,13 +232,13 @@ function updateRelationship(npcName, statusChange = 0, trustChange = 0, npcDescr
     }
 
     const relationship = player.relationships[npcName];
-    
+
     // Apply alignment modifier to trust changes
     const modifiedTrustChange = trustChange + (alignmentModifier.npcTrustModifier * 0.1);
     relationship.trust = Math.max(0, Math.min(100, relationship.trust + modifiedTrustChange));
     relationship.interactions++;
     relationship.lastInteraction = Date.now();
-    
+
     // Update description if provided
     if (npcDescription && !relationship.description.includes(npcDescription)) {
         relationship.description = npcDescription;
@@ -497,7 +497,7 @@ function displayMessage(message, type = 'info') {
 
     // Process rich text if enabled (exclude background and combat messages)
     const processedMessage = processRichText(message, type);
-    
+
     p.innerHTML = icon + processedMessage;
     gameOutput.appendChild(p);
     gameOutput.scrollTop = gameOutput.scrollHeight; // Auto-scroll to bottom
@@ -615,19 +615,19 @@ function loadGame() {
         }
 
         displayMessage("Game loaded!", 'success');
-        
+
         // Add helpful reminder about the Explore button
         setTimeout(() => {
             displayMessage("💡 The DM remembers your last encounters! Try using the 🔍 Explore button to help return to your adventure!", 'info');
         }, 1000);
-        
+
         console.log("loadGame: Final player.gold after all loading steps:", player.gold);
 
         console.log(`[SCRIPT.JS] loadGame: player HP set to <span class="math-inline">${player.hp}/${player.maxHp}</span>`);
         console.log(`[SCRIPT.JS] loadGame: window.player HP is now <span class="math-inline">${window.player.hp}/${window.player.maxHp}</span>`);
         console.log(`[SCRIPT.JS] loadGame: is module player === window.player? ${player === window.player}`); // Should be true
 
-        
+
         updatePlayerStatsDisplay();
         updateQuestButton(); // Update quest button based on saved quests
 
@@ -1291,7 +1291,7 @@ function extractNPCNames(aiResponse) {
     const knownNPCs = Object.keys(player.relationships || {}).filter(name => {
         // Filter out technical variable names and properties
         const technicalTerms = [
-            'classProgression', 'passiveBonuses', 'statusEffects', 'inventory', 
+            'classProgression', 'passiveBonuses', 'statusEffects', 'inventory',
             'equipment', 'stats', 'skills', 'abilities', 'spells', 'quests',
             'hp', 'maxHp', 'level', 'exp', 'gold', 'currentLocation'
         ];
@@ -1319,8 +1319,8 @@ function extractNPCNames(aiResponse) {
             if (name.length > 1 && name.length < 20 && !names.includes(name)) {
                 // Enhanced exclusion list to prevent technical terms from becoming relationships
                 const excludeWords = [
-                    'The', 'A', 'An', 'You', 'Your', 'Game', 'Character', 'Player', 
-                    'He', 'She', 'Him', 'Her', 'They', 'Them', 'It', 'Says', 'Looks', 
+                    'The', 'A', 'An', 'You', 'Your', 'Game', 'Character', 'Player',
+                    'He', 'She', 'Him', 'Her', 'They', 'Them', 'It', 'Says', 'Looks',
                     'Smiles', 'Laughs', 'Class', 'Level', 'Stats', 'Equipment', 'Inventory',
                     'ClassProgression', 'PassiveBonuses', 'StatusEffects', 'Skills', 'Abilities'
                 ];
@@ -1373,7 +1373,7 @@ function cleanupRelationships() {
     }
 
     const technicalTerms = [
-        'classProgression', 'passiveBonuses', 'statusEffects', 'inventory', 
+        'classProgression', 'passiveBonuses', 'statusEffects', 'inventory',
         'equipment', 'stats', 'skills', 'abilities', 'spells', 'quests',
         'hp', 'maxHp', 'level', 'exp', 'gold', 'currentLocation'
     ];
@@ -3116,7 +3116,7 @@ async function generateCharacterBackground() {
                 .replace(/\*(.*?)\*/g, '$1')
                 .replace(/\[\w+:(.*?)\]/g, '$1')
                 .replace(/\{\{[\w-]+:(.*?)\}\}/g, '$1');
-            
+
             charBackgroundTextarea.value = cleanBackground;
         } else {
             charBackgroundTextarea.value = `${name} is a ${charClass} who seeks adventure in the realm of Pedena.`;
@@ -3493,16 +3493,16 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('pray-btn')?.addEventListener('click', () => {
         // Initialize alignment if not present
         AlignmentSystem.initializeAlignment(player);
-        
+
         const alignmentInfo = AlignmentSystem.getAlignmentDisplayInfo(player);
         const prayerEffects = alignmentInfo.modifier.prayerEffects;
-        
+
         displayMessage("You offer a prayer to the gods...", 'info');
-        
+
         setTimeout(() => {
             if (prayerEffects.length > 0) {
                 const effect = prayerEffects[0];
-                
+
                 // Apply healing
                 if (effect.healAmount) {
                     const oldHp = player.hp;
@@ -3512,13 +3512,13 @@ document.addEventListener('DOMContentLoaded', () => {
                         displayMessage(`${effect.name}: You recover ${actualHeal} HP!`, 'success');
                     }
                 }
-                
+
                 // Apply gold bonus (for neutral alignments)
                 if (effect.goldBonus) {
                     updateGold(effect.goldBonus, 'divine fortune');
                     displayMessage(`Fortune smiles upon you! You found ${effect.goldBonus} gold!`, 'success');
                 }
-                
+
                 // Apply stat bonuses temporarily
                 if (effect.statBonus) {
                     Object.entries(effect.statBonus).forEach(([stat, bonus]) => {
@@ -3526,7 +3526,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             player.stats[stat] += bonus;
                         }
                     });
-                    
+
                     // Set timer to remove stat bonuses
                     setTimeout(() => {
                         Object.entries(effect.statBonus).forEach(([stat, bonus]) => {
@@ -3539,7 +3539,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         saveGame();
                     }, effect.duration * 1000);
                 }
-                
+
                 // Apply status effects
                 if (effect.effects && player.statusEffects) {
                     effect.effects.forEach(statusEffect => {
@@ -3552,10 +3552,10 @@ document.addEventListener('DOMContentLoaded', () => {
                         });
                     });
                 }
-                
+
                 displayMessage(effect.description, 'success');
                 displayMessage(`Effect duration: ${Math.floor(effect.duration / 60)} minutes`, 'info');
-                
+
                 updatePlayerStatsDisplay();
                 saveGame();
             } else {
@@ -3876,29 +3876,29 @@ function toggleRichText() {
 
 function processRichText(text, messageType = null) {
     if (!richTextEnabled) return text;
-    
+
     // Skip rich text processing for background generation and combat messages
     if (messageType === 'background' || messageType === 'combat') {
         return text;
     }
-    
+
     // Process markdown-like syntax for rich text
     let processed = text;
-    
+
     // Bold: **text** or __text__
     processed = processed.replace(/\*\*(.*?)\*\*/g, '<span class="rt-bold">$1</span>');
     processed = processed.replace(/__(.*?)__/g, '<span class="rt-bold">$1</span>');
-    
+
     // Italic: *text* or _text_ (but not if already processed as bold)
     processed = processed.replace(/(?<!\*)\*([^*]+?)\*(?!\*)/g, '<span class="rt-italic">$1</span>');
     processed = processed.replace(/(?<!_)_([^_]+?)_(?!_)/g, '<span class="rt-italic">$1</span>');
-    
+
     // Underline: __text__ (single underscore for underline when not used for bold)
     processed = processed.replace(/__([^_]+?)__/g, '<span class="rt-underline">$1</span>');
-    
+
     // Strikethrough: ~~text~~
     processed = processed.replace(/~~(.*?)~~/g, '<span class="rt-strikethrough">$1</span>');
-    
+
     // Special effects with custom syntax
     // Colors: {red:text}, {green:text}, etc. and single word colors {magical}, {infernal}, etc.
     processed = processed.replace(/\{red:(.*?)\}/g, '<span class="rt-color-red">$1</span>');
@@ -3910,7 +3910,7 @@ function processRichText(text, messageType = null) {
     processed = processed.replace(/\{crimson:(.*?)\}/g, '<span class="rt-color-crimson">$1</span>');
     processed = processed.replace(/\{emerald:(.*?)\}/g, '<span class="rt-color-emerald">$1</span>');
     processed = processed.replace(/\{brown:(.*?)\}/g, '<span class="rt-color-brown">$1</span>');
-    
+
     // Handle contextual color words - map to appropriate colors
     processed = processed.replace(/\{magical\}/g, '<span class="rt-color-purple">magical</span>');
     processed = processed.replace(/\{infernal energy\}/g, '<span class="rt-color-red">infernal energy</span>');
@@ -3927,7 +3927,7 @@ function processRichText(text, messageType = null) {
     processed = processed.replace(/\{epic\}/g, '<span class="rt-color-gold">epic</span>');
     processed = processed.replace(/\{hellish\}/g, '<span class="rt-color-red">hellish</span>');
     processed = processed.replace(/\{portal\}/g, '<span class="rt-color-blue">portal</span>');
-    
+
     // Generic fallback for any remaining single-word colors in braces
     processed = processed.replace(/\{([a-zA-Z\s]+)\}/g, function(match, word) {
         // If it wasn't caught by specific rules above, apply a default color based on context
@@ -3945,13 +3945,13 @@ function processRichText(text, messageType = null) {
             return `<span class="rt-color-purple">${word}</span>`; // Default to purple for unknown
         }
     });
-    
+
     // Fonts: [medieval:text], [magic:text], etc.
     processed = processed.replace(/\[medieval:(.*?)\]/g, '<span class="rt-font-medieval">$1</span>');
     processed = processed.replace(/\[magic:(.*?)\]/g, '<span class="rt-font-magic">$1</span>');
     processed = processed.replace(/\[elegant:(.*?)\]/g, '<span class="rt-font-elegant">$1</span>');
     processed = processed.replace(/\[ancient:(.*?)\]/g, '<span class="rt-font-ancient">$1</span>');
-    
+
     // Effects: {{effect:text}} - Process in specific order to avoid conflicts
     processed = processed.replace(/\{\{highlight:(.*?)\}\}/g, '<span class="rt-highlight">$1</span>');
     processed = processed.replace(/\{\{blink:(.*?)\}\}/g, '<span class="rt-blink">$1</span>');
@@ -3961,7 +3961,7 @@ function processRichText(text, messageType = null) {
     processed = processed.replace(/\{\{stretch-h:(.*?)\}\}/g, '<span class="rt-stretch-h">$1</span>');
     processed = processed.replace(/\{\{stretch-v:(.*?)\}\}/g, '<span class="rt-stretch-v">$1</span>');
     processed = processed.replace(/\{\{glow-shadow:(.*?)\}\}/g, '<span class="rt-shadow-glow">$1</span>');
-    
+
     return processed;
 }
 
@@ -3985,7 +3985,7 @@ function addMainEventListeners() {
             } else {
                 console.log(`[SCRIPT.JS] After loadGame, window.player is not yet defined (or not yet assigned).`);
             }
-            
+
         });
 
         // Character creation
@@ -4292,6 +4292,65 @@ function displayInventory() {
     }
 }
 
+function getIconForItem(item) {
+    if (!item || !item.type) return 'gi-crossed-swords'; // Default icon
+
+    const type = item.type.toLowerCase();
+    const subType = item.subType ? item.subType.toLowerCase() : '';
+    const name = item.name.toLowerCase();
+
+    // Prioritize specific slots for equipment
+    if (item.slot) {
+        switch (item.slot) {
+            case 'head': return 'gi-helmet';
+            case 'chest': return 'gi-chest-armor';
+            case 'hands': return 'gi-gauntlet';
+            case 'legs': return 'gi-leg-armor';
+            case 'feet': return 'gi-boot-prints'; // A more distinct icon for boots
+            case 'amulet': return 'gi-gem-pendant';
+            case 'ring1':
+            case 'ring2': return 'gi-diamond-ring';
+            case 'mainHand': // Fall through to weapon checks
+            case 'offHand':  // Fall through to weapon/shield checks
+                break; // Continue below
+            default: break;
+        }
+    }
+
+    // Check by item type and name
+    switch (type) {
+        case 'weapon':
+            if (name.includes('bow')) return 'gi-bow-arrow';
+            if (name.includes('staff') || name.includes('wand')) return 'gi-magic-swirl';
+            if (name.includes('dagger')) return 'gi-dagger-cross';
+            if (name.includes('axe')) return 'gi-battle-axe';
+            return 'gi-sword-brandish';
+        case 'armor': // Fallback for armor without specific slots
+            if (item.slot === 'offHand') return 'gi-round-shield';
+            return 'gi-armor-vest';
+        case 'consumable':
+            if (name.includes('potion')) return 'gi-drink-me';
+            return 'gi-extra-time'; // Generic consumable
+        case 'book':
+            return 'gi-book-cover';
+        case 'scroll':
+            return 'gi-scroll-unfurled';
+        case 'jewelry':
+            if (subType.includes('ring')) return 'gi-diamond-ring';
+            if (subType.includes('amulet')) return 'gi-gem-pendant';
+            return 'gi-gem-pendant';
+        case 'tool':
+            if (name.includes('quiver')) return 'gi-quiver';
+            return 'gi-wrench';
+        case 'quest_reward':
+            return 'gi-level-up';
+        case 'magical': // For orbs, talismans, etc.
+            return 'gi-magic-swirl';
+        default:
+            return 'gi-crossed-swords'; // Default for unknown types
+    }
+}
+
 function buildEquipmentDisplay() {
     if (!player.equipment) {
         player.equipment = {
@@ -4315,7 +4374,7 @@ function buildEquipmentDisplay() {
         { slot: 'chest', name: 'Chest', icon: 'gi-chest-armor' },
         { slot: 'hands', name: 'Hands', icon: 'gi-gauntlet' },
         { slot: 'legs', name: 'Legs', icon: 'gi-leg-armor' },
-        { slot: 'feet', name: 'Feet', icon: 'gi-leg-armor' },
+        { slot: 'feet', name: 'Feet', icon: 'gi-boot-prints' },
         { slot: 'amulet', name: 'Amulet', icon: 'gi-gem-pendant' },
         { slot: 'ring1', name: 'Ring 1', icon: 'gi-diamond-ring' },
         { slot: 'ring2', name: 'Ring 2', icon: 'gi-diamond-ring' }
@@ -4323,11 +4382,14 @@ function buildEquipmentDisplay() {
 
     return equipmentSlots.map(slotData => {
         const item = player.equipment[slotData.slot];
+        // --- THIS IS THE KEY CHANGE ---
+        const iconClass = item ? getIconForItem(item) : slotData.icon;
+
         if (item) {
             return `
                 <div class="parchment-box p-2 flex items-center gap-3 w-full">
                     <div class="flex-shrink-0">
-                        <i class="gi ${slotData.icon} text-xl text-green-600"></i>
+                        <i class="gi ${iconClass} text-xl text-green-600"></i>
                     </div>
                     <div class="flex-grow">
                         <h6 class="font-bold text-sm">${slotData.name}</h6>
@@ -4342,7 +4404,7 @@ function buildEquipmentDisplay() {
             return `
                 <div class="parchment-box p-2 flex items-center gap-3 w-full border-dashed border-gray-400">
                     <div class="flex-shrink-0">
-                        <i class="gi ${slotData.icon} text-xl text-gray-400"></i>
+                        <i class="gi ${iconClass} text-xl text-gray-400"></i>
                     </div>
                     <div class="flex-grow">
                         <h6 class="font-bold text-sm text-gray-500">${slotData.name}</h6>
@@ -4358,24 +4420,31 @@ function buildInventoryItemDisplay(item, index) {
     const canEquip = item.slot && (!player.equipment[item.slot] || player.equipment[item.slot].id !== item.id);
     const isConsumable = item.type === 'consumable' || (item.effect && (item.effect.type === 'heal' || item.effect.type === 'mana'));
 
+    const iconClass = getIconForItem(item);
+
     return `
-        <div class="parchment-box p-2 w-full">
-            <div class="flex justify-between items-start mb-1">
-                <h6 class="font-bold text-lg">${item.name}</h6>
-                <span class="text-xs px-2 py-1 rounded ${getRarityColor(item.rarity || 'COMMON')}">${item.rarity || 'COMMON'}</span>
+        <div class="parchment-box p-3 w-full flex gap-3">
+            <div class="flex-shrink-0 pt-1">
+                 <i class="gi ${iconClass} text-3xl text-amber-800"></i>
             </div>
-            <p class="text-sm text-amber-700 mb-1">${item.description || 'No description'}</p>
-            
-            ${item.damage ? `<p class="text-xs text-red-600">Damage: ${item.damage}</p>` : ''}
-            ${item.defense ? `<p class="text-xs text-blue-600">Defense: ${item.defense}</p>` : ''}
-            ${item.effect ? `<p class="text-xs text-purple-600">Effect: ${getEffectDescription(item.effect)}</p>` : ''}
-            ${item.value ? `<p class="text-xs text-green-600 mb-1">Value: ${item.value} gold</p>` : ''}
-            
-            <div class="flex gap-2 flex-wrap">
-                ${canEquip ? `<button class="btn-parchment inventory-action-btn text-xs py-1 px-2 bg-green-600 hover:bg-green-700"  style="color: #D2B48C !important;" data-action="equip" data-index="${index}">Equip</button>` : ''}
-                ${isConsumable ? `<button class="btn-parchment inventory-action-btn text-xs py-1 px-2 bg-blue-600 hover:bg-blue-700"  style="color: #D2B48C !important;" data-action="use" data-index="${index}">Use</button>` : ''}
-                <button class="btn-parchment inventory-action-btn text-xs py-1 px-2 bg-yellow-600 hover:bg-yellow-700"  style="color: #D2B48C !important;" data-action="sell" data-index="${index}">Sell</button>
-                <button class="btn-parchment inventory-action-btn text-xs py-1 px-2 bg-red-600 hover:bg-red-700" data-action="drop" data-index="${index}">Drop</button>
+            <div class="flex-grow">
+                <div class="flex justify-between items-start mb-1">
+                    <h6 class="font-bold text-lg">${item.name}</h6>
+                    <span class="text-xs px-2 py-1 rounded ${getRarityColor(item.rarity || 'COMMON')}">${item.rarity || 'COMMON'}</span>
+                </div>
+                <p class="text-sm text-amber-700 mb-2">${item.description || 'No description'}</p>
+
+                ${item.damage ? `<p class="text-xs text-red-600">Damage: ${item.damage}</p>` : ''}
+                ${item.armor ? `<p class="text-xs text-blue-600">Armor: ${item.armor}</p>` : ''}
+                ${item.effect ? `<p class="text-xs text-purple-600">Effect: ${getEffectDescription(item.effect)}</p>` : ''}
+                ${item.value ? `<p class="text-xs text-green-600 mb-2">Value: ${item.value} gold</p>` : ''}
+
+                <div class="flex gap-2 flex-wrap">
+                    ${canEquip ? `<button class="btn-parchment inventory-action-btn text-xs py-1 px-2 bg-green-600 hover:bg-green-700"  style="color: #D2B48C !important;" data-action="equip" data-index="${index}">Equip</button>` : ''}
+                    ${isConsumable ? `<button class="btn-parchment inventory-action-btn text-xs py-1 px-2 bg-blue-600 hover:bg-blue-700"  style="color: #D2B48C !important;" data-action="use" data-index="${index}">Use</button>` : ''}
+                    <button class="btn-parchment inventory-action-btn text-xs py-1 px-2 bg-yellow-600 hover:bg-yellow-700"  style="color: #D2B48C !important;" data-action="sell" data-index="${index}">Sell</button>
+                    <button class="btn-parchment inventory-action-btn text-xs py-1 px-2 bg-red-600 hover:bg-red-700" data-action="drop" data-index="${index}">Drop</button>
+                </div>
             </div>
         </div>
     `;
@@ -4452,17 +4521,17 @@ function getRelationshipColor(status) {
 }
 
 function calculateEquipmentBonuses() {
-    const bonuses = { 
-        strength: 0, dexterity: 0, intelligence: 0, 
-        constitution: 0, wisdom: 0, charisma: 0, 
-        attack: 0, defense: 0, damage: 0 
+    const bonuses = {
+        strength: 0, dexterity: 0, intelligence: 0,
+        constitution: 0, wisdom: 0, charisma: 0,
+        attack: 0, defense: 0, damage: 0
     };
-    
+
     if (!player || !player.equipment) return bonuses;
 
     Object.values(player.equipment).forEach(item => {
         if (!item) return;
-        
+
         // Check for stat bonuses
         if (item.statBonus) {
             Object.entries(item.statBonus).forEach(([stat, bonus]) => {
@@ -4471,17 +4540,17 @@ function calculateEquipmentBonuses() {
                 }
             });
         }
-        
+
         // Add defense bonus
         if (item.defense) {
             bonuses.defense += Number(item.defense) || 0;
         }
-        
+
         // Add damage bonus
         if (item.damage) {
             bonuses.damage += Number(item.damage) || 0;
         }
-        
+
         // Check for effects that provide stat bonuses
         if (item.effects && Array.isArray(item.effects)) {
             item.effects.forEach(effect => {
@@ -4494,7 +4563,7 @@ function calculateEquipmentBonuses() {
             });
         }
     });
-    
+
     return bonuses;
 }
 
@@ -4521,7 +4590,7 @@ function buildStatsGrid(baseStats, equipmentBonuses) {
             </div>
         `;
     });
-    
+
     // Add combat stats if available in equipmentBonuses
     if (equipmentBonuses.defense > 0) {
         gridHTML += `
@@ -4531,7 +4600,7 @@ function buildStatsGrid(baseStats, equipmentBonuses) {
             </div>
         `;
     }
-    
+
     if (equipmentBonuses.damage > 0) {
         gridHTML += `
             <div class="flex justify-between items-center py-1 border-b border-amber-700/20">
@@ -4548,7 +4617,7 @@ function buildStatsGrid(baseStats, equipmentBonuses) {
 function buildAlignmentDisplay() {
     AlignmentSystem.initializeAlignment(player);
     const alignmentInfo = AlignmentSystem.getAlignmentDisplayInfo(player);
-    
+
     return `
         <div class="grid grid-cols-1 gap-2 text-sm">
             <div class="flex justify-between items-center py-2 border-b border-amber-700/20">
@@ -4840,7 +4909,7 @@ function displayCharacterBackground() {
                 console.warn(`Invalid relationship data for ${npcName}:`, relationship);
                 return; // Skip this relationship
             }
-            
+
             const status = relationship.status || 'neutral';
             const relationshipColor = getRelationshipColor(status);
             const trust = relationship.trust || 0;

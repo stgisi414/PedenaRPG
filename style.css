@@ -184,6 +184,24 @@ h1, h2, h3, h4 {
 .gi-drink-me:before { content: "🧪"; }
 .gi-sword:before { content: "🗡️"; }
 .gi-chest-armor:before { content: "🛡️"; }
+.gi-helmet:before { content: "🪖"; }
+.gi-gauntlet:before { content: "🧤"; }
+.gi-leg-armor:before { content: "👖"; }
+.gi-boot-prints:before { content: "👢"; }
+.gi-gem-pendant:before { content: "💎"; }
+.gi-diamond-ring:before { content: "💍"; }
+.gi-round-shield:before { content: "🛡️"; }
+.gi-sword-brandish:before { content: "🗡️"; }
+.gi-bow-arrow:before { content: "🏹"; }
+.gi-magic-swirl:before { content: "✨"; }
+.gi-dagger-cross:before { content: "🔪"; }
+.gi-battle-axe:before { content: "🪓"; }
+.gi-armor-vest:before { content: "🦺"; }
+.gi-book-cover:before { content: "📖"; }
+.gi-wrench:before { content: "🔧"; }
+.gi-quiver:before { content: "🏹"; }
+.gi-extra-time:before { content: "⏳"; }
+
 
 /* Specific button colors for combat/shop/etc. */
 #attack-btn {
