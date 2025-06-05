@@ -3812,9 +3812,7 @@ resetProgressionBtn.style.cssText = `
     top: 60px;
     right: 10px;
     z-index: 999;
-    @media (min-width: 768px) {
-        top: 10px;
-    }
+    font-size: 0.75rem;
 `;
 resetProgressionBtn.innerHTML = '<i class="gi gi-refresh mr-1"></i><span class="hidden sm:inline">Reset Progression</span><span class="sm:hidden">Reset</span>';
 resetProgressionBtn.title = 'Reset character progression (feats, skills, abilities) to match updated game files';
@@ -3828,12 +3826,10 @@ richTextToggle.style.cssText = `
     top: 110px;
     right: 10px;
     z-index: 999;
-    @media (min-width: 768px) {
-        top: 50px;
-    }
+    font-size: 0.75rem;
 `;
 richTextToggle.innerHTML = '<i class="gi gi-magic-swirl mr-1"></i><span class="hidden sm:inline">Rich Text: OFF</span><span class="sm:hidden">RT: OFF</span>';
-richTextToggle.title = 'Toggle rich text styling for game messages';</richTextToggle.title>
+richTextToggle.title = 'Toggle rich text styling for game messages';
 
 // Add to game container
 const gameContainer = document.getElementById('game-container');
