@@ -4460,14 +4460,10 @@ function displayCharacterBackground() {
                             ${firstMeeting}
                         </div>
                         <div>
-                            <strong>Location:</strong><br>
-                            ${metAt}
-                        </div>
-                        <div>
                             <strong>Interactions:</strong><br>
                             ${interactions} times
                         </div>
-                        <div>
+                        <div class="col-span-2">
                             <strong>Last seen:</strong><br>
                             ${relationship.lastInteraction ? new Date(relationship.lastInteraction).toLocaleDateString() : 'Recently'}
                         </div>
