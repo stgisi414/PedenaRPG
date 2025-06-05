@@ -115,8 +115,12 @@ Focus on terrain, lighting, and immediate surroundings that could affect the fig
 
     static displayCombatStart(player, enemy) {
         if (typeof window.displayMessage === 'function') {
-            // Get the actual player reference to ensure correct HP values
-            const actualPlayer = this.getPlayerReference() || player;
+            // Always use the global player reference for correct HP values
+            const actualPlayer = this.getPlayerReference();
+            if (!actualPlayer) {
+                console.error("CombatSystem: Could not get player reference for combat start display");
+                return;
+            }
             
             window.displayMessage("⚔️ COMBAT BEGINS!", 'combat');
             window.displayMessage(this.combatState.environment.description, 'combat');
@@ -137,8 +141,12 @@ Focus on terrain, lighting, and immediate surroundings that could affect the fig
     static async processPlayerAction(player, enemy, actionType, command) {
         if (!this.combatState.isActive) return;
 
-        // Ensure we're using the actual player object
+        // Always use the actual player object from global reference
         const actualPlayer = this.getPlayerReference();
+        if (!actualPlayer) {
+            console.error("CombatSystem: Could not get player reference for action processing");
+            return;
+        }
         const actionPrompt = this.buildPlayerActionPrompt(actualPlayer, enemy, actionType, command);
 
         try {
@@ -164,16 +172,19 @@ Focus on terrain, lighting, and immediate surroundings that could affect the fig
     }
 
     static buildPlayerActionPrompt(player, enemy, actionType, command) {
+        // Ensure we're using the most current player data
+        const actualPlayer = this.getPlayerReference() || player;
+        
         const contextData = {
             turn: this.combatState.turnNumber,
             player: {
-                name: player.name,
-                class: player.class,
-                level: player.level,
-                hp: player.hp,
-                maxHp: player.maxHp,
-                weapon: player.equipment?.mainHand?.name || 'unarmed',
-                armor: this.calculatePlayerDefense(player)
+                name: actualPlayer.name,
+                class: actualPlayer.class,
+                level: actualPlayer.level,
+                hp: actualPlayer.hp,
+                maxHp: actualPlayer.maxHp,
+                weapon: actualPlayer.equipment?.mainHand?.name || 'unarmed',
+                armor: this.calculatePlayerDefense(actualPlayer)
             },
             enemy: {
                 name: enemy.name,
