@@ -9,6 +9,7 @@ import { classProgression, spellDefinitions, abilityDefinitions } from './game-l
 import { ItemGenerator, ItemManager, itemCategories, itemRarity, statusEffects } from './assets/world-items.js';
 import { TransactionMiddleware } from './game-logic/transaction-middleware.js';
 import { ItemExchangeMiddleware } from './game-logic/item-exchange-middleware.js';
+import { CombatSystem } from './game-logic/combat-system.js';
 
 const GEMINI_API_KEY = 'AIzaSyDIFeql6HUpkZ8JJlr_kuN0WDFHUyOhijA'; // Replace with your actual Gemini API Key
 const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`;
@@ -975,12 +976,14 @@ async function generateCombatEncounter() {
 
     // Scale enemy based on player level
     const enemyTypes = [
-        { name: 'Goblin Scout', hp: 15, attack: 8, defense: 1, level: 1 },
-        { name: 'Wild Wolf', hp: 20, attack: 10, defense: 2, level: 1 },
-        { name: 'Bandit', hp: 25, attack: 12, defense: 3, level: 2 },
-        { name: 'Orc Warrior', hp: 35, attack: 15, defense: 4, level: 3 },
-        { name: 'Dark Mage', hp: 30, attack: 18, defense: 2, level: 4 },
-        { name: 'Hill Giant', hp: 50, attack: 22, defense: 5, level: 5 }
+        { name: 'Goblin Scout', hp: 15, attack: 8, defense: 1, level: 1, type: 'Humanoid' },
+        { name: 'Wild Wolf', hp: 20, attack: 10, defense: 2, level: 1, type: 'Beast' },
+        { name: 'Bandit', hp: 25, attack: 12, defense: 3, level: 2, type: 'Humanoid' },
+        { name: 'Orc Warrior', hp: 35, attack: 15, defense: 4, level: 3, type: 'Humanoid' },
+        { name: 'Dark Mage', hp: 30, attack: 18, defense: 2, level: 4, type: 'Humanoid' },
+        { name: 'Hill Giant', hp: 50, attack: 22, defense: 5, level: 5, type: 'Giant' },
+        { name: 'Shadow Wraith', hp: 40, attack: 20, defense: 1, level: 6, type: 'Undead' },
+        { name: 'Fire Elemental', hp: 60, attack: 25, defense: 6, level: 7, type: 'Elemental' }
     ];
 
     // Select appropriate enemy for player level
@@ -993,44 +996,16 @@ async function generateCombatEncounter() {
         ...selectedEnemy,
         hp: selectedEnemy.hp + (levelDifference * 5),
         maxHp: selectedEnemy.hp + (levelDifference * 5),
+        currentHp: selectedEnemy.hp + (levelDifference * 5),
         attack: selectedEnemy.attack + (levelDifference * 2),
         name: levelDifference > 0 ? `Veteran ${selectedEnemy.name}` : selectedEnemy.name
     };
 
-    player.currentEnemy = scaledEnemy;
-
-    // Display combat interface inline in game output
-    displayCombatInterface(scaledEnemy);
-    displayMessage(`You face ${scaledEnemy.name}! Prepare for battle!`, 'combat');
+    // Use new combat system
+    await CombatSystem.initiateCombat(player, scaledEnemy, player.currentLocation);
 }
 
-function displayCombatInterface(enemy) {
-    const combatDiv = document.createElement('div');
-    combatDiv.id = 'inline-combat-interface';
-    combatDiv.classList.add('parchment-box', 'p-4', 'my-4', 'bg-red-50', 'border-red-300');
-
-    combatDiv.innerHTML = `
-        <div class="text-center mb-4">
-            <h4 class="text-2xl font-bold text-red-700">⚔️ Combat!</h4>
-        </div>
-        <div id="inline-enemy-info" class="parchment-box p-3 mb-4 text-center bg-red-100">
-            <h5 class="text-xl font-bold">${enemy.name}</h5>
-            <p class="text-lg">HP: <span id="enemy-hp-display">${enemy.hp}</span>/${enemy.maxHp}</p>
-            <p>Attack: ${enemy.attack} | Defense: ${enemy.defense}</p>
-        </div>
-        <div class="flex justify-center gap-4">
-            <button onclick="playerAttack()" class="btn-parchment bg-red-700 hover:bg-red-800 text-white">
-                <i class="gi gi-sword-brandish mr-2"></i>Attack
-            </button>
-            <button onclick="fleeCombat()" class="btn-parchment bg-gray-600 hover:bg-gray-700 text-white">
-                <i class="gi gi-run mr-2"></i>Flee
-            </button>
-        </div>
-    `;
-
-    gameOutput.appendChild(combatDiv);
-    gameOutput.scrollTop = gameOutput.scrollHeight;
-}
+// Legacy combat interface removed - now handled by CombatSystem
 
 async function generateTreasureEncounter() {
     displayMessage("✨ You discover something valuable!", 'success');
@@ -1753,55 +1728,10 @@ function gainExperience(amount) {
     updatePlayerStatsDisplay();
 }
 
+// Legacy playerAttack function - now handled by CombatSystem.playerAction()
 async function playerAttack() {
-    if (!player.currentEnemy) return;
-
-    const enemy = player.currentEnemy;
-
-    // Calculate player damage based on class and level
-    let baseDamage = 10;
-    const levelBonus = player.level * 2;
-    const classMultiplier = getClassAttackMultiplier(player.class);
-    const randomVariation = Math.floor(Math.random() * 10) + 1; // 1-10
-
-    const damage = Math.floor((baseDamage + levelBonus) * classMultiplier + randomVariation);
-
-    enemy.hp = Math.max(0, enemy.hp - damage);
-    displayMessage(`You attack ${enemy.name} for ${damage} damage!`, 'combat');
-
-    // Update enemy HP display
-    const enemyHpDisplay = document.getElementById('enemy-hp-display');
-    if (enemyHpDisplay) {
-        enemyHpDisplay.textContent = enemy.hp;
-    }
-
-    if (enemy.hp <= 0) {
-        displayMessage(`${enemy.name} is defeated!`, 'success');
-
-        // Reward gold and XP based on enemy level
-        const goldReward = Math.floor(Math.random() * 50) + 25;
-        const xpReward = Math.floor(Math.random() * 30) + 15;
-
-        updateGold(goldReward, 'combat victory');
-        if (window.CharacterManager && typeof CharacterManager.gainExperience === 'function') {
-            CharacterManager.gainExperience(player, xpReward);
-        } else {
-            gainExperience(xpReward);
-        }
-
-        displayMessage(`You gained ${goldReward} gold and ${xpReward} XP!`, 'success');
-
-        player.currentEnemy = null;
-        // Remove inline combat interface
-        const inlineCombat = document.getElementById('inline-combat-interface');
-        if (inlineCombat) {
-            inlineCombat.remove();
-        }
-        checkQuestCompletion(`defeated ${enemy.name}`);
-        saveGame();
-    } else {
-        // Enemy attacks back
-        setTimeout(() => enemyAttack(), 1000);
+    if (CombatSystem.combatState.isActive) {
+        await CombatSystem.playerAction('attack', 'basic');
     }
 }
 
@@ -1922,25 +1852,10 @@ function updatePlayerHPDisplay() {
     }
 }
 
+// Legacy fleeCombat function - now handled by CombatSystem.fleeCombat()
 async function fleeCombat() {
-    if (!player.currentEnemy) return;
-
-    const enemy = player.currentEnemy;
-    const fleeChance = 0.7; // 70% chance to flee successfully
-
-    if (Math.random() < fleeChance) {
-        displayMessage(`You successfully flee from ${enemy.name}!`, 'success');
-        player.currentEnemy = null;
-        // Remove inline combat interface
-        const inlineCombat = document.getElementById('inline-combat-interface');
-        if (inlineCombat) {
-            inlineCombat.remove();
-        }
-        saveGame();
-    } else {
-        displayMessage(`You failed to escape! ${enemy.name} blocks your path!`, 'error');
-        // Enemy gets a free attack
-        setTimeout(() => enemyAttack(), 1000);
+    if (CombatSystem.combatState.isActive) {
+        await CombatSystem.fleeCombat();
     }
 }
 
@@ -3501,6 +3416,7 @@ function abandonQuest(questId) {
     window.itemRarity = itemRarity;
     window.TransactionMiddleware = TransactionMiddleware;
     window.ItemExchangeMiddleware = ItemExchangeMiddleware;
+    window.CombatSystem = CombatSystem;
 
     // Make other functions globally accessible if needed by other parts of the code or for debugging
     window.LocationManager = typeof LocationManager !== 'undefined' ? LocationManager : {};
