@@ -3095,12 +3095,25 @@ async function generateCharacterBackground() {
 
     const prompt = `Create a background story for ${name}, a ${gender} ${charClass} in the fantasy realm of Pedena. 
     Make it 2-3 paragraphs, interesting, and appropriate for a fantasy RPG character. 
-    Include their motivations and how they became an adventurer.`;
+    Include their motivations and how they became an adventurer.
+
+    IMPORTANT: Write in plain text only. Do NOT use any rich text formatting, markdown, or special syntax like {color:text}, **bold**, *italic*, {{effects}}, [fonts], or any other formatting codes. Output clean, readable prose without any formatting markup.`;
 
     try {
-        const background = await callGeminiAPI(prompt, 0.8, 400);
+        const background = await callGeminiAPI(prompt, 0.8, 400, false);
         if (background) {
-            charBackgroundTextarea.value = background;
+            // Clean any potential formatting that might slip through
+            const cleanBackground = background
+                .replace(/\{[^:]+:[^}]+\}/g, (match) => {
+                    const content = match.match(/\{[^:]+:([^}]+)\}/);
+                    return content ? content[1] : match;
+                })
+                .replace(/\*\*(.*?)\*\*/g, '$1')
+                .replace(/\*(.*?)\*/g, '$1')
+                .replace(/\[\w+:(.*?)\]/g, '$1')
+                .replace(/\{\{[\w-]+:(.*?)\}\}/g, '$1');
+            
+            charBackgroundTextarea.value = cleanBackground;
         } else {
             charBackgroundTextarea.value = `${name} is a ${charClass} who seeks adventure in the realm of Pedena.`;
         }
