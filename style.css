@@ -211,11 +211,34 @@ h1, h2, h3, h4 {
 /* Rich Text Styling System */
 .rich-text-toggle {
     position: absolute;
-    top: 50px;
+    top: 110px;
     right: 10px;
     z-index: 999;
     font-size: 12px;
     padding: 4px 8px;
+}
+
+/* Mobile responsiveness for control buttons */
+@media (min-width: 768px) {
+    #reset-progression-btn {
+        top: 10px !important;
+    }
+    
+    #rich-text-toggle {
+        top: 50px !important;
+    }
+}
+
+@media (max-width: 767px) {
+    #reset-progression-btn {
+        top: 60px !important;
+        font-size: 0.75rem;
+    }
+    
+    #rich-text-toggle {
+        top: 110px !important;
+        font-size: 0.75rem;
+    }
 }
 
 /* Rich Text Effects */

@@ -3806,20 +3806,34 @@ document.addEventListener('DOMContentLoaded', () => {
 // Add reset progression button to the game interface
 const resetProgressionBtn = document.createElement('button');
 resetProgressionBtn.id = 'reset-progression-btn';
-resetProgressionBtn.className = 'btn-parchment bg-orange-600 hover:bg-orange-700 text-white text-sm py-1 px-2';
-resetProgressionBtn.style.position = 'absolute';
-resetProgressionBtn.style.top = '10px';
-resetProgressionBtn.style.right = '10px';
-resetProgressionBtn.style.zIndex = '999';
-resetProgressionBtn.innerHTML = '<i class="gi gi-refresh mr-1"></i>Reset Progression';
+resetProgressionBtn.className = 'btn-parchment bg-orange-600 hover:bg-orange-700 text-white text-xs md:text-sm py-1 px-2';
+resetProgressionBtn.style.cssText = `
+    position: absolute;
+    top: 60px;
+    right: 10px;
+    z-index: 999;
+    @media (min-width: 768px) {
+        top: 10px;
+    }
+`;
+resetProgressionBtn.innerHTML = '<i class="gi gi-refresh mr-1"></i><span class="hidden sm:inline">Reset Progression</span><span class="sm:hidden">Reset</span>';
 resetProgressionBtn.title = 'Reset character progression (feats, skills, abilities) to match updated game files';
 
 // Add rich text styling toggle button
 const richTextToggle = document.createElement('button');
 richTextToggle.id = 'rich-text-toggle';
-richTextToggle.className = 'btn-parchment rich-text-toggle bg-purple-600 hover:bg-purple-700 text-white';
-richTextToggle.innerHTML = '<i class="gi gi-magic-swirl mr-1"></i>Rich Text: OFF';
-richTextToggle.title = 'Toggle rich text styling for game messages';
+richTextToggle.className = 'btn-parchment rich-text-toggle bg-purple-600 hover:bg-purple-700 text-white text-xs md:text-sm py-1 px-2';
+richTextToggle.style.cssText = `
+    position: absolute;
+    top: 110px;
+    right: 10px;
+    z-index: 999;
+    @media (min-width: 768px) {
+        top: 50px;
+    }
+`;
+richTextToggle.innerHTML = '<i class="gi gi-magic-swirl mr-1"></i><span class="hidden sm:inline">Rich Text: OFF</span><span class="sm:hidden">RT: OFF</span>';
+richTextToggle.title = 'Toggle rich text styling for game messages';</richTextToggle.title>
 
 // Add to game container
 const gameContainer = document.getElementById('game-container');
@@ -3834,8 +3848,9 @@ let richTextEnabled = localStorage.getItem('richTextEnabled') === 'true';
 function updateRichTextToggle() {
     const toggle = document.getElementById('rich-text-toggle');
     if (toggle) {
-        toggle.innerHTML = `<i class="gi gi-magic-swirl mr-1"></i>Rich Text: ${richTextEnabled ? 'ON' : 'OFF'}`;
-        toggle.className = `btn-parchment rich-text-toggle ${richTextEnabled ? 'bg-purple-600 hover:bg-purple-700' : 'bg-gray-600 hover:bg-gray-700'} text-white`;
+        const status = richTextEnabled ? 'ON' : 'OFF';
+        toggle.innerHTML = `<i class="gi gi-magic-swirl mr-1"></i><span class="hidden sm:inline">Rich Text: ${status}</span><span class="sm:hidden">RT: ${status}</span>`;
+        toggle.className = `btn-parchment rich-text-toggle ${richTextEnabled ? 'bg-purple-600 hover:bg-purple-700' : 'bg-gray-600 hover:bg-gray-700'} text-white text-xs md:text-sm py-1 px-2`;
     }
 }
 
