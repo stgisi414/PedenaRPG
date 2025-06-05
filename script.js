@@ -257,7 +257,7 @@ function updateRelationship(npcName, statusChange = 0, trustChange = 0, npcDescr
         relationship.status = 'hostile';
     }
 
-    saveGame();
+    // Don't save here - let the calling function handle saving
     return relationship;
 }
 
@@ -1129,6 +1129,15 @@ async function generateTreasureEncounter() {
     saveGame();
 }
 
+// Add save debouncing to prevent multiple saves
+let saveTimeout;
+function debouncedSave() {
+    clearTimeout(saveTimeout);
+    saveTimeout = setTimeout(() => {
+        saveGame();
+    }, 500); // Wait 500ms before saving
+}
+
 // Enhanced relationship detection function
 function checkRelationshipChanges(playerCommand, aiResponse) {
     const combinedText = (playerCommand + ' ' + aiResponse).toLowerCase();
@@ -1158,6 +1167,7 @@ function checkRelationshipChanges(playerCommand, aiResponse) {
 
     // Extract NPC names from the conversation
     const npcNames = extractNPCNames(aiResponse);
+    let anyRelationshipChanged = false;
 
     npcNames.forEach(npcName => {
         const currentRelationship = player.relationships[npcName];
@@ -1204,9 +1214,14 @@ function checkRelationshipChanges(playerCommand, aiResponse) {
             if (player.relationships[npcName]) {
                 player.relationships[npcName].status = newStatus;
             }
-            saveGame();
+            anyRelationshipChanged = true;
         }
     });
+
+    // Only save once if any relationships changed
+    if (anyRelationshipChanged) {
+        debouncedSave();
+    }
 }
 
 // Function to extract NPC names from AI responses
@@ -3186,8 +3201,9 @@ IMPORTANT: If the player is trying to interact with something from recent explor
             // Check for relationship changes including romantic developments
             checkRelationshipChanges(command, response);
 
-            // Save conversation history
+            // Save conversation history and game state
             saveConversationHistory();
+            debouncedSave();
         } else {
             displayMessage("Nothing interesting happens.", 'info');
         }
