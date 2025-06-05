@@ -154,7 +154,7 @@ let gameWorld = {
 // Conversation History System for AI Context
 let conversationHistory = {
     messages: [], // Array of {role: 'user'|'assistant', content: string, timestamp: number}
-    maxMessages: 50
+    maxMessages: 75
 };
 
 function addToConversationHistory(role, content) {
@@ -555,7 +555,7 @@ function loadGame() {
         updateQuestButton(); // Update quest button based on saved quests
         
         // Auto-fix relationships based on conversation history
-        autoFixMaraRelationship();
+        //autoFixMaraRelationship();
         
         showScreen('game-play-screen');
         displayMessage(`Welcome back, ${player.name}! You are in ${player.currentLocation}.`);
@@ -1200,8 +1200,8 @@ function extractNPCNames(aiResponse) {
         while ((match = pattern.exec(aiResponse)) !== null) {
             const name = match[1].trim();
             if (name.length > 1 && name.length < 20 && !names.includes(name)) {
-                // Exclude common words that might match the pattern
-                const excludeWords = ['The', 'A', 'An', 'You', 'Your', 'Game', 'Character', 'Player'];
+                // Inside extractNPCNames function in script.js (or the pasted .txt file's version)
+                const excludeWords = ['The', 'A', 'An', 'You', 'Your', 'Game', 'Character', 'Player', 'He', 'She', 'Him', 'Her', 'They', 'Them', 'It', 'Says', 'Looks', 'Smiles', 'Laughs']; // Added pronouns and common verbs
                 if (!excludeWords.includes(name)) {
                     names.push(name);
                 }
@@ -1264,7 +1264,7 @@ function autoFixMaraRelationship() {
         
         if (!maraRelationship || maraRelationship.status !== 'romantic') {
             console.log('Auto-fixing Mara relationship based on conversation history');
-            fixMaraRelationship();
+            //fixMaraRelationship();
         }
     }
 }
