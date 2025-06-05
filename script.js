@@ -595,6 +595,7 @@ function loadGame() {
             // Load character progression if available
             if (player.name) {
                 CharacterManager.loadProgression(player);
+                updateQuickActionButtons();
             }
             // Load inventory and status effects from ItemManager
             ItemManager.loadInventoryFromStorage(player);
@@ -4103,6 +4104,34 @@ function addMainEventListeners() {
     }
 }
 
+function updateQuickActionButtons() {
+    const castSpellBtn = document.getElementById('cast-spell-btn');
+    if (!castSpellBtn) return;
+
+    switch (player.class.toLowerCase()) {
+        case 'mage':
+            castSpellBtn.innerHTML = `<i class="gi gi-magic-swirl mr-2"></i>Cast Spell`;
+            castSpellBtn.title = "Cast a spell from your spellbook";
+            break;
+        case 'warrior':
+            castSpellBtn.innerHTML = `<i class="gi gi-sword-brandish mr-2"></i>Use Ability`;
+            castSpellBtn.title = "Use a powerful combat ability";
+            break;
+        case 'rogue':
+            castSpellBtn.innerHTML = `<i class="gi gi-scroll-quill mr-2"></i>Use Skill`;
+            castSpellBtn.title = "Use a special rogue skill";
+            break;
+        case 'ranger':
+            castSpellBtn.innerHTML = `<i class="gi gi-holy-symbol mr-2"></i>Use Technique`;
+            castSpellBtn.title = "Use a ranger technique or nature-based ability";
+            break;
+        default:
+            castSpellBtn.innerHTML = `<i class="gi gi-magic-swirl mr-2"></i>Special Action`;
+            castSpellBtn.title = "Perform a special action";
+            break;
+    }
+}
+
 // Add missing functions
 function createCharacter() {
     const name = charNameInput.value.trim();
@@ -4136,6 +4165,7 @@ function createCharacter() {
     showScreen('game-play-screen');
     updatePlayerStatsDisplay();
     displayMessage(`Welcome to Pedena, ${player.name}! Your adventure begins in ${player.currentLocation}.`);
+    updateQuickActionButtons();
     saveGame();
 }
 
@@ -4261,7 +4291,6 @@ function displayInventory() {
         console.error("inventoryItemsDisplay element not found in displayInventory!");
     }
 }
-
 
 function buildEquipmentDisplay() {
     if (!player.equipment) {
