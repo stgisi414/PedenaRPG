@@ -82,22 +82,21 @@
 - **Problem**: Combat is limited to 1v1 encounters
 - **Impact**: Limited tactical depth, no party-based gameplay or group encounters
 - **Solution**: 
-  - Implement party system for multiple allied characters
+  - Implement party system for relationships' npcs
   - Support for fighting groups of enemies simultaneously
   - Turn order management for multiple participants
   - Coordinated attacks and group abilities
   - Party formation and positioning mechanics
-  - Shared experience and loot distribution
   - AI coordination for enemy groups
 - **Features Needed**:
-  - Party management UI and commands
+  - Simple party management UI and commands with inline button menu built into game output that is visible when player has a party
   - Multi-target combat actions
   - Formation and positioning system
   - Group buff/debuff effects
   - Ally AI for NPC party members
   - Enemy group generation and tactics
 - **Priority**: HIGH (Major gameplay enhancement)
-
+ 
 ### 11. Location Memory System
 - **Problem**: Locations not properly cached/remembered
 - **Impact**: Repetitive location descriptions, no sense of world persistence

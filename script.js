@@ -1,4 +1,4 @@
-a// Import game data and assets
+// Import game data and assets
 import { gameData, GameDataManager } from './assets/game-data-loader.js';
 import { QuestCharacterGenerator } from './assets/quest-character-names.js';
 import { QuestTaskGenerator, questCategories, questThemes, questTemplates, questVariables } from './assets/quest-tasks.js';
