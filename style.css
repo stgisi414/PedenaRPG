@@ -173,6 +173,7 @@ h1, h2, h3, h4 {
 .gi-magnifying-glass:before { content: "🔍"; }
 .gi-magic-swirl:before { content: "✨"; }
 .gi-holy-symbol:before { content: "✝️"; }
+.gi-prayer:before { content: "🙏"; }
 .gi-sword-brandish:before { content: "⚔️"; }
 .gi-run:before { content: "🏃"; }
 .gi-lightning-bolt:before { content: "⚡"; }
