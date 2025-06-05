@@ -1407,6 +1407,11 @@ async function generateEventEncounter() {
 async function generateQuest() {
     displayMessage("Seeking new adventures...", 'info');
 
+    // Initialize quests array if it doesn't exist
+    if (!player.quests) {
+        player.quests = [];
+    }
+
     const questPrompt = `
 Generate a quest for ${player.name}, a level ${player.level} ${player.class} in ${player.currentLocation}.
 
@@ -1433,7 +1438,7 @@ Make it engaging and fantasy-appropriate.
 `;
 
     try {
-        const response = await callGeminiAPI(questPrompt, 0.7, 500);
+        const response = await callGeminiAPI(questPrompt, 0.7, 500, false);
 
         if (!response) {
             displayMessage("No new quests are available at this time.", 'info');
@@ -1443,27 +1448,28 @@ Make it engaging and fantasy-appropriate.
         // Extract JSON from response
         let questData;
         try {
-            const jsonMatch = response.match(/\{[\s\S]*\}/);
+            const cleanResponse = response.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+            const jsonMatch = cleanResponse.match(/\{[\s\S]*\}/);
             if (jsonMatch) {
                 questData = JSON.parse(jsonMatch[0]);
             } else {
                 throw new Error("No JSON found in response");
             }
         } catch (parseError) {
-            console.error("Failed to parse quest JSON:", parseError);
+            console.error("Failed to parse quest JSON:", parseError, "Raw response:", response);
             // Fallback to old system
             await generateQuestFallback();
             return;
         }
 
         // Validate required fields
-        if (!questData.title || !questData.description || !questData.rewards) {
+        if (!questData.title || !questData.description) {
             console.error("Invalid quest data structure:", questData);
             await generateQuestFallback();
             return;
         }
 
-        // Create quest object
+        // Create quest object with proper defaults
         const questId = Date.now().toString();
         const quest = {
             id: questId,
@@ -1472,14 +1478,14 @@ Make it engaging and fantasy-appropriate.
             objective: questData.objective || questData.description,
             completed: false,
             rewards: {
-                gold: questData.rewards.gold || 50,
-                experience: questData.rewards.experience || 25,
-                items: questData.rewards.items || []
+                gold: Math.max(50, parseInt(questData.rewards?.gold) || (50 + player.level * 25)),
+                experience: Math.max(25, parseInt(questData.rewards?.experience) || (25 + player.level * 15)),
+                items: questData.rewards?.items || []
             },
             difficulty: questData.difficulty || 'Medium',
             estimatedTime: questData.estimatedTime || 'Unknown',
             location: questData.location || player.currentLocation,
-            questGiver: questData.questGiver || 'Unknown',
+            questGiver: questData.questGiver || 'Mysterious Stranger',
             requirements: questData.requirements || [],
             dateCreated: new Date().toLocaleDateString()
         };
@@ -1490,13 +1496,21 @@ Make it engaging and fantasy-appropriate.
 
         // Display quest information
         displayMessage(`New quest available: ${quest.title}`, 'success');
-        displayMessage(quest.description, 'quest');
+        displayMessage(quest.description, 'info');
         displayMessage(`Rewards: ${quest.rewards.gold} gold, ${quest.rewards.experience} XP${quest.rewards.items.length > 0 ? ', ' + quest.rewards.items.join(', ') : ''}`, 'info');
         displayMessage(`Difficulty: ${quest.difficulty} | Estimated Time: ${quest.estimatedTime}`, 'info');
+
+        // Refresh quest display if it's open
+        const questInterface = document.getElementById('quest-interface');
+        if (questInterface && !questInterface.classList.contains('hidden')) {
+            displayQuests();
+        }
 
     } catch (error) {
         console.error("Quest generation error:", error);
         displayMessage("Unable to generate quest at this time. Please try again.", 'error');
+        // Try fallback
+        await generateQuestFallback();
     }
 }
 
@@ -2366,7 +2380,7 @@ function displayQuests() {
         // Add generate new quest button
         questHTML += `
             <div class="text-center">
-                <button onclick="generateQuest()" class="btn-parchment bg-blue-600 hover:bg-blue-700">
+                <button id="generate-quest-btn" class="btn-parchment bg-blue-600 hover:bg-blue-700">
                     <i class="gi gi-scroll-unfurled mr-2"></i>Generate New Quest
                 </button>
             </div>
@@ -2374,6 +2388,14 @@ function displayQuests() {
     }
 
     questListDisplay.innerHTML = questHTML;
+    
+    // Add event listener for generate quest button
+    const generateQuestBtn = document.getElementById('generate-quest-btn');
+    if (generateQuestBtn) {
+        generateQuestBtn.addEventListener('click', () => {
+            generateQuest();
+        });
+    }
 }
 
 function displayCharacterProgression() {
@@ -3137,12 +3159,8 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     document.getElementById('new-quest-btn')?.addEventListener('click', () => {
-        // Always show quest interface if quests exist, allow generating new ones
-        if (player.quests && player.quests.length > 0) {
-            displayQuests();
-        } else {
-            generateQuest();
-        }
+        // Always show quest interface first, then allow generating new ones from within
+        displayQuests();
     });
 
     // Add event listeners for interface exit buttons
@@ -3188,6 +3206,8 @@ document.addEventListener('DOMContentLoaded', () => {
     window.debugInventory = typeof debugInventory !== 'undefined' ? debugInventory : function() { /* ... */ };
     window.fixInventory = typeof fixInventory !== 'undefined' ? fixInventory : function() { /* ... */ };
     window.resetCharacterProgression = typeof resetCharacterProgression !== 'undefined' ? resetCharacterProgression : function() { /* ... */ };
+    window.generateQuest = generateQuest;
+    window.displayQuests = displayQuests;
 
 
     // <<< --- ADD INVENTORY EVENT LISTENER HERE --- >>>
