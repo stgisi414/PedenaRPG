@@ -3100,7 +3100,12 @@ async function generateCharacterBackground() {
     try {
         const background = await callGeminiAPI(prompt, 0.8, 400);
         if (background) {
-            charBackgroundTextarea.value = background;
+            // Remove rich text formatting from background before displaying
+            const cleanBackground = background.replace(/\{[^:]+:[^}]+\}/g, (match) => {
+                const content = match.match(/\{[^:]+:([^}]+)\}/);
+                return content ? content[1] : match;
+            });
+            charBackgroundTextarea.value = cleanBackground;
         } else {
             charBackgroundTextarea.value = `${name} is a ${charClass} who seeks adventure in the realm of Pedena.`;
         }
