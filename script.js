@@ -2565,12 +2565,14 @@ function stripRichTextFormatting(text) {
     if (!text || typeof text !== 'string') return '';
 
     return text
-        // Remove color formatting: {color:text}
-        .replace(/\{[^:]+:([^}]+)\}/g, '$1')
-        // Remove special effects: {{effect:text}}
+        // Remove double brace effects first: {{effect:text}}
         .replace(/\{\{[\w-]+:([^}]+)\}\}/g, '$1')
+        // Remove single brace color/style formatting: {color:text}, {style:text}
+        .replace(/\{[\w_-]+:([^}]+)\}/g, '$1')
+        // Remove single word formatting: {word}
+        .replace(/\{[\w_-]+\}/g, '')
         // Remove font formatting: [font:text]
-        .replace(/\[\w+:([^}]+)\]/g, '$1')
+        .replace(/\[[\w-]+:([^\]]+)\]/g, '$1')
         // Remove markdown bold: **text**
         .replace(/\*\*(.*?)\*\*/g, '$1')
         // Remove markdown italic: *text*
@@ -2579,10 +2581,10 @@ function stripRichTextFormatting(text) {
         .replace(/__(.*?)__/g, '$1')
         // Remove markdown strikethrough: ~~text~~
         .replace(/~~(.*?)~~/g, '$1')
-        // Remove any remaining curly braces
-        .replace(/[{}]/g, '')
-        // Remove any remaining square brackets
-        .replace(/[\[\]]/g, '')
+        // Remove any remaining curly braces and their content if malformed
+        .replace(/\{[^}]*\}/g, '')
+        // Remove any remaining square brackets and their content if malformed
+        .replace(/\[[^\]]*\]/g, '')
         // Clean up extra whitespace
         .replace(/\s+/g, ' ')
         .trim();
