@@ -112,6 +112,27 @@
 - **Impact**: Equipment and consumables don't provide expected benefits
 - **Solution**: Fix item application system in inventory functions
 
+### 14. Two-Handed Weapons and Dual Wielding System
+- **Problem**: No distinction between one-handed and two-handed weapons, no dual wielding mechanics
+- **Impact**: Limited combat variety, unrealistic weapon handling, shields can't be properly restricted
+- **Solution**: 
+  - Add `isTwoHanded: true/false` property to all weapon items
+  - Implement dual wielding system for one-handed weapons
+  - Restrict shields to offHand slot when mainHand is one-handed weapon
+  - Prevent equipping offHand items when using two-handed weapons
+  - Update combat calculations to account for dual wielding bonuses/penalties
+- **Features Needed**:
+  - Weapon classification system (one-handed vs two-handed)
+  - Dual wield combat mechanics (additional attacks, accuracy penalties, damage bonuses)
+  - Equipment validation (prevent shield + two-handed weapon combinations)
+  - UI updates to show weapon hand requirements
+  - Balance adjustments for dual wielding vs two-handed vs sword-and-board styles
+- **Examples**:
+  - Two-handed: Battle Axe, Long Sword (depends on interpretation), War Hammer, Staff
+  - One-handed: Short Sword, Dagger, Rapier, Light weapons
+  - Shields restricted to offHand when mainHand is one-handed
+- **Priority**: MEDIUM (Enhances combat depth and realism)
+
 ## 🐛 Minor Issues
 
 ### 13. UI State Management
@@ -135,9 +156,10 @@
 2. **Phase 2 (Critical)**: Repair combat flee system and movement structured prompting
 3. **Phase 3 (High)**: Fix quest system JSON handling and rewards
 4. **Phase 4 (High)**: Implement multi-member combat system for enhanced gameplay
-5. **Phase 5 (Medium)**: Implement class-specific UI and proper item icons
-6. **Phase 6 (Medium)**: Standardize AI response parsing and minor UI issues
-7. **Phase 7 (Low)**: Address game save spamming and generic inventory icons
+5. **Phase 5 (Medium)**: Implement two-handed weapons and dual wielding system
+6. **Phase 6 (Medium)**: Implement class-specific UI and proper item icons
+7. **Phase 7 (Medium)**: Standardize AI response parsing and minor UI issues
+8. **Phase 8 (Low)**: Address game save spamming and generic inventory icons
 
 ## 🔍 Investigation Needed
 
@@ -156,6 +178,10 @@
 - [ ] Research group AI coordination algorithms
 - [ ] Design UI for managing multiple party members
 - [ ] Plan experience and loot sharing mechanics
+- [ ] Review current weapon items and classify as one-handed vs two-handed
+- [ ] Design dual wielding combat mechanics and balance
+- [ ] Test equipment validation for weapon/shield combinations
+- [ ] Plan UI updates for showing weapon hand requirements
 
 ## 📝 Notes
 
