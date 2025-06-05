@@ -73,6 +73,13 @@ export class CombatSystem {
         return baseDex + levelBonus + randomFactor;
     }
 
+    static getPlayerReference() {
+        // Try multiple ways to get player reference
+        return window.player || 
+               (typeof player !== 'undefined' ? player : null) ||
+               { name: 'Player', hp: 100, maxHp: 100, level: 1, class: 'Adventurer' };
+    }
+
     static async generateCombatEnvironment(player, enemy, location) {
         const environmentPrompt = `
 Generate a dynamic combat environment for this battle:
@@ -81,14 +88,7 @@ LOCATION: ${location || player.currentLocation}
 PLAYER: ${player.name} (Level ${player.level} ${player.class})
 ENEMY: ${enemy.name}
 
-Create environmental factors that could affect combat:
-- Terrain advantages/disadvantages
-- Weather conditions
-- Interactive elements
-- Tactical positions
-- Hazards or benefits
-
-Respond with JSON:
+Create environmental factors that could affect combat. Respond with ONLY valid JSON in this exact format:
 {
     "terrain": "description",
     "weather": "conditions",
@@ -97,19 +97,51 @@ Respond with JSON:
     "hazards": [],
     "tacticalPositions": []
 }
+
+Keep descriptions short and avoid special characters that could break JSON parsing.
 `;
 
         try {
-            const response = await window.callGeminiAPI(environmentPrompt, 0.7, 400, false);
+            const response = await window.callGeminiAPI(environmentPrompt, 0.5, 300, false);
             if (response) {
-                const cleanResponse = response.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-                const jsonMatch = cleanResponse.match(/\{[\s\S]*\}/);
+                // More robust JSON extraction and cleaning
+                let cleanResponse = response.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
                 
-                if (jsonMatch) {
-                    this.combatState.environment = JSON.parse(jsonMatch[0]);
+                // Remove any text before the first {
+                const firstBrace = cleanResponse.indexOf('{');
+                if (firstBrace !== -1) {
+                    cleanResponse = cleanResponse.substring(firstBrace);
+                }
+                
+                // Remove any text after the last }
+                const lastBrace = cleanResponse.lastIndexOf('}');
+                if (lastBrace !== -1) {
+                    cleanResponse = cleanResponse.substring(0, lastBrace + 1);
+                }
+                
+                // Clean up common JSON issues
+                cleanResponse = cleanResponse
+                    .replace(/,(\s*[}\]])/g, '$1') // Remove trailing commas
+                    .replace(/[\u201C\u201D]/g, '"') // Replace smart quotes
+                    .replace(/[\u2018\u2019]/g, "'"); // Replace smart apostrophes
+                
+                const parsedEnvironment = JSON.parse(cleanResponse);
+                
+                // Validate the structure
+                if (parsedEnvironment && typeof parsedEnvironment === 'object') {
+                    this.combatState.environment = {
+                        terrain: parsedEnvironment.terrain || "Open ground",
+                        weather: parsedEnvironment.weather || "Clear",
+                        interactables: Array.isArray(parsedEnvironment.interactables) ? parsedEnvironment.interactables : [],
+                        advantages: parsedEnvironment.advantages || { player: [], enemy: [] },
+                        hazards: Array.isArray(parsedEnvironment.hazards) ? parsedEnvironment.hazards : [],
+                        tacticalPositions: Array.isArray(parsedEnvironment.tacticalPositions) ? parsedEnvironment.tacticalPositions : []
+                    };
                 } else {
                     this.combatState.environment = this.getDefaultEnvironment();
                 }
+            } else {
+                this.combatState.environment = this.getDefaultEnvironment();
             }
         } catch (error) {
             console.error('Error generating combat environment:', error);
@@ -151,10 +183,10 @@ Respond with JSON:
                 <div class="combat-left">
                     <!-- Player Stats -->
                     <div class="combatant-card player-card">
-                        <h4>${window.player.name}</h4>
+                        <h4>${this.getPlayerReference().name}</h4>
                         <div class="hp-bar">
-                            <div class="hp-fill" style="width: ${(window.player.hp / window.player.maxHp) * 100}%"></div>
-                            <span class="hp-text">${window.player.hp}/${window.player.maxHp} HP</span>
+                            <div class="hp-fill" style="width: ${(this.getPlayerReference().hp / this.getPlayerReference().maxHp) * 100}%"></div>
+                            <span class="hp-text">${this.getPlayerReference().hp}/${this.getPlayerReference().maxHp} HP</span>
                         </div>
                         <div class="combatant-effects" id="player-effects"></div>
                     </div>
@@ -265,7 +297,7 @@ Respond with JSON:
     static async playerAction(actionType, variant = 'basic') {
         if (!this.combatState.isActive) return;
         
-        const player = window.player;
+        const player = this.getPlayerReference();
         const enemy = this.combatState.currentEnemy;
         
         // Disable action buttons temporarily
@@ -715,11 +747,11 @@ Create an engaging, dramatic description in 2-3 sentences that captures the ${ty
         const fleeChance = 0.7;
         if (Math.random() < fleeChance) {
             this.addToCombatLog("You successfully flee from combat!", 'success');
-            this.endCombat('flee', window.player, this.combatState.currentEnemy);
+            this.endCombat('flee', this.getPlayerReference(), this.combatState.currentEnemy);
         } else {
             this.addToCombatLog("You failed to escape! The enemy blocks your path!", 'error');
             // Enemy gets free attack
-            setTimeout(() => this.processEnemyTurn(window.player, this.combatState.currentEnemy), 1000);
+            setTimeout(() => this.processEnemyTurn(this.getPlayerReference(), this.combatState.currentEnemy), 1000);
         }
     }
 
