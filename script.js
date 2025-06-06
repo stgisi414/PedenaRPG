@@ -499,7 +499,7 @@ function displayMessage(message, type = 'info') {
         icon = '<i class="ra ra-quill mr-2"></i>';
     }
 
-    // Process rich text if enabled (exclude background and combat messages)
+    // Always process rich text formatting/stripping for all message types
     const processedMessage = processRichText(message, type);
 
     p.innerHTML = icon + processedMessage;
@@ -2909,13 +2909,15 @@ function stripAllRichTextFormatting(text) {
         .replace(/__(.*?)__/g, '$1')
         // Remove markdown strikethrough: ~~text~~
         .replace(/~~(.*?)~~/g, '$1')
-        // Remove any remaining curly braces and their content
+        // Remove any remaining curly braces and their content (more aggressive)
         .replace(/\{[^}]*\}/g, '')
-        // Remove any remaining square brackets and their content
+        // Remove any remaining square brackets and their content (more aggressive)
         .replace(/\[[^\]]*\]/g, '')
         // Remove HTML-like rich text spans that might have been processed
         .replace(/<span[^>]*class="rt-[^"]*"[^>]*>([^<]*)<\/span>/g, '$1')
-        // Clean up extra whitespace
+        // Remove any remaining HTML span tags
+        .replace(/<span[^>]*>([^<]*)<\/span>/g, '$1')
+        // Clean up extra whitespace and multiple spaces
         .replace(/\s+/g, ' ')
         .trim();
 }
