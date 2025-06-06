@@ -6437,6 +6437,12 @@ window.fixInventorySlots = function() {
         if (!item.slot && item.type) {
             let newSlot = null;
             
+            // Skip items that should never have slots
+            if (item.type === 'consumable' || item.type === 'ammunition' || item.type === 'currency' || item.type === 'tool') {
+                console.log(`Skipping ${item.name}: type '${item.type}' should not have a slot`);
+                return;
+            }
+            
             // Determine slot based on item type and name
             if (item.type === 'jewelry') {
                 if (item.name.toLowerCase().includes('ring')) {
@@ -6466,17 +6472,24 @@ window.fixInventorySlots = function() {
                 } else {
                     newSlot = 'chest'; // Default armor to chest
                 }
-            } else if (item.type === 'consumable') {
-                // Consumables don't need slots, skip
-                return;
             } else {
-                // For other types, try to guess from name
+                // For other types, try to guess from name - but be more careful
                 const name = item.name.toLowerCase();
-                if (name.includes('ring')) {
+                
+                // Skip ammunition items specifically
+                if (name.includes('bolt') || name.includes('arrow') || name.includes('ammunition')) {
+                    console.log(`Skipping ${item.name}: appears to be ammunition`);
+                    return;
+                }
+                
+                if (name.includes('ring') && !name.includes('bow')) {
                     newSlot = 'ring1';
                 } else if (name.includes('amulet') || name.includes('necklace')) {
                     newSlot = 'amulet';
-                } else if (name.includes('sword') || name.includes('axe') || name.includes('mace') || name.includes('staff') || name.includes('bow') || name.includes('dagger')) {
+                } else if (name.includes('sword') || name.includes('axe') || name.includes('mace') || name.includes('staff') || name.includes('dagger')) {
+                    newSlot = 'mainHand';
+                } else if (name.includes('bow') && !name.includes('bolt') && !name.includes('elbow')) {
+                    // Only match standalone bows, not crossbow bolts or other false matches
                     newSlot = 'mainHand';
                 } else if (name.includes('shield')) {
                     newSlot = 'offHand';
