@@ -6355,57 +6355,71 @@ function displayCharacterBackground() {
     // --- Data Preparation for Relationships ---
     let relationshipsHTML = "";
     if (player.relationships && Object.keys(player.relationships).length > 0) {
-        relationshipsHTML = '<div class="grid grid-cols-1 gap-4 text-sm">';
-        Object.entries(player.relationships).forEach(([npcName, relationship]) => {
-            // Add null check for relationship object
-            if (!relationship || typeof relationship !== 'object') {
-                console.warn(`Invalid relationship data for ${npcName}:`, relationship);
-                return; // Skip this relationship
+        // Sort relationships by last interaction (most recent first) and take only the first 5
+        const sortedRelationships = Object.entries(player.relationships)
+            .filter(([npcName, relationship]) => relationship && typeof relationship === 'object')
+            .sort(([, a], [, b]) => {
+                const aTime = a.lastInteraction || 0;
+                const bTime = b.lastInteraction || 0;
+                return bTime - aTime; // Most recent first
+            })
+            .slice(0, 5); // Take only the first 5
+
+        if (sortedRelationships.length > 0) {
+            relationshipsHTML = '<div class="grid grid-cols-1 gap-4 text-sm">';
+            
+            // Add header showing count
+            if (Object.keys(player.relationships).length > 5) {
+                relationshipsHTML += `<p class="text-xs text-gray-500 italic mb-2">Showing 5 most recent relationships (${Object.keys(player.relationships).length} total)</p>`;
             }
+            
+            sortedRelationships.forEach(([npcName, relationship]) => {
+                const status = relationship.status || 'neutral';
+                const relationshipColor = getRelationshipColor(status);
+                const trust = relationship.trust || 0;
+                const trustBar = Math.max(0, Math.min(100, trust));
+                const interactions = relationship.interactions || 0;
+                const metAt = relationship.metAt || 'Unknown location';
+                const firstMeeting = relationship.firstMeeting || 'Some time ago';
+                const description = relationship.description || 'A person you\'ve encountered.';
 
-            const status = relationship.status || 'neutral';
-            const relationshipColor = getRelationshipColor(status);
-            const trust = relationship.trust || 0;
-            const trustBar = Math.max(0, Math.min(100, trust));
-            const interactions = relationship.interactions || 0;
-            const metAt = relationship.metAt || 'Unknown location';
-            const firstMeeting = relationship.firstMeeting || 'Some time ago';
-            const description = relationship.description || 'A person you\'ve encountered.';
-
-            relationshipsHTML += `
-                <div class="parchment-box p-3 border border-amber-700/30 rounded">
-                    <div class="flex justify-between items-start mb-2">
-                        <div class="flex-grow">
-                            <h6 class="font-bold text-base">${npcName}</h6>
-                            <span class="text-xs ${relationshipColor} font-semibold">(${status.charAt(0).toUpperCase() + status.slice(1)})</span>
-                        </div>
-                        <div class="text-right">
-                            <span class="text-xs text-gray-600">Trust: ${trust}/100</span>
-                            <div class="w-24 bg-gray-200 rounded-full h-2 mt-1">
-                                <div class="bg-green-500 h-2 rounded-full transition-all duration-300" style="width: ${trustBar}%"></div>
+                relationshipsHTML += `
+                    <div class="parchment-box p-3 border border-amber-700/30 rounded">
+                        <div class="flex justify-between items-start mb-2">
+                            <div class="flex-grow">
+                                <h6 class="font-bold text-base">${npcName}</h6>
+                                <span class="text-xs ${relationshipColor} font-semibold">(${status.charAt(0).toUpperCase() + status.slice(1)})</span>
+                            </div>
+                            <div class="text-right">
+                                <span class="text-xs text-gray-600">Trust: ${trust}/100</span>
+                                <div class="w-24 bg-gray-200 rounded-full h-2 mt-1">
+                                    <div class="bg-green-500 h-2 rounded-full transition-all duration-300" style="width: ${trustBar}%"></div>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                    
-                    <p class="text-xs text-amber-700 mb-2 italic">${description}</p>
-                    
-                    <div class="grid grid-cols-2 gap-2 text-xs text-gray-600">
-                        <div>
-                            <strong>First met:</strong><br>
-                            ${firstMeeting}
+                        
+                        <p class="text-xs text-amber-700 mb-2 italic">${description}</p>
+                        
+                        <div class="grid grid-cols-2 gap-2 text-xs text-gray-600">
+                            <div>
+                                <strong>First met:</strong><br>
+                                ${firstMeeting}
+                            </div>
+                            <div>
+                                <strong>Interactions:</strong><br>
+                                ${interactions} times
+                            </div>
+                            <div class="col-span-2">
+                                <strong>Last seen:</strong><br>
+                                ${relationship.lastInteraction ? new Date(relationship.lastInteraction).toLocaleDateString() : 'Recently'}
+                            </div>
                         </div>
-                        <div>
-                            <strong>Interactions:</strong><br>
-                            ${interactions} times
-                        </div>
-                        <div class="col-span-2">
-                            <strong>Last seen:</strong><br>
-                            ${relationship.lastInteraction ? new Date(relationship.lastInteraction).toLocaleDateString() : 'Recently'}
-                        </div>
-                    </div>
-                </div>`;
-        });
-        relationshipsHTML += '</div>';
+                    </div>`;
+            });
+            relationshipsHTML += '</div>';
+        } else {
+            relationshipsHTML = '<p class="text-sm text-gray-600 italic">No valid relationships found.</p>';
+        }
     } else {
         relationshipsHTML = '<p class="text-sm text-gray-600 italic">No relationships established yet.</p>';
     }
