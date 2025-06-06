@@ -3754,51 +3754,141 @@ async function generateAINovelPortrait(name, gender, charClass, background) { //
     The background should be atmospheric and relevant to their story.`;
 
     console.log('🎨 Attempting AI Novel portrait generation...');
-    console.log('Prompt:', prompt.substring(0, 100) + '...');
+    console.log('Full request details:', {
+        url: 'https://ainovel.site/api/generate-image',
+        method: 'POST',
+        prompt: prompt.substring(0, 200) + '...',
+        parameters: {
+            imageSize: 'portrait_4_3',
+            numInferenceSteps: 50,
+            guidanceScale: 7.5
+        }
+    });
+
+    displayMessage("Trying AI Novel image service...", 'info');
 
     try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 45000);
+
         const response = await fetch('https://ainovel.site/api/generate-image', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'Accept': 'application/json'
+                'Accept': 'application/json',
+                'User-Agent': 'Mozilla/5.0 (compatible; PedenaRPG/1.0)'
             },
             body: JSON.stringify({
                 prompt: prompt,
-                seed: Math.floor(Math.random() * 1000000), // Random seed for variety
+                seed: Math.floor(Math.random() * 1000000),
                 imageSize: 'portrait_4_3',
-                numInferenceSteps: 50, // Reduced for faster generation
+                numInferenceSteps: 50,
                 guidanceScale: 7.5
             }),
-            signal: AbortSignal.timeout(45000) // 45 second timeout
+            signal: controller.signal
         });
 
-        console.log('AI Novel response status:', response.status);
-        console.log('AI Novel response headers:', Object.fromEntries(response.headers.entries()));
+        clearTimeout(timeoutId);
+
+        console.log('AI Novel response details:', {
+            status: response.status,
+            statusText: response.statusText,
+            headers: Object.fromEntries(response.headers.entries()),
+            url: response.url,
+            redirected: response.redirected
+        });
 
         if (!response.ok) {
-            const errorText = await response.text();
-            console.error('AI Novel API error response:', errorText);
-            throw new Error(`AI Novel API failed with status ${response.status}: ${errorText.substring(0, 200)}`);
+            let errorDetails = `HTTP ${response.status}: ${response.statusText}`;
+            let errorBody = '';
+            
+            try {
+                const contentType = response.headers.get('content-type');
+                if (contentType && contentType.includes('application/json')) {
+                    const errorData = await response.json();
+                    errorBody = JSON.stringify(errorData, null, 2);
+                    console.error('AI Novel JSON error response:', errorData);
+                } else {
+                    errorBody = await response.text();
+                    console.error('AI Novel text error response:', errorBody);
+                }
+            } catch (parseError) {
+                console.error('Could not parse error response:', parseError);
+                errorBody = 'Could not parse error response';
+            }
+
+            const detailedError = `${errorDetails}\nResponse body: ${errorBody.substring(0, 500)}`;
+            console.error('Complete AI Novel error details:', detailedError);
+            
+            displayMessage(`AI Novel service failed: ${errorDetails}`, 'error');
+            displayMessage(`Error details: ${errorBody.substring(0, 200)}`, 'error');
+            
+            throw new Error(detailedError);
         }
 
-        const result = await response.json();
-        console.log('AI Novel result:', result);
-
-        if (!result.imageUrl && !result.image_url && !result.url) {
-            console.error('AI Novel response missing image URL:', result);
-            throw new Error("AI Novel API did not return an image URL");
+        let result;
+        try {
+            result = await response.json();
+            console.log('AI Novel successful response:', result);
+        } catch (jsonError) {
+            console.error('Failed to parse AI Novel JSON response:', jsonError);
+            const responseText = await response.text();
+            console.error('Raw response text:', responseText.substring(0, 1000));
+            displayMessage('AI Novel returned invalid JSON response', 'error');
+            throw new Error(`Invalid JSON response from AI Novel: ${jsonError.message}`);
         }
 
-        // Try different possible property names for the image URL
-        const imageUrl = result.imageUrl || result.image_url || result.url;
-        console.log('✅ AI Novel generated image URL:', imageUrl);
+        // Check for various possible image URL properties
+        const possibleUrlFields = ['imageUrl', 'image_url', 'url', 'image', 'result', 'data'];
+        let imageUrl = null;
+
+        for (const field of possibleUrlFields) {
+            if (result[field]) {
+                imageUrl = result[field];
+                console.log(`Found image URL in field '${field}':`, imageUrl);
+                break;
+            }
+        }
+
+        if (!imageUrl) {
+            console.error('No image URL found in AI Novel response. Available fields:', Object.keys(result));
+            console.error('Full response structure:', result);
+            displayMessage('AI Novel did not return an image URL', 'error');
+            displayMessage(`Response fields: ${Object.keys(result).join(', ')}`, 'error');
+            throw new Error("AI Novel API did not return an image URL in any expected field");
+        }
+
+        // Validate the URL
+        try {
+            new URL(imageUrl);
+        } catch (urlError) {
+            console.error('Invalid URL returned by AI Novel:', imageUrl);
+            displayMessage(`AI Novel returned invalid URL: ${imageUrl}`, 'error');
+            throw new Error(`Invalid image URL returned: ${imageUrl}`);
+        }
+
+        console.log('✅ AI Novel generated valid image URL:', imageUrl);
+        displayMessage('AI Novel image generated successfully!', 'success');
         
         return imageUrl;
 
     } catch (error) {
-        console.error('❌ AI Novel service error:', error);
-        throw error;
+        if (error.name === 'AbortError') {
+            const timeoutMsg = 'AI Novel service timed out after 45 seconds';
+            console.error('❌ AI Novel timeout:', timeoutMsg);
+            displayMessage(timeoutMsg, 'error');
+            throw new Error(timeoutMsg);
+        } else if (error.message.includes('Failed to fetch')) {
+            const networkMsg = 'Network error connecting to AI Novel service (CORS/firewall/DNS issue)';
+            console.error('❌ AI Novel network error:', networkMsg);
+            displayMessage(networkMsg, 'error');
+            displayMessage('This could be a CORS policy, firewall, or DNS resolution issue', 'error');
+            throw new Error(networkMsg);
+        } else {
+            console.error('❌ AI Novel service error:', error);
+            displayMessage(`AI Novel error: ${error.message}`, 'error');
+            throw error;
+        }
     }
 }
 
