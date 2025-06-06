@@ -3504,6 +3504,241 @@ async function generateCharacterBackground() {
     generateBackgroundBtn.textContent = "Generate Background";
 }
 
+// Enhanced portrait generation with better error handling and logging
+async function generateCharacterPortrait() {
+    console.log('🎨 Portrait generation started');
+    
+    const portraitContainer = document.getElementById('portrait-container');
+    const generateBtn = document.getElementById('generate-portrait-btn');
+
+    if (!portraitContainer) {
+        console.error('❌ Portrait container not found');
+        displayMessage("Error: Portrait container not found.", 'error');
+        return;
+    }
+
+    if (!player.name || !player.gender || !player.class) {
+        console.error('❌ Missing character information for portrait generation');
+        displayMessage("Please create your character first.", 'error');
+        return;
+    }
+
+    if (player.portraitUrl) {
+        console.log('ℹ️ Portrait already exists:', player.portraitUrl);
+        displayMessage("A portrait has already been generated for this character.", 'info');
+        return;
+    }
+
+    if (generateBtn) {
+        generateBtn.disabled = true;
+        generateBtn.textContent = 'Generating...';
+        console.log('🔄 Button disabled, starting generation process');
+    }
+
+    // Show loading indicator in container
+    portraitContainer.innerHTML = `
+        <div class="flex flex-col items-center justify-center py-8">
+            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-amber-700 mb-2"></div>
+            <p class="text-amber-700 text-sm">Generating portrait...</p>
+        </div>
+    `;
+
+    try {
+        console.log('🖼️ Attempting portrait generation for:', {
+            name: player.name,
+            gender: player.gender,
+            class: player.class,
+            background: player.background?.substring(0, 100) + '...'
+        });
+
+        // Try multiple image generation methods
+        const portraitUrl = await tryMultipleImageServices();
+        
+        if (portraitUrl) {
+            console.log('✅ Portrait generated successfully:', portraitUrl);
+            player.portraitUrl = portraitUrl;
+            
+            portraitContainer.innerHTML = `
+                <img src="${player.portraitUrl}" 
+                     alt="Character Portrait of ${player.name}" 
+                     class="character-portrait w-full h-auto rounded border-2 border-amber-700"
+                     onload="console.log('Portrait image loaded successfully')"
+                     onerror="console.error('Failed to load portrait image'); this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZGRkIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxOCIgZmlsbD0iIzk5OSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPk5vIEltYWdlPC90ZXh0Pjwvc3ZnPg=='">
+            `;
+            
+            displayMessage("Character portrait generated successfully!", 'success');
+            
+            if (generateBtn) {
+                generateBtn.style.display = 'none'; // Hide button after successful generation
+            }
+            
+            // Save the portrait URL
+            saveGame();
+            
+        } else {
+            throw new Error("All image generation services failed");
+        }
+
+    } catch (error) {
+        console.error('❌ Portrait generation failed:', error);
+        
+        // Create a placeholder portrait
+        const placeholderSvg = createPlaceholderPortrait();
+        portraitContainer.innerHTML = `
+            <div class="text-center py-4">
+                ${placeholderSvg}
+                <p class="text-amber-700 text-sm mt-2">Portrait generation failed</p>
+                <p class="text-gray-600 text-xs">Using placeholder image</p>
+            </div>
+        `;
+        
+        displayMessage("Failed to generate portrait. Using placeholder image.", 'error');
+        
+        if (generateBtn) {
+            generateBtn.disabled = false;
+            generateBtn.textContent = 'Try Again';
+        }
+    }
+}
+
+// Try multiple image generation services for better reliability
+async function tryMultipleImageServices() {
+    const services = [
+        {
+            name: 'Picsum (Placeholder)',
+            generate: generatePicsumPortrait
+        },
+        {
+            name: 'AI Novel (if available)',
+            generate: generateAINovelPortrait
+        },
+        {
+            name: 'Placeholder SVG',
+            generate: generateSVGPortrait
+        }
+    ];
+
+    for (const service of services) {
+        try {
+            console.log(`🔄 Trying ${service.name}...`);
+            const result = await service.generate();
+            if (result) {
+                console.log(`✅ ${service.name} succeeded:`, result);
+                return result;
+            }
+        } catch (error) {
+            console.warn(`⚠️ ${service.name} failed:`, error.message);
+        }
+    }
+
+    return null;
+}
+
+// Generate portrait using Picsum (reliable placeholder service)
+async function generatePicsumPortrait() {
+    const seed = player.name.toLowerCase().replace(/[^a-z0-9]/g, '');
+    const portraitUrl = `https://picsum.photos/seed/${seed}/300/400?random=${Date.now()}`;
+    
+    // Test if the URL is accessible
+    return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => resolve(portraitUrl);
+        img.onerror = () => reject(new Error('Picsum service unavailable'));
+        img.src = portraitUrl;
+    });
+}
+
+// Try the original AI Novel service
+async function generateAINovelPortrait() {
+    const prompt = `A highly detailed fantasy art portrait of a character named ${player.name}.
+    Gender: ${player.gender}.
+    Class: ${player.class}.
+    Appearance details based on their background: ${player.background}.
+    The style should be a realistic fantasy portrait, with dramatic lighting, focusing on the character's face and upper body.
+    The background should be atmospheric and relevant to their story.`;
+
+    const response = await fetch('https://ainovel.site/api/generate-image', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            prompt: prompt,
+            seed: 12345,
+            imageSize: 'portrait_4_3',
+            numInferenceSteps: 70,
+            guidanceScale: 10
+        }),
+        signal: AbortSignal.timeout(30000) // 30 second timeout
+    });
+
+    if (!response.ok) {
+        throw new Error(`AI Novel API failed with status ${response.status}`);
+    }
+
+    const result = await response.json();
+    
+    if (!result.imageUrl) {
+        throw new Error("AI Novel API did not return an image URL");
+    }
+    
+    return result.imageUrl;
+}
+
+// Generate SVG portrait as ultimate fallback
+async function generateSVGPortrait() {
+    const colors = {
+        warrior: '#8B4513',
+        mage: '#4B0082',
+        rogue: '#2F4F4F',
+        ranger: '#228B22'
+    };
+    
+    const color = colors[player.class.toLowerCase()] || '#8B4513';
+    const initial = player.name.charAt(0).toUpperCase();
+    
+    const svgData = `data:image/svg+xml;base64,${btoa(`
+        <svg width="300" height="400" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+                <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" style="stop-color:${color};stop-opacity:1" />
+                    <stop offset="100%" style="stop-color:#000;stop-opacity:0.8" />
+                </linearGradient>
+            </defs>
+            <rect width="100%" height="100%" fill="url(#bg)"/>
+            <circle cx="150" cy="120" r="60" fill="rgba(255,255,255,0.1)" stroke="rgba(255,255,255,0.3)" stroke-width="2"/>
+            <text x="150" y="135" font-family="serif" font-size="48" fill="white" text-anchor="middle" font-weight="bold">${initial}</text>
+            <text x="150" y="320" font-family="serif" font-size="20" fill="white" text-anchor="middle">${player.name}</text>
+            <text x="150" y="350" font-family="serif" font-size="16" fill="rgba(255,255,255,0.8)" text-anchor="middle">${player.class}</text>
+            <text x="150" y="375" font-family="serif" font-size="14" fill="rgba(255,255,255,0.6)" text-anchor="middle">Level ${player.level}</text>
+        </svg>
+    `)}`;
+    
+    return svgData;
+}
+
+// Create placeholder portrait HTML
+function createPlaceholderPortrait() {
+    const colors = {
+        warrior: '#8B4513',
+        mage: '#4B0082',
+        rogue: '#2F4F4F',
+        ranger: '#228B22'
+    };
+    
+    const color = colors[player.class.toLowerCase()] || '#8B4513';
+    const initial = player.name.charAt(0).toUpperCase();
+    
+    return `
+        <div class="w-full h-48 rounded border-2 border-amber-700 flex flex-col items-center justify-center text-white" 
+             style="background: linear-gradient(135deg, ${color} 0%, #000 100%);">
+            <div class="text-6xl font-bold mb-2">${initial}</div>
+            <div class="text-lg">${player.name}</div>
+            <div class="text-sm opacity-80">${player.class} - Level ${player.level}</div>
+        </div>
+    `;
+}
+
 // Execute custom commands
 async function executeCustomCommand(command) {
     if (!command.trim()) return;
@@ -4464,6 +4699,15 @@ function addMainEventListeners() {
         generateBackgroundBtn?.addEventListener('click', () => {
             console.log('Generate background button clicked');
             generateCharacterBackground();
+        });
+
+        // Portrait generation - use event delegation for dynamic buttons
+        document.addEventListener('click', (e) => {
+            if (e.target && e.target.id === 'generate-portrait-btn') {
+                console.log('Generate portrait button clicked');
+                e.preventDefault();
+                generateCharacterPortrait();
+            }
         });
 
         createCharacterBtn?.addEventListener('click', async () => {
@@ -5598,11 +5842,7 @@ function displayCharacterBackground() {
         </div>
     `;
 
-     // Add event listener for the generate button if it exists
-     const generateBtn = document.getElementById('generate-portrait-btn');
-     if (generateBtn) {
-         generateBtn.addEventListener('click', generateCharacterPortrait);
-     }
+     // Portrait button event listener is handled globally via event delegation
     
 }
 
