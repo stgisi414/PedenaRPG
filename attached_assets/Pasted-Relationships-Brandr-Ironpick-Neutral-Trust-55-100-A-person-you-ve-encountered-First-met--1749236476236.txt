@@ -1,0 +1,122 @@
+Relationships
+Brandr Ironpick
+(Neutral)
+Trust: 55/100
+A person you've encountered.
+
+First met:
+Some time ago
+Interactions:
+1 times
+Last seen:
+6/4/2025
+Mara
+(Hostile)
+Trust: 48/100
+A person you've encountered.
+
+First met:
+Some time ago
+Interactions:
+6 times
+Last seen:
+6/5/2025
+Elena the Weaver
+(Neutral)
+Trust: 57/100
+A person you've encountered.
+
+First met:
+Some time ago
+Interactions:
+2 times
+Last seen:
+6/4/2025
+Grubble
+(Hostile)
+Trust: 10/100
+A person you've encountered.
+
+First met:
+Some time ago
+Interactions:
+2 times
+Last seen:
+6/4/2025
+Honest Abe
+(Neutral)
+Trust: 55/100
+A person you've encountered.
+
+First met:
+Some time ago
+Interactions:
+1 times
+Last seen:
+6/4/2025
+Inquisitor Hadrian
+(Neutral)
+Trust: 55/100
+A person you've encountered.
+
+First met:
+Some time ago
+Interactions:
+1 times
+Last seen:
+6/4/2025
+The Primordial Beast
+(Hostile)
+Trust: 30/100
+DM: You open the door and step inside Mara's cozy cottage. The aroma of baking bread is even stronger here, mingling with the scent of herbs and something… else. Something ancient and unsettling. You see The Primordial Beast. Appearance: A hulking mass of writhing, obsidian-like muscle, barely contained within the form of a vaguely humanoid creature. Its skin seems to shift and ripple, revealing glimpses of a chaotic, inner fire. Twisted horns sprout from its head, and its eyes burn with an unsettling, primal intelligence. The Primordial Beast says: "Mara… sent… for… me?"
+
+First met:
+6/4/2025
+Interactions:
+4 times
+Last seen:
+6/5/2025
+Gothmog the Terrible
+(Neutral)
+Trust: 55/100
+You see Gothmog the Terrible. Appearance: A hulking orc with tusks like scimitars, scarred and tattooed skin, and eyes that gleam with cruel amusement. He leans heavily on a massive, intricately carved warhammer, its head resting on the floor between his feet. A half-empty tankard of ale sits beside him, foam clinging to its rim. Gothmog the Terrible says: "Heard you're lookin' for Mara, little sprout. She owes me a favor... a *big* favor. And I'm not known for my patience."
+
+First met:
+6/5/2025
+Interactions:
+1 times
+Last seen:
+6/5/2025
+Sanctified Sister Brigid
+(Hostile)
+Trust: 35/100
+You see Sanctified Sister Brigid. Appearance: A tall woman with kind eyes and a gentle smile, clad in simple, but impeccably clean, white robes bearing the silver sigil of the Order of the Radiant Dawn. Her hands are clasped before her, a rosary of polished bone beads dangling between her fingers. A faint, almost imperceptible aura of warmth seems to emanate from her. Sanctified Sister Brigid says: "Welcome, traveler. May the light guide your path within the hallowed halls of the Magicum Arcanum."
+
+First met:
+6/5/2025
+Interactions:
+2 times
+Last seen:
+6/5/2025
+Snarlfangha the Ravager
+(Neutral)
+Trust: 44/100
+You see Snarlfangha the Ravager. Appearance: A surprisingly diminutive hobbit, barely reaching your knee, Snarlfangha the Ravager is nonetheless a terrifying sight. Her eyes gleam with a manic intensity, framed by wild, unkempt grey hair that sprouts from beneath a stained, patched-up hood. She clutches a rusty, oversized spoon, its bowl inexplicably stained crimson. A trail of what appears to be crushed berries and something far less identifiable leads from her to a half-eaten second breakfast. Snarlfangha the Ravager says: "Did someone say... *second* breakfast? You wouldn't happen to have any... *extra* second breakfast, would you?"
+
+First met:
+6/5/2025
+Interactions:
+1 times
+Last seen:
+6/5/2025
+The Living Glacier
+(Unfriendly)
+Trust: 33/100
+You see The Living Glacier. Appearance: A towering figure, seemingly carved from ice and snow, yet radiating a strange inner warmth. Runes, glowing faintly blue, are etched across its glacial skin. Its eyes are pools of shimmering turquoise, ancient and knowing. The Living Glacier says: "The whispers of the North Sea carry secrets… some are worth seeking, others… best left undisturbed."
+
+First met:
+6/6/2025
+Interactions:
+1 times
+Last seen:
+6/6/2025
