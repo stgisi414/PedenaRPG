@@ -605,7 +605,7 @@ function loadGame() {
             }
             // Load inventory and status effects from ItemManager
             ItemManager.loadInventoryFromStorage(player);
-            
+
             // Load party data if available
             if (saveData.partyData && partyManager) {
                 partyManager.loadSaveData(saveData.partyData);
@@ -2066,7 +2066,7 @@ function initializePartySystem() {
     if (typeof PartyManager !== 'undefined') {
         partyManager = new PartyManager();
         multiCombatSystem = new MultiCombatSystem(partyManager);
-        
+
         // Load party data if it exists in save
         const savedGame = localStorage.getItem('pedenaRPGSave');
         if (savedGame) {
@@ -2075,7 +2075,7 @@ function initializePartySystem() {
                 partyManager.loadSaveData(saveData.partyData);
             }
         }
-        
+
         console.log('Party and Multi-Combat systems initialized');
     } else {
         console.warn('PartyManager class not found - party features will be limited');
@@ -2118,7 +2118,7 @@ async function recruitNPC(npcName, npcData = null) {
     if (result.success) {
         // Update relationship
         updateRelationship(npcName, 0, 20, `${npcName} has joined your party as a trusted companion.`);
-        
+
         // Add party commands to UI
         updatePartyUI();
         saveGame();
@@ -2151,19 +2151,19 @@ function displayPartyStatus() {
     }
 
     const allMembers = partyManager.getAllMembers(player);
-    
+
     if (allMembers.length === 1) {
         displayMessage("You are traveling alone.", 'info');
         return;
     }
 
     displayMessage("=== Party Status ===", 'info');
-    
+
     allMembers.forEach(member => {
         const status = member.isPlayer ? "(You)" : `(${member.position})`;
         const healthStatus = `${member.health}/${member.maxHealth} HP`;
         const loyaltyInfo = member.loyalty ? ` - Loyalty: ${member.loyalty}%` : '';
-        
+
         displayMessage(`${member.name} ${status} - Level ${member.level} - ${healthStatus}${loyaltyInfo}`, 'info');
     });
 
@@ -2180,7 +2180,7 @@ function updatePartyUI() {
     if (!partyManager) return;
 
     const partyCommands = partyManager.getPartyCommands();
-    
+
     // Add party status to quick actions if party exists
     if (partyManager.party.length > 0) {
         // You could add party management buttons to the UI here
@@ -2196,9 +2196,9 @@ async function initiateMultiCombat(enemies) {
     }
 
     displayMessage("🔥 Multi-member combat begins!", 'combat');
-    
+
     const combatResult = multiCombatSystem.startCombat(player, enemies);
-    
+
     if (!combatResult.success) {
         displayMessage("Failed to start multi-combat. Falling back to regular combat.", 'error');
         return await CombatSystem.initiateCombat(player, enemies[0], player.currentLocation);
@@ -2206,7 +2206,7 @@ async function initiateMultiCombat(enemies) {
 
     // Display initial combat state
     displayCombatState();
-    
+
     // Start combat loop
     await processCombatTurns();
 }
@@ -2215,10 +2215,10 @@ function displayCombatState() {
     if (!multiCombatSystem || !multiCombatSystem.isActive) return;
 
     const state = multiCombatSystem.getCombatState();
-    
+
     displayMessage(`=== Round ${state.round} ===`, 'combat');
     displayMessage(`Current Turn: ${state.currentTurn ? state.currentTurn.name : 'None'}`, 'info');
-    
+
     // Display living allies
     if (state.livingAllies.length > 0) {
         displayMessage("Your Party:", 'info');
@@ -2226,7 +2226,7 @@ function displayCombatState() {
             displayMessage(`  ${ally.name}: ${ally.health}/${ally.maxHealth} HP`, 'info');
         });
     }
-    
+
     // Display living enemies
     if (state.livingEnemies.length > 0) {
         displayMessage("Enemies:", 'info');
@@ -2234,7 +2234,7 @@ function displayCombatState() {
             displayMessage(`  ${enemy.name}: ${enemy.health}/${enemy.maxHealth} HP`, 'info');
         });
     }
-    
+
     // Display recent combat log
     const recentLog = state.combatLog.slice(-3);
     recentLog.forEach(logEntry => {
@@ -2245,7 +2245,7 @@ function displayCombatState() {
 async function processCombatTurns() {
     while (multiCombatSystem.isActive) {
         const currentTurn = multiCombatSystem.getCurrentTurn();
-        
+
         if (!currentTurn) {
             displayMessage("Combat ended unexpectedly.", 'error');
             break;
@@ -2255,25 +2255,25 @@ async function processCombatTurns() {
             // Player turn - wait for player input
             displayMessage(`It's your turn! Choose your action:`, 'info');
             displayMessage(`Available actions: Attack, Defend, Use Ability, Flee`, 'info');
-            
+
             // Set flag to indicate we're waiting for player input in multi-combat
             multiCombatSystem.waitingForPlayerInput = true;
             break; // Exit loop, player will trigger next turn via command
-            
+
         } else {
             // AI turn (NPC or enemy)
             displayMessage(`${currentTurn.name} is acting...`, 'info');
-            
+
             const result = await multiCombatSystem.processAITurn();
-            
+
             if (result && result.combatEnded) {
                 handleCombatEnd(result);
                 break;
             }
-            
+
             // Brief pause between AI turns
             await new Promise(resolve => setTimeout(resolve, 1000));
-            
+
             displayCombatState();
         }
     }
@@ -2283,25 +2283,25 @@ function handleCombatEnd(result) {
     if (!result) return;
 
     displayMessage(result.message, result.result === 'victory' ? 'success' : 'error');
-    
+
     if (result.result === 'victory') {
         // Calculate rewards
         const baseXP = 50 * multiCombatSystem.enemies.length;
         const baseGold = 30 * multiCombatSystem.enemies.length;
-        
+
         // Distribute XP among party members
         const playerXP = partyManager.distributeExperience(baseXP);
-        
+
         gainExperience(playerXP);
         updateGold(baseGold, 'multi-combat victory');
-        
+
         displayMessage(`You gained ${playerXP} XP and ${baseGold} gold!`, 'success');
-        
+
         // Check for level up
         if (player.exp >= player.expToNextLevel) {
             displayMessage("Level up achieved!", 'success');
         }
-        
+
         // Heal party members slightly after victory
         partyManager.party.forEach(member => {
             if (member.health > 0) {
@@ -2309,31 +2309,31 @@ function handleCombatEnd(result) {
                 member.health = Math.min(member.maxHealth, member.health + healAmount);
             }
         });
-        
+
         displayMessage("Party members recover slightly from the victory.", 'success');
-        
+
     } else if (result.result === 'defeat') {
         // Handle party defeat
         const goldLoss = Math.floor(player.gold * 0.2);
         updateGold(-goldLoss, 'party defeat penalty');
-        
+
         // Revive party members at low health
         partyManager.party.forEach(member => {
             if (member.health <= 0) {
                 member.health = Math.floor(member.maxHealth * 0.25);
             }
         });
-        
+
         player.hp = Math.max(1, Math.floor(player.maxHp * 0.25));
-        
+
         displayMessage("Your party has been defeated but manages to escape...", 'info');
         displayMessage(`You lost ${goldLoss} gold in the retreat.`, 'error');
     }
-    
+
     // Clean up combat state
     multiCombatSystem.isActive = false;
     multiCombatSystem.waitingForPlayerInput = false;
-    
+
     updatePlayerStatsDisplay();
     saveGame();
 }
@@ -3507,7 +3507,7 @@ async function generateCharacterBackground() {
 // Enhanced portrait generation with better error handling and logging
 async function generateCharacterPortrait() {
     console.log('🎨 Portrait generation started');
-    
+
     const portraitContainer = document.getElementById('portrait-container');
     const generateBtn = document.getElementById('generate-portrait-btn');
 
@@ -3569,12 +3569,12 @@ async function generateCharacterPortrait() {
 
         // Pass the gathered details to the image generation services
         const portraitUrl = await tryMultipleImageServices(charName, charGender, charClass, charBackground);
-        
+
         if (portraitUrl) {
             console.log('✅ Portrait generated successfully:', portraitUrl);
             // Set the portraitUrl on the global player object so it can be saved by createCharacter
             player.portraitUrl = portraitUrl;
-            
+
             portraitContainer.innerHTML = `
                 <img src="${portraitUrl}"
                      alt="Character Portrait of ${charName}"
@@ -3582,23 +3582,23 @@ async function generateCharacterPortrait() {
                      onload="console.log('Portrait image loaded successfully')"
                      onerror="console.error('Failed to load portrait image'); this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZGRkIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxOCIgZmlsbD0iIzk5OSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPk5vIEltYWdlPC90ZXh0Pjwvc3ZnPg=='">
             `;
-            
+
             displayMessage("Character portrait generated successfully!", 'success');
-            
+
             if (generateBtn) {
                 generateBtn.style.display = 'none'; // Hide button after successful generation
             }
-            
+
             // Save the portrait URL
             saveGame();
-            
+
         } else {
             throw new Error("All image generation services failed");
         }
 
     } catch (error) {
         console.error('❌ Portrait generation failed:', error);
-        
+
         // Create a placeholder portrait
         const placeholderSvg = createPlaceholderPortrait();
         portraitContainer.innerHTML = `
@@ -3608,9 +3608,9 @@ async function generateCharacterPortrait() {
                 <p class="text-gray-600 text-xs">Using placeholder image</p>
             </div>
         `;
-        
+
         displayMessage("Failed to generate portrait. Using placeholder image.", 'error');
-        
+
         if (generateBtn) {
             generateBtn.disabled = false;
             generateBtn.textContent = 'Try Again';
@@ -3655,7 +3655,7 @@ async function tryMultipleImageServices(name, gender, charClass, background) {
 async function generatePicsumPortrait(name) { // Accept name as parameter
     const seed = name.toLowerCase().replace(/[^a-z0-9]/g, '');
     const portraitUrl = `https://picsum.photos/seed/${seed}/300/400?random=${Date.now()}`;
-    
+
     // Test if the URL is accessible
     return new Promise((resolve, reject) => {
         const img = new Image();
@@ -3694,11 +3694,11 @@ async function generateAINovelPortrait(name, gender, charClass, background) { //
     }
 
     const result = await response.json();
-    
+
     if (!result.imageUrl) {
         throw new Error("AI Novel API did not return an image URL");
     }
-    
+
     return result.imageUrl;
 }
 
@@ -3710,10 +3710,10 @@ async function generateSVGPortrait(name, charClass) { // Accept parameters
         rogue: '#2F4F4F',
         ranger: '#228B22'
     };
-    
+
     const color = colors[charClass.toLowerCase()] || '#8B4513'; // Use charClass
     const initial = name.charAt(0).toUpperCase(); // Use name
-    
+
     const svgData = `data:image/svg+xml;base64,${btoa(`
         <svg width="300" height="400" xmlns="http://www.w3.org/2000/svg">
             <defs>
@@ -3731,7 +3731,7 @@ async function generateSVGPortrait(name, charClass) { // Accept parameters
         </svg>
     `)}`;
     // Note: Level is hardcoded to 1 for SVG placeholder during character creation
-    
+
     return svgData;
 }
 
@@ -3743,10 +3743,10 @@ function createPlaceholderPortrait(name, charClass, level = 1) { // Accept param
         rogue: '#2F4F4F',
         ranger: '#228B22'
     };
-    
+
     const color = colors[charClass.toLowerCase()] || '#8B4513'; // Use charClass
     const initial = name.charAt(0).toUpperCase(); // Use name
-    
+
     return `
         <div class="w-full h-48 rounded border-2 border-amber-700 flex flex-col items-center justify-center text-white" 
              style="background: linear-gradient(135deg, ${color} 0%, #000 100%);">
@@ -3854,7 +3854,7 @@ async function executeCustomCommand(command) {
     // Handle multi-combat player actions
     if (multiCombatSystem && multiCombatSystem.isActive && multiCombatSystem.waitingForPlayerInput) {
         let actionTaken = false;
-        
+
         if (command.toLowerCase().includes('attack')) {
             const result = await multiCombatSystem.processTurn('attack');
             if (result.combatEnded) {
@@ -3892,7 +3892,7 @@ async function executeCustomCommand(command) {
             }
             actionTaken = true;
         }
-        
+
         if (actionTaken) {
             multiCombatSystem.waitingForPlayerInput = false;
             return;
@@ -4670,7 +4670,7 @@ function processRichText(text, messageType = null) {
     processed = processed.replace(/\[magic:(.*?)\]/g, '<span class="rt-font-magic">$1</span>');
     processed = processed.replace(/\[elegant:(.*?)\]/g, '<span class="rt-font-elegant">$1</span>');
     processed = processed.replace(/\[ancient:(.*?)\]/g, '<span class="rt-font-ancient">$1</span>');
-    
+
     // Alternative curly brace format for fonts
     processed = processed.replace(/\{medieval:(.*?)\}/g, '<span class="rt-font-medieval">$1</span>');
     processed = processed.replace(/\{magic:(.*?)\}/g, '<span class="rt-font-magic">$1</span>');
@@ -5143,8 +5143,8 @@ function buildEquipmentDisplay() {
                 });
             }
             if (item.effects && Array.isArray(item.effects)) {
-                const combatEffects = item.effects.filter(effect => 
-                    effect.includes('strength') || effect.includes('dexterity') || 
+                const combatEffects = item.effects.filter(effect =>
+                    effect.includes('strength') || effect.includes('dexterity') ||
                     effect.includes('constitution') || effect.includes('defense') ||
                     effect.includes('attack') || effect.includes('damage') ||
                     effect.includes('armor') || effect.includes('resist')
@@ -5165,12 +5165,12 @@ function buildEquipmentDisplay() {
                     <div class="flex-grow">
                         <h6 class="font-bold text-sm">${slotData.name}</h6>
                         <p class="text-xs text-green-700 font-semibold">${item.name}</p>
-                        ${combatStats.length > 0 ? 
-                            `<div class="text-xs text-blue-600 mt-1">
+                        ${combatStats.length > 0 ?
+                    `<div class="text-xs text-blue-600 mt-1">
                                 ${combatStats.map(stat => `<span class="block">${stat}</span>`).join('')}
-                            </div>` : 
-                            '<p class="text-xs text-gray-500 italic">No combat bonuses</p>'
-                        }
+                            </div>` :
+                    '<p class="text-xs text-gray-500 italic">No combat bonuses</p>'
+                }
                     </div>
                     <button class="btn-parchment inventory-action-btn text-xs py-1 px-2 flex-shrink-0" data-action="unequip" data-slot="${slotData.slot}" style="color: #8B4513 !important;">
                         Unequip
@@ -5626,14 +5626,14 @@ function dropItem(itemIndex) {
     }
 }
 
-async function generateCharacterPortrait() {
-    //This function was modified above to accept charName, charGender, charClass, charBackground
-    //No further changes needed here, but the old version is presented for context of the diff.
-    //The actual change will be applied to the already modified generateCharacterPortrait function.
-    //This is just to ensure the diff tool has the correct "SEARCH" block.
-    //The following is the OLD generateCharacterPortrait function, which will be replaced by the new one.
-}
+//async function generateCharacterPortrait() {
+//This function was modified above to accept charName, charGender, charClass, charBackground
+//No further changes needed here, but the old version is presented for context of the diff.
+//The actual change will be applied to the already modified generateCharacterPortrait function.
+//This is just to ensure the diff tool has the correct "SEARCH" block.
+//The following is the OLD generateCharacterPortrait function, which will be replaced by the new one.
 //This is the old generateCharacterPortrait function:
+//}
 async function generateCharacterPortraitOld() {
     const portraitContainer = document.getElementById('portrait-container');
     const generateBtn = document.getElementById('generate-portrait-btn');
@@ -5869,8 +5869,8 @@ function displayCharacterBackground() {
         </div>
     `;
 
-     // Portrait button event listener is handled globally via event delegation
-    
+    // Portrait button event listener is handled globally via event delegation
+
 }
 
 // IMPORTANT: Ensure the helper functions calculateEquipmentBonuses() and buildStatsGrid()
