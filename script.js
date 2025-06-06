@@ -4365,11 +4365,17 @@ function processRichText(text, messageType = null) {
         }
     });
 
-    // Fonts: [medieval:text], [magic:text], etc.
+    // Fonts: [medieval:text], [magic:text], etc. and {elegant:text}, {magic:text}, etc.
     processed = processed.replace(/\[medieval:(.*?)\]/g, '<span class="rt-font-medieval">$1</span>');
     processed = processed.replace(/\[magic:(.*?)\]/g, '<span class="rt-font-magic">$1</span>');
     processed = processed.replace(/\[elegant:(.*?)\]/g, '<span class="rt-font-elegant">$1</span>');
     processed = processed.replace(/\[ancient:(.*?)\]/g, '<span class="rt-font-ancient">$1</span>');
+    
+    // Alternative curly brace format for fonts
+    processed = processed.replace(/\{medieval:(.*?)\}/g, '<span class="rt-font-medieval">$1</span>');
+    processed = processed.replace(/\{magic:(.*?)\}/g, '<span class="rt-font-magic">$1</span>');
+    processed = processed.replace(/\{elegant:(.*?)\}/g, '<span class="rt-font-elegant">$1</span>');
+    processed = processed.replace(/\{ancient:(.*?)\}/g, '<span class="rt-font-ancient">$1</span>');
 
     // Effects: {{effect:text}} - Process in specific order to avoid conflicts
     processed = processed.replace(/\{\{highlight:(.*?)\}\}/g, '<span class="rt-highlight">$1</span>');
