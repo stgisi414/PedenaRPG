@@ -115,7 +115,8 @@
                             class="ra ra-crossed-swords mr-2"></i>Start Adventure!</button>
                 </section>
 
-                <section id="game-play-screen" class="hidden">
+                <section id="game-play-screen" class="hidden relative">
+                    <button id="illustration-mode-btn" class="btn-parchment absolute top-4 right-4 hidden"><i class="ra ra-image mr-2"></i>Illustration Mode</button>
                     <div class="flex justify-between items-center mb-6">
                         <h3 id="player-name" class="text-2xl font-bold"></h3>
                         <div style="color: #F5DEB3 !important;">
@@ -233,6 +234,13 @@
     </div>
 
     <script type="module" src="script.js"></script>
+
+    <div id="scenery-image-display" class="hidden fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
+        <div class="bg-stone-800 p-4 rounded-lg shadow-xl max-w-3xl w-full relative parchment-border">
+            <img id="generated-scenery-image" src="#" alt="Generated Scenery" class="w-full h-auto rounded mb-4 max-h-[70vh] object-contain">
+            <button id="close-scenery-image-btn" class="btn-parchment absolute top-2 right-2 bg-red-700 hover:bg-red-800 text-white py-1 px-2 text-sm">Close</button>
+        </div>
+    </div>
 </body>
 
 </html>
