@@ -238,6 +238,12 @@ async function generateAndDisplaySceneryImage() {
         return;
     }
 
+    // Generate consistent seed based on character name (same as portrait generation)
+    const characterSeed = player.name ? player.name.toLowerCase().replace(/[^a-z0-9]/g, '').split('').reduce((a, b) => {
+        a = ((a << 5) - a) + b.charCodeAt(0);
+        return a & a;
+    }, 0) : 12345;
+
     try {
         const response = await fetch('https://ainovel.site/api/generate-image', {
             method: 'POST',
@@ -251,7 +257,7 @@ async function generateAndDisplaySceneryImage() {
                 imageSize: "landscape_16_9",
                 numInferenceSteps: 50,
                 guidanceScale: 7.5,
-                seed: Math.floor(Math.random() * 1000000),
+                seed: Math.abs(characterSeed),
                 negative_prompt: "text, watermark, signature, poorly drawn character, disfigured character, ugly, blurry character",
                 control_image_strength: 0.6,
             }),
@@ -3932,6 +3938,12 @@ async function generateAINovelPortrait(name, gender, charClass, background) { //
 
     displayMessage("Trying AI Novel image service...", 'info');
 
+    // Generate consistent seed based on character name
+    const characterSeed = name ? name.toLowerCase().replace(/[^a-z0-9]/g, '').split('').reduce((a, b) => {
+        a = ((a << 5) - a) + b.charCodeAt(0);
+        return a & a;
+    }, 0) : 12345;
+
     try {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 45000);
@@ -3945,7 +3957,7 @@ async function generateAINovelPortrait(name, gender, charClass, background) { //
             },
             body: JSON.stringify({
                 prompt: prompt,
-                seed: Math.floor(Math.random() * 1000000),
+                seed: Math.abs(characterSeed),
                 imageSize: 'portrait_4_3',
                 numInferenceSteps: 50,
                 guidanceScale: 7.5
