@@ -4034,7 +4034,7 @@ async function generatePicsumPortrait(name) { // Accept name as parameter
 
 // Try the original AI Novel service
 async function generateAINovelPortrait(name, gender, charClass, background) { // Accept parameters
-    const prompt = `A highly detailed fantasy art portrait of a character named ${name}.
+    const prompt = `A highly detailed and fully colored fantasy art portrait of a character named ${name}.
     Gender: ${gender}.
     Class: ${charClass}.
     Appearance details based on their background: ${background}.
