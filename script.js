@@ -16,6 +16,8 @@ const GEMINI_API_KEY = 'AIzaSyDIFeql6HUpkZ8JJlr_kuN0WDFHUyOhijA'; // Replace wit
 const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`;
 
 // Game State
+let isIllustrationModeActive = false;
+let userInputCounterForImage = 0;
 let player = {
     name: '',
     gender: '',
@@ -193,6 +195,165 @@ async function addToConversationHistory(role, content) {
                 await processAlignmentChange(alignmentChange);
             }
         }
+    }
+}
+
+function displaySceneryImage(imageUrl) {
+    const displayDiv = document.getElementById('scenery-image-display');
+    const imgElement = document.getElementById('generated-scenery-image');
+
+    if (displayDiv && imgElement) {
+        imgElement.src = imageUrl;
+        displayDiv.classList.remove('hidden');
+    } else {
+        console.error("Scenery image display elements not found.");
+        displayMessage("Error: Could not display scenery image UI.", "error");
+    }
+}
+
+async function generateAndDisplaySceneryImage() {
+    const illustrationModeBtn = document.getElementById('illustration-mode-btn');
+    let originalButtonHTML = '';
+
+    if (illustrationModeBtn) {
+        originalButtonHTML = illustrationModeBtn.innerHTML;
+        illustrationModeBtn.innerHTML = `<i class="ra ra-hourglass-o mr-2"></i>Generating Scenery...`;
+        illustrationModeBtn.disabled = true;
+    } else {
+        // If button isn't found, still display a general loading message
+        displayMessage("Generating scenery image...", "info");
+    }
+
+    const sceneryPrompt = await generateSceneryImagePrompt();
+
+    if (!sceneryPrompt || sceneryPrompt === "A mysterious and intriguing landscape.") {
+        displayMessage("Failed to generate a suitable image prompt.", "error");
+        // Remove loading indicator if it were more persistent
+        return;
+    }
+
+    if (!player.portraitUrl || player.portraitUrl.trim() === '') {
+        displayMessage("Character portrait not found. Cannot generate scenery image.", "error");
+        // Remove loading indicator
+        return;
+    }
+
+    try {
+        const response = await fetch('https://ainovel.site/api/generate-image', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+            },
+            body: JSON.stringify({
+                prompt: sceneryPrompt,
+                referenceImageUrl: player.portraitUrl,
+                imageSize: "landscape_16_9",
+                numInferenceSteps: 50,
+                guidanceScale: 7.5,
+                seed: Math.floor(Math.random() * 1000000),
+                negative_prompt: "text, watermark, signature, poorly drawn character, disfigured character, ugly, blurry character",
+                control_image_strength: 0.6,
+            }),
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('Image generation service error:', response.status, errorText);
+            displayMessage(`Image generation service returned an error: ${response.status}.`, "error");
+            // Remove loading indicator
+            return;
+        }
+
+        const result = await response.json();
+
+        if (result.imageUrl) {
+            displaySceneryImage(result.imageUrl); // << UPDATED HERE
+            // displayMessage("Scenery image generated!", "success"); // displaySceneryImage will handle visibility
+        } else {
+            console.error("Image generation failed or did not return an image URL. Response:", result);
+            displayMessage("Image generation failed or did not return an image URL.", "error");
+        }
+    } catch (error) {
+        console.error("Error during image generation API call:", error);
+        displayMessage("Failed to connect to image generation service.", "error");
+    } finally {
+        if (illustrationModeBtn) {
+            if (isIllustrationModeActive) {
+                illustrationModeBtn.innerHTML = `<i class="ra ra-image mr-2"></i>Illustration Mode: ON`;
+            } else {
+                illustrationModeBtn.innerHTML = `<i class="ra ra-image mr-2"></i>Illustration Mode`;
+            }
+            illustrationModeBtn.disabled = false;
+        }
+    }
+}
+
+async function generateSceneryImagePrompt() {
+    let contextText = `Player: ${player.name}, a ${player.class}.\n`;
+    contextText += `Current Location: ${player.currentLocation}.\n`;
+
+    // Add recent conversation history (last 2-3 messages)
+    if (conversationHistory.messages && conversationHistory.messages.length > 0) {
+        const recentMessages = conversationHistory.messages.slice(-3); // Get last 3 messages
+        contextText += "Recent Events:\n";
+        recentMessages.forEach(msg => {
+            const role = msg.role === 'user' ? 'Player' : 'DM';
+            // Strip rich text from conversation history for the prompt
+            const cleanContent = stripAllRichTextFormatting(msg.content);
+            contextText += `- ${role} said: "${cleanContent}"\n`;
+        });
+    }
+
+    // Add active quest information
+    if (player.quests && player.quests.length > 0) {
+        const activeQuest = player.quests.find(q => !q.completed);
+        if (activeQuest) {
+            contextText += `Active Quest: "${stripAllRichTextFormatting(activeQuest.title)}"\n`;
+            contextText += `Objective: "${stripAllRichTextFormatting(activeQuest.objective)}"\n`;
+        }
+    }
+
+    const geminiPrompt = `You are an AI assistant generating a descriptive text prompt for an image generation model.
+The image to be generated will use a reference image of the player's character, and your prompt will describe the scenery and atmosphere around them.
+Generate a concise (1-2 sentences, max 50 words) and vivid image prompt.
+Focus on the environment, time of day, weather, mood, and any significant nearby landmarks or elements based on the provided game context.
+Do NOT describe the character, as that will come from the reference image.
+Example output format: 'A misty forest at dawn, with ancient, gnarled trees and a faint glow emanating from a hidden ruin in the distance.'
+
+Game Context:
+${contextText}
+
+Image Prompt:`;
+
+    try {
+        const imagePrompt = await callGeminiAPI(geminiPrompt, 0.7, 100, false);
+        if (imagePrompt && imagePrompt.trim() !== '') {
+            console.log("Generated Image Prompt:", imagePrompt);
+            return imagePrompt.trim();
+        } else {
+            console.error("Gemini API returned empty or no text for image prompt.");
+            return "A mysterious and intriguing landscape."; // Fallback prompt
+        }
+    } catch (error) {
+        console.error("Error calling Gemini API for image prompt:", error);
+        return "A mysterious and intriguing landscape."; // Fallback prompt
+    }
+}
+
+// Function to update the visibility of the Illustration Mode button
+function updateIllustrationButtonVisibility() {
+    const illustrationBtn = document.getElementById('illustration-mode-btn');
+    if (illustrationBtn) {
+        if (player && player.portraitUrl && player.portraitUrl.trim() !== '') {
+            illustrationBtn.classList.remove('hidden');
+        } else {
+            illustrationBtn.classList.add('hidden');
+        }
+    } else {
+        // It's possible this function is called before the button is in the DOM
+        // or if the game-play-screen is not active.
+        // console.warn("Illustration mode button not found in DOM during visibility update.");
     }
 }
 
@@ -662,6 +823,7 @@ function loadGame() {
         }
 
         saveConversationHistory();
+        updateIllustrationButtonVisibility(); // Update button visibility after loading game
     } else {
         displayMessage("No saved game found.", 'error');
     }
@@ -3538,6 +3700,7 @@ function removeCharacterPortrait() {
     
     saveGame();
     displayMessage("Character portrait removed successfully.", 'success');
+    updateIllustrationButtonVisibility(); // Update button visibility after removing portrait
 }
 
 // Enhanced portrait generation with better error handling and logging
@@ -3642,6 +3805,7 @@ async function generateCharacterPortrait() {
                 if (backgroundInterface && !backgroundInterface.classList.contains('hidden')) {
                     displayCharacterBackground();
                 }
+                updateIllustrationButtonVisibility(); // Update button visibility after portrait is loaded
             };
             
             img.onerror = function() {
@@ -3689,6 +3853,7 @@ async function generateCharacterPortrait() {
             generateBtn.disabled = false;
             generateBtn.textContent = 'Try Again';
         }
+        updateIllustrationButtonVisibility(); // Update button visibility if portrait generation fails
     }
 }
 
@@ -3951,6 +4116,7 @@ function createPlaceholderPortrait(name, charClass, level = 1) { // Accept param
 async function executeCustomCommand(command) {
     if (!command.trim()) return;
 
+    userInputCounterForImage++;
     displayMessage(`> ${command}`, 'info');
     addToConversationHistory('user', command);
 
@@ -4176,6 +4342,12 @@ IMPORTANT: If the player is trying to interact with something from recent explor
     } catch (error) {
         console.error("Error processing command:", error);
         displayMessage("You attempt your action, but nothing notable occurs.", 'info');
+    }
+
+    // Automatic scenery image generation after N inputs if mode is active
+    if (isIllustrationModeActive && player.portraitUrl && player.portraitUrl.trim() !== '' && userInputCounterForImage > 0 && userInputCounterForImage % 7 === 0) {
+        displayMessage("7 user inputs reached. Auto-generating new scenery image...", "info");
+        await generateAndDisplaySceneryImage();
     }
 }
 
@@ -4723,6 +4895,51 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     // <<< --- END OF INVENTORY EVENT LISTENER --- >>>
 
+    // Illustration Mode button
+    const illustrationModeBtn = document.getElementById('illustration-mode-btn');
+    if (illustrationModeBtn) {
+        illustrationModeBtn.addEventListener('click', async () => {
+            isIllustrationModeActive = !isIllustrationModeActive;
+
+            if (isIllustrationModeActive) {
+                if (player && player.portraitUrl && player.portraitUrl.trim() !== '') {
+                    // Button text/state will be handled by generateAndDisplaySceneryImage
+                    await generateAndDisplaySceneryImage();
+                } else {
+                    displayMessage("Cannot activate Illustration Mode without a character portrait.", "error");
+                    isIllustrationModeActive = false; // Revert state
+                    // If illustrationModeBtn exists, ensure its text is reset if activation fails early
+                    if (illustrationModeBtn) {
+                        illustrationModeBtn.innerHTML = `<i class="ra ra-image mr-2"></i>Illustration Mode`;
+                        illustrationModeBtn.classList.remove('btn-active-style');
+                    }
+                }
+            } else {
+                illustrationModeBtn.innerHTML = `<i class="ra ra-image mr-2"></i>Illustration Mode`;
+                illustrationModeBtn.classList.remove('btn-active-style');
+                displayMessage("Illustration Mode Deactivated.", "info");
+            }
+        });
+    }
+
+    // Close Scenery Image button and Overlay click
+    const sceneryImageDisplay = document.getElementById('scenery-image-display');
+    const closeSceneryImageBtn = document.getElementById('close-scenery-image-btn');
+
+    if (closeSceneryImageBtn && sceneryImageDisplay) {
+        closeSceneryImageBtn.addEventListener('click', () => {
+            sceneryImageDisplay.classList.add('hidden');
+        });
+    }
+
+    if (sceneryImageDisplay) {
+        sceneryImageDisplay.addEventListener('click', (event) => {
+            if (event.target === sceneryImageDisplay) { // Only close if overlay itself is clicked
+                sceneryImageDisplay.classList.add('hidden');
+            }
+        });
+    }
+
 }); // End of DOMContentLoaded
 
 // Add debug button to remove portrait
@@ -5108,6 +5325,7 @@ function createCharacter() {
     updatePlayerStatsDisplay();
     displayMessage(`Welcome to Pedena, ${player.name}! Your adventure begins in ${player.currentLocation}.`);
     updateQuickActionButtons();
+    updateIllustrationButtonVisibility(); // Update button visibility after character creation
     saveGame();
 }
 

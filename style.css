@@ -689,3 +689,9 @@ h1, h2, h3, h4 {
     margin: 1rem auto; /* Center the button with top/bottom margin */
     display: block; /* Ensure button is block-level for centering */
 }
+
+.parchment-border {
+    border: 10px solid #8B4513;
+    padding: 15px;
+    background-color: #F5DEB3; /* A light parchment color */
+}
