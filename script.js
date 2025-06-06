@@ -3523,7 +3523,7 @@ async function generateCharacterPortrait() {
         return;
     }
 
-    // Validation check
+    // Validation check - do this FIRST before any other checks
     if (!charName || !charClass || !charGender) {
         alert("Please fill in character name, class, and gender before generating a portrait.");
         if (generateBtn) {
@@ -3533,10 +3533,9 @@ async function generateCharacterPortrait() {
         return;
     }
 
-    // Check if portrait already exists on the global player object (if a character was loaded/created)
-    // This check might be more relevant if the function is called *after* character creation
-    // For now, we assume it can be called during creation, so player.portraitUrl might not be set yet.
-    if (player && player.portraitUrl) {
+    // Check if portrait already exists on the global player object (only after validation)
+    // Only check this if player object exists and has the same name as current input
+    if (player && player.portraitUrl && player.name === charName) {
         console.log('ℹ️ Portrait already exists for current player:', player.portraitUrl);
         displayMessage("A portrait has already been generated for this character.", 'info');
         // Optionally, display the existing portrait
