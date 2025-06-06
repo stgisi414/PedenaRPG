@@ -285,9 +285,21 @@ If no actual transaction is detected, return {"hasTransaction": false, "confiden
         );
         if (itemIndex === -1) return null;
         const removedItem = player.inventory.splice(itemIndex, 1)[0];
+        
+        console.log(`TransactionMiddleware: Removed item ${removedItem.name} from inventory`);
+        
+        // Force save inventory immediately after removal
         if (typeof window.ItemManager !== 'undefined' && typeof window.ItemManager.saveInventoryToStorage === 'function') {
             window.ItemManager.saveInventoryToStorage(player);
+            console.log(`TransactionMiddleware: Inventory saved after removing ${removedItem.name}`);
         }
+        
+        // Also save the full game state
+        if (typeof window.saveGame === 'function') {
+            window.saveGame();
+            console.log(`TransactionMiddleware: Full game saved after removing ${removedItem.name}`);
+        }
+        
         return removedItem;
     }
 }

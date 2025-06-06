@@ -626,13 +626,18 @@ function updateGold(amount, reason = '') {
     console.log(`updateGold: Amount: ${amount}, Reason: ${reason}, Old Gold: ${oldGold}, New Gold: ${player.gold}`); // ADD THIS LOG
 
     if (amount > 0) {
-        displayMessage(`You gained <span class="math-inline">${Number(amount)} gold</span>${reason ? ` (${reason})` : ''}!`, 'success');
+        displayMessage(`You gained ${Number(amount)} gold${reason ? ` (${reason})` : ''}!`, 'success');
     } else if (amount < 0) {
         const actualLoss = oldGold - player.gold; // Recalculate actual loss after Math.max(0,...)
         displayMessage(`You lost ${Math.abs(Number(amount))} gold${reason ? ` (${reason})` : ''}!`, 'error');
     }
 
     updatePlayerStatsDisplay();
+
+    // Ensure inventory is saved when gold changes (often due to transactions)
+    if (window.ItemManager && typeof ItemManager.saveInventoryToStorage === 'function') {
+        ItemManager.saveInventoryToStorage(player);
+    }
 
     if (!inventoryInterface.classList.contains('hidden')) {
         displayInventory();
@@ -1553,6 +1558,43 @@ function fixMaraRelationship() {
     if (backgroundInterface && !backgroundInterface.classList.contains('hidden')) {
         displayCharacterBackground();
     }
+}
+
+// Manual function to remove items from inventory
+function removeItemFromInventory(itemName) {
+    if (!player.inventory || player.inventory.length === 0) {
+        displayMessage("Your inventory is empty.", 'info');
+        return false;
+    }
+
+    const itemIndex = player.inventory.findIndex(item => 
+        item.name.toLowerCase().includes(itemName.toLowerCase()) ||
+        itemName.toLowerCase().includes(item.name.toLowerCase())
+    );
+
+    if (itemIndex === -1) {
+        displayMessage(`Could not find "${itemName}" in your inventory.`, 'error');
+        return false;
+    }
+
+    const removedItem = player.inventory.splice(itemIndex, 1)[0];
+    displayMessage(`Removed "${removedItem.name}" from inventory.`, 'success');
+
+    // Force save inventory
+    if (window.ItemManager && typeof ItemManager.saveInventoryToStorage === 'function') {
+        ItemManager.saveInventoryToStorage(player);
+    }
+
+    // Force save game
+    saveGame();
+
+    // Refresh inventory display if open
+    const inventoryInterface = document.getElementById('inventory-interface');
+    if (inventoryInterface && !inventoryInterface.classList.contains('hidden')) {
+        displayInventory();
+    }
+
+    return true;
 }
 
 // Clean up invalid relationships (removes technical variable names)
@@ -2546,6 +2588,12 @@ async function handleItemPickup(command, storyContext = '') {
 
     if (itemsAdded > 0) {
         displayMessage(`${itemsAdded} item(s) added to inventory. You now have ${player.inventory.length} items total.`, 'info');
+        
+        // Ensure inventory is saved
+        if (window.ItemManager && typeof ItemManager.saveInventoryToStorage === 'function') {
+            ItemManager.saveInventoryToStorage(player);
+        }
+        
         updatePlayerStatsDisplay();
         saveGame();
     }
