@@ -674,3 +674,18 @@ h1, h2, h3, h4 {
     border: 3px solid #A0522D;
     box-shadow: 0 4px 8px rgba(0,0,0,0.4);
 }
+
+/* Portrait section styling */
+#portrait-section {
+    text-align: center;
+    margin: 1.5rem 0; /* Top and bottom margin */
+}
+
+#portrait-section #portrait-container {
+    margin-bottom: 1rem; /* Space between portrait and button */
+}
+
+#generate-portrait-btn {
+    margin: 1rem auto; /* Center the button with top/bottom margin */
+    display: block; /* Ensure button is block-level for centering */
+}
