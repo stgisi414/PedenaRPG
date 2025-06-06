@@ -384,25 +384,62 @@ function updateRelationship(npcName, statusChange = 0, trustChange = 0, npcDescr
         player.relationships = {};
     }
 
+    // Clean and normalize NPC name
+    const cleanName = npcName.trim();
+    if (!cleanName) {
+        console.warn('Empty NPC name provided to updateRelationship');
+        return;
+    }
+
     // Initialize alignment and get modifiers
     AlignmentSystem.initializeAlignment(player);
     const alignmentModifier = AlignmentSystem.getAlignmentModifier(player);
 
-    if (!player.relationships[npcName]) {
+    if (!player.relationships[cleanName]) {
         // Apply alignment modifier to initial trust
         const baseTrust = 50 + alignmentModifier.npcTrustModifier;
-        player.relationships[npcName] = {
+        
+        // Extract description from game messages if not provided
+        let finalDescription = npcDescription;
+        if (!finalDescription && conversationHistory && conversationHistory.messages) {
+            const recentMessages = conversationHistory.messages.slice(-5);
+            const npcMention = recentMessages.find(msg => 
+                msg.content && msg.content.toLowerCase().includes(cleanName.toLowerCase())
+            );
+            if (npcMention) {
+                // Extract appearance description if available
+                const appearanceMatch = npcMention.content.match(/Appearance:\s*([^.]+)/i);
+                if (appearanceMatch) {
+                    finalDescription = appearanceMatch[1].trim();
+                } else {
+                    // Fallback to first sentence mentioning the NPC
+                    const sentences = npcMention.content.split('.');
+                    const relevantSentence = sentences.find(s => 
+                        s.toLowerCase().includes(cleanName.toLowerCase())
+                    );
+                    if (relevantSentence) {
+                        finalDescription = relevantSentence.trim();
+                    }
+                }
+            }
+        }
+
+        player.relationships[cleanName] = {
             status: 'neutral',
             trust: Math.max(0, Math.min(100, baseTrust)),
             interactions: 0,
             lastInteraction: Date.now(),
-            metAt: player.currentLocation,
-            description: npcDescription || "A person you've encountered in your travels.",
-            firstMeeting: new Date().toLocaleDateString()
+            metAt: player.currentLocation || 'Unknown location',
+            description: finalDescription || `A ${determineNPCType(cleanName)} you've encountered in your travels.`,
+            firstMeeting: new Date().toLocaleDateString(),
+            type: determineNPCType(cleanName),
+            isStoryGenerated: true
         };
+        
+        console.log(`Created new relationship with ${cleanName}:`, player.relationships[cleanName]);
     }
 
-    const relationship = player.relationships[npcName];
+    const relationship = player.relationships[cleanName];
 
     // Apply alignment modifier to trust changes
     const modifiedTrustChange = trustChange + (alignmentModifier.npcTrustModifier * 0.1);
@@ -410,10 +447,31 @@ function updateRelationship(npcName, statusChange = 0, trustChange = 0, npcDescr
     relationship.interactions++;
     relationship.lastInteraction = Date.now();
 
-    // Update description if provided
-    if (npcDescription && !relationship.description.includes(npcDescription)) {
-        relationship.description = npcDescription;
+    // Update description if provided and different
+    if (npcDescription && npcDescription !== relationship.description) {
+        // Append or replace description intelligently
+        if (relationship.description.includes("you've encountered in your travels")) {
+            relationship.description = npcDescription;
+        } else if (!relationship.description.includes(npcDescription)) {
+            relationship.description += ` ${npcDescription}`;
+        }
     }
+
+    // Update status based on trust level
+    if (relationship.trust >= 80) {
+        relationship.status = 'close friend';
+    } else if (relationship.trust >= 60) {
+        relationship.status = 'friend';
+    } else if (relationship.trust >= 40) {
+        relationship.status = 'acquaintance';
+    } else if (relationship.trust >= 20) {
+        relationship.status = 'neutral';
+    } else {
+        relationship.status = 'unfriendly';
+    }
+
+    // Save relationships after update
+    saveGameState();
 
     // Update status based on trust level
     if (relationship.trust >= 80) {
@@ -1029,15 +1087,23 @@ REQUIREMENTS: Use at least 7-10 different formatting effects per response. Use *
 
 // NPC Management Functions
 function createNPC(name, description, location) {
-    return {
+    const npc = {
         id: Date.now() + Math.random(),
-        name: name,
+        name: name.trim(),
         description: description,
         location: location,
         dialogueHistory: [],
         lastSeen: Date.now(),
-        relationship: 'neutral'
+        relationship: 'neutral',
+        type: determineNPCType(name),
+        isStoryGenerated: true,
+        createdAt: new Date().toISOString()
     };
+    
+    // Automatically create relationship entry
+    updateRelationship(npc.name, 0, 0, description);
+    
+    return npc;
 }
 
 function saveNPCToLocation(npc, location) {
@@ -1439,6 +1505,35 @@ function checkRelationshipChanges(playerCommand, aiResponse) {
 
                 newStatus = 'romantic';
                 trustChange = 30;
+
+// Helper function to determine NPC type based on name characteristics
+function determineNPCType(npcName) {
+    const name = npcName.toLowerCase();
+    
+    // Check for specific patterns in story-generated names
+    if (name.includes('glacier') || name.includes('ice') || name.includes('frost')) {
+        return 'elemental being';
+    } else if (name.includes('spirit') || name.includes('ghost') || name.includes('wraith')) {
+        return 'supernatural entity';
+    } else if (name.includes('dragon') || name.includes('wyrm')) {
+        return 'dragon';
+    } else if (name.includes('merchant') || name.includes('trader') || name.includes('shopkeeper')) {
+        return 'merchant';
+    } else if (name.includes('guard') || name.includes('soldier') || name.includes('captain')) {
+        return 'guard';
+    } else if (name.includes('priest') || name.includes('cleric') || name.includes('monk')) {
+        return 'religious figure';
+    } else if (name.includes('mage') || name.includes('wizard') || name.includes('sorcerer')) {
+        return 'spellcaster';
+    } else if (name.includes('lord') || name.includes('lady') || name.includes('king') || name.includes('queen')) {
+        return 'noble';
+    } else if (name.includes('the ')) {
+        return 'notable figure'; // Names starting with "The" are usually special
+    } else {
+        return 'person';
+    }
+}
+
                 relationshipChanged = true;
 
                 displayMessage(`💕 Your relationship with ${npcName} has blossomed into romance!`, 'success');
@@ -6389,10 +6484,106 @@ function displayCharacterBackground() {
                     
                     <p class="text-xs text-amber-700 mb-2 italic">${description}</p>
                     
-                    <div class="grid grid-cols-2 gap-2 text-xs text-gray-600">
+                    ${relationship.type ? `<span class="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">${relationship.type}</span>` : ''}
+                    
+                    <div class="grid grid-cols-2 gap-2 text-xs text-gray-600 mt-2">
                         <div>
                             <strong>First met:</strong><br>
-                            ${firstMeeting}
+                            ${firstMeeting}</div>
+                        <div>
+                            <strong>Location:</strong><br>
+                            ${metAt}
+                        </div>
+                        <div>
+                            <strong>Interactions:</strong><br>
+                            ${relationship.interactions || 0}
+                        </div>
+                        <div>
+                            <strong>Last seen:</strong><br>
+                            ${new Date(relationship.lastInteraction).toLocaleDateString()}
+                        </div>
+                    </div>
+                </div>`;
+        });
+        relationshipsHTML += '</div>';
+    }
+
+    // Character progression data
+    let progressionHTML = "";
+    if (player.classProgression && CharacterManager) {
+        const progression = CharacterManager.getCharacterProgression(player);
+        if (progression) {
+            progressionHTML = `
+                <div class="parchment-box p-4 mb-4">
+                    <h5 class="text-lg font-bold mb-3">Class: ${progression.class.charAt(0).toUpperCase() + progression.class.slice(1)}</h5>
+                    <div class="grid grid-cols-2 gap-4 text-sm">
+                        <div>
+                            <span class="font-semibold">Level:</span> ${progression.level}
+                        </div>
+                        <div>
+                            <span class="font-semibold">Hit Die:</span> ${progression.hitDie}
+                        </div>
+                    </div>
+                    
+                    ${progression.features.length > 0 ? `
+                        <div class="mt-3">
+                            <h6 class="font-semibold mb-2">Class Features:</h6>
+                            <div class="text-xs">
+                                ${progression.features.map(feature => `<span class="bg-green-100 text-green-800 px-2 py-1 rounded-full mr-1 mb-1 inline-block">${feature}</span>`).join('')}
+                            </div>
+                        </div>
+                    ` : ''}
+                    
+                    ${progression.abilities.length > 0 ? `
+                        <div class="mt-3">
+                            <h6 class="font-semibold mb-2">Abilities:</h6>
+                            <div class="text-xs space-y-1">
+                                ${progression.abilities.map(ability => `
+                                    <div class="bg-blue-50 p-2 rounded">
+                                        <strong>${ability.name}:</strong> ${ability.definition ? ability.definition.description : 'Special ability'}
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    ` : ''}
+                    
+                    ${progression.spells.known.length > 0 ? `
+                        <div class="mt-3">
+                            <h6 class="font-semibold mb-2">Known Spells:</h6>
+                            <div class="text-xs space-y-1">
+                                ${progression.spells.known.map(spell => `
+                                    <div class="bg-purple-50 p-2 rounded">
+                                        <strong>${spell.name}:</strong> ${spell.definition ? spell.definition.description : 'Magical spell'}
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+        }
+    }
+
+    // Display all the information
+    progressionContentDisplay.innerHTML = `
+        <div class="space-y-6">
+            ${statsGridHTML}
+            ${relationshipsHTML ? `
+                <div>
+                    <h5 class="text-lg font-bold mb-3 flex items-center">
+                        <i class="ra ra-conversation mr-2"></i>
+                        Relationships
+                    </h5>
+                    ${relationshipsHTML}
+                </div>
+            ` : ''}
+            ${progressionHTML}
+        </div>
+    `;
+
+    // Show the progression interface
+    hideAllInterfaces();
+    progressionInterface.classList.remove('hidden');eeting}
                         </div>
                         <div>
                             <strong>Interactions:</strong><br>
