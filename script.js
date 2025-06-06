@@ -3511,11 +3511,22 @@ async function generateCharacterPortrait() {
     const portraitContainer = document.getElementById('portrait-container');
     const generateBtn = document.getElementById('generate-portrait-btn');
 
-    // Get character details from input fields
-    const charName = charNameInput.value.trim();
-    const charClass = charClassSelect.value;
-    const charGender = Array.from(charGenderRadios).find(radio => radio.checked)?.value;
-    const charBackground = charBackgroundTextarea.value.trim();
+    // Get character details from input fields OR player object
+    let charName, charClass, charGender, charBackground;
+    
+    if (player && player.name) {
+        // Use player data if character is already created
+        charName = player.name;
+        charClass = player.class;
+        charGender = player.gender;
+        charBackground = player.background;
+    } else {
+        // Use input fields during character creation
+        charName = charNameInput.value.trim();
+        charClass = charClassSelect.value;
+        charGender = Array.from(charGenderRadios).find(radio => radio.checked)?.value;
+        charBackground = charBackgroundTextarea.value.trim();
+    }
 
     if (!portraitContainer) {
         console.error('❌ Portrait container not found');
