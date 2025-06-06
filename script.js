@@ -3509,7 +3509,7 @@ async function generateCharacterPortrait() {
     console.log('🎨 Portrait generation started');
 
     const portraitContainer = document.getElementById('portrait-container');
-    const generateBtn = document.getElementById('generate-portrait-btn');
+    const generateBtn = document.getElemen    tById('generate-portrait-btn');
 
     // Get character details from input fields OR player object
     let charName, charClass, charGender, charBackground;
