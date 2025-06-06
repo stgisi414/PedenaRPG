@@ -6424,3 +6424,86 @@ if (typeof window !== 'undefined') {
     window.displayCharacterProgression = displayCharacterProgression;
     */
 }
+// Console function to fix inventory items missing slot properties
+window.fixInventorySlots = function() {
+    if (!player || !player.inventory) {
+        console.log("No player or inventory found");
+        return;
+    }
+
+    let fixedCount = 0;
+    
+    player.inventory.forEach(item => {
+        if (!item.slot && item.type) {
+            let newSlot = null;
+            
+            // Determine slot based on item type and name
+            if (item.type === 'jewelry') {
+                if (item.name.toLowerCase().includes('ring')) {
+                    newSlot = 'ring1';
+                } else if (item.name.toLowerCase().includes('amulet') || item.name.toLowerCase().includes('necklace') || item.name.toLowerCase().includes('pendant')) {
+                    newSlot = 'amulet';
+                } else {
+                    newSlot = 'ring1'; // Default jewelry to ring slot
+                }
+            } else if (item.type === 'weapon') {
+                newSlot = 'mainHand';
+            } else if (item.type === 'armor') {
+                // Check item name for armor type
+                const name = item.name.toLowerCase();
+                if (name.includes('helmet') || name.includes('helm') || name.includes('cap') || name.includes('hood') || name.includes('circlet') || name.includes('crown')) {
+                    newSlot = 'head';
+                } else if (name.includes('chest') || name.includes('armor') || name.includes('mail') || name.includes('plate') || name.includes('robe') || name.includes('tunic') || name.includes('vest')) {
+                    newSlot = 'chest';
+                } else if (name.includes('gauntlet') || name.includes('glove') || name.includes('mitt')) {
+                    newSlot = 'hands';
+                } else if (name.includes('leg') || name.includes('pant') || name.includes('trouser') || name.includes('chap')) {
+                    newSlot = 'legs';
+                } else if (name.includes('boot') || name.includes('shoe') || name.includes('sandal')) {
+                    newSlot = 'feet';
+                } else if (name.includes('shield') || name.includes('buckler')) {
+                    newSlot = 'offHand';
+                } else {
+                    newSlot = 'chest'; // Default armor to chest
+                }
+            } else if (item.type === 'consumable') {
+                // Consumables don't need slots, skip
+                return;
+            } else {
+                // For other types, try to guess from name
+                const name = item.name.toLowerCase();
+                if (name.includes('ring')) {
+                    newSlot = 'ring1';
+                } else if (name.includes('amulet') || name.includes('necklace')) {
+                    newSlot = 'amulet';
+                } else if (name.includes('sword') || name.includes('axe') || name.includes('mace') || name.includes('staff') || name.includes('bow') || name.includes('dagger')) {
+                    newSlot = 'mainHand';
+                } else if (name.includes('shield')) {
+                    newSlot = 'offHand';
+                }
+            }
+            
+            if (newSlot) {
+                item.slot = newSlot;
+                fixedCount++;
+                console.log(`Fixed ${item.name}: added slot '${newSlot}'`);
+            }
+        }
+    });
+    
+    if (fixedCount > 0) {
+        console.log(`Fixed ${fixedCount} items with missing slots`);
+        saveGame(); // Save the changes
+        
+        // Refresh inventory display if it's open
+        if (!inventoryInterface.classList.contains('hidden')) {
+            displayInventory();
+        }
+    } else {
+        console.log("No items needed fixing");
+    }
+    
+    return fixedCount;
+};
+
+console.log("Added fixInventorySlots() function. Run fixInventorySlots() in console to fix items missing slot properties.");
