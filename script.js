@@ -1597,6 +1597,75 @@ function removeItemFromInventory(itemName) {
     return true;
 }
 
+// Debug function to check inventory consistency
+function debugInventory() {
+    console.log("=== INVENTORY DEBUG ===");
+    console.log("Player inventory length:", player.inventory ? player.inventory.length : 0);
+    console.log("Player inventory items:", player.inventory);
+    console.log("Player gold:", player.gold);
+    console.log("Player equipment:", player.equipment);
+    
+    const savedInventory = localStorage.getItem(`inventory_${player.name}`);
+    console.log("Saved inventory in localStorage:", savedInventory ? JSON.parse(savedInventory) : null);
+    
+    const savedGame = localStorage.getItem('pedenaRPGSave');
+    if (savedGame) {
+        const saveData = JSON.parse(savedGame);
+        console.log("Player inventory in main save:", saveData.player ? saveData.player.inventory : null);
+        console.log("Player gold in main save:", saveData.player ? saveData.player.gold : null);
+    }
+    
+    displayMessage("Inventory debug info logged to console.", 'info');
+}
+
+// Function to fix inventory inconsistencies
+function fixInventory() {
+    console.log("Attempting to fix inventory inconsistencies...");
+    
+    // Force reload inventory from storage
+    if (window.ItemManager && typeof ItemManager.loadInventoryFromStorage === 'function') {
+        ItemManager.loadInventoryFromStorage(player);
+    }
+    
+    // Ensure inventory array exists
+    if (!player.inventory) {
+        player.inventory = [];
+    }
+    
+    // Remove any duplicate items (same ID)
+    const uniqueItems = [];
+    const seenIds = new Set();
+    
+    player.inventory.forEach(item => {
+        if (!item.id) {
+            item.id = Date.now() + Math.random(); // Generate missing ID
+        }
+        
+        if (!seenIds.has(item.id)) {
+            seenIds.add(item.id);
+            uniqueItems.push(item);
+        }
+    });
+    
+    const removedDuplicates = player.inventory.length - uniqueItems.length;
+    player.inventory = uniqueItems;
+    
+    // Save fixed inventory
+    if (window.ItemManager && typeof ItemManager.saveInventoryToStorage === 'function') {
+        ItemManager.saveInventoryToStorage(player);
+    }
+    
+    saveGame();
+    
+    // Refresh display
+    if (!document.getElementById('inventory-interface').classList.contains('hidden')) {
+        displayInventory();
+    }
+    
+    displayMessage(`Fixed inventory: removed ${removedDuplicates} duplicates. You now have ${player.inventory.length} items.`, 'success');
+    updatePlayerStatsDisplay();
+}
+
 // Clean up invalid relationships (removes technical variable names)
 function cleanupRelationships() {
     if (!player.relationships) {
@@ -4855,6 +4924,8 @@ document.addEventListener('DOMContentLoaded', () => {
     window.initiateMultiCombat = initiateMultiCombat;
     window.removeCharacterPortrait = removeCharacterPortrait;
     window.generateCharacterPortrait = generateCharacterPortrait;
+    window.debugInventory = debugInventory;
+    window.fixInventory = fixInventory;
 
 
     // <<< --- ADD INVENTORY EVENT LISTENER HERE --- >>>

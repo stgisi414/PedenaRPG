@@ -9,6 +9,22 @@ export class ItemExchangeMiddleware {
             'pass', 'deliver', 'share', 'provide', 'donate', 'gift'
         ];
 
+        // Exclude commands that are requests for items back
+        const requestBackKeywords = [
+            'give me back', 'give it back', 'return', 'can i have', 'give me my',
+            'i want back', 'refund', 'undo', 'reverse', 'take back'
+        ];
+
+        const isRequestBack = requestBackKeywords.some(keyword => 
+            command.toLowerCase().includes(keyword)
+        );
+
+        // If this is a request to get something back, don't treat as giving away
+        if (isRequestBack) {
+            console.log("ItemExchangeMiddleware: Detected request for item back, not an exchange");
+            return { hasExchange: false };
+        }
+
         const hasExchangeKeywords = exchangeKeywords.some(keyword => 
             command.toLowerCase().includes(keyword) || 
             aiResponse.toLowerCase().includes(keyword)

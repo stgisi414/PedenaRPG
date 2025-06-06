@@ -188,11 +188,10 @@ If no actual transaction is detected, return {"hasTransaction": false, "confiden
         // If you have other stats (like inventory count shown in main UI) that need update,
         // you might need a more general UI update function here.
 
-        // Ensure game is saved if any significant change happened
-        // Note: updateGold and ItemManager.addItemToInventory (if it calls saveInventoryToStorage)
-        // might already call saveGame or save parts of the state.
-        // A final saveGame here ensures atomicity of the transaction's effects.
-        if (goldActuallyChanged || itemsChanged) {
+        // Only save once at the end if changes occurred, to avoid duplicate saves
+        // Note: updateGold already calls saveGame, so we only save here if gold didn't change
+        // but items did change
+        if (itemsChanged && !goldActuallyChanged) {
             if (typeof window.saveGame === 'function') {
                 window.saveGame();
             } else {
