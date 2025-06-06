@@ -3511,21 +3511,37 @@ async function generateCharacterPortrait() {
     const portraitContainer = document.getElementById('portrait-container');
     const generateBtn = document.getElementById('generate-portrait-btn');
 
+    // Get character details from input fields
+    const charName = charNameInput.value.trim();
+    const charClass = charClassSelect.value;
+    const charGender = Array.from(charGenderRadios).find(radio => radio.checked)?.value;
+    const charBackground = charBackgroundTextarea.value.trim();
+
     if (!portraitContainer) {
         console.error('❌ Portrait container not found');
         displayMessage("Error: Portrait container not found.", 'error');
         return;
     }
 
-    if (!player.name || !player.gender || !player.class) {
-        console.error('❌ Missing character information for portrait generation');
-        displayMessage("Please create your character first.", 'error');
+    // Validation check
+    if (!charName || !charClass || !charGender) {
+        alert("Please fill in character name, class, and gender before generating a portrait.");
+        if (generateBtn) {
+            generateBtn.disabled = false; // Re-enable button
+            generateBtn.textContent = 'Generate Portrait';
+        }
         return;
     }
 
-    if (player.portraitUrl) {
-        console.log('ℹ️ Portrait already exists:', player.portraitUrl);
+    // Check if portrait already exists on the global player object (if a character was loaded/created)
+    // This check might be more relevant if the function is called *after* character creation
+    // For now, we assume it can be called during creation, so player.portraitUrl might not be set yet.
+    if (player && player.portraitUrl) {
+        console.log('ℹ️ Portrait already exists for current player:', player.portraitUrl);
         displayMessage("A portrait has already been generated for this character.", 'info');
+        // Optionally, display the existing portrait
+        // portraitContainer.innerHTML = `<img src="${player.portraitUrl}" alt="Character Portrait of ${player.name}" class="character-portrait w-full h-auto rounded border-2 border-amber-700">`;
+        if (generateBtn) generateBtn.style.display = 'none';
         return;
     }
 
@@ -3545,22 +3561,23 @@ async function generateCharacterPortrait() {
 
     try {
         console.log('🖼️ Attempting portrait generation for:', {
-            name: player.name,
-            gender: player.gender,
-            class: player.class,
-            background: player.background?.substring(0, 100) + '...'
+            name: charName,
+            gender: charGender,
+            class: charClass,
+            background: charBackground?.substring(0, 100) + '...'
         });
 
-        // Try multiple image generation methods
-        const portraitUrl = await tryMultipleImageServices();
+        // Pass the gathered details to the image generation services
+        const portraitUrl = await tryMultipleImageServices(charName, charGender, charClass, charBackground);
         
         if (portraitUrl) {
             console.log('✅ Portrait generated successfully:', portraitUrl);
+            // Set the portraitUrl on the global player object so it can be saved by createCharacter
             player.portraitUrl = portraitUrl;
             
             portraitContainer.innerHTML = `
-                <img src="${player.portraitUrl}" 
-                     alt="Character Portrait of ${player.name}" 
+                <img src="${portraitUrl}"
+                     alt="Character Portrait of ${charName}"
                      class="character-portrait w-full h-auto rounded border-2 border-amber-700"
                      onload="console.log('Portrait image loaded successfully')"
                      onerror="console.error('Failed to load portrait image'); this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZGRkIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxOCIgZmlsbD0iIzk5OSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPk5vIEltYWdlPC90ZXh0Pjwvc3ZnPg=='">
@@ -3602,19 +3619,19 @@ async function generateCharacterPortrait() {
 }
 
 // Try multiple image generation services for better reliability
-async function tryMultipleImageServices() {
+async function tryMultipleImageServices(name, gender, charClass, background) {
     const services = [
         {
             name: 'Picsum (Placeholder)',
-            generate: generatePicsumPortrait
+            generate: () => generatePicsumPortrait(name) // Pass name for seed
         },
         {
             name: 'AI Novel (if available)',
-            generate: generateAINovelPortrait
+            generate: () => generateAINovelPortrait(name, gender, charClass, background) // Pass all details
         },
         {
             name: 'Placeholder SVG',
-            generate: generateSVGPortrait
+            generate: () => generateSVGPortrait(name, charClass) // Pass necessary details
         }
     ];
 
@@ -3635,8 +3652,8 @@ async function tryMultipleImageServices() {
 }
 
 // Generate portrait using Picsum (reliable placeholder service)
-async function generatePicsumPortrait() {
-    const seed = player.name.toLowerCase().replace(/[^a-z0-9]/g, '');
+async function generatePicsumPortrait(name) { // Accept name as parameter
+    const seed = name.toLowerCase().replace(/[^a-z0-9]/g, '');
     const portraitUrl = `https://picsum.photos/seed/${seed}/300/400?random=${Date.now()}`;
     
     // Test if the URL is accessible
@@ -3649,11 +3666,11 @@ async function generatePicsumPortrait() {
 }
 
 // Try the original AI Novel service
-async function generateAINovelPortrait() {
-    const prompt = `A highly detailed fantasy art portrait of a character named ${player.name}.
-    Gender: ${player.gender}.
-    Class: ${player.class}.
-    Appearance details based on their background: ${player.background}.
+async function generateAINovelPortrait(name, gender, charClass, background) { // Accept parameters
+    const prompt = `A highly detailed fantasy art portrait of a character named ${name}.
+    Gender: ${gender}.
+    Class: ${charClass}.
+    Appearance details based on their background: ${background}.
     The style should be a realistic fantasy portrait, with dramatic lighting, focusing on the character's face and upper body.
     The background should be atmospheric and relevant to their story.`;
 
@@ -3686,7 +3703,7 @@ async function generateAINovelPortrait() {
 }
 
 // Generate SVG portrait as ultimate fallback
-async function generateSVGPortrait() {
+async function generateSVGPortrait(name, charClass) { // Accept parameters
     const colors = {
         warrior: '#8B4513',
         mage: '#4B0082',
@@ -3694,8 +3711,8 @@ async function generateSVGPortrait() {
         ranger: '#228B22'
     };
     
-    const color = colors[player.class.toLowerCase()] || '#8B4513';
-    const initial = player.name.charAt(0).toUpperCase();
+    const color = colors[charClass.toLowerCase()] || '#8B4513'; // Use charClass
+    const initial = name.charAt(0).toUpperCase(); // Use name
     
     const svgData = `data:image/svg+xml;base64,${btoa(`
         <svg width="300" height="400" xmlns="http://www.w3.org/2000/svg">
@@ -3708,17 +3725,18 @@ async function generateSVGPortrait() {
             <rect width="100%" height="100%" fill="url(#bg)"/>
             <circle cx="150" cy="120" r="60" fill="rgba(255,255,255,0.1)" stroke="rgba(255,255,255,0.3)" stroke-width="2"/>
             <text x="150" y="135" font-family="serif" font-size="48" fill="white" text-anchor="middle" font-weight="bold">${initial}</text>
-            <text x="150" y="320" font-family="serif" font-size="20" fill="white" text-anchor="middle">${player.name}</text>
-            <text x="150" y="350" font-family="serif" font-size="16" fill="rgba(255,255,255,0.8)" text-anchor="middle">${player.class}</text>
-            <text x="150" y="375" font-family="serif" font-size="14" fill="rgba(255,255,255,0.6)" text-anchor="middle">Level ${player.level}</text>
+            <text x="150" y="320" font-family="serif" font-size="20" fill="white" text-anchor="middle">${name}</text>
+            <text x="150" y="350" font-family="serif" font-size="16" fill="rgba(255,255,255,0.8)" text-anchor="middle">${charClass}</text>
+            <text x="150" y="375" font-family="serif" font-size="14" fill="rgba(255,255,255,0.6)" text-anchor="middle">Level 1</text>
         </svg>
     `)}`;
+    // Note: Level is hardcoded to 1 for SVG placeholder during character creation
     
     return svgData;
 }
 
 // Create placeholder portrait HTML
-function createPlaceholderPortrait() {
+function createPlaceholderPortrait(name, charClass, level = 1) { // Accept parameters
     const colors = {
         warrior: '#8B4513',
         mage: '#4B0082',
@@ -3726,15 +3744,15 @@ function createPlaceholderPortrait() {
         ranger: '#228B22'
     };
     
-    const color = colors[player.class.toLowerCase()] || '#8B4513';
-    const initial = player.name.charAt(0).toUpperCase();
+    const color = colors[charClass.toLowerCase()] || '#8B4513'; // Use charClass
+    const initial = name.charAt(0).toUpperCase(); // Use name
     
     return `
         <div class="w-full h-48 rounded border-2 border-amber-700 flex flex-col items-center justify-center text-white" 
              style="background: linear-gradient(135deg, ${color} 0%, #000 100%);">
             <div class="text-6xl font-bold mb-2">${initial}</div>
-            <div class="text-lg">${player.name}</div>
-            <div class="text-sm opacity-80">${player.class} - Level ${player.level}</div>
+            <div class="text-lg">${name}</div>
+            <div class="text-sm opacity-80">${charClass} - Level ${level}</div>
         </div>
     `;
 }
@@ -5609,6 +5627,14 @@ function dropItem(itemIndex) {
 }
 
 async function generateCharacterPortrait() {
+    //This function was modified above to accept charName, charGender, charClass, charBackground
+    //No further changes needed here, but the old version is presented for context of the diff.
+    //The actual change will be applied to the already modified generateCharacterPortrait function.
+    //This is just to ensure the diff tool has the correct "SEARCH" block.
+    //The following is the OLD generateCharacterPortrait function, which will be replaced by the new one.
+}
+//This is the old generateCharacterPortrait function:
+async function generateCharacterPortraitOld() {
     const portraitContainer = document.getElementById('portrait-container');
     const generateBtn = document.getElementById('generate-portrait-btn');
 
@@ -5672,6 +5698,7 @@ async function generateCharacterPortrait() {
         }
     }
 }
+
 
 function displayCharacterBackground() {
     // Hide other interfaces
