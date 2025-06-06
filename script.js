@@ -2888,6 +2888,38 @@ function stripRichTextFormatting(text) {
         .trim();
 }
 
+// Comprehensive function to strip ALL rich text formatting patterns
+function stripAllRichTextFormatting(text) {
+    if (!text || typeof text !== 'string') return '';
+
+    return text
+        // Remove double brace effects: {{effect:text}}
+        .replace(/\{\{[\w-]+:([^}]+)\}\}/g, '$1')
+        // Remove single brace color/style formatting: {color:text}, {style:text}
+        .replace(/\{[\w_-]+:([^}]+)\}/g, '$1')
+        // Remove single word formatting: {word}
+        .replace(/\{[\w_-]+\}/g, '')
+        // Remove font formatting: [font:text]
+        .replace(/\[[\w-]+:([^\]]+)\]/g, '$1')
+        // Remove markdown bold: **text**
+        .replace(/\*\*(.*?)\*\*/g, '$1')
+        // Remove markdown italic: *text* (but not if part of **text**)
+        .replace(/(?<!\*)\*([^*]+?)\*(?!\*)/g, '$1')
+        // Remove markdown underline: __text__
+        .replace(/__(.*?)__/g, '$1')
+        // Remove markdown strikethrough: ~~text~~
+        .replace(/~~(.*?)~~/g, '$1')
+        // Remove any remaining curly braces and their content
+        .replace(/\{[^}]*\}/g, '')
+        // Remove any remaining square brackets and their content
+        .replace(/\[[^\]]*\]/g, '')
+        // Remove HTML-like rich text spans that might have been processed
+        .replace(/<span[^>]*class="rt-[^"]*"[^>]*>([^<]*)<\/span>/g, '$1')
+        // Clean up extra whitespace
+        .replace(/\s+/g, ' ')
+        .trim();
+}
+
 function displayQuests() {
     // Hide other interfaces
     const interfacesToHide = ['combat-interface', 'shop-interface', 'inventory-interface', 'skills-interface', 'background-interface', 'progression-interface'];
@@ -4300,11 +4332,14 @@ function toggleRichText() {
 }
 
 function processRichText(text, messageType = null) {
-    if (!richTextEnabled) return text;
-
     // Skip rich text processing for background generation and combat messages
     if (messageType === 'background' || messageType === 'combat') {
         return text;
+    }
+
+    if (!richTextEnabled) {
+        // Strip ALL rich text formatting when disabled
+        return stripAllRichTextFormatting(text);
     }
 
     // Process markdown-like syntax for rich text
