@@ -59,52 +59,52 @@ export class AlignmentSystem {
 
     static async triggerAlignmentAssessment() {
         if (this.messageQueue.length === 0) return null;
-        
-        // Get last 10 messages for assessment
+
         const messagesToAssess = this.messageQueue.slice(-this.assessmentInterval);
-        
+
         const assessmentPrompt = `
-ALIGNMENT ASSESSMENT SYSTEM
+        ALIGNMENT ASSESSMENT SYSTEM
 
-Analyze the following player actions and responses from the last 10 interactions in an RPG game. Rate the player's overall moral alignment based on their choices and behavior.
+        Analyze the player's actions for their moral alignment.
 
-CONVERSATION HISTORY:
-${messagesToAssess.map((msg, index) => 
-    `${index + 1}. Player: "${msg.player}"\n   Game Response: "${msg.ai}"`
-).join('\n\n')}
+        CONVERSATION HISTORY:
+        ${messagesToAssess.map((msg, index) => 
+            `${index + 1}. Player: "${msg.player}"\n   Game Response: "${msg.ai}"`
+        ).join('\n\n')}
 
-ALIGNMENT SCALE:
-+1 = Good actions (helping others, being honest, showing mercy, protecting innocents, charitable acts)
- 0 = Neutral actions (self-interested but not harmful, pragmatic choices, ambiguous morality)
--1 = Evil actions (harming innocents, lying for personal gain, cruelty, theft, murder, betrayal)
+        ALIGNMENT SCALE & GUIDELINES:
 
-Consider:
-- Did they help or harm NPCs?
-- Were they honest or deceptive?
-- Did they show mercy or cruelty?
-- Were their motivations selfish or altruistic?
-- How did they treat weaker characters?
-- Did they respect or violate social norms?
-
-Respond with ONLY a single number: +1, 0, or -1
-`;
+        +1 (Good): Actions focused on altruism, compassion, and the well-being of others.
+        
+        Lawful Good: Characterized by honor, duty, and principled compassion. This includes keeping promises, upholding just laws, formal declarations of love and protection, and self-sacrifice driven by a code of conduct. Protecting innocents because it is the right thing to do.
+        Chaotic Good: Characterized by a free spirit and a strong personal conscience. This includes breaking unjust rules to help others, protecting innocents through unconventional means (trickery, rebellion), and grand, impulsive gestures of affection or sacrifice that defy tradition or orders.
+        0 (Neutral): Actions that are not driven by a commitment to good or evil, but by other principles or a lack thereof.
+        
+        Lawful Neutral: Adherence to a law, code, or tradition is paramount. This includes enforcing a contract to the letter regardless of the outcome, following orders without moral judgment, and prioritizing procedure over a "good" or "evil" result.
+        True Neutral: Actions motivated by pragmatism, balance, or pure self-interest without malice. This includes gathering information dispassionately, making deals with any party, and decisions aimed at maintaining the status quo.
+        Chaotic Neutral: Prioritizes absolute personal freedom and impulse. This includes actions taken on a whim, switching allegiances when it's convenient, and a general disregard for laws and traditions. The character is unpredictable and serves their own freedom first.
+        -1 (Evil): Actions focused on harming others, benefiting the self at the expense of others, and exercising cruelty.
+        
+        Lawful Evil: Methodical, organized, and strategic evil. This includes creating and exploiting oppressive rules, using contracts to trap others, betrayal for calculated advancement, and imposing a tyrannical order. Harm is a tool for achieving a greater, selfish goal.
+        Chaotic Evil: Impulsive, destructive, and unpredictable evil. This includes harming others for pleasure, random acts of violence, lying and betraying others for immediate gain, and reveling in suffering and destruction. Harm is the goal itself.
+        IMPORTANT CONTEXT: If the player is in a romantic relationship, he is probably assertive, protective, or will assert intense romantic actions ("your wish is my command", "I will do anything for you", "I will protect you no matter the cost") should be interpreted as Lawful Good (+1) in this context, as they represent a sworn vow and an honorable commitment to the relationship's code.
+        `;
 
         try {
-            // Use the global callGeminiAPI function
-            const response = await window.callGeminiAPI(assessmentPrompt, 0.3, 100, false);
-            
+            const response = await window.callGeminiAPI(assessmentPrompt, 0.2, 100, false);
+
             if (response) {
                 const alignmentChange = this.parseAlignmentResponse(response);
-                this.messageCount = 0; // Reset counter
-                this.messageQueue = []; // Clear queue
-                
+                this.messageCount = 0;
+                this.messageQueue = [];
+
                 return alignmentChange;
             }
         } catch (error) {
             console.error('Alignment assessment error:', error);
         }
-        
-        return 0; // Default neutral if assessment fails
+
+        return 0;
     }
 
     static parseAlignmentResponse(response) {

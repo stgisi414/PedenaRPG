@@ -400,6 +400,7 @@ function updateRelationship(npcName, statusChange = 0, trustChange = 0, npcDescr
             description: npcDescription || "A person you've encountered in your travels.",
             firstMeeting: new Date().toLocaleDateString()
         };
+        displayMessage(`You've established a new relationship with ${npcName}.`, 'info');
     }
 
     const relationship = player.relationships[npcName];
@@ -416,17 +417,17 @@ function updateRelationship(npcName, statusChange = 0, trustChange = 0, npcDescr
     }
 
     // Update status based on trust level
-    if (relationship.trust >= 80) {
-        relationship.status = 'allied';
-    } else if (relationship.trust >= 60) {
-        relationship.status = 'friendly';
-    } else if (relationship.trust >= 40) {
-        relationship.status = 'neutral';
-    } else if (relationship.trust >= 20) {
-        relationship.status = 'unfriendly';
-    } else {
-        relationship.status = 'hostile';
+    const oldStatus = relationship.status;
+    if (relationship.trust >= 80) relationship.status = 'allied';
+    else if (relationship.trust >= 60) relationship.status = 'friendly';
+    else if (relationship.trust >= 40) relationship.status = 'neutral';
+    else if (relationship.trust >= 20) relationship.status = 'unfriendly';
+    else relationship.status = 'hostile';
+
+    if (oldStatus !== relationship.status) {
+        displayMessage(`Your relationship with ${npcName} is now ${relationship.status}.`, 'info');
     }
+
 
     // Don't save here - let the calling function handle saving
     return relationship;
@@ -1393,145 +1394,76 @@ function debouncedSave() {
 }
 
 // Enhanced relationship detection function
-function checkRelationshipChanges(playerCommand, aiResponse) {
-    const combinedText = (playerCommand + ' ' + aiResponse).toLowerCase();
+// In script.js, REPLACE the old checkRelationshipChanges function with this one.
+async function checkRelationshipChanges(playerCommand, aiResponse) {
+    console.log("Running relationship check with Gemini...");
+    // Await the results from our new Gemini-powered function
+    const npcNames = await extractNPCNames(aiResponse, player);
 
-    // Romantic relationship patterns
-    const romanticPatterns = [
-        /(?:be my|will you be my|become my) (?:girlfriend|boyfriend|partner|lover)/,
-        /(?:yes.*(?:girlfriend|boyfriend|partner)|(?:girlfriend|boyfriend|partner).*yes)/,
-        /(?:accepted.*(?:proposal|relationship)|agreed.*(?:girlfriend|boyfriend))/,
-        /(?:kissed|kiss|romantic|romance|dating|lovers)/,
-        /(?:glad to be yours|your (?:girlfriend|boyfriend)|relationship.*established)/
-    ];
+    if (npcNames.length === 0) {
+        console.log("No potential NPCs identified by Gemini.");
+        return;
+    }
 
-    // Friend/ally patterns
-    const friendshipPatterns = [
-        /(?:become friends|best friends|good friends|trusted ally)/,
-        /(?:friendship.*established|friends now|alliance.*formed)/,
-        /(?:trust.*you|ally.*you|friend.*you)/
-    ];
-
-    // Hostile patterns
-    const hostilePatterns = [
-        /(?:enemy|enemies|hate|despise|hostile|angry)/,
-        /(?:betrayed|backstabbed|double.*crossed)/,
-        /(?:war|conflict|fight.*you)/
-    ];
-
-    // Extract NPC names from the conversation
-    const npcNames = extractNPCNames(aiResponse);
-    let anyRelationshipChanged = false;
-
+    let relationshipAdded = false;
     npcNames.forEach(npcName => {
-        const currentRelationship = player.relationships[npcName];
-        let relationshipChanged = false;
-        let newStatus = currentRelationship?.status || 'neutral';
-        let trustChange = 0;
-
-        // Check for romantic development
-        if (romanticPatterns.some(pattern => pattern.test(combinedText))) {
-            if (combinedText.includes(npcName.toLowerCase()) ||
-                combinedText.includes('mara') || // Special case for current conversation
-                aiResponse.toLowerCase().includes('kiss') ||
-                aiResponse.toLowerCase().includes('girlfriend') ||
-                aiResponse.toLowerCase().includes('yours')) {
-
-                newStatus = 'romantic';
-                trustChange = 30;
-                relationshipChanged = true;
-
-                displayMessage(`💕 Your relationship with ${npcName} has blossomed into romance!`, 'success');
-            }
-        }
-        // Check for friendship
-        else if (friendshipPatterns.some(pattern => pattern.test(combinedText))) {
-            if (newStatus !== 'romantic') { // Don't downgrade from romantic
-                newStatus = 'allied';
-                trustChange = 15;
-                relationshipChanged = true;
-                displayMessage(`🤝 You've become close friends with ${npcName}!`, 'success');
-            }
-        }
-        // Check for hostility
-        else if (hostilePatterns.some(pattern => pattern.test(combinedText))) {
-            newStatus = 'hostile';
-            trustChange = -20;
-            relationshipChanged = true;
-            displayMessage(`⚔️ Your relationship with ${npcName} has turned hostile!`, 'error');
-        }
-
-        // Update relationship if changed
-        if (relationshipChanged) {
-            updateRelationship(npcName, 0, trustChange);
-            // Override the status with our detected status
-            if (player.relationships[npcName]) {
-                player.relationships[npcName].status = newStatus;
-            }
-            anyRelationshipChanged = true;
+        // The updateRelationship function will add the character if they are new.
+        // We pass a trust change of 0 just to ensure the function runs and creates the entry if needed.
+        const relationship = updateRelationship(npcName, 0, 0, `Encountered in ${player.currentLocation}.`);
+        if (relationship) {
+            relationshipAdded = true;
         }
     });
 
-    // Only save once if any relationships changed
-    if (anyRelationshipChanged) {
-        debouncedSave();
+    // Save the game only if a new relationship was actually added or updated.
+    if (relationshipAdded) {
+        saveGame();
     }
 }
 
 // Function to extract NPC names from AI responses
-function extractNPCNames(aiResponse) {
-    const names = [];
+// In script.js, REPLACE the old extractNPCNames function with this one.
+async function extractNPCNames(aiResponse, player) {
+    console.log("Extracting NPC names using Gemini...");
+    const extractionPrompt = `
+    From the following game text, identify and extract the full names of all Non-Player Characters (NPCs) being interacted with.
+    - Exclude the player's name, which is "${player.name}".
+    - Only include characters who are clearly people or sentient beings.
+    - Do not include names of items, general creatures, or places.
+    - Respond with ONLY a valid JSON array of strings. Example: ["Seraphina", "Lysandra", "Frost Giant"]
 
-    // Known NPCs from conversation history (filter out technical terms)
-    const knownNPCs = Object.keys(player.relationships || {}).filter(name => {
-        // Filter out technical variable names and properties
-        const technicalTerms = [
-            'classProgression', 'passiveBonuses', 'statusEffects', 'inventory',
-            'equipment', 'stats', 'skills', 'abilities', 'spells', 'quests',
-            'hp', 'maxHp', 'level', 'exp', 'gold', 'currentLocation'
-        ];
-        return !technicalTerms.includes(name);
-    });
+    Game Text:
+    ---
+    ${aiResponse}
+    ---
 
-    // Check for known NPCs in the response
-    knownNPCs.forEach(name => {
-        if (aiResponse.toLowerCase().includes(name.toLowerCase())) {
-            names.push(name);
+    JSON Array of NPC Names:
+    `;
+
+    try {
+        // Use low temperature for more predictable, structured output
+        const response = await callGeminiAPI(extractionPrompt, 0.1, 200, false);
+        if (!response) {
+            console.error("Gemini name extraction returned no response.");
+            return [];
         }
-    });
 
-    // Common NPC name patterns in the response
-    const namePatterns = [
-        /([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*?)(?:\s+(?:says|whispers|shouts|laughs|smiles|nods|looks|eyes|face))/g,
-        /([A-Z][a-z]+)(?:'s\s+(?:eyes|face|voice|smile|laugh))/g,
-        /([A-Z][a-z]+)(?:\s+(?:bursts|leans|wraps|kisses))/g
-    ];
-
-    namePatterns.forEach(pattern => {
-        let match;
-        while ((match = pattern.exec(aiResponse)) !== null) {
-            const name = match[1].trim();
-            if (name.length > 1 && name.length < 20 && !names.includes(name)) {
-                // Enhanced exclusion list to prevent technical terms from becoming relationships
-                const excludeWords = [
-                    'The', 'A', 'An', 'You', 'Your', 'Game', 'Character', 'Player',
-                    'He', 'She', 'Him', 'Her', 'They', 'Them', 'It', 'Says', 'Looks',
-                    'Smiles', 'Laughs', 'Class', 'Level', 'Stats', 'Equipment', 'Inventory',
-                    'ClassProgression', 'PassiveBonuses', 'StatusEffects', 'Skills', 'Abilities'
-                ];
-                if (!excludeWords.includes(name)) {
-                    names.push(name);
-                }
-            }
+        // Find and parse the JSON array from the response string
+        const jsonMatch = response.match(/\[[\s\S]*\]/);
+        if (jsonMatch) {
+            const names = JSON.parse(jsonMatch[0]);
+            // Ensure we have an array of unique names
+            const uniqueNames = [...new Set(names)];
+            console.log("Gemini successfully extracted names:", uniqueNames);
+            return uniqueNames;
+        } else {
+            console.error("Could not parse JSON array from Gemini name extraction response:", response);
+            return [];
         }
-    });
-
-    // Special case: if "Mara" is mentioned, include her
-    if (aiResponse.toLowerCase().includes('mara') && !names.includes('Mara')) {
-        names.push('Mara');
+    } catch (error) {
+        console.error("Error calling Gemini API for NPC name extraction:", error);
+        return []; // Return an empty array on error to prevent crashes
     }
-
-    return [...new Set(names)]; // Remove duplicates
 }
 
 // Manual fix for Mara relationship (can be called from console)
@@ -1567,7 +1499,7 @@ function removeItemFromInventory(itemName) {
         return false;
     }
 
-    const itemIndex = player.inventory.findIndex(item => 
+    const itemIndex = player.inventory.findIndex(item =>
         item.name.toLowerCase().includes(itemName.toLowerCase()) ||
         itemName.toLowerCase().includes(item.name.toLowerCase())
     );
@@ -1604,64 +1536,64 @@ function debugInventory() {
     console.log("Player inventory items:", player.inventory);
     console.log("Player gold:", player.gold);
     console.log("Player equipment:", player.equipment);
-    
+
     const savedInventory = localStorage.getItem(`inventory_${player.name}`);
     console.log("Saved inventory in localStorage:", savedInventory ? JSON.parse(savedInventory) : null);
-    
+
     const savedGame = localStorage.getItem('pedenaRPGSave');
     if (savedGame) {
         const saveData = JSON.parse(savedGame);
         console.log("Player inventory in main save:", saveData.player ? saveData.player.inventory : null);
         console.log("Player gold in main save:", saveData.player ? saveData.player.gold : null);
     }
-    
+
     displayMessage("Inventory debug info logged to console.", 'info');
 }
 
 // Function to fix inventory inconsistencies
 function fixInventory() {
     console.log("Attempting to fix inventory inconsistencies...");
-    
+
     // Force reload inventory from storage
     if (window.ItemManager && typeof ItemManager.loadInventoryFromStorage === 'function') {
         ItemManager.loadInventoryFromStorage(player);
     }
-    
+
     // Ensure inventory array exists
     if (!player.inventory) {
         player.inventory = [];
     }
-    
+
     // Remove any duplicate items (same ID)
     const uniqueItems = [];
     const seenIds = new Set();
-    
+
     player.inventory.forEach(item => {
         if (!item.id) {
             item.id = Date.now() + Math.random(); // Generate missing ID
         }
-        
+
         if (!seenIds.has(item.id)) {
             seenIds.add(item.id);
             uniqueItems.push(item);
         }
     });
-    
+
     const removedDuplicates = player.inventory.length - uniqueItems.length;
     player.inventory = uniqueItems;
-    
+
     // Save fixed inventory
     if (window.ItemManager && typeof ItemManager.saveInventoryToStorage === 'function') {
         ItemManager.saveInventoryToStorage(player);
     }
-    
+
     saveGame();
-    
+
     // Refresh display
     if (!document.getElementById('inventory-interface').classList.contains('hidden')) {
         displayInventory();
     }
-    
+
     displayMessage(`Fixed inventory: removed ${removedDuplicates} duplicates. You now have ${player.inventory.length} items.`, 'success');
     updatePlayerStatsDisplay();
 }
@@ -2657,12 +2589,12 @@ async function handleItemPickup(command, storyContext = '') {
 
     if (itemsAdded > 0) {
         displayMessage(`${itemsAdded} item(s) added to inventory. You now have ${player.inventory.length} items total.`, 'info');
-        
+
         // Ensure inventory is saved
         if (window.ItemManager && typeof ItemManager.saveInventoryToStorage === 'function') {
             ItemManager.saveInventoryToStorage(player);
         }
-        
+
         updatePlayerStatsDisplay();
         saveGame();
     }
@@ -3793,12 +3725,12 @@ async function generateCharacterBackground() {
 function removeCharacterPortrait() {
     const portraitContainer = document.getElementById('portrait-container');
     const generateBtn = document.getElementById('generate-portrait-btn');
-    
+
     if (player && player.portraitUrl) {
         delete player.portraitUrl;
         console.log('✅ Portrait URL removed from player object');
     }
-    
+
     if (portraitContainer) {
         portraitContainer.innerHTML = `
             <div class="text-center py-4">
@@ -3807,20 +3739,20 @@ function removeCharacterPortrait() {
         `;
         console.log('✅ Portrait container cleared');
     }
-    
+
     if (generateBtn) {
         generateBtn.style.display = 'block';
         generateBtn.disabled = false;
         generateBtn.textContent = 'Generate Portrait';
         console.log('✅ Generate button reset');
     }
-    
+
     // Also clear from background interface if it's open
     const backgroundInterface = document.getElementById('background-interface');
     if (backgroundInterface && !backgroundInterface.classList.contains('hidden')) {
         displayCharacterBackground();
     }
-    
+
     saveGame();
     displayMessage("Character portrait removed successfully.", 'success');
     updateIllustrationButtonVisibility(); // Update button visibility after removing portrait
@@ -3835,7 +3767,7 @@ async function generateCharacterPortrait() {
 
     // Get character details from input fields OR player object
     let charName, charClass, charGender, charBackground;
-    
+
     if (player && player.name) {
         // Use player data if character is already created
         charName = player.name;
@@ -3916,13 +3848,13 @@ async function generateCharacterPortrait() {
                          alt="Character Portrait of ${charName}"
                          class="character-portrait w-full h-auto rounded border-2 border-amber-700">
                 `;
-                
+
                 displayMessage("Character portrait generated and loaded successfully!", 'success');
-                
+
                 if (generateBtn) {
                     generateBtn.style.display = 'none'; // Hide button after successful generation
                 }
-                
+
                 // Update background interface if it's open
                 const backgroundInterface = document.getElementById('background-interface');
                 if (backgroundInterface && !backgroundInterface.classList.contains('hidden')) {
@@ -3930,7 +3862,7 @@ async function generateCharacterPortrait() {
                 }
                 updateIllustrationButtonVisibility(); // Update button visibility after portrait is loaded
             };
-            
+
             img.onerror = function() {
                 console.error('Failed to load portrait image from:', portraitUrl);
                 portraitContainer.innerHTML = `
@@ -3940,13 +3872,13 @@ async function generateCharacterPortrait() {
                     </div>
                 `;
                 displayMessage("Portrait generated but failed to load. Try refreshing the page.", 'error');
-                
+
                 if (generateBtn) {
                     generateBtn.disabled = false;
                     generateBtn.textContent = 'Try Again';
                 }
             };
-            
+
             // Start loading the image
             img.src = portraitUrl;
 
@@ -4095,7 +4027,7 @@ async function generateAINovelPortrait(name, gender, charClass, background) { //
         if (!response.ok) {
             let errorDetails = `HTTP ${response.status}: ${response.statusText}`;
             let errorBody = '';
-            
+
             try {
                 const contentType = response.headers.get('content-type');
                 if (contentType && contentType.includes('application/json')) {
@@ -4113,10 +4045,10 @@ async function generateAINovelPortrait(name, gender, charClass, background) { //
 
             const detailedError = `${errorDetails}\nResponse body: ${errorBody.substring(0, 500)}`;
             console.error('Complete AI Novel error details:', detailedError);
-            
+
             displayMessage(`AI Novel service failed: ${errorDetails}`, 'error');
             displayMessage(`Error details: ${errorBody.substring(0, 200)}`, 'error');
-            
+
             throw new Error(detailedError);
         }
 
@@ -4163,7 +4095,7 @@ async function generateAINovelPortrait(name, gender, charClass, background) { //
 
         console.log('✅ AI Novel generated valid image URL:', imageUrl);
         displayMessage('AI Novel image generated successfully!', 'success');
-        
+
         return imageUrl;
 
     } catch (error) {
@@ -4242,6 +4174,7 @@ function createPlaceholderPortrait(name, charClass, level = 1) { // Accept param
 }
 
 // Execute custom commands
+// In script.js, replace your entire executeCustomCommand function with this one.
 async function executeCustomCommand(command) {
     if (!command.trim()) return;
 
@@ -4459,8 +4392,9 @@ IMPORTANT: If the player is trying to interact with something from recent explor
             // Check for quest completion
             checkQuestCompletion(command + ' ' + response);
 
-            // Check for relationship changes including romantic developments
-            checkRelationshipChanges(command, response);
+            // <<< THIS IS THE UPDATED LINE >>>
+            // We now 'await' the result of our async relationship check.
+            await checkRelationshipChanges(command, response);
 
             // Save conversation history and game state
             saveConversationHistory();
@@ -6367,12 +6301,12 @@ function displayCharacterBackground() {
 
         if (sortedRelationships.length > 0) {
             relationshipsHTML = '<div class="grid grid-cols-1 gap-4 text-sm">';
-            
+
             // Add header showing count
             if (Object.keys(player.relationships).length > 5) {
                 relationshipsHTML += `<p class="text-xs text-gray-500 italic mb-2">Showing 5 most recent relationships (${Object.keys(player.relationships).length} total)</p>`;
             }
-            
+
             sortedRelationships.forEach(([npcName, relationship]) => {
                 const status = relationship.status || 'neutral';
                 const relationshipColor = getRelationshipColor(status);
@@ -6565,17 +6499,17 @@ window.fixInventorySlots = function() {
     }
 
     let fixedCount = 0;
-    
+
     player.inventory.forEach(item => {
         if (!item.slot && item.type) {
             let newSlot = null;
-            
+
             // Skip items that should never have slots
             if (item.type === 'consumable' || item.type === 'ammunition' || item.type === 'currency' || item.type === 'tool') {
                 console.log(`Skipping ${item.name}: type '${item.type}' should not have a slot`);
                 return;
             }
-            
+
             // Determine slot based on item type and name
             if (item.type === 'jewelry') {
                 if (item.name.toLowerCase().includes('ring')) {
@@ -6608,13 +6542,13 @@ window.fixInventorySlots = function() {
             } else {
                 // For other types, try to guess from name - but be more careful
                 const name = item.name.toLowerCase();
-                
+
                 // Skip ammunition items specifically
                 if (name.includes('bolt') || name.includes('arrow') || name.includes('ammunition')) {
                     console.log(`Skipping ${item.name}: appears to be ammunition`);
                     return;
                 }
-                
+
                 if (name.includes('ring') && !name.includes('bow')) {
                     newSlot = 'ring1';
                 } else if (name.includes('amulet') || name.includes('necklace')) {
@@ -6628,7 +6562,7 @@ window.fixInventorySlots = function() {
                     newSlot = 'offHand';
                 }
             }
-            
+
             if (newSlot) {
                 item.slot = newSlot;
                 fixedCount++;
@@ -6636,11 +6570,11 @@ window.fixInventorySlots = function() {
             }
         }
     });
-    
+
     if (fixedCount > 0) {
         console.log(`Fixed ${fixedCount} items with missing slots`);
         saveGame(); // Save the changes
-        
+
         // Refresh inventory display if it's open
         if (!inventoryInterface.classList.contains('hidden')) {
             displayInventory();
@@ -6648,7 +6582,7 @@ window.fixInventorySlots = function() {
     } else {
         console.log("No items needed fixing");
     }
-    
+
     return fixedCount;
 };
 
