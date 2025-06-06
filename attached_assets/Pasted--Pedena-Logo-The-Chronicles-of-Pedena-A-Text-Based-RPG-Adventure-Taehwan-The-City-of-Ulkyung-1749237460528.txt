@@ -1,0 +1,425 @@
+
+Pedena Logo
+The Chronicles of Pedena
+A Text-Based RPG Adventure
+
+Taehwan - The City of Ulkyung
+Level: 8 HP: 140/140
+Game loaded!
+
+Welcome back, Taehwan! You are in The City of Ulkyung.
+
+You notice The Living Glacier in the area.
+
+💡 The DM remembers your last encounters! Try using the 🔍 Explore button to help return to your adventure!
+
+Reviewing your character background...
+
+> Get on my knee in front of Seraphina "이제부터 널 보호하겠습니다"
+
+Seraphina stares at you, speechless, as you kneel before her, the words "이제부터 널 보호하겠습니다" (From now on, I will protect you) hanging heavy in the air. The cursed pearl within its box pulses even brighter, its light reflecting in her tear-filled eyes, a flicker of hope replacing the deep sorrow. A hesitant smile begins to form on her lips.
+
+You don't see anything specific to take.
+
+Game saved!
+
+> Stand up "괜찮겠니?"
+
+Seraphina rises slowly, her hand lingering on the intricately carved box containing the cursed pearl. A shaky breath escapes her lips as she meets your gaze, a hesitant smile playing on her lips. "괜찮아요..." she whispers, her voice barely audible above the pearl's humming song, a newfound strength evident in her posture.
+
+Game saved!
+
+Reviewing your character background...
+
+> Will you be my lige?
+
+Seraphina's hesitant smile falters, her eyes widening in confusion. The cursed pearl throbs more intensely, its light flickering erratically as she struggles to understand your unusual request. A low hum, tinged with uncertainty, emanates from the box.
+
+Game saved!
+
+> 당신이 제 주군이 되어주시겠습니까? Will you be my liege?
+
+Seraphina recoils slightly, her hand flying to the cursed pearl as if to shield it from your words. The pearl flares brilliantly, bathing the courtyard in an almost blinding light, before abruptly dimming, leaving only a faint, hesitant glow. A look of profound sadness, laced with fear, settles on her face as she shakes her head, whispering, "I... I cannot."
+
+Game saved!
+
+> My liege, you must understand
+
+Seraphina shrinks back further, clutching the cursed pearl as if it were a shield against your insistent plea. The faint light emanating from the pearl flickers wildly, mirroring the turmoil in her eyes, before settling into a dim, mournful glow. A wave of chilling despair washes over you, a palpable manifestation of Seraphina's deep-seated sorrow and fear.
+
+Game saved!
+
+> Get on my knee again and bow my head low My liege
+
+Taehwan remains in the City of Ulkyung, performing the requested action.
+
+> *Get on my knee again and bow my head low** My liege
+
+Taehwan remains in the City of Ulkyung, performing the requested action.
+
+> Get on my knee again and bow my head low, "My liege"
+
+Taehwan gets on his knee and bows his head low.
+
+Game saved!
+
+> Rise and say "What is that ye shall bid my doing , my liege?"
+
+Seraphina remains frozen, her eyes wide with a mixture of fear and confusion, the cursed pearl pulsing faintly in her trembling hand. The words hang unspoken in the air, the weight of her unspoken refusal palpable. A chilling silence descends upon the courtyard, broken only by the low hum of the cursed pearl.
+
+Game saved!
+
+> Use my ability spell steal to steal the curse from the pearl and put it on myself,making the ultimate sacrifice "My liege....."
+
+A blinding flash erupts from the cursed pearl as your spell takes effect, the air crackling with raw magical energy. Seraphina cries out, the pearl now dull and lifeless in her hand, as an overwhelming wave of chilling despair washes over you, leaving you gasping for breath, the cursed power now residing within your very being. The humming ceases.
+
+Game saved!
+
+> "My liege...... I will do.... anything.... for.... you.......!"
+
+Seraphina, tears streaming down her face, clutches your arm, her touch surprisingly strong despite her frail appearance. A profound gratitude, mixed with a deep sense of guilt, fills her eyes as she whispers, "Thank you... Taehwan. You have saved me." The weight of the curse, however, is already beginning to manifest within you, a creeping chill spreading through your limbs.
+
+Game saved!
+
+Enter Command:
+Type your action here (e.g., 'examine the mysterious door', 'talk to the merchant', 'cast fireball')...
+
+Execute
+
+Save Game
+
+Quest Log
+
+Inventory
+🛒 Shop
+
+Progression
+
+Background
+😴 Rest
+🔍 Explore
+
+Cast Spell
+🙏 Pray
+Character Progression
+Class Information
+Class: mage
+
+Level: 8
+
+Hit Die: d6
+
+Primary Stats: intelligence, wisdom
+
+Experience Progress
+Current XP: 104
+
+XP to Next Level: 653
+
+Total XP Needed: 757
+
+14% to Level 9
+
+Features Unlocked
+• Spellcasting
+
+• Arcane Recovery
+
+• Arcane Tradition
+
+• Cantrip Formulas
+
+• Ability Score Improvement
+
+• Fifth Level Spells Access
+
+• Arcane Tradition Feature
+
+• Sixth Level Spells Access
+
+• Seventh Level Spells Access
+
+Class Abilities
+Spell Focus
+
+Increases your spell attack bonus by 1 and spell save DC by 1.
+
+Mana Shield
+
+Expend a spell slot to create a shield that absorbs 5 damage per spell level for 1 minute.
+
+Spell Surge
+
+Your next spell cast within 1 minute that has a casting time of 1 action is cast as a bonus action instead.
+
+Elemental Mastery
+
+Choose one element (fire, cold, lightning). Spells of that type ignore resistance and you gain resistance to it.
+
+Spell Steal
+
+Attempt to steal a magical effect (spell of 5th level or lower) from an enemy. Requires an Intelligence check vs enemy's spell save DC.
+
+Spell Penetration
+
+Your spells ignore half cover and treat three-quarters cover as half cover.
+
+Arcane Mastery
+
+For 1 minute, you can cast any spell you know of 5th level or lower without expending a spell slot. Once per spell.
+
+Time Stop (Minor)
+
+Gain an additional action on your turn. (Not full time stop)
+
+Empowered Elements
+
+When you roll damage for a spell, you can reroll a number of the damage dice up to your Intelligence modifier (minimum of one). You must use the new rolls.
+
+Arcane Warding
+
+As a reaction when hit by an attack, you can expend a spell slot to increase your AC by the slot's level until your next turn.
+
+Rapid Casting
+
+Spells with a casting time of 1 action can be cast as a bonus action if they are 2nd level or lower (once per turn).
+
+Spell Reflection
+
+As a reaction when targeted by a spell that targets only you (not an area), you can attempt to reflect it back at the caster. Requires an Int check vs spell save DC.
+
+Arcane Infusion
+
+Touch a weapon. For 1 minute, it becomes a magic weapon and deals an extra 1d6 force damage on hit.
+
+Mind Blank (Self)
+
+You become immune to psychic damage, divination spells, and the charmed/frightened conditions for 1 hour.
+
+Feats
+Spell Power
+
+When you cast a spell that deals damage, add your Intelligence modifier to one damage roll of that spell.
+
+Metamagic Adept
+
+Learn two Metamagic options from the Sorcerer list. Gain 2 sorcery points to use them (regain on long rest).
+
+Arcane Scholar
+
+You learn two additional spells of any level you can cast. These do not count against your number of spells known/prepared.
+
+Spell Critical
+
+Your damaging spells score a critical hit on a roll of 19-20 on the spell attack roll.
+
+Grand Magus
+
+Choose one school of magic. Spells from that school cost 1 less spell slot level to cast (min 1st level slot, or cantrip remains cantrip). Max spell level 5th.
+
+Elemental Adept (Fire)
+
+Spells you cast ignore resistance to damage of the chosen type (Fire, Cold, Lightning, Thunder, Acid). In addition, when you roll damage for a spell that deals damage of that type, treat any 1 on a damage die as a 2.
+
+War Caster
+
+Advantage on Con saves to maintain concentration. Can perform somatic components even with weapons/shield in hands. Can cast a spell as an opportunity attack.
+
+Potent Cantrips
+
+Your damaging cantrips affect even creatures that succeed on saving throws. These creatures take half damage but suffer no additional effects.
+
+Known Spells
+Magic Missile (Level 1)
+
+Three darts of magical force automatically hit their targets (per dart).
+
+Shield (Level 1)
+
+An invisible barrier protects you, adding +5 to AC until start of your next turn.
+
+Burning Hands (Level 1)
+
+A thin sheet of flames shoots forth from your outstretched fingertips.
+
+Chromatic Orb (Level 1)
+
+Hurl a sphere of energy. Choose damage type upon casting.
+
+Sleep (Level 1)
+
+Puts creatures to sleep. Roll 5d8; total is how many HP of creatures fall unconscious.
+
+Scorching Ray (Level 2)
+
+Three rays of fire strike targets (per ray).
+
+Misty Step (Level 2)
+
+Teleport up to 30 feet to an unoccupied space you can see.
+
+Web (Level 2)
+
+Thick, sticky webbing fills a 20-foot cube, restraining creatures.
+
+Mirror Image (Level 2)
+
+Three illusory duplicates of yourself appear in your space.
+
+Invisibility (Level 2)
+
+A creature you touch becomes invisible for up to 1 hour.
+
+Fireball (Level 3)
+
+A bright flash and thunderous boom as fire explodes in a 20-foot radius.
+
+Lightning Bolt (Level 3)
+
+A stroke of lightning forms a line 100 feet long and 5 feet wide.
+
+Counterspell (Level 3)
+
+Interrupt a creature's spellcasting attempt.
+
+Fly (Level 3)
+
+Target gains a flying speed of 60 feet for 10 minutes.
+
+Haste (Level 3)
+
+Target gains +2 AC, advantage on Dex saves, and an additional action.
+
+Dimension Door (Level 4)
+
+Teleport yourself and one willing creature up to 500 feet.
+
+Greater Invisibility (Level 4)
+
+Become invisible for 1 minute, even while attacking.
+
+Ice Storm (Level 4)
+
+A hail of rock-hard ice pounds to the ground in a 20-foot-radius cylinder.
+
+Phantasmal Killer (Level 4)
+
+You tap into the nightmares of a creature to create an illusory manifestation of its deepest fears.
+
+Cone of Cold (Level 5)
+
+Blast of cold air erupts from your hands in a 60-foot cone.
+
+Teleport (Short Range) (Level 5)
+
+Instantly transport yourself and up to eight willing creatures to a familiar location (short range).
+
+Polymorph (Level 5)
+
+Transform a creature into a different beast of your choice.
+
+Wall of Force (Level 5)
+
+An invisible wall of force springs into existence.
+
+Animate Objects (Level 5)
+
+Objects come to life at your command.
+
+Chain Lightning (Level 6)
+
+Create a bolt of lightning that arcs to other targets.
+
+Disintegrate (Level 6)
+
+A thin green ray springs from your pointing finger. If damage reduces target to 0 hp, it is disintegrated.
+
+Globe of Invulnerability (Level 6)
+
+An immobile, faintly shimmering barrier springs into existence in a 10-foot radius around you.
+
+True Seeing (Level 6)
+
+Gives the willing creature you touch the ability to see things as they actually are for 1 hour.
+
+Delayed Blast Fireball (Level 7)
+
+A beam of yellow light streaks to a point you choose, then blossoms with a low roar into an explosion of flame.
+
+Finger of Death (Level 7)
+
+Send negative energy to assail a creature. If it dies, it rises as a zombie.
+
+Plane Shift (Level 7)
+
+You and up to eight willing creatures link hands and travel to a different plane of existence.
+
+Prismatic Spray (Level 7)
+
+Eight multicolored rays of light flash from your hand. Each ray has a different power and purpose.
+
+Teleport (Long Range) (Level 7)
+
+Instantly transport yourself and up to eight willing creatures to any familiar location on the same plane.
+
+Maze (Level 8)
+
+Banish a creature to a labyrinthine demiplane for up to 10 minutes.
+
+Forcecage (Level 8)
+
+Create an immobile, invisible, cube-shaped prison composed of magical force.
+
+Cantrips
+Spark
+
+A spark of magical energy strikes a target.
+
+Mage Hand
+
+A spectral hand appears and can manipulate objects.
+
+Prestidigitation
+
+Simple magical effects like lighting candles or cleaning objects.
+
+Light
+
+Object touched sheds bright light in a 20-foot radius.
+
+Minor Illusion
+
+Create a sound or image for 1 minute.
+
+Ray of Frost
+
+A beam of frigid air. Hit creature's speed is reduced by 10 feet.
+
+Frost Bolt
+
+A bolt of freezing energy that can slow enemies.
+
+Shocking Grasp
+
+Lightning springs from your hand. Advantage on attack roll if target is wearing metal armor.
+
+Acid Splash
+
+Hurl a bubble of acid at creatures.
+
+Eldritch Blast
+
+A beam of crackling energy streaks toward a creature.
+
+Dancing Lights
+
+Create up to four torch-sized lights that hover in the air.
+
+Blade Ward
+
+Gain resistance to bludgeoning, piercing, and slashing damage for 1 round.
+
+Close Progression
+© 2025 Pedena RPG. Powered by Gemini API & the spirit of adventure.
+
+🖼️
