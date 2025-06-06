@@ -4895,6 +4895,31 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     // <<< --- END OF INVENTORY EVENT LISTENER --- >>>
 
+    // Illustration Mode toggle button (new absolute positioned button)
+    const illustrationToggle = document.getElementById('illustration-mode-toggle');
+    if (illustrationToggle) {
+        illustrationToggle.addEventListener('click', async () => {
+            isIllustrationModeActive = !isIllustrationModeActive;
+
+            if (isIllustrationModeActive) {
+                if (player && player.portraitUrl && player.portraitUrl.trim() !== '') {
+                    illustrationToggle.innerHTML = '🖼️<span class="hidden sm:inline"> Illustration Mode: ON</span><span class="sm:hidden"> ON</span>';
+                    illustrationToggle.className = 'btn-parchment bg-green-600 hover:bg-green-700 text-white text-xs md:text-sm py-1 px-2';
+                    await generateAndDisplaySceneryImage();
+                } else {
+                    displayMessage("Cannot activate Illustration Mode without a character portrait.", "error");
+                    isIllustrationModeActive = false;
+                    illustrationToggle.innerHTML = '🖼️<span class="hidden sm:inline"> Illustration Mode</span><span class="sm:hidden"> Illus</span>';
+                    illustrationToggle.className = 'btn-parchment bg-indigo-600 hover:bg-indigo-700 text-white text-xs md:text-sm py-1 px-2';
+                }
+            } else {
+                illustrationToggle.innerHTML = '🖼️<span class="hidden sm:inline"> Illustration Mode</span><span class="sm:hidden"> Illus</span>';
+                illustrationToggle.className = 'btn-parchment bg-indigo-600 hover:bg-indigo-700 text-white text-xs md:text-sm py-1 px-2';
+                displayMessage("Illustration Mode Deactivated.", "info");
+            }
+        });
+    }
+
     // Illustration Mode button
     const illustrationModeBtn = document.getElementById('illustration-mode-btn');
     if (illustrationModeBtn) {
@@ -4910,12 +4935,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     isIllustrationModeActive = false; // Revert state
                     // If illustrationModeBtn exists, ensure its text is reset if activation fails early
                     if (illustrationModeBtn) {
-                        illustrationModeBtn.innerHTML = `<i class="ra ra-image mr-2"></i>Illustration Mode`;
+                        illustrationModeBtn.innerHTML = `🖼️<span class="hidden sm:inline"> Illustration Mode</span><span class="sm:hidden"> Illus</span>`;
                         illustrationModeBtn.classList.remove('btn-active-style');
                     }
                 }
             } else {
-                illustrationModeBtn.innerHTML = `<i class="ra ra-image mr-2"></i>Illustration Mode`;
+                illustrationModeBtn.innerHTML = `🖼️<span class="hidden sm:inline"> Illustration Mode</span><span class="sm:hidden"> Illus</span>`;
                 illustrationModeBtn.classList.remove('btn-active-style');
                 displayMessage("Illustration Mode Deactivated.", "info");
             }
@@ -4971,13 +4996,27 @@ resetProgressionBtn.style.cssText = `
 resetProgressionBtn.innerHTML = '<i class="ra ra-recycle mr-1"></i><span class="hidden sm:inline">Reset Progression</span><span class="sm:hidden">Reset</span>';
 resetProgressionBtn.title = 'Reset character progression (feats, skills, abilities) to match updated game files';
 
+// Add illustration mode toggle button
+const illustrationToggle = document.createElement('button');
+illustrationToggle.id = 'illustration-mode-toggle';
+illustrationToggle.className = 'btn-parchment bg-indigo-600 hover:bg-indigo-700 text-white text-xs md:text-sm py-1 px-2';
+illustrationToggle.style.cssText = `
+    position: absolute;
+    top: 110px;
+    right: 10px;
+    z-index: 999;
+    font-size: 0.75rem;
+`;
+illustrationToggle.innerHTML = '🖼️<span class="hidden sm:inline"> Illustration Mode</span><span class="sm:hidden"> Illus</span>';
+illustrationToggle.title = 'Toggle illustration mode for scenery images';
+
 // Add rich text styling toggle button
 const richTextToggle = document.createElement('button');
 richTextToggle.id = 'rich-text-toggle';
 richTextToggle.className = 'btn-parchment rich-text-toggle bg-purple-600 hover:bg-purple-700 text-white text-xs md:text-sm py-1 px-2';
 richTextToggle.style.cssText = `
     position: absolute;
-    top: 110px;
+    top: 160px;
     right: 10px;
     z-index: 999;
     font-size: 0.75rem;
@@ -4990,6 +5029,7 @@ const gameContainer = document.getElementById('game-container');
 if (gameContainer) {
     gameContainer.appendChild(removePortraitBtn);
     gameContainer.appendChild(resetProgressionBtn);
+    gameContainer.appendChild(illustrationToggle);
     gameContainer.appendChild(richTextToggle);
 }
 
