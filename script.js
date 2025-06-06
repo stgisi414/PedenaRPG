@@ -508,7 +508,8 @@ function displayMessage(message, type = 'info') {
 }
 
 function updatePlayerStatsDisplay() {
-    const locationText = processRichText(player.currentLocation);
+    // Always process location text through rich text system for consistent formatting/stripping
+    const locationText = processRichText(player.currentLocation, 'location');
     playerNameDisplay.innerHTML = `${player.name} - ${locationText}`;
     playerLevelDisplay.textContent = `Level: ${player.level}`;
     playerHpDisplay.textContent = `HP: ${player.hp}/${player.maxHp}`;
@@ -4340,7 +4341,7 @@ function processRichText(text, messageType = null) {
     }
 
     if (!richTextEnabled) {
-        // Strip ALL rich text formatting when disabled
+        // Strip ALL rich text formatting when disabled (including location names)
         return stripAllRichTextFormatting(text);
     }
 
