@@ -272,7 +272,7 @@ export const guilds = {
         guildmaster: "High Priestess Seraphine Lightbringer",
         services: ["Healing services (mundane and magical)", "Medical supplies distribution", "Disease research & treatment", "Midwifery"],
         ranks: ["Acolyte", "Healer", "Priest/Physician", "Master Healer", "High Priest/Priestess"],
-        fees: { joining: 15, monthly: 2 (often waived for the devout or poor) },
+        fees: { joining: 15, monthly: 1 },
         description: "Organization of healers, clerics, and medical practitioners dedicated to alleviating suffering."
     },
     alchemists_guild: {
@@ -294,7 +294,7 @@ export const guilds = {
         guildmaster: "Chief Cartographer 'Nomad' Silas",
         services: ["Funding expeditions", "Map sharing and creation", "Lost ruin information", "Survival training"],
         ranks: ["Pathfinder", "Scout", "Explorer", "Master Explorer", "Grand Cartographer"],
-        fees: { joining: 20, annual: 10 (or a map of a new region) },
+        fees: { joining: 20, annual: 6 },
         description: "An organization for adventurers, cartographers, and archaeologists dedicated to exploring the unknown."
     },
     entertainers_guild: {
@@ -316,7 +316,7 @@ export const guilds = {
         guildmaster: "Admiral 'Ironkeel' Anya Sharma",
         services: ["Ship construction & repair", "Naval chart provision", "Crew recruitment", "Cargo insurance (basic)"],
         ranks: ["Deckhand", "Boatswain/Carpenter", "First Mate/Navigator", "Captain", "Commodore"],
-        fees: { joining: 35, annual: 12 (or share of profitable voyage) },
+        fees: { joining: 35, annual: 8 },
         description: "A guild for shipbuilders, sailors, navigators, and maritime merchants of the Azure Isles and beyond."
     },
     farmers_agriculturists_union: {
@@ -338,7 +338,7 @@ export const guilds = {
         guildmaster: "Chief Tamer Zara 'Wolf-Whisper'",
         services: ["Animal training (mounts, guard beasts, exotic pets)", "Veterinary care (traditional)", "Sourcing rare animals", "Organized hunts (for specific beasts)"],
         ranks: ["Handler", "Trainer", "Master Tamer", "Beast Lord/Lady"],
-        fees: { joining: 25, monthly: 5 (or provision of a trained animal) },
+        fees: { joining: 25, monthly: 4 },
         description: "A guild for those skilled in the taming, training, and care of animals, from common livestock to exotic beasts."
     },
     engineers_inventors_society_cogsworth: {
@@ -349,7 +349,7 @@ export const guilds = {
         guildmaster: "Chief Engineer Tiberius 'Cog' Volpin",
         services: ["Patent registration (Cogsworth system)", "Access to workshops and rare components", "Collaborative project funding", "Peer review of inventions"],
         ranks: ["Apprentice Tinkerer", "Mechanic", "Engineer", "Inventor", "Master Artificer"],
-        fees: { joining: 60, annual: 15 (or contribution of a new blueprint) },
+        fees: { joining: 60, annual: 12 },
         description: "The primary guild in Cogsworth for all mechanical and steam-powered innovation, distinct from the broader Crafters' Guild."
     },
     lorekeepers_archivists_order: {
@@ -360,7 +360,7 @@ export const guilds = {
         guildmaster: "Archivist Elara Thorne",
         services: ["Access to vast archives", "Historical research commissions", "Preservation of ancient texts", "Translation services"],
         ranks: ["Novice Scribe", "Researcher", "Historian", "Loremaster", "Keeper of Ages"],
-        fees: { joining: 30, annual: 5 (or donation of a rare book) },
+        fees: { joining: 30, annual: 5 },
         description: "A society dedicated to the preservation, study, and dissemination of knowledge and history."
     },
     miners_prospectors_union_deepdelve: {

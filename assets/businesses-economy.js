@@ -614,7 +614,7 @@ export const businesses = {
         priceRange: "Medium (tuition/offerings)",
         description: "A minimalist dojo high in the mountains, echoing with the sounds of disciplined training."
     },
-    the_gear grinders_repair_shop: {
+    the_gear_grinders_repair_shop: {
         name: "The Gear Grinder's Repair Shop",
         type: "Mechanical Repair & Parts",
         location: "Bolt & Rivet Junction", // Cogsworth
