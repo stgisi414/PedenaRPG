@@ -5364,6 +5364,71 @@ function dropItem(itemIndex) {
     }
 }
 
+async function generateCharacterPortrait() {
+    const portraitContainer = document.getElementById('portrait-container');
+    const generateBtn = document.getElementById('generate-portrait-btn');
+
+    if (player.portraitUrl) {
+        displayMessage("A portrait has already been generated for this character.", 'info');
+        return;
+    }
+
+    if (generateBtn) {
+        generateBtn.disabled = true;
+        generateBtn.textContent = 'Generating...';
+    }
+
+    // Construct a highly detailed prompt for the AI
+    const prompt = `A highly detailed fantasy art portrait of a character named ${player.name}.
+    Gender: ${player.gender}.
+    Class: ${player.class}.
+    Appearance details based on their background: ${player.background}.
+    The style should be a realistic fantasy portrait, with dramatic lighting, focusing on the character's face and upper body.
+    The background should be atmospheric and relevant to their story.`;
+
+    try {
+        const response = await fetch('https://ainovel.site/api/generate-image', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                prompt: prompt,
+                seed: 12345, // Consistent seed for similar style
+                imageSize: 'portrait_4_3',
+                numInferenceSteps: 70,
+                guidanceScale: 10
+            }),
+        });
+
+        if (!response.ok) {
+            throw new Error(`API request failed with status ${response.status}`);
+        }
+
+        const result = await response.json();
+
+        if (result.imageUrl) {
+            player.portraitUrl = result.imageUrl;
+            portraitContainer.innerHTML = `<img src="${player.portraitUrl}" alt="Character Portrait of ${player.name}" class="character-portrait">`;
+            displayMessage("Character portrait generated successfully!", 'success');
+            if (generateBtn) {
+                generateBtn.classList.add('hidden'); // Hide button after generation
+            }
+            saveGame(); // Save the new portrait URL
+        } else {
+            throw new Error("API did not return an image URL.");
+        }
+
+    } catch (error) {
+        console.error('Error generating character portrait:', error);
+        displayMessage("Failed to generate character portrait. Please try again later.", 'error');
+        if (generateBtn) {
+            generateBtn.disabled = false;
+            generateBtn.textContent = 'Generate Portrait';
+        }
+    }
+}
+
 function displayCharacterBackground() {
     // Hide other interfaces
     const interfacesToHide = ['combat-interface', 'shop-interface', 'inventory-interface', 'skills-interface', 'quest-interface', 'progression-interface'];
@@ -5371,6 +5436,8 @@ function displayCharacterBackground() {
         const element = document.getElementById(id);
         if (element) element.classList.add('hidden');
     });
+
+    displayMessage("Reviewing your character background...", 'info');
 
     const backgroundInterface = document.getElementById('background-interface');
     if (backgroundInterface) {
@@ -5475,12 +5542,31 @@ function displayCharacterBackground() {
         relationshipsHTML = '<p class="text-sm text-gray-600 italic">No relationships established yet.</p>';
     }
 
+    // Build the portrait section
+    let portraitSectionHTML = `
+        <div id="portrait-section" class="text-center my-4">
+            <div id="portrait-container" class="w-full max-w-sm mx-auto parchment-box p-2">`;
+
+    if (player.portraitUrl) {
+        portraitSectionHTML += `<img src="${player.portraitUrl}" alt="Character Portrait of ${player.name}" class="character-portrait">`;
+    } else {
+        portraitSectionHTML += `<p class="text-amber-700">No portrait generated yet.</p>`;
+    }
+
+    portraitSectionHTML += `</div>`;
+
+    if (!player.portraitUrl) {
+        portraitSectionHTML += `<button id="generate-portrait-btn" class="btn-parchment mt-4">Generate Portrait</button>`;
+    }
+
+    portraitSectionHTML += `</div>`;
+
     // --- Constructing the innerHTML for backgroundContentDisplay ---
     backgroundContentDisplay.innerHTML = `
         <div class="parchment-box p-4">
 
             <h5 class="font-bold text-2xl mb-3 text-center text-amber-800">${player.name || 'Character Name'}</h5>
-
+            ${portraitSectionHTML}
             <div class="grid grid-cols-2 gap-x-4 gap-y-2 mb-4 text-sm">
                 <p><strong>Class:</strong> ${player.class || 'N/A'}</p>
                 <p><strong>Level:</strong> ${player.level || 1}</p>
@@ -5511,6 +5597,13 @@ function displayCharacterBackground() {
             </div>
         </div>
     `;
+
+     // Add event listener for the generate button if it exists
+     const generateBtn = document.getElementById('generate-portrait-btn');
+     if (generateBtn) {
+         generateBtn.addEventListener('click', generateCharacterPortrait);
+     }
+    
 }
 
 // IMPORTANT: Ensure the helper functions calculateEquipmentBonuses() and buildStatsGrid()
