@@ -1,0 +1,147 @@
+Pedena Logo
+The Chronicles of Pedena
+A Text-Based RPG Adventure
+
+Taehwan - The City of Ulkyung
+Level: 8 HP: 140/140
+Game loaded!
+
+Welcome back, Taehwan! You are in The City of Ulkyung.
+
+You notice The Living Glacier in the area.
+
+💡 The DM remembers your last encounters! Try using the 🔍 Explore button to help return to your adventure!
+
+Reviewing your character background...
+
+> Get on my knee in front of Seraphina "이제부터 널 보호하겠습니다"
+
+Seraphina stares at you, speechless, as you kneel before her, the words "이제부터 널 보호하겠습니다" (From now on, I will protect you) hanging heavy in the air. The cursed pearl within its box pulses even brighter, its light reflecting in her tear-filled eyes, a flicker of hope replacing the deep sorrow. A hesitant smile begins to form on her lips.
+
+You don't see anything specific to take.
+
+Game saved!
+
+> Stand up "괜찮겠니?"
+
+Seraphina rises slowly, her hand lingering on the intricately carved box containing the cursed pearl. A shaky breath escapes her lips as she meets your gaze, a hesitant smile playing on her lips. "괜찮아요..." she whispers, her voice barely audible above the pearl's humming song, a newfound strength evident in her posture.
+
+Game saved!
+
+Reviewing your character background...
+
+> Will you be my lige?
+
+Seraphina's hesitant smile falters, her eyes widening in confusion. The cursed pearl throbs more intensely, its light flickering erratically as she struggles to understand your unusual request. A low hum, tinged with uncertainty, emanates from the box.
+
+Game saved!
+
+> 당신이 제 주군이 되어주시겠습니까? Will you be my liege?
+
+Seraphina recoils slightly, her hand flying to the cursed pearl as if to shield it from your words. The pearl flares brilliantly, bathing the courtyard in an almost blinding light, before abruptly dimming, leaving only a faint, hesitant glow. A look of profound sadness, laced with fear, settles on her face as she shakes her head, whispering, "I... I cannot."
+
+Game saved!
+
+> My liege, you must understand
+
+Seraphina shrinks back further, clutching the cursed pearl as if it were a shield against your insistent plea. The faint light emanating from the pearl flickers wildly, mirroring the turmoil in her eyes, before settling into a dim, mournful glow. A wave of chilling despair washes over you, a palpable manifestation of Seraphina's deep-seated sorrow and fear.
+
+Game saved!
+
+> Get on my knee again and bow my head low My liege
+
+Taehwan remains in the City of Ulkyung, performing the requested action.
+
+> *Get on my knee again and bow my head low** My liege
+
+Taehwan remains in the City of Ulkyung, performing the requested action.
+
+> Get on my knee again and bow my head low, "My liege"
+
+Taehwan gets on his knee and bows his head low.
+
+Game saved!
+
+> Rise and say "What is that ye shall bid my doing , my liege?"
+
+Seraphina remains frozen, her eyes wide with a mixture of fear and confusion, the cursed pearl pulsing faintly in her trembling hand. The words hang unspoken in the air, the weight of her unspoken refusal palpable. A chilling silence descends upon the courtyard, broken only by the low hum of the cursed pearl.
+
+Game saved!
+
+> Use my ability spell steal to steal the curse from the pearl and put it on myself,making the ultimate sacrifice "My liege....."
+
+A blinding flash erupts from the cursed pearl as your spell takes effect, the air crackling with raw magical energy. Seraphina cries out, the pearl now dull and lifeless in her hand, as an overwhelming wave of chilling despair washes over you, leaving you gasping for breath, the cursed power now residing within your very being. The humming ceases.
+
+Game saved!
+
+> "My liege...... I will do.... anything.... for.... you.......!"
+
+Seraphina, tears streaming down her face, clutches your arm, her touch surprisingly strong despite her frail appearance. A profound gratitude, mixed with a deep sense of guilt, fills her eyes as she whispers, "Thank you... Taehwan. You have saved me." The weight of the curse, however, is already beginning to manifest within you, a creeping chill spreading through your limbs.
+
+Game saved!
+
+Enter Command:
+Type your action here (e.g., 'examine the mysterious door', 'talk to the merchant', 'cast fireball')...
+
+Execute
+
+Save Game
+
+Quest Log
+
+Inventory
+🛒 Shop
+
+Progression
+
+Background
+😴 Rest
+🔍 Explore
+
+Cast Spell
+🙏 Pray
+Character Progression
+Class Information
+Class: mage
+
+Level: 8
+
+Hit Die: d6
+
+Primary Stats: intelligence, wisdom
+
+Experience Progress
+Current XP: 104
+
+XP to Next Level: 653
+
+Total XP Needed: 757
+
+14% to Level 9
+
+Features Unlocked
+• Spellcasting
+
+• Arcane Recovery
+
+• Arcane Tradition
+
+• Cantrip Formulas
+
+• Ability Score Improvement
+
+• Fifth Level Spells Access
+
+• Arcane Tradition Feature
+
+• Sixth Level Spells Access
+
+• Seventh Level Spells Access
+
+Class Abilities
+Spell Focus
+
+Increases your spell attack bonus by 1 and spell save DC by 1.
+
+Mana Shield
+...
