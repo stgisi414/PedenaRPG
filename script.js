@@ -3504,12 +3504,48 @@ async function generateCharacterBackground() {
     generateBackgroundBtn.textContent = "Generate Background";
 }
 
+// Function to remove character portrait
+function removeCharacterPortrait() {
+    const portraitContainer = document.getElementById('portrait-container');
+    const generateBtn = document.getElementById('generate-portrait-btn');
+    
+    if (player && player.portraitUrl) {
+        delete player.portraitUrl;
+        console.log('✅ Portrait URL removed from player object');
+    }
+    
+    if (portraitContainer) {
+        portraitContainer.innerHTML = `
+            <div class="text-center py-4">
+                <p class="text-amber-700">No portrait generated yet.</p>
+            </div>
+        `;
+        console.log('✅ Portrait container cleared');
+    }
+    
+    if (generateBtn) {
+        generateBtn.style.display = 'block';
+        generateBtn.disabled = false;
+        generateBtn.textContent = 'Generate Portrait';
+        console.log('✅ Generate button reset');
+    }
+    
+    // Also clear from background interface if it's open
+    const backgroundInterface = document.getElementById('background-interface');
+    if (backgroundInterface && !backgroundInterface.classList.contains('hidden')) {
+        displayCharacterBackground();
+    }
+    
+    saveGame();
+    displayMessage("Character portrait removed successfully.", 'success');
+}
+
 // Enhanced portrait generation with better error handling and logging
 async function generateCharacterPortrait() {
     console.log('🎨 Portrait generation started');
 
     const portraitContainer = document.getElementById('portrait-container');
-    const generateBtn = document.getElemen    tById('generate-portrait-btn');
+    const generateBtn = document.getElementById('generate-portrait-btn');
 
     // Get character details from input fields OR player object
     let charName, charClass, charGender, charBackground;
@@ -3585,19 +3621,47 @@ async function generateCharacterPortrait() {
             // Set the portraitUrl on the global player object so it can be saved by createCharacter
             player.portraitUrl = portraitUrl;
 
-            portraitContainer.innerHTML = `
-                <img src="${portraitUrl}"
-                     alt="Character Portrait of ${charName}"
-                     class="character-portrait w-full h-auto rounded border-2 border-amber-700"
-                     onload="console.log('Portrait image loaded successfully')"
-                     onerror="console.error('Failed to load portrait image'); this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZGRkIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxOCIgZmlsbD0iIzk5OSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPk5vIEltYWdlPC90ZXh0Pjwvc3ZnPg=='">
-            `;
-
-            displayMessage("Character portrait generated successfully!", 'success');
-
-            if (generateBtn) {
-                generateBtn.style.display = 'none'; // Hide button after successful generation
-            }
+            // Create image element with better error handling
+            const img = new Image();
+            img.onload = function() {
+                console.log('Portrait image loaded successfully');
+                portraitContainer.innerHTML = `
+                    <img src="${portraitUrl}"
+                         alt="Character Portrait of ${charName}"
+                         class="character-portrait w-full h-auto rounded border-2 border-amber-700">
+                `;
+                
+                displayMessage("Character portrait generated and loaded successfully!", 'success');
+                
+                if (generateBtn) {
+                    generateBtn.style.display = 'none'; // Hide button after successful generation
+                }
+                
+                // Update background interface if it's open
+                const backgroundInterface = document.getElementById('background-interface');
+                if (backgroundInterface && !backgroundInterface.classList.contains('hidden')) {
+                    displayCharacterBackground();
+                }
+            };
+            
+            img.onerror = function() {
+                console.error('Failed to load portrait image from:', portraitUrl);
+                portraitContainer.innerHTML = `
+                    <div class="text-center py-4">
+                        <p class="text-red-600">Failed to load portrait image</p>
+                        <p class="text-gray-600 text-xs">The image service may be unavailable</p>
+                    </div>
+                `;
+                displayMessage("Portrait generated but failed to load. Try refreshing the page.", 'error');
+                
+                if (generateBtn) {
+                    generateBtn.disabled = false;
+                    generateBtn.textContent = 'Try Again';
+                }
+            };
+            
+            // Start loading the image
+            img.src = portraitUrl;
 
             // Save the portrait URL
             saveGame();
@@ -4441,6 +4505,8 @@ document.addEventListener('DOMContentLoaded', () => {
     window.dismissPartyMember = dismissPartyMember;
     window.displayPartyStatus = displayPartyStatus;
     window.initiateMultiCombat = initiateMultiCombat;
+    window.removeCharacterPortrait = removeCharacterPortrait;
+    window.generateCharacterPortrait = generateCharacterPortrait;
 
 
     // <<< --- ADD INVENTORY EVENT LISTENER HERE --- >>>
@@ -4543,6 +4609,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
 }); // End of DOMContentLoaded
 
+// Add debug button to remove portrait
+const removePortraitBtn = document.createElement('button');
+removePortraitBtn.id = 'remove-portrait-btn';
+removePortraitBtn.className = 'btn-parchment bg-red-600 hover:bg-red-700 text-white text-xs md:text-sm py-1 px-2';
+removePortraitBtn.style.cssText = `
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    z-index: 999;
+    font-size: 0.75rem;
+`;
+removePortraitBtn.innerHTML = '<i class="ra ra-cancel mr-1"></i><span class="hidden sm:inline">Remove Portrait</span><span class="sm:hidden">Del Pic</span>';
+removePortraitBtn.title = 'Remove character portrait (debug function)';
+removePortraitBtn.addEventListener('click', removeCharacterPortrait);
+
 // Add reset progression button to the game interface
 const resetProgressionBtn = document.createElement('button');
 resetProgressionBtn.id = 'reset-progression-btn';
@@ -4574,6 +4655,7 @@ richTextToggle.title = 'Toggle rich text styling for game messages';
 // Add to game container
 const gameContainer = document.getElementById('game-container');
 if (gameContainer) {
+    gameContainer.appendChild(removePortraitBtn);
     gameContainer.appendChild(resetProgressionBtn);
     gameContainer.appendChild(richTextToggle);
 }
