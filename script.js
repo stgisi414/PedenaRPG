@@ -318,7 +318,7 @@ async function generateSceneryImagePrompt() {
 The image to be generated will use a reference image of the player's character, and your prompt will describe the scenery and atmosphere around them.
 Generate a concise (1-2 sentences, max 50 words) and vivid image prompt.
 Focus on the environment, time of day, weather, mood, and any significant nearby landmarks or elements based on the provided game context.
-Do NOT describe the character, as that will come from the reference image.
+Do NOT describe the character, as that will come from the reference image, but MOST IMORTANTLY do describe what the character, referenced by his name is doing.
 Example output format: 'A misty forest at dawn, with ancient, gnarled trees and a faint glow emanating from a hidden ruin in the distance.'
 
 Game Context:
