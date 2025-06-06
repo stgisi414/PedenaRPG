@@ -6407,176 +6407,162 @@ function displayCharacterBackground() {
         backgroundInterface.classList.remove('hidden');
     } else {
         console.error("backgroundInterface element not found!");
-        return; // Exit if the main container isn't found
+        return;
     }
 
     const backgroundContentDisplay = document.getElementById('background-content');
     if (!backgroundContentDisplay) {
         console.error("backgroundContentDisplay element not found!");
-        return; // Exit if the content display area isn't found
+        return;
     }
 
-    // --- Data Preparation for Stats ---
-    // Ensure player and player.stats exist, providing defaults if not
-    const baseStats = player && player.stats ? player.stats : {
+    // Basic character info
+    let characterHTML = `
+        <div class="parchment-box p-4 mb-4">
+            <div class="flex items-center gap-4 mb-4">
+                ${player.portraitUrl ? `
+                    <img src="${player.portraitUrl}" alt="Character Portrait" class="w-24 h-24 rounded border-2 border-amber-700 object-cover">
+                ` : `
+                    <div class="w-24 h-24 rounded border-2 border-amber-700 bg-amber-100 flex items-center justify-center">
+                        <span class="text-2xl font-bold text-amber-800">${player.name.charAt(0)}</span>
+                    </div>
+                `}
+                <div>
+                    <h3 class="text-2xl font-bold text-amber-800">${player.name}</h3>
+                    <p class="text-lg text-amber-600">Level ${player.level} ${player.class}</p>
+                    <p class="text-sm text-gray-600">${player.gender}</p>
+                    <p class="text-sm text-gray-600">Location: ${player.currentLocation}</p>
+                </div>
+            </div>
+            
+            <div class="mb-4">
+                <h4 class="font-bold mb-2">Background Story:</h4>
+                <p class="text-sm text-amber-700 italic">${player.background || 'A mysterious adventurer with an unknown past.'}</p>
+            </div>
+        </div>
+    `;
+
+    // Stats display
+    const baseStats = player.stats || {
         strength: 10, dexterity: 10, intelligence: 10,
         constitution: 10, wisdom: 10, charisma: 10
     };
 
-    let statsGridHTML = "";
-    // Check if the necessary helper functions for detailed stats exist
-    if (typeof calculateEquipmentBonuses === 'function' && typeof buildStatsGrid === 'function') {
-        const equipmentBonuses = calculateEquipmentBonuses(); // This function calculates bonuses from equipped items
-        statsGridHTML = buildStatsGrid(baseStats, equipmentBonuses); // This function formats the stats into HTML
-    } else {
-        // Fallback to a simpler stats display if helper functions are missing
-        console.warn("Detailed stats functions (calculateEquipmentBonuses or buildStatsGrid) missing. Using basic stats display.");
-        statsGridHTML = '<div class="grid grid-cols-1 gap-1 text-sm">'; // Simpler grid
-        const statNames = ['strength', 'dexterity', 'intelligence', 'constitution', 'wisdom', 'charisma'];
-        statNames.forEach(statName => {
-            const statValue = baseStats[statName] || 10;
-            const modifier = Math.floor((statValue - 10) / 2);
-            const modifierSign = modifier >= 0 ? '+' : '';
-            const statDisplayName = statName.charAt(0).toUpperCase() + statName.slice(1);
-            statsGridHTML += `
-                <div class="flex justify-between items-center py-1 border-b border-amber-700/20">
-                    <span class="font-semibold">${statDisplayName}:</span>
-                    <span class="font-bold">${statValue} (${modifierSign}${modifier})</span>
-                </div>`;
-        });
-        statsGridHTML += '</div>';
+    let statsHTML = `
+        <div class="parchment-box p-4 mb-4">
+            <h4 class="font-bold mb-3">Character Stats</h4>
+            <div class="grid grid-cols-2 gap-3 text-sm">
+    `;
+
+    const statNames = ['strength', 'dexterity', 'intelligence', 'constitution', 'wisdom', 'charisma'];
+    statNames.forEach(statName => {
+        const statValue = baseStats[statName] || 10;
+        const modifier = Math.floor((statValue - 10) / 2);
+        const modifierSign = modifier >= 0 ? '+' : '';
+        const statDisplayName = statName.charAt(0).toUpperCase() + statName.slice(1);
+        statsHTML += `
+            <div class="flex justify-between items-center py-1 border-b border-amber-700/20">
+                <span class="font-semibold">${statDisplayName}:</span>
+                <span class="font-bold">${statValue} (${modifierSign}${modifier})</span>
+            </div>
+        `;
+    });
+
+    statsHTML += `
+            </div>
+            <div class="mt-3 text-sm">
+                <p><strong>HP:</strong> ${player.hp}/${player.maxHp}</p>
+                <p><strong>Gold:</strong> ${player.gold}</p>
+                <p><strong>Experience:</strong> ${player.exp}/${player.expToNextLevel}</p>
+            </div>
+        </div>
+    `;
+
+    // Alignment display
+    let alignmentHTML = "";
+    if (typeof AlignmentSystem !== 'undefined' && AlignmentSystem.initializeAlignment) {
+        AlignmentSystem.initializeAlignment(player);
+        const alignmentInfo = AlignmentSystem.getAlignmentDisplayInfo(player);
+        alignmentHTML = `
+            <div class="parchment-box p-4 mb-4">
+                <h4 class="font-bold mb-3">Moral Alignment</h4>
+                <div class="text-sm">
+                    <p><strong>Type:</strong> <span class="${alignmentInfo.color}">${alignmentInfo.type.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}</span></p>
+                    <p><strong>Score:</strong> ${alignmentInfo.score >= 0 ? '+' : ''}${alignmentInfo.score}</p>
+                    <p class="text-xs italic text-amber-700 mt-2">${alignmentInfo.description}</p>
+                </div>
+            </div>
+        `;
     }
 
-    // --- Data Preparation for Relationships ---
+    // Relationships display
     let relationshipsHTML = "";
     if (player.relationships && Object.keys(player.relationships).length > 0) {
-        relationshipsHTML = '<div class="grid grid-cols-1 gap-4 text-sm">';
+        relationshipsHTML = `
+            <div class="parchment-box p-4 mb-4">
+                <h4 class="font-bold mb-3">Relationships</h4>
+                <div class="space-y-3">
+        `;
+
         Object.entries(player.relationships).forEach(([npcName, relationship]) => {
-            // Add null check for relationship object
             if (!relationship || typeof relationship !== 'object') {
-                console.warn(`Invalid relationship data for ${npcName}:`, relationship);
-                return; // Skip this relationship
+                return;
             }
 
             const status = relationship.status || 'neutral';
             const relationshipColor = getRelationshipColor(status);
             const trust = relationship.trust || 0;
-            const trustBar = Math.max(0, Math.min(100, trust));
-            const interactions = relationship.interactions || 0;
-            const metAt = relationship.metAt || 'Unknown location';
-            const firstMeeting = relationship.firstMeeting || 'Some time ago';
             const description = relationship.description || 'A person you\'ve encountered.';
 
             relationshipsHTML += `
-                <div class="parchment-box p-3 border border-amber-700/30 rounded">
-                    <div class="flex justify-between items-start mb-2">
-                        <div class="flex-grow">
-                            <h6 class="font-bold text-base">${npcName}</h6>
-                            <span class="text-xs ${relationshipColor} font-semibold">(${status.charAt(0).toUpperCase() + status.slice(1)})</span>
-                        </div>
-                        <div class="text-right">
-                            <span class="text-xs text-gray-600">Trust: ${trust}/100</span>
-                            <div class="w-24 bg-gray-200 rounded-full h-2 mt-1">
-                                <div class="bg-green-500 h-2 rounded-full transition-all duration-300" style="width: ${trustBar}%"></div>
-                            </div>
-                        </div>
+                <div class="border-l-4 border-amber-500 pl-3 py-2">
+                    <div class="flex justify-between items-start mb-1">
+                        <h6 class="font-bold">${npcName}</h6>
+                        <span class="text-xs ${relationshipColor} font-semibold">${status.charAt(0).toUpperCase() + status.slice(1)}</span>
                     </div>
-                    
-                    <p class="text-xs text-amber-700 mb-2 italic">${description}</p>
-                    
-                    ${relationship.type ? `<span class="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">${relationship.type}</span>` : ''}
-                    
-                    <div class="grid grid-cols-2 gap-2 text-xs text-gray-600 mt-2">
-                        <div>
-                            <strong>First met:</strong><br>
-                            ${firstMeeting}</div>
-                        <div>
-                            <strong>Location:</strong><br>
-                            ${metAt}
-                        </div>
-                        <div>
-                            <strong>Interactions:</strong><br>
-                            ${relationship.interactions || 0}
-                        </div>
-                        <div>
-                            <strong>Last seen:</strong><br>
-                            ${new Date(relationship.lastInteraction).toLocaleDateString()}
-                        </div>
+                    <p class="text-xs text-amber-700 mb-1">${description}</p>
+                    <div class="text-xs text-gray-600">
+                        Trust: ${trust}/100 | Met at: ${relationship.metAt || 'Unknown'} | Interactions: ${relationship.interactions || 0}
                     </div>
-                </div>`;
-        });
-        relationshipsHTML += '</div>';
-    }
-
-    // Character progression data
-    let progressionHTML = "";
-    if (player.classProgression && CharacterManager) {
-        const progression = CharacterManager.getCharacterProgression(player);
-        if (progression) {
-            progressionHTML = `
-                <div class="parchment-box p-4 mb-4">
-                    <h5 class="text-lg font-bold mb-3">Class: ${progression.class.charAt(0).toUpperCase() + progression.class.slice(1)}</h5>
-                    <div class="grid grid-cols-2 gap-4 text-sm">
-                        <div>
-                            <span class="font-semibold">Level:</span> ${progression.level}
-                        </div>
-                        <div>
-                            <span class="font-semibold">Hit Die:</span> ${progression.hitDie}
-                        </div>
-                    </div>
-                    
-                    ${progression.features.length > 0 ? `
-                        <div class="mt-3">
-                            <h6 class="font-semibold mb-2">Class Features:</h6>
-                            <div class="text-xs">
-                                ${progression.features.map(feature => `<span class="bg-green-100 text-green-800 px-2 py-1 rounded-full mr-1 mb-1 inline-block">${feature}</span>`).join('')}
-                            </div>
-                        </div>
-                    ` : ''}
-                    
-                    ${progression.abilities.length > 0 ? `
-                        <div class="mt-3">
-                            <h6 class="font-semibold mb-2">Abilities:</h6>
-                            <div class="text-xs space-y-1">
-                                ${progression.abilities.map(ability => `
-                                    <div class="bg-blue-50 p-2 rounded">
-                                        <strong>${ability.name}:</strong> ${ability.definition ? ability.definition.description : 'Special ability'}
-                                    </div>
-                                `).join('')}
-                            </div>
-                        </div>
-                    ` : ''}
-                    
-                    ${progression.spells.known.length > 0 ? `
-                        <div class="mt-3">
-                            <h6 class="font-semibold mb-2">Known Spells:</h6>
-                            <div class="text-xs space-y-1">
-                                ${progression.spells.known.map(spell => `
-                                    <div class="bg-purple-50 p-2 rounded">
-                                        <strong>${spell.name}:</strong> ${spell.definition ? spell.definition.description : 'Magical spell'}
-                                    </div>
-                                `).join('')}
-                            </div>
-                        </div>
-                    ` : ''}
                 </div>
             `;
-        }
+        });
+
+        relationshipsHTML += `
+                </div>
+            </div>
+        `;
     }
 
-    // Display all the information
-    progressionContentDisplay.innerHTML = `
-        <div class="space-y-6">
-            ${statsGridHTML}
-            ${relationshipsHTML ? `
-                <div>
-                    <h5 class="text-lg font-bold mb-3 flex items-center">
-                        <i class="ra ra-conversation mr-2"></i>
-                        Relationships
-                    </h5>
-                    ${relationshipsHTML}
+    // Quests display
+    let questsHTML = "";
+    if (player.quests && player.quests.length > 0) {
+        const activeQuests = player.quests.filter(q => !q.completed);
+        const completedQuests = player.quests.filter(q => q.completed);
+
+        questsHTML = `
+            <div class="parchment-box p-4 mb-4">
+                <h4 class="font-bold mb-3">Quest Progress</h4>
+                <div class="text-sm">
+                    <p><strong>Active Quests:</strong> ${activeQuests.length}</p>
+                    <p><strong>Completed Quests:</strong> ${completedQuests.length}</p>
+                    <p><strong>Total Quest Experience:</strong> ${player.completedQuests || 0}</p>
                 </div>
-            ` : ''}
+            </div>
+        `;
+    }
+
+    // Combine all sections
+    backgroundContentDisplay.innerHTML = `
+        <div class="space-y-4">
+            ${characterHTML}
+            ${statsHTML}
+            ${alignmentHTML}
+            ${relationshipsHTML}
+            ${questsHTML}
+        </div>
+    `;
+}
             ${progressionHTML}
         </div>
     `;
