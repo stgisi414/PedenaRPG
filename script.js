@@ -725,11 +725,18 @@ Please respond as the DM, maintaining consistency with the conversation history 
 🎨 RICH TEXT STYLING - MANDATORY USAGE:
 You MUST use rich text formatting in your responses. Apply multiple effects per response for immersion:
 
-TEXT FORMATTING (use frequently):
-- **bold text** for emphasis, important words, names
-- *italic text* for thoughts, whispers, dramatic effect, inner voice
-- __underline text__ for emphasis, important locations, special items
+TEXT FORMATTING (use VERY frequently - at least 5-8 instances per response):
+- **bold text** for ALL character names, important items, locations, actions, dramatic moments
+- *italic text* for ALL thoughts, whispers, sounds, emotions, atmospheric descriptions, inner voice
+- ***bold italic text*** for EPIC moments, legendary items, powerful magic, climactic events
+- __underline text__ for emphasis, important locations, special items, warnings
 - ~~strikethrough~~ for crossed out, damaged, or negated text
+
+FORMATTING REQUIREMENTS:
+- Use **bold** on EVERY character name, location name, and important noun
+- Use *italics* for ALL atmospheric descriptions, sounds, and emotional content
+- Use ***bold-italic*** for anything legendary, epic, or extremely important
+- Combine formatting: ***{gold:legendary artifacts}***, **{red:dangerous enemies}**, *{blue:magical whispers}*
 
 COLORS (use liberally to paint the scene):
 - {red:text} for danger, blood, fire, anger, warning signs
@@ -759,11 +766,13 @@ VISUAL EFFECTS (use 2-4 per response):
 - {{glow-shadow:epic}} for epic moments, legendary items, climactic events
 
 MANDATORY EXAMPLES TO FOLLOW:
-- "The {gold:**ancient tome**} begins to {{glow:[magic:whisper forgotten secrets]}} as you {{wiggle:carefully}} open its weathered pages."
-- "A {crimson:*shadowy figure*} emerges from the {{shadow:darkness}}, wielding a {{highlight:[ancient:cursed blade]}}."
-- "The {emerald:**garden**} {{wiggle:bursts}} with {{glow:magical}} energy as {blue:*crystalline water*} flows from an {{highlight:[elegant:enchanted fountain]}}."
+- "The {gold:***legendary tome***} begins to {{glow:[magic:*whisper forgotten secrets*]}} as you **carefully** open its *weathered* pages."
+- "A {crimson:***shadowy figure***} emerges from the {{shadow:*darkness*}}, wielding a {{highlight:[ancient:***cursed blade***]}}."
+- "The {emerald:**enchanted garden**} {{wiggle:*bursts*}} with {{glow:***magical***}} energy as {blue:*crystalline water*} flows from an {{highlight:[elegant:***fountain of eternal youth***]}}."
+- "**Sir Gareth** *whispers urgently*, 'The {red:***Dragon of Desolation***} has awakened, and its {crimson:*fiery breath*} threatens the **entire kingdom**!'"
+- "You find a {gold:***Blade of Infinite Sharpness***} lying beside a *mysterious* **stone altar**, its surface {{glow:*humming*}} with {purple:***arcane power***}."
 
-REQUIREMENTS: Use at least 3-5 different formatting effects per response. Make descriptions vivid and visually striking. Every important noun should have color or formatting.`;
+REQUIREMENTS: Use at least 7-10 different formatting effects per response. Use **bold** for ALL names and important items. Use *italics* for ALL sounds, whispers, and atmospheric elements. Use ***bold-italic*** for anything epic or legendary. Every important noun should have both color AND formatting.`;
         }
 
         const response = await fetch(GEMINI_API_URL, {
