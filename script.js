@@ -3696,18 +3696,20 @@ async function generateCharacterPortrait() {
 async function tryMultipleImageServices(name, gender, charClass, background) {
     const services = [
         {
+            name: 'AI Novel API',
+            generate: () => generateAINovelPortrait(name, gender, charClass, background) // Try AI Novel first
+        },
+        {
             name: 'Picsum (Placeholder)',
-            generate: () => generatePicsumPortrait(name) // Pass name for seed
+            generate: () => generatePicsumPortrait(name) // Fallback to Picsum
         },
         {
-            name: 'AI Novel (if available)',
-            generate: () => generateAINovelPortrait(name, gender, charClass, background) // Pass all details
-        },
-        {
-            name: 'Placeholder SVG',
-            generate: () => generateSVGPortrait(name, charClass) // Pass necessary details
+            name: 'SVG Portrait',
+            generate: () => generateSVGPortrait(name, charClass) // Final fallback
         }
     ];
+
+    console.log('🎨 Starting portrait generation with services:', services.map(s => s.name));
 
     for (const service of services) {
         try {
@@ -3715,13 +3717,16 @@ async function tryMultipleImageServices(name, gender, charClass, background) {
             const result = await service.generate();
             if (result) {
                 console.log(`✅ ${service.name} succeeded:`, result);
+                displayMessage(`Portrait generated using ${service.name}`, 'success');
                 return result;
             }
         } catch (error) {
             console.warn(`⚠️ ${service.name} failed:`, error.message);
+            displayMessage(`${service.name} failed: ${error.message}`, 'error');
         }
     }
 
+    console.error('❌ All portrait generation services failed');
     return null;
 }
 
@@ -3748,32 +3753,53 @@ async function generateAINovelPortrait(name, gender, charClass, background) { //
     The style should be a realistic fantasy portrait, with dramatic lighting, focusing on the character's face and upper body.
     The background should be atmospheric and relevant to their story.`;
 
-    const response = await fetch('https://ainovel.site/api/generate-image', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-            prompt: prompt,
-            seed: 12345,
-            imageSize: 'portrait_4_3',
-            numInferenceSteps: 70,
-            guidanceScale: 10
-        }),
-        signal: AbortSignal.timeout(30000) // 30 second timeout
-    });
+    console.log('🎨 Attempting AI Novel portrait generation...');
+    console.log('Prompt:', prompt.substring(0, 100) + '...');
 
-    if (!response.ok) {
-        throw new Error(`AI Novel API failed with status ${response.status}`);
+    try {
+        const response = await fetch('https://ainovel.site/api/generate-image', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify({
+                prompt: prompt,
+                seed: Math.floor(Math.random() * 1000000), // Random seed for variety
+                imageSize: 'portrait_4_3',
+                numInferenceSteps: 50, // Reduced for faster generation
+                guidanceScale: 7.5
+            }),
+            signal: AbortSignal.timeout(45000) // 45 second timeout
+        });
+
+        console.log('AI Novel response status:', response.status);
+        console.log('AI Novel response headers:', Object.fromEntries(response.headers.entries()));
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('AI Novel API error response:', errorText);
+            throw new Error(`AI Novel API failed with status ${response.status}: ${errorText.substring(0, 200)}`);
+        }
+
+        const result = await response.json();
+        console.log('AI Novel result:', result);
+
+        if (!result.imageUrl && !result.image_url && !result.url) {
+            console.error('AI Novel response missing image URL:', result);
+            throw new Error("AI Novel API did not return an image URL");
+        }
+
+        // Try different possible property names for the image URL
+        const imageUrl = result.imageUrl || result.image_url || result.url;
+        console.log('✅ AI Novel generated image URL:', imageUrl);
+        
+        return imageUrl;
+
+    } catch (error) {
+        console.error('❌ AI Novel service error:', error);
+        throw error;
     }
-
-    const result = await response.json();
-
-    if (!result.imageUrl) {
-        throw new Error("AI Novel API did not return an image URL");
-    }
-
-    return result.imageUrl;
 }
 
 // Generate SVG portrait as ultimate fallback
