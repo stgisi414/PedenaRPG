@@ -1877,17 +1877,31 @@ function checkQuestCompletion(playerAction) {
                 }
             }
 
-            // Only complete quest if score meets threshold
-            const requiredScore = quest.difficulty === 'Easy' ? 3 :
-                quest.difficulty === 'Medium' ? 4 :
-                    quest.difficulty === 'Hard' ? 5 : 6;
+            // More lenient quest completion - reduce required scores
+            const requiredScore = quest.difficulty === 'Easy' ? 2 :
+                quest.difficulty === 'Medium' ? 3 :
+                    quest.difficulty === 'Hard' ? 4 : 5;
 
-            isCompleted = completionScore >= requiredScore;
+            // Also check for explicit completion phrases
+            const explicitCompletionPhrases = [
+                'quest completed', 'quest finished', 'mission accomplished', 'task completed',
+                'objective achieved', 'successfully completed', 'quest done', 'mission complete',
+                'objective complete', 'task finished', 'accomplished the', 'finished the quest',
+                'completed the mission', 'achieved the objective'
+            ];
+
+            const hasExplicitCompletion = explicitCompletionPhrases.some(phrase => 
+                actionText.includes(phrase) || questText.includes('completed')
+            );
+
+            // Complete quest if score meets threshold OR explicit completion detected
+            isCompleted = completionScore >= requiredScore || hasExplicitCompletion;
 
             console.log('Quest completion analysis:', {
                 questTitle: quest.title,
                 totalScore: completionScore,
                 requiredScore: requiredScore,
+                hasExplicitCompletion: hasExplicitCompletion,
                 isCompleted: isCompleted
             });
 
@@ -2014,6 +2028,117 @@ function extractQuestTargets(text) {
     ];
 
     return commonTargets.filter(target => text.includes(target));
+}
+
+// Manual quest completion function
+function manualCompleteQuest(questTitle) {
+    if (!player.quests || player.quests.length === 0) {
+        displayMessage("You have no quests to complete.", 'error');
+        return;
+    }
+
+    // Find quest by partial title match
+    const quest = player.quests.find(q => 
+        !q.completed && 
+        (q.title.toLowerCase().includes(questTitle.toLowerCase()) || 
+         questTitle.toLowerCase().includes(q.title.toLowerCase()))
+    );
+
+    if (!quest) {
+        displayMessage(`Quest "${questTitle}" not found in your active quests.`, 'error');
+        return;
+    }
+
+    if (quest.completed) {
+        displayMessage(`Quest "${quest.title}" is already completed.`, 'info');
+        return;
+    }
+
+    // Mark as completed
+    quest.completed = true;
+    quest.dateCompleted = new Date().toLocaleDateString();
+
+    displayMessage(`🎉 Manually completed quest: ${quest.title}!`, 'success');
+
+    // Award rewards
+    let goldAwarded = 0;
+    let xpAwarded = 0;
+
+    if (quest.rewards && typeof quest.rewards === 'object') {
+        goldAwarded = parseInt(quest.rewards.gold) || 0;
+        xpAwarded = parseInt(quest.rewards.experience) || parseInt(quest.rewards.exp) || parseInt(quest.rewards.xp) || 0;
+
+        // Award items
+        if (quest.rewards.items && Array.isArray(quest.rewards.items) && quest.rewards.items.length > 0) {
+            quest.rewards.items.forEach(itemName => {
+                if (typeof itemName === 'string' && itemName.trim()) {
+                    const rewardItem = {
+                        id: Date.now() + Math.random(),
+                        name: itemName.trim(),
+                        type: 'quest_reward',
+                        rarity: quest.difficulty === 'Easy' ? 'COMMON' :
+                            quest.difficulty === 'Medium' ? 'UNCOMMON' :
+                                quest.difficulty === 'Hard' ? 'RARE' : 'EPIC',
+                        description: `A valuable reward earned by completing the quest: ${quest.title}`,
+                        value: Math.max(20, player.level * 10 + (quest.difficulty === 'Hard' ? 50 : 0))
+                    };
+
+                    if (!player.inventory) player.inventory = [];
+                    player.inventory.push(rewardItem);
+                    displayMessage(`🎁 You received: ${rewardItem.name}!`, 'success');
+                }
+            });
+        }
+    }
+
+    // Ensure minimum rewards
+    if (goldAwarded === 0) {
+        const difficultyMultiplier = quest.difficulty === 'Easy' ? 1.0 :
+            quest.difficulty === 'Medium' ? 1.5 :
+                quest.difficulty === 'Hard' ? 2.0 : 
+                quest.difficulty === 'Very Hard' ? 2.5 : 1.5;
+        goldAwarded = Math.floor((50 + player.level * 25) * difficultyMultiplier);
+    }
+
+    if (xpAwarded === 0) {
+        const baseXP = 25 + (player.level * 15);
+        const difficultyMultiplier = quest.difficulty === 'Easy' ? 0.8 :
+            quest.difficulty === 'Medium' ? 1.0 :
+                quest.difficulty === 'Hard' ? 1.4 :
+                quest.difficulty === 'Very Hard' ? 2.0 : 1.0;
+        xpAwarded = Math.floor(baseXP * difficultyMultiplier);
+    }
+
+    // Apply rewards
+    updateGold(goldAwarded, 'quest reward');
+    displayMessage(`💰 You earned ${goldAwarded} gold!`, 'success');
+
+    const oldLevel = player.level;
+    gainExperience(xpAwarded);
+    displayMessage(`⭐ You gained ${xpAwarded} experience!`, 'success');
+
+    if (player.level > oldLevel) {
+        displayMessage(`🆙 Level up! You are now level ${player.level}!`, 'success');
+        if (window.displayLevelUpRewards && player.classProgression) {
+            displayLevelUpRewards(player.classProgression, oldLevel);
+        }
+    }
+
+    // Update tracking
+    if (!player.completedQuests) player.completedQuests = 0;
+    player.completedQuests++;
+
+    updateQuestButton();
+    resetQuestPagination();
+
+    // Refresh quest display if open
+    const questInterface = document.getElementById('quest-interface');
+    if (questInterface && !questInterface.classList.contains('hidden')) {
+        displayQuests();
+    }
+
+    saveGame();
+    addToConversationHistory('assistant', `${player.name} completed the quest: ${quest.title}`);
 }
 
 // Helper function for experience gain
@@ -4276,6 +4401,29 @@ async function executeCustomCommand(command) {
 
         if (actionTaken) {
             multiCombatSystem.waitingForPlayerInput = false;
+            return;
+        }
+    }
+
+    // Check for manual quest completion command
+    if (command.toLowerCase().includes('complete quest') || command.toLowerCase().includes('finish quest')) {
+        const questMatch = command.match(/complete quest\s+(.+)|finish quest\s+(.+)/i);
+        if (questMatch) {
+            const questTitle = (questMatch[1] || questMatch[2]).trim();
+            manualCompleteQuest(questTitle);
+            return;
+        } else {
+            // Show active quests to complete
+            const activeQuests = player.quests?.filter(q => !q.completed) || [];
+            if (activeQuests.length > 0) {
+                displayMessage("Which quest would you like to complete?", 'info');
+                activeQuests.forEach((quest, index) => {
+                    displayMessage(`${index + 1}. ${quest.title}`, 'info');
+                });
+                displayMessage("Use 'complete quest [quest title]' to manually complete a quest.", 'info');
+            } else {
+                displayMessage("You have no active quests to complete.", 'info');
+            }
             return;
         }
     }
