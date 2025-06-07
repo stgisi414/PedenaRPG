@@ -1,0 +1,312 @@
+🏰 Pedena Game API Demo
+Complete programmatic interface for running the Pedena RPG game.
+
+🚀 API Initialization
+Initialize API Show Endpoints Setup AI Function
+{
+  "success": true,
+  "message": "Pedena Game API initialized successfully",
+  "version": "1.0.0"
+}
+👤 Character Management
+TestHero
+ 
+Warrior
+ 
+Male
+ Create Character Get Player Data
+{
+  "success": true,
+  "player": {
+    "name": "TestHero",
+    "gender": "male",
+    "class": "warrior",
+    "background": "A brave adventurer seeking glory and treasure.",
+    "stats": {
+      "strength": 12,
+      "dexterity": 10,
+      "intelligence": 10,
+      "constitution": 12,
+      "wisdom": 10,
+      "charisma": 10
+    },
+    "hp": 120,
+    "maxHp": 120,
+    "level": 1,
+    "exp": 0,
+    "expToNextLevel": 100,
+    "gold": 50,
+    "inventory": [],
+    "equipment": {
+      "head": null,
+      "chest": null,
+      "hands": null,
+      "legs": null,
+      "feet": null,
+      "mainHand": null,
+      "offHand": null,
+      "amulet": null,
+      "ring1": null,
+      "ring2": null
+    },
+    "skills": [],
+    "abilities": [],
+    "quests": [],
+    "relationships": {},
+    "currentLocation": "Pedena Town Square",
+    "currentEnemy": null,
+    "alignment": {
+      "score": 0,
+      "type": "neutral",
+      "history": [],
+      "lastAssessment": 1749256068728,
+      "totalAssessments": 0,
+      "messagesSinceLastAssessment": 0
+    },
+    "classProgression": {
+      "class": "warrior",
+      "level": 1,
+      "availableSpells": [],
+      "knownSpells": [],
+      "availableCantrips": [],
+      "knownCantrips": [],
+      "classAbilities": [
+        "Power Strike",
+        "Shield Bash"
+      ],
+      "classFeats": [
+        "Weapon Mastery"
+      ],
+      "unlockedFeatures": [
+        "Fighting Style",
+        "Second Wind"
+      ],
+      "spellSlots": {},
+      "abilityUses": {
+        "Power Strike": {
+          "lastUsed": 0,
+          "cooldown": 3
+        },
+        "Shield Bash": {
+          "lastUsed": 0,
+          "cooldown": 2
+        }
+      }
+    },
+    "progression": {
+      "class": "warrior",
+      "level": 1,
+      "hitDie": "d10",
+      "primaryStats": [
+        "strength",
+        "constitution"
+      ],
+      "features": [
+        "Fighting Style",
+        "Second Wind"
+      ],
+      "abilities": [
+        {
+          "name": "Power Strike",
+          "definition": {
+            "class": "warrior",
+            "type": "attack",
+            "cooldown": 3,
+            "description": "Deal extra 1d6 damage on your next melee attack.",
+            "effect": {
+              "damage": "1d6",
+              "type": "bonus"
+            }
+          }
+        },
+        {
+          "name": "Shield Bash",
+          "definition": {
+            "class": "warrior",
+            "type": "attack",
+            "cooldown": 2,
+            "description": "Bash with your shield to daze an enemy briefly (disadvantage on next attack).",
+            "effect": {
+              "damage": "1d4",
+              "status": "dazed"
+            }
+          }
+        }
+      ],
+      "feats": [
+        {
+          "name": "Weapon Mastery",
+          "definition": {
+            "class": "warrior",
+            "level": 1,
+            "description": "Gain proficiency with all martial weapons and +1 to attack rolls with one chosen weapon type.",
+            "effect": {
+              "proficiency_martial_all": true,
+              "attack_bonus_chosen_weapon_type": 1
+            }
+          }
+        }
+      ],
+      "spells": {
+        "known": [],
+        "available": []
+      },
+      "cantrips": [],
+      "spellSlots": {}
+    },
+    "alignmentInfo": {
+      "type": "neutral",
+      "score": 0,
+      "description": "You walk the middle path, neither particularly good nor evil.",
+      "color": "text-gray-600",
+      "modifier": {
+        "npcTrustModifier": 0,
+        "shopPriceModifier": 1,
+        "questRewardModifier": 1,
+        "combatModifier": {
+          "damageBonus": 0,
+          "defenseBonus": 0,
+          "critChance": 0
+        },
+        "prayerEffects": [
+          {
+            "name": "Fortune's Favor",
+            "description": "Lady Luck smiles upon you",
+            "duration": 180,
+            "effects": [
+              "luck_boost",
+              "fortune"
+            ],
+            "healAmount": 25,
+            "goldBonus": 65,
+            "critBonus": 0.1
+          }
+        ]
+      }
+    },
+    "modifiers": {
+      "npcTrustModifier": 0,
+      "shopPriceModifier": 1,
+      "questRewardModifier": 1,
+      "combatModifier": {
+        "damageBonus": 0,
+        "defenseBonus": 0,
+        "critChance": 0
+      },
+      "prayerEffects": [
+        {
+          "name": "Fortune's Favor",
+          "description": "Lady Luck smiles upon you",
+          "duration": 180,
+          "effects": [
+            "luck_boost",
+            "fortune"
+          ],
+          "healAmount": 25,
+          "goldBonus": 67,
+          "critBonus": 0.1
+        }
+      ]
+    }
+  },
+  "message": "Character TestHero created successfully"
+}
+🗺️ Location & Movement
+Mystic Forest
+ Current Location Move To Location
+{
+  "success": true,
+  "newLocation": "Mystic Forest",
+  "oldLocation": "Pedena Town Square",
+  "description": "You travel from Pedena Town Square to Mystic Forest. The journey takes about 180 minutes.",
+  "travelTime": 180,
+  "hasEncounter": false,
+  "encounterType": null,
+  "analysis": {
+    "originalCommand": "travel to Mystic Forest",
+    "movementType": "interpreted_travel",
+    "destination": {
+      "name": "Mystic Forest",
+      "type": "region",
+      "confidence": 0.8,
+      "estimatedTime": 180,
+      "encounterChance": 0.4
+    },
+    "confidence": 0.8,
+    "travelMethod": "walking",
+    "estimatedTime": 180,
+    "encounterChance": 0.4,
+    "possibleDestinations": [],
+    "contextualInfo": {
+      "currentLocation": "Pedena Town Square",
+      "nearbyLocations": [
+        "Crystal Peaks",
+        "Whispering Woods",
+        "Royal City"
+      ],
+      "availableTransport": [
+        "walking",
+        "horse"
+      ],
+      "currentWeather": "light rain",
+      "timeOfDay": "afternoon",
+      "playerLevel": 1,
+      "playerClass": "warrior",
+      "recentLocations": []
+    }
+  }
+}
+📜 Quest System
+Generate Quest View Quests Complete First Quest
+{
+  "success": true,
+  "quest": {
+    "id": "1749256095695",
+    "title": "Adventure Awaits (Level 1)",
+    "description": "A new opportunity for adventure has presented itself. The details may be unclear, but the potential for glory and reward is real.",
+    "objective": "Seek out adventure and complete the task at hand",
+    "category": "exploration",
+    "difficulty": "Easy",
+    "location": "Mystic Forest",
+    "questGiver": "Mysterious Figure",
+    "rewards": {
+      "gold": 70,
+      "experience": 35,
+      "items": [
+        "Healing Potion"
+      ]
+    },
+    "requirements": [],
+    "estimatedTime": "1-2 hours",
+    "complications": null,
+    "completed": false,
+    "dateCreated": "6/6/2025"
+  },
+  "message": "New quest generated: Adventure Awaits (Level 1)"
+}
+🎮 Interactive Game Interface
+Name: TestHero
+Class: warrior
+Level: 1
+HP: 120/120
+Gold: 50
+Location: Mystic Forest
+Conversation will appear here...
+
+👤 You (7:28:46 PM)
+explore the ancient ruins
+🤖 DM (7:28:47 PM)
+You explore the area thoroughly and discover a hidden chest containing 50 gold coins!
+👤 You (7:29:00 PM)
+chill wit da laays
+🤖 DM (7:29:00 PM)
+Your choice leads to an unexpected but positive outcome.
+👤 You (7:29:08 PM)
+fuck around and find out
+🤖 DM (7:29:08 PM)
+Your choice leads to an unexpected but positive outcome.
+Enter your command (e.g., 'explore the area', 'attack the goblin', 'talk to the merchant')
+ Execute Command Quick Actions Clear Log
+Rest Explore Look Around Inventory Cast Spell
+🔍 Complete Game State
+Get Full State Save Game Load Game
