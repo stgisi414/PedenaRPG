@@ -32,18 +32,56 @@ export class PedenaGameAPI {
     }
 
     // Initialize the API
-    async initialize() {
+    async initialize(aiFunction = null) {
         if (this.initialized) return;
         
         // Set up global access
         window.PedenaAPI = this;
         window.gameData = gameData;
         
+        // Set up AI function for command processing
+        if (aiFunction) {
+            this.aiFunction = aiFunction;
+        } else {
+            // Try to use global callGeminiAPI if available
+            this.aiFunction = window.callGeminiAPI || this.createFallbackAI();
+        }
+        
         this.initialized = true;
         return {
             success: true,
             message: "Pedena Game API initialized successfully",
             version: this.version
+        };
+    }
+
+    // Create fallback AI function if none provided
+    createFallbackAI() {
+        return async (prompt, temperature = 0.7, maxTokens = 800, includeContext = false) => {
+            // Simple fallback that generates basic responses
+            console.log('Using fallback AI - prompt:', prompt.substring(0, 100) + '...');
+            
+            // Basic response generation based on command analysis
+            if (prompt.includes('MOVEMENT')) {
+                return "You travel to your destination. The journey is uneventful but you arrive safely.";
+            } else if (prompt.includes('COMBAT')) {
+                return "You engage in battle! After a fierce fight, you emerge victorious.";
+            } else if (prompt.includes('EXPLORATION')) {
+                return "You explore the area and discover something interesting hidden nearby.";
+            } else if (prompt.includes('INTERACTION')) {
+                return "You have a pleasant conversation and learn something useful.";
+            } else {
+                return "You take action and something happens in response to your efforts.";
+            }
+        };
+    }
+
+    // Set AI function after initialization
+    setAIFunction(aiFunction) {
+        this.aiFunction = aiFunction;
+        return {
+            success: true,
+            message: "AI function set successfully"
         };
     }
 
@@ -372,19 +410,89 @@ export class PedenaGameAPI {
             timestamp: Date.now()
         });
 
-        // Process with GameActions
-        const result = await GameActions.processPlayerAction(command, this.gameState.player);
-        
-        // Add AI response to conversation history
-        if (result && result.response) {
+        try {
+            // Create game state for processing
+            const gameState = {
+                name: this.gameState.player.name,
+                currentLocation: this.gameState.player.currentLocation || 'Unknown Location',
+                level: this.gameState.player.level || 1,
+                class: this.gameState.player.class || 'adventurer',
+                hp: this.gameState.player.hp || 100,
+                maxHp: this.gameState.player.maxHp || 100,
+                gold: this.gameState.player.gold || 0,
+                quests: this.gameState.player.quests || [],
+                equipment: this.gameState.player.equipment || {},
+                inventory: this.gameState.player.inventory || [],
+                npcsInLocation: []
+            };
+
+            // Analyze the command
+            const analysis = GameActions.analyzeCommand(command, gameState);
+            
+            // Create structured prompt for AI
+            const prompt = GameActions.createStructuredPrompt(analysis, gameState);
+
+            // Use the AI function to process the command
+            let response;
+            if (this.aiFunction) {
+                response = await this.aiFunction(prompt, 0.7, 800, false);
+            } else {
+                response = `You ${command}. [AI processing not available - call setAIFunction() first]`;
+            }
+
+            // Add AI response to conversation history
             this.gameState.conversationHistory.messages.push({
                 role: 'assistant',
-                content: result.response,
+                content: response,
                 timestamp: Date.now()
             });
-        }
 
-        return result;
+            // Handle special commands that might affect game state
+            await this.handleCommandEffects(command, analysis, response);
+
+            return {
+                success: true,
+                response: response,
+                actionType: analysis.actionType,
+                confidence: analysis.confidence,
+                extractedData: analysis.extractedData,
+                player: this.getPlayerData()
+            };
+
+        } catch (error) {
+            console.error('Error processing command:', error);
+            return {
+                success: false,
+                response: `You attempt to ${command}, but something goes wrong.`,
+                error: error.message
+            };
+        }
+    }
+
+    // Handle command effects on game state
+    async handleCommandEffects(command, analysis, response) {
+        const player = this.gameState.player;
+        
+        // Handle movement commands
+        if (analysis.actionType === 'movement' && analysis.extractedData.primary) {
+            const destination = analysis.extractedData.primary;
+            // Simple location update - could be enhanced with proper location validation
+            player.currentLocation = destination.replace(/^(the|a|an)\s+/i, '').trim();
+        }
+        
+        // Handle rest commands
+        if (analysis.actionType === 'rest') {
+            const healAmount = Math.floor(player.maxHp * 0.25) + 10;
+            player.hp = Math.min(player.maxHp, player.hp + healAmount);
+        }
+        
+        // Handle simple item pickup from responses
+        if (response.includes('found') || response.includes('discovered')) {
+            const goldMatch = response.match(/(\d+)\s+gold/i);
+            if (goldMatch) {
+                player.gold += parseInt(goldMatch[1]);
+            }
+        }
     }
 
     // Get conversation history
