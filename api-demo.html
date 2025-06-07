@@ -349,7 +349,7 @@
             }
         };
 
-        // Create test character with full game mechanics
+        // Create test character with full game mechanics - using actual game functions
         window.createTestCharacter = async () => {
             if (!isAPIInitialized) {
                 document.getElementById('character-output').textContent = '❌ Please initialize API first!';
@@ -378,6 +378,9 @@
 
                 if (result.success) {
                     testPlayer = result.player;
+                    
+                    // Set the global player reference for the main game
+                    window.player = testPlayer;
                     
                     // Add some initial items like a real character would have
                     testPlayer.inventory = [
@@ -483,7 +486,7 @@
             }
         };
 
-        // Execute game command with full RPG mechanics
+        // Execute game command with full RPG mechanics - linked to actual game functions
         window.executeGameCommand = async () => {
             if (!isAPIInitialized) {
                 displayGameMessage('❌ Please initialize API first!', 'error');
@@ -504,27 +507,33 @@
 
                 displayGameMessage(`> ${command}`, 'info');
 
-                // Process command through the game API
-                const result = await gameAPI.processCommand(command);
+                // Set the global player reference for the main game functions
+                window.player = testPlayer;
 
-                if (result.success) {
-                    displayGameMessage(result.response, 'info');
-                    
-                    // Update player reference
-                    testPlayer = result.player;
-                    
-                    // Handle special command effects
-                    await handleCommandEffects(command, result.response);
-                    
-                    // Save updated data
-                    saveTestCharacterData();
-                    
-                    // Refresh displays
-                    refreshTestCharacterData();
-                    refreshStorageData();
+                // Use the actual game's executeCustomCommand function
+                if (typeof window.executeCustomCommand === 'function') {
+                    await window.executeCustomCommand(command);
                 } else {
-                    displayGameMessage(`❌ Command failed: ${result.error || result.message}`, 'error');
+                    // Fallback to API processing if main game function not available
+                    const result = await gameAPI.processCommand(command);
+                    if (result.success) {
+                        displayGameMessage(result.response, 'info');
+                        testPlayer = result.player;
+                    } else {
+                        displayGameMessage(`❌ Command failed: ${result.error || result.message}`, 'error');
+                    }
                 }
+                
+                // Update test player from global player after command execution
+                testPlayer = window.player;
+                
+                // Save updated data
+                saveTestCharacterData();
+                
+                // Refresh displays
+                refreshTestCharacterData();
+                refreshStorageData();
+                
             } catch (error) {
                 displayGameMessage(`❌ Error executing command: ${error.message}`, 'error');
                 console.error('Command execution error:', error);
@@ -617,10 +626,63 @@
             }
         }
 
-        // Quick command shortcuts
+        // Quick command shortcuts - linked to actual game functions
         window.quickCommand = async (command) => {
             document.getElementById('command-input').value = command;
-            await executeGameCommand();
+            
+            // Set global player reference
+            window.player = testPlayer;
+            
+            // Use specific game functions when available
+            if (command.includes('explore')) {
+                if (typeof window.explore === 'function') {
+                    displayGameMessage(`> ${command}`, 'info');
+                    await window.explore();
+                } else {
+                    await executeGameCommand();
+                }
+            } else if (command.includes('rest')) {
+                if (typeof window.executeCustomCommand === 'function') {
+                    displayGameMessage(`> ${command}`, 'info');
+                    await window.executeCustomCommand(command);
+                } else {
+                    await executeGameCommand();
+                }
+            } else if (command.includes('quest')) {
+                if (typeof window.generateQuest === 'function') {
+                    displayGameMessage(`> ${command}`, 'info');
+                    await window.generateQuest();
+                } else {
+                    await executeGameCommand();
+                }
+            } else if (command.includes('stats')) {
+                if (typeof window.displayPlayerStatsDisplay === 'function') {
+                    displayGameMessage(`> ${command}`, 'info');
+                    window.updatePlayerStatsDisplay();
+                    displayGameMessage(`${testPlayer.name} - Level ${testPlayer.level} ${testPlayer.class}`, 'info');
+                    displayGameMessage(`HP: ${testPlayer.hp}/${testPlayer.maxHp} | Gold: ${testPlayer.gold}`, 'info');
+                    displayGameMessage(`Location: ${testPlayer.currentLocation}`, 'info');
+                } else {
+                    await executeGameCommand();
+                }
+            } else if (command.includes('pray')) {
+                if (typeof window.executeCustomCommand === 'function') {
+                    displayGameMessage(`> ${command}`, 'info');
+                    await window.executeCustomCommand(command);
+                } else {
+                    await executeGameCommand();
+                }
+            } else {
+                await executeGameCommand();
+            }
+            
+            // Update test player from global player after command execution
+            testPlayer = window.player;
+            
+            // Save and refresh displays
+            saveTestCharacterData();
+            refreshTestCharacterData();
+            refreshStorageData();
         };
 
         // Refresh test character data display
@@ -786,9 +848,37 @@
             }
         });
 
+        // Load the actual game script to access game functions
+        async function loadGameScript() {
+            try {
+                // Load the main game script
+                const script = document.createElement('script');
+                script.src = './script.js';
+                script.type = 'module';
+                document.head.appendChild(script);
+                
+                // Wait for script to load
+                await new Promise((resolve, reject) => {
+                    script.onload = resolve;
+                    script.onerror = reject;
+                });
+                
+                console.log('Main game script loaded successfully');
+                displayGameMessage('Game script loaded - full game functions available!', 'success');
+                
+            } catch (error) {
+                console.warn('Could not load main game script:', error);
+                displayGameMessage('Game script loading failed - using API fallback mode', 'info');
+            }
+        }
+
         // Auto-initialize on load
-        window.addEventListener('load', () => {
+        window.addEventListener('load', async () => {
             refreshStorageData();
+            
+            // Load the main game script first
+            await loadGameScript();
+            
             // Auto-initialize API
             setTimeout(() => {
                 initializeAPI();
