@@ -380,18 +380,23 @@ async function processAlignmentChange(change) {
     saveGame();
 }
 
-function updateRelationship(npcName, statusChange = 0, trustChange = 0, npcDescription = null) {
+function updateRelationship(npcName, statusChange = 0, trustChange = 0, npcDescription = null, forceCreate = false) { // <-- ADD forceCreate
     if (!player.relationships) {
         player.relationships = {};
     }
 
-    // Initialize alignment and get modifiers
-    AlignmentSystem.initializeAlignment(player);
     const alignmentModifier = AlignmentSystem.getAlignmentModifier(player);
 
+    // Check if the relationship already exists
     if (!player.relationships[npcName]) {
-        // Apply alignment modifier to initial trust
-        const baseTrust = 50 + alignmentModifier.npcTrustModifier;
+        // **This block is now conditional**
+        if (!forceCreate) {
+            // If not forcing creation, just return and do nothing for new NPCs.
+            return null; 
+        }
+
+        // This part now only runs if forceCreate is true
+        const baseTrust = 50 + (alignmentModifier.npcTrustModifier || 0);
         player.relationships[npcName] = {
             status: 'neutral',
             trust: Math.max(0, Math.min(100, baseTrust)),
@@ -401,23 +406,24 @@ function updateRelationship(npcName, statusChange = 0, trustChange = 0, npcDescr
             description: npcDescription || "A person you've encountered in your travels.",
             firstMeeting: new Date().toLocaleDateString()
         };
-        displayMessage(`You've established a new relationship with ${npcName}.`, 'info');
+        // This message will now only appear when intended
+        displayMessage(`You've established a new relationship with ${npcName}.`, 'success'); 
     }
 
     const relationship = player.relationships[npcName];
+    if (!relationship) return; // Exit if relationship still doesn't exist
 
-    // Apply alignment modifier to trust changes
-    const modifiedTrustChange = trustChange + (alignmentModifier.npcTrustModifier * 0.1);
+    // Apply trust change, modified by alignment
+    const modifiedTrustChange = trustChange + ((alignmentModifier.npcTrustModifier || 0) * 0.1);
     relationship.trust = Math.max(0, Math.min(100, relationship.trust + modifiedTrustChange));
     relationship.interactions++;
     relationship.lastInteraction = Date.now();
 
-    // Update description if provided
-    if (npcDescription && !relationship.description.includes(npcDescription)) {
+    if (npcDescription && relationship.description !== npcDescription) {
         relationship.description = npcDescription;
     }
 
-    // Update status based on trust level
+    // Update status based on new trust level
     const oldStatus = relationship.status;
     if (relationship.trust >= 80) relationship.status = 'allied';
     else if (relationship.trust >= 60) relationship.status = 'friendly';
@@ -429,8 +435,6 @@ function updateRelationship(npcName, statusChange = 0, trustChange = 0, npcDescr
         displayMessage(`Your relationship with ${npcName} is now ${relationship.status}.`, 'info');
     }
 
-
-    // Don't save here - let the calling function handle saving
     return relationship;
 }
 
@@ -4430,9 +4434,42 @@ async function executeCustomCommand(command) {
     }
 
     // Check for other command types
-    if (command.toLowerCase().includes('talk') || command.toLowerCase().includes('speak')) {
+    const talkMatch = command.match(/talk to (.+)/i) || command.match(/speak with (.+)/i);
+    if (talkMatch && talkMatch[1]) {
+        const npcName = talkMatch[1].trim();
+        await handleSpecificNPCInteraction(npcName); // A new function we'll create
+        return; // Stop further processing
+    } else if (command.toLowerCase().includes('talk') || command.toLowerCase().includes('speak')) {
+        // Fallback for generic "talk" commands
         await startConversation();
         return;
+    }
+
+    async function handleSpecificNPCInteraction(npcName) {
+        displayMessage(`You try to talk to ${npcName}...`, 'info');
+
+        // Find the NPC in the current location's list
+        const existingNPCs = getNPCsInLocation(player.currentLocation);
+        const targetNPC = existingNPCs.find(npc => npc.name.toLowerCase().includes(npcName.toLowerCase()));
+
+        if (targetNPC) {
+            // If the NPC is found, generate a specific response
+            const prompt = `The player, ${player.name}, talks to ${targetNPC.name} in ${player.currentLocation}. What is the NPC's response to being approached?`;
+            const response = await callGeminiAPI(prompt, 0.7, 250, true);
+
+            if (response) {
+                displayMessage(response);
+                addToConversationHistory('assistant', response);
+
+                // Force the creation of a relationship if one doesn't exist, since this is a direct interaction
+                updateRelationship(targetNPC.name, 0, 5, targetNPC.description, true); // +5 trust for initiating conversation
+            } else {
+                displayMessage(`${targetNPC.name} doesn't seem to have much to say right now.`, 'info');
+            }
+        } else {
+            // If the NPC is not found in the area
+            displayMessage(`You look around, but you don't see anyone named "${npcName}" here.`, 'error');
+        }
     }
 
     if (command.toLowerCase().includes('explore') || command.toLowerCase().includes('look around')) {
