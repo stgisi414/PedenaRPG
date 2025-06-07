@@ -4227,7 +4227,7 @@ export const abilityDefinitions = {
 
     // Universal/Generic Abilities
     "Second Wind": { class: "universal", type: "healing", cooldown: "short_rest", description: "Regain 1d10 + your level hit points.", effect: { healing: "1d10_plus_level" } },
-    "Action Surge": { class: "universal", type: "utility", cooldown: "short_rest", description: "Gain an additional action on your turn.", effect: { extra_action: 1 } }
+    "Action Surge": { class: "universal", type: "utility", cooldown: "short_rest", description: "Gain an additional action on your turn.", effect: { extra_action: 1 } },
 
 
     // Rogue Abilities (Original: 10, Adding 22 new, Total: 32)
