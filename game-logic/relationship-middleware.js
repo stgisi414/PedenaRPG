@@ -88,29 +88,89 @@ export class RelationshipMiddleware {
     }
 
     /**
-     * Processes the detected changes and updates the player's relationships.
+     * NEW FUNCTION: Resolves NPC identity using Gemini.
+     * @param {string} npcName - The name extracted from the text.
+     * @param {object} existingRelationships - The player.relationships object.
+     * @param {string} command - The player's command.
+     * @param {string} aiResponse - The game's response.
+     * @returns {object} An object with canonical name, description, and whether it's a new NPC.
      */
-    static async processRelationshipChange(relationshipData, player) {
+    static async resolveNpcIdentity(npcName, existingRelationships, command, aiResponse) {
+        const existingNames = Object.keys(existingRelationships);
+
+        // If the name already exists exactly, no need for AI call.
+        if (existingNames.map(n => n.toLowerCase()).includes(npcName.toLowerCase())) {
+            return {
+                isNew: false,
+                canonicalName: existingNames.find(n => n.toLowerCase() === npcName.toLowerCase()),
+                description: existingRelationships[npcName]?.description || `A known acquaintance.`
+            };
+        }
+
+        const prompt = `
+        NPC IDENTITY RESOLUTION
+
+        Context:
+        - Player Command: "${command}"
+        - Game Response: "${aiResponse}"
+        - Newly Mentioned NPC: "${npcName}"
+        - Existing Known NPCs: ${JSON.stringify(existingNames)}
+
+        Tasks:
+        1. Is "${npcName}" a new character, or an alias/title for one of the existing NPCs?
+        2. Generate a concise, 1-sentence description for the character suitable for a relationship log.
+
+        Respond ONLY with valid JSON:
+        {
+          "isNew": true/false,
+          "canonicalName": "The correct or most appropriate name for this character",
+          "description": "A new, concise one-sentence description."
+        }`;
+
+        try {
+            const response = await window.callGeminiAPI(prompt, 0.2, 500, false);
+            const jsonMatch = response.match(/\{[\s\S]*\}/);
+            if (jsonMatch) {
+                const data = JSON.parse(jsonMatch[0]);
+                // Basic validation
+                if (typeof data.isNew === 'boolean' && data.canonicalName && data.description) {
+                    return data;
+                }
+            }
+        } catch (e) {
+            console.error("Error resolving NPC identity:", e);
+        }
+
+        // Fallback: If AI fails, treat it as a new NPC.
+        return { isNew: true, canonicalName: npcName, description: `A mysterious figure known as ${npcName}.` };
+    }
+
+    /**
+     * MODIFIED FUNCTION: Processes the changes using the new resolution step.
+     */
+    static async processRelationshipChange(relationshipData, player, command, aiResponse) {
         if (!relationshipData || !relationshipData.hasRelationshipChange || !relationshipData.changes) return;
 
-        console.log("RelationshipMiddleware: Processing detected changes:", relationshipData.changes);
-
-        let gameWasSaved = false;
-        relationshipData.changes.forEach(change => {
+        for (const change of relationshipData.changes) {
             const { npcName, trustChange, npcDescription } = change;
+            if (!npcName) continue;
 
-            if (!npcName) return;
+            // **NEW STEP: Resolve identity before updating**
+            const identity = await this.resolveNpcIdentity(npcName, player.relationships || {}, command, aiResponse);
 
+            const finalName = identity.canonicalName;
+            const finalDescription = identity.description;
+
+            // Now, update or create the relationship with the resolved canonical name
             if (typeof window.updateRelationship === 'function') {
-                window.updateRelationship(npcName, 0, trustChange || 0, npcDescription);
-                gameWasSaved = true; // Assume updateRelationship and saveGame work
+                window.updateRelationship(finalName, 0, trustChange || 0, finalDescription);
             } else {
                 console.error("Global function 'updateRelationship' not found!");
             }
-        });
+        }
 
-        // Save the game state once after all changes if not already saved
-        if (gameWasSaved && typeof window.saveGame === 'function') {
+        // Save the game once after all changes are processed.
+        if (typeof window.saveGame === 'function') {
             window.saveGame();
         }
     }
