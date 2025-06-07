@@ -33,26 +33,41 @@ export class PedenaGameAPI {
 
     // Initialize the API
     async initialize(aiFunction = null) {
-        if (this.initialized) return;
-        
-        // Set up global access
-        window.PedenaAPI = this;
-        window.gameData = gameData;
-        
-        // Set up AI function for command processing
-        if (aiFunction) {
-            this.aiFunction = aiFunction;
-        } else {
-            // Try to use global callGeminiAPI if available
-            this.aiFunction = window.callGeminiAPI || this.createFallbackAI();
+        try {
+            if (this.initialized) {
+                return {
+                    success: true,
+                    message: "Pedena Game API already initialized",
+                    version: this.version
+                };
+            }
+            
+            // Set up global access
+            window.PedenaAPI = this;
+            window.gameData = gameData;
+            
+            // Set up AI function for command processing
+            if (aiFunction) {
+                this.aiFunction = aiFunction;
+            } else {
+                // Try to use global callGeminiAPI if available
+                this.aiFunction = window.callGeminiAPI || this.createFallbackAI();
+            }
+            
+            this.initialized = true;
+            return {
+                success: true,
+                message: "Pedena Game API initialized successfully",
+                version: this.version
+            };
+        } catch (error) {
+            console.error('Game API initialization error:', error);
+            return {
+                success: false,
+                message: `Initialization failed: ${error.message}`,
+                version: this.version
+            };
         }
-        
-        this.initialized = true;
-        return {
-            success: true,
-            message: "Pedena Game API initialized successfully",
-            version: this.version
-        };
     }
 
     // Create fallback AI function if none provided

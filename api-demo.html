@@ -299,14 +299,31 @@
             try {
                 document.getElementById('character-output').textContent = 'Initializing API and testing Gemini connection...';
                 
-                // Test Gemini connection
+                // Test Gemini connection first
                 const testResponse = await callGeminiAPI("Say 'Gemini API connected successfully for Pedena RPG!' and nothing else.");
                 
                 // Import and initialize game API
                 const gameAPIModule = await import('./game-api.js');
                 gameAPI = gameAPIModule.default;
                 
-                const initResult = await gameAPI.initialize(callGeminiAPI);
+                // Check if gameAPI was properly imported
+                if (!gameAPI) {
+                    throw new Error('Game API module failed to load');
+                }
+                
+                // Initialize the API
+                let initResult;
+                try {
+                    initResult = await gameAPI.initialize(callGeminiAPI);
+                } catch (initError) {
+                    console.error('Game API initialization error:', initError);
+                    throw new Error(`Game API initialization failed: ${initError.message}`);
+                }
+                
+                // Check if initialization was successful
+                if (!initResult) {
+                    throw new Error('Game API initialize() returned undefined');
+                }
                 
                 if (initResult.success) {
                     isAPIInitialized = true;
@@ -321,12 +338,13 @@
                     refreshTestCharacterData();
                     refreshStorageData();
                 } else {
-                    throw new Error('Failed to initialize game API');
+                    throw new Error(`Game API initialization failed: ${initResult.message || 'Unknown error'}`);
                 }
             } catch (error) {
                 updateStatus(false, error.message);
                 document.getElementById('character-output').textContent = `❌ Initialization Failed: ${error.message}`;
                 console.error('API initialization error:', error);
+                console.error('Error stack:', error.stack);
             }
         };
 
