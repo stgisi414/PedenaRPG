@@ -356,16 +356,44 @@ export class QuestTaskGenerator {
         
         // Weight categories based on player class
         const weights = {
-            [questCategories.COMBAT]: playerClass === 'warrior' ? 3 : playerClass === 'ranger' ? 2 : 1,
-            [questCategories.INVESTIGATION]: playerClass === 'rogue' ? 3 : playerClass === 'mage' ? 2 : 1,
-            [questCategories.DIPLOMACY]: playerClass === 'mage' ? 2 : 1,
-            [questCategories.EXPLORATION]: playerClass === 'ranger' ? 3 : 2,
-            [questCategories.DELIVERY]: 1,
-            [questCategories.RESCUE]: 2,
-            [questCategories.COLLECTION]: 2,
-            [questCategories.CRAFTING]: playerClass === 'warrior' ? 2 : 1,
-            [questCategories.PROTECTION]: playerClass === 'warrior' ? 2 : 1,
-            [questCategories.MYSTERY]: playerClass === 'rogue' ? 2 : playerClass === 'mage' ? 2 : 1
+            [questCategories.COMBAT]: 
+                playerClass === 'warrior' || playerClass === 'barbarian' || playerClass === 'gladiator' || playerClass === 'brawler' ? 3 :
+                playerClass === 'ranger' || playerClass === 'paladin' || playerClass === 'hunter' || playerClass === 'monk' ? 2 : 1,
+            
+            [questCategories.INVESTIGATION]: 
+                playerClass === 'rogue' || playerClass === 'assassin' || playerClass === 'ninja' ? 3 :
+                playerClass === 'mage' || playerClass === 'scholar' || playerClass === 'cleric' ? 2 : 1,
+            
+            [questCategories.DIPLOMACY]: 
+                playerClass === 'bard' || playerClass === 'priest' || playerClass === 'paladin' ? 3 :
+                playerClass === 'mage' || playerClass === 'cleric' || playerClass === 'scholar' ? 2 : 1,
+            
+            [questCategories.EXPLORATION]: 
+                playerClass === 'ranger' || playerClass === 'hunter' || playerClass === 'druid' ? 3 :
+                playerClass === 'rogue' || playerClass === 'assassin' || playerClass === 'ninja' || playerClass === 'monk' ? 2 : 1,
+            
+            [questCategories.DELIVERY]: 
+                playerClass === 'ranger' || playerClass === 'hunter' || playerClass === 'rogue' ? 2 : 1,
+            
+            [questCategories.RESCUE]: 
+                playerClass === 'paladin' || playerClass === 'priest' || playerClass === 'cleric' ? 3 :
+                playerClass === 'warrior' || playerClass === 'ranger' || playerClass === 'monk' ? 2 : 1,
+            
+            [questCategories.COLLECTION]: 
+                playerClass === 'alchemist' || playerClass === 'scholar' || playerClass === 'druid' ? 3 :
+                playerClass === 'ranger' || playerClass === 'hunter' || playerClass === 'rogue' ? 2 : 1,
+            
+            [questCategories.CRAFTING]: 
+                playerClass === 'engineer' || playerClass === 'alchemist' ? 3 :
+                playerClass === 'warrior' || playerClass === 'monk' || playerClass === 'druid' ? 2 : 1,
+            
+            [questCategories.PROTECTION]: 
+                playerClass === 'paladin' || playerClass === 'warrior' || playerClass === 'gladiator' ? 3 :
+                playerClass === 'priest' || playerClass === 'cleric' || playerClass === 'monk' ? 2 : 1,
+            
+            [questCategories.MYSTERY]: 
+                playerClass === 'warlock' || playerClass === 'necromancer' || playerClass === 'illusionist' ? 3 :
+                playerClass === 'rogue' || playerClass === 'mage' || playerClass === 'sorcerer' || playerClass === 'scholar' ? 2 : 1
         };
         
         // Adjust weights based on location
