@@ -3550,7 +3550,7 @@ export const classProgression = {
         }
     },
 
-    scholar {
+    scholar: {
         "name": "Scholar",
         "hitDie": "d6",
         "primaryStats": ["intelligence", "wisdom"],
