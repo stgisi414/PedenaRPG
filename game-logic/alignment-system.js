@@ -1,7 +1,7 @@
 
 // Alignment System - Tracks player morality and affects NPC interactions
 export class AlignmentSystem {
-    
+
     static alignmentTypes = {
         MALEVOLENT: 'malevolent',    // -10 to -6
         EVIL: 'evil',                // -5 to -3
@@ -46,14 +46,14 @@ export class AlignmentSystem {
             ai: aiResponse,
             timestamp: Date.now()
         });
-        
+
         this.messageCount++;
-        
+
         // Trigger assessment every 10 messages
         if (this.messageCount >= this.assessmentInterval) {
             return this.triggerAlignmentAssessment();
         }
-        
+
         return null;
     }
 
@@ -68,7 +68,7 @@ export class AlignmentSystem {
         Analyze the player's actions for their moral alignment.
 
         CONVERSATION HISTORY:
-        ${messagesToAssess.map((msg, index) => 
+        ${messagesToAssess.map((msg, index) =>
             `${index + 1}. Player: "${msg.player}"\n   Game Response: "${msg.ai}"`
         ).join('\n\n')}
 
@@ -109,7 +109,7 @@ export class AlignmentSystem {
 
     static parseAlignmentResponse(response) {
         const cleanResponse = response.trim();
-        
+
         if (cleanResponse.includes('+1') || cleanResponse === '1') {
             return 1;
         } else if (cleanResponse.includes('-1') || cleanResponse === '-1') {
@@ -121,16 +121,16 @@ export class AlignmentSystem {
 
     static updateAlignment(player, change) {
         const alignment = this.initializeAlignment(player);
-        
+
         const oldScore = alignment.score;
         const oldType = alignment.type;
-        
+
         // Update alignment score (capped between -10 and +10)
         alignment.score = Math.max(-10, Math.min(10, alignment.score + change));
-        
+
         // Update alignment type based on score
         alignment.type = this.getAlignmentType(alignment.score);
-        
+
         // Record this assessment
         alignment.history.push({
             change: change,
@@ -140,11 +140,11 @@ export class AlignmentSystem {
             newType: alignment.type,
             timestamp: Date.now()
         });
-        
+
         alignment.lastAssessment = Date.now();
         alignment.totalAssessments++;
         alignment.messagesSinceLastAssessment = 0;
-        
+
         return {
             changed: oldType !== alignment.type,
             oldType: oldType,
@@ -167,7 +167,7 @@ export class AlignmentSystem {
     static getAlignmentModifier(player) {
         const alignment = this.initializeAlignment(player);
         const type = alignment.type;
-        
+
         return {
             npcTrustModifier: this.getNpcTrustModifier(type),
             shopPriceModifier: this.getShopPriceModifier(type),
@@ -226,7 +226,7 @@ export class AlignmentSystem {
 
     static getPrayerEffects(alignmentType, score) {
         const effects = [];
-        
+
         if (alignmentType === 'devout') {
             effects.push({
                 name: 'Divine Blessing',
@@ -276,7 +276,7 @@ export class AlignmentSystem {
                 critBonus: 0.1 // 10% increased crit chance
             });
         }
-        
+
         return effects;
     }
 
@@ -287,7 +287,7 @@ export class AlignmentSystem {
 
     static getAlignmentDisplayInfo(player) {
         const alignment = this.initializeAlignment(player);
-        
+
         return {
             type: alignment.type,
             score: alignment.score,

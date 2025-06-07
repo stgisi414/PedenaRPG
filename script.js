@@ -817,9 +817,6 @@ function loadGame() {
         updatePlayerStatsDisplay();
         updateQuestButton(); // Update quest button based on saved quests
 
-        // Auto-fix relationships based on conversation history
-        //autoFixMaraRelationship();
-
         showScreen('game-play-screen');
         displayMessage(`Welcome back, ${player.name}! You are in ${player.currentLocation}.`);
 
@@ -1113,7 +1110,6 @@ Make the location name proper and descriptive.`;
                 player.currentLocation = fallbackLocation;
                 displayMessage(`You travel to ${fallbackLocation}.`, 'success');
                 updatePlayerStatsDisplay();
-                saveGame();
                 if (Math.random() < 0.2) checkRandomEncounter();
             } else {
                 displayMessage("Unable to determine destination.", 'error');
@@ -1153,7 +1149,6 @@ Make the location name proper and descriptive.`;
             LocationManager.saveLocationToHistory(movementData.newLocation, player.name);
         }
         addToConversationHistory('assistant', `${player.name} traveled from ${oldLocation} to ${movementData.newLocation}`);
-        saveGame();
 
         // Check for encounters based on AI decision
         if (movementData.encounterChance > 0 && Math.random() < movementData.encounterChance) {
@@ -1199,9 +1194,6 @@ async function handleMovement(command) {
     if (result.success) {
         player.currentLocation = result.newLocation;
         displayMessage(result.description, 'success');
-
-        // Save the new location
-        saveGame();
 
         // Check for encounters
         if (result.hasEncounter && Math.random() < 0.3) {
@@ -1381,7 +1373,6 @@ async function generateTreasureEncounter() {
             break;
     }
 
-    saveGame();
 }
 
 // Add save debouncing to prevent multiple saves
@@ -1414,11 +1405,6 @@ async function checkRelationshipChanges(playerCommand, aiResponse) {
             relationshipAdded = true;
         }
     });
-
-    // Save the game only if a new relationship was actually added or updated.
-    if (relationshipAdded) {
-        saveGame();
-    }
 }
 
 // Function to extract NPC names from AI responses
@@ -1464,69 +1450,6 @@ async function extractNPCNames(aiResponse, player) {
         console.error("Error calling Gemini API for NPC name extraction:", error);
         return []; // Return an empty array on error to prevent crashes
     }
-}
-
-// Manual fix for Mara relationship (can be called from console)
-function fixMaraRelationship() {
-    if (!player.relationships) {
-        player.relationships = {};
-    }
-
-    player.relationships['Mara Moneymaker'] = {
-        status: 'romantic',
-        trust: 95,
-        interactions: 8,
-        lastInteraction: Date.now(),
-        metAt: 'Pedena Town Square',
-        description: 'A charismatic and wealthy merchant who has captured your heart. She runs a successful trading business and has become your romantic partner.',
-        firstMeeting: new Date().toLocaleDateString()
-    };
-
-    displayMessage("💕 Relationship with Mara Moneymaker updated to romantic!", 'success');
-    saveGame();
-
-    // Refresh background display if it's open
-    const backgroundInterface = document.getElementById('background-interface');
-    if (backgroundInterface && !backgroundInterface.classList.contains('hidden')) {
-        displayCharacterBackground();
-    }
-}
-
-// Manual function to remove items from inventory
-function removeItemFromInventory(itemName) {
-    if (!player.inventory || player.inventory.length === 0) {
-        displayMessage("Your inventory is empty.", 'info');
-        return false;
-    }
-
-    const itemIndex = player.inventory.findIndex(item =>
-        item.name.toLowerCase().includes(itemName.toLowerCase()) ||
-        itemName.toLowerCase().includes(item.name.toLowerCase())
-    );
-
-    if (itemIndex === -1) {
-        displayMessage(`Could not find "${itemName}" in your inventory.`, 'error');
-        return false;
-    }
-
-    const removedItem = player.inventory.splice(itemIndex, 1)[0];
-    displayMessage(`Removed "${removedItem.name}" from inventory.`, 'success');
-
-    // Force save inventory
-    if (window.ItemManager && typeof ItemManager.saveInventoryToStorage === 'function') {
-        ItemManager.saveInventoryToStorage(player);
-    }
-
-    // Force save game
-    saveGame();
-
-    // Refresh inventory display if open
-    const inventoryInterface = document.getElementById('inventory-interface');
-    if (inventoryInterface && !inventoryInterface.classList.contains('hidden')) {
-        displayInventory();
-    }
-
-    return true;
 }
 
 // Debug function to check inventory consistency
@@ -1635,6 +1558,7 @@ function cleanupRelationships() {
 
 // Reset character progression to match current class progression data
 function resetCharacterProgression() {
+    console.log('--- RESET FUNCTION STARTED at ' + new Date().getTime()); // <-- ADD THIS LINE
     if (!player || !player.class) {
         displayMessage("No character to reset progression for.", 'error');
         return;
@@ -1696,7 +1620,6 @@ function resetCharacterProgression() {
 
             // Save the updated progression
             CharacterManager.saveProgression(player);
-            saveGame();
 
             // Update displays
             updatePlayerStatsDisplay();
@@ -1714,35 +1637,6 @@ function resetCharacterProgression() {
     } catch (error) {
         console.error('Error resetting character progression:', error);
         displayMessage("Error occurred while resetting progression. Check console for details.", 'error');
-    }
-}
-
-// Auto-fix Mara relationship if we detect she should be romantic but isn't
-function autoFixMaraRelationship() {
-    // Ensure player and relationships exist before proceeding
-    if (!player || !player.relationships) {
-        console.log('autoFixMaraRelationship: Player or relationships not initialized yet');
-        return;
-    }
-
-    // Ensure conversationHistory exists and has messages
-    if (!conversationHistory || !conversationHistory.messages || conversationHistory.messages.length === 0) {
-        console.log('autoFixMaraRelationship: No conversation history available');
-        return;
-    }
-
-    const conversationText = conversationHistory.messages.slice(-10).map(m => m.content).join(' ').toLowerCase();
-
-    if ((conversationText.includes('mara') && conversationText.includes('girlfriend')) ||
-        (conversationText.includes('mara') && conversationText.includes('kiss')) ||
-        (conversationText.includes('glad to be yours'))) {
-
-        const maraRelationship = player.relationships['Mara Moneymaker'] || player.relationships['Mara'];
-
-        if (!maraRelationship || maraRelationship.status !== 'romantic') {
-            console.log('Auto-fixing Mara relationship based on conversation history');
-            //fixMaraRelationship();
-        }
     }
 }
 
@@ -1789,8 +1683,6 @@ async function generateEventEncounter() {
             displayMessage("Each path seems to lead to different adventures and opportunities.", 'info');
             break;
     }
-
-    saveGame();
 }
 
 async function generateQuest() {
@@ -2090,7 +1982,6 @@ function checkQuestCompletion(playerAction) {
                 if (!player.completedQuests) player.completedQuests = 0;
                 player.completedQuests++;
 
-                saveGame();
                 updateQuestButton();
             } else {
                 console.log('Quest not completed - insufficient score:', {
@@ -2248,13 +2139,11 @@ async function enemyAttack() {
             inlineCombat.remove();
         }
         updatePlayerStatsDisplay();
-        saveGame();
 
         // Add death to conversation history
         addToConversationHistory('assistant', `${player.name} was defeated in combat and recovered at ${player.currentLocation}`);
     } else {
         // Combat continues - save progress
-        saveGame();
     }
 }
 
@@ -2332,7 +2221,6 @@ async function recruitNPC(npcName, npcData = null) {
 
         // Add party commands to UI
         updatePartyUI();
-        saveGame();
     }
 
     return result;
@@ -2349,7 +2237,6 @@ function dismissPartyMember(memberId) {
 
     if (result.success) {
         updatePartyUI();
-        saveGame();
     }
 
     return result;
@@ -2546,7 +2433,6 @@ function handleCombatEnd(result) {
     multiCombatSystem.waitingForPlayerInput = false;
 
     updatePlayerStatsDisplay();
-    saveGame();
 }
 
 // Enhanced item pickup handler that detects specific items from story context
@@ -2596,7 +2482,6 @@ async function handleItemPickup(command, storyContext = '') {
         }
 
         updatePlayerStatsDisplay();
-        saveGame();
     }
 }
 
@@ -3753,7 +3638,6 @@ function removeCharacterPortrait() {
         displayCharacterBackground();
     }
 
-    saveGame();
     displayMessage("Character portrait removed successfully.", 'success');
     updateIllustrationButtonVisibility(); // Update button visibility after removing portrait
 }
@@ -4398,6 +4282,7 @@ IMPORTANT: If the player is trying to interact with something from recent explor
 
             // Save conversation history and game state
             saveConversationHistory();
+            console.log("saving game");
             debouncedSave();
         } else {
             displayMessage("Nothing interesting happens.", 'info');
@@ -4433,7 +4318,6 @@ document.addEventListener('DOMContentLoaded', () => {
         player.hp = Math.min(player.maxHp, player.hp + healAmount);
         displayMessage(`You rest and recover ${healAmount} HP. You feel refreshed.`, 'success');
         updatePlayerStatsDisplay();
-        saveGame();
 
         // Shop item purchase function
         // It's generally better to define this function outside and then assign to window if needed,
@@ -4590,7 +4474,6 @@ document.addEventListener('DOMContentLoaded', () => {
                                     inlineCombat.remove();
                                 }
                                 checkQuestCompletion(`defeated enemy with ${randomSpell}`);
-                                saveGame();
                             } else {
                                 // Enemy retaliates
                                 setTimeout(() => enemyAttack(), 1500);
@@ -4665,7 +4548,6 @@ document.addEventListener('DOMContentLoaded', () => {
                         });
                         displayMessage(`The ${effect.name.toLowerCase()} effect has worn off.`, 'info');
                         updatePlayerStatsDisplay();
-                        saveGame();
                     }, effect.duration * 1000);
                 }
 
@@ -4686,7 +4568,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 displayMessage(`Effect duration: ${Math.floor(effect.duration / 60)} minutes`, 'info');
 
                 updatePlayerStatsDisplay();
-                saveGame();
             } else {
                 displayMessage("The gods listen but remain silent.", 'info');
             }
@@ -4808,9 +4689,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 displayQuests();
             }
 
-            // Save game state
-            saveGame();
-
             // Add to conversation history
             addToConversationHistory('assistant', `${player.name} abandoned the quest: ${quest.title}`);
             saveConversationHistory();
@@ -4851,7 +4729,6 @@ document.addEventListener('DOMContentLoaded', () => {
     window.changeInventoryPage = changeInventoryPage;
     window.abandonQuest = abandonQuest;
     window.cleanupRelationships = cleanupRelationships;
-    window.fixMaraRelationship = fixMaraRelationship;
     window.recruitNPC = recruitNPC;
     window.dismissPartyMember = dismissPartyMember;
     window.displayPartyStatus = displayPartyStatus;
@@ -6049,7 +5926,6 @@ function equipItem(itemIndex) {
 
     updatePlayerStatsDisplay();
     displayInventory(); // Refresh inventory display
-    saveGame();
 }
 
 function unequipItem(slot) {
@@ -6072,7 +5948,6 @@ function unequipItem(slot) {
     displayMessage(`Unequipped ${item.name}.`, 'success');
     updatePlayerStatsDisplay();
     displayInventory(); // Refresh display
-    saveGame();
 }
 
 function useItem(itemIndex) {
@@ -6117,7 +5992,6 @@ function useItem(itemIndex) {
         player.inventory.splice(itemIndex, 1);
         updatePlayerStatsDisplay();
         displayInventory(); // Refresh display
-        saveGame();
     } else {
         displayMessage("The item has no effect.", 'info');
     }
@@ -6137,7 +6011,6 @@ function sellItem(itemIndex) {
         updateGold(sellValue, 'item sale');
         displayMessage(`Sold ${item.name} for ${sellValue} gold.`, 'success');
         displayInventory(); // Refresh display
-        saveGame();
     }
 }
 
@@ -6153,7 +6026,6 @@ function dropItem(itemIndex) {
         player.inventory.splice(itemIndex, 1);
         displayMessage(`Dropped ${item.name}.`, 'info');
         displayInventory(); // Refresh display
-        saveGame();
     }
 }
 
