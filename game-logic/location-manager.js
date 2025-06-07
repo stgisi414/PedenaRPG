@@ -487,6 +487,93 @@ INSTRUCTIONS FOR AI:
 
 Please provide a detailed, immersive travel narrative that moves the player from ${context.currentLocation} to ${analysis.destination?.name || 'the intended destination'}.`;
     }
+
+    static async moveToLocation(player, destination) {
+        try {
+            // Analyze the movement command
+            const analysis = this.analyzeMovementCommand(
+                `travel to ${destination}`, 
+                player.currentLocation, 
+                player
+            );
+
+            // Validate movement
+            if (analysis.confidence < 0.3) {
+                return {
+                    success: false,
+                    message: `Unable to find a route to "${destination}". Please specify a clearer destination.`,
+                    analysis: analysis
+                };
+            }
+
+            // Determine the actual destination name
+            let newLocation;
+            if (analysis.destination && analysis.destination.name) {
+                newLocation = analysis.destination.name;
+            } else {
+                // Clean up destination name as fallback
+                newLocation = this.capitalizeWords(destination.replace(/^(the|a|an)\s+/i, '').trim());
+            }
+
+            // Calculate travel effects
+            const encounterChance = analysis.encounterChance || 0.2;
+            const travelTime = analysis.estimatedTime || 60;
+
+            // Save location to history
+            this.saveLocationToHistory(newLocation, player.name);
+
+            // Create travel description
+            let description = `You travel from ${player.currentLocation} to ${newLocation}.`;
+            
+            if (analysis.destination && analysis.destination.description) {
+                description += ` ${analysis.destination.description}`;
+            } else {
+                description += ` The journey takes about ${travelTime} minutes.`;
+            }
+
+            // Check for random encounters
+            let hasEncounter = false;
+            let encounterType = null;
+            if (Math.random() < encounterChance) {
+                hasEncounter = true;
+                encounterType = this.getRandomEncounterType();
+                description += ` During your journey, you encounter ${encounterType}.`;
+            }
+
+            return {
+                success: true,
+                newLocation: newLocation,
+                oldLocation: player.currentLocation,
+                description: description,
+                travelTime: travelTime,
+                hasEncounter: hasEncounter,
+                encounterType: encounterType,
+                analysis: analysis
+            };
+
+        } catch (error) {
+            console.error('LocationManager.moveToLocation error:', error);
+            return {
+                success: false,
+                message: `Error traveling to ${destination}: ${error.message}`,
+                error: error
+            };
+        }
+    }
+
+    static getRandomEncounterType() {
+        const encounters = [
+            'a merchant caravan',
+            'friendly travelers',
+            'wild animals',
+            'bandits on the road',
+            'a mysterious stranger',
+            'an abandoned campsite',
+            'interesting ruins',
+            'a hidden treasure cache'
+        ];
+        return encounters[Math.floor(Math.random() * encounters.length)];
+    }
 }
 
 export default LocationManager;
