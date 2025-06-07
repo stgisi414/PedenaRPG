@@ -91,14 +91,24 @@ export class AlignmentSystem {
         `;
 
         try {
-            const response = await window.callGeminiAPI(assessmentPrompt, 0.2, 100, false);
+            // Use the game API's AI function instead of making direct calls
+            const gameAPI = window.gameAPI || window.PedenaAPI;
+            if (gameAPI && gameAPI.aiFunction) {
+                const response = await gameAPI.aiFunction(assessmentPrompt, 0.2, 100, false);
 
-            if (response) {
-                const alignmentChange = this.parseAlignmentResponse(response);
+                if (response) {
+                    const alignmentChange = this.parseAlignmentResponse(response);
+                    this.messageCount = 0;
+                    this.messageQueue = [];
+
+                    return alignmentChange;
+                }
+            } else {
+                console.log('No AI function available for alignment assessment');
+                // Reset counters anyway
                 this.messageCount = 0;
                 this.messageQueue = [];
-
-                return alignmentChange;
+                return 0;
             }
         } catch (error) {
             console.error('Alignment assessment error:', error);
