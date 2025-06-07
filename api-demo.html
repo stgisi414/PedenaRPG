@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pedena Game API Demo</title>
+    <title>Pedena Game API Demo - Simplified</title>
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -14,16 +14,11 @@
             background-color: #1a1a1a;
             color: #e0e0e0;
         }
-        .container {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
-            margin-bottom: 20px;
-        }
         .section {
             background: #2d2d2d;
             border-radius: 8px;
             padding: 20px;
+            margin-bottom: 20px;
             border: 1px solid #444;
         }
         .section h3 {
@@ -67,377 +62,369 @@
             white-space: pre-wrap;
             font-family: 'Courier New', monospace;
             font-size: 12px;
-            max-height: 300px;
+            max-height: 400px;
             overflow-y: auto;
             min-height: 100px;
         }
-        .full-width {
-            grid-column: 1 / -1;
-        }
-        .game-interface {
-            background: #2d2d2d;
-            border-radius: 8px;
-            padding: 20px;
-            margin-top: 20px;
-        }
-        .status-display {
+        .grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 10px;
-            margin-bottom: 20px;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
         }
-        .stat-card {
+        .status-line {
             background: #333;
-            padding: 10px;
-            border-radius: 4px;
-            border-left: 4px solid #ffcc00;
-        }
-        .conversation-log {
-            max-height: 400px;
-            overflow-y: auto;
-            border: 1px solid #555;
-            padding: 10px;
-            background: #1a1a1a;
-            margin-bottom: 15px;
-        }
-        .message {
-            margin-bottom: 10px;
             padding: 8px;
+            margin: 5px 0;
             border-radius: 4px;
-        }
-        .user-message {
-            background: #004d40;
-            border-left: 3px solid #00bfa5;
-        }
-        .ai-message {
-            background: #1a237e;
-            border-left: 3px solid #3f51b5;
+            border-left: 3px solid #ffcc00;
         }
     </style>
 </head>
 <body>
-    <h1>🏰 Pedena Game API Demo</h1>
-    <p>Complete programmatic interface for running the Pedena RPG game.</p>
+    <h1>🏰 Pedena Game API Demo - Simplified</h1>
+    <p>Character creation, command execution, and localStorage data display with Gemini integration.</p>
 
-    <div class="container">
-        <!-- API Initialization -->
-        <div class="section">
-            <h3>🚀 API Initialization</h3>
-            <div class="controls">
-                <button onclick="initializeAPI()">Initialize API</button>
-                <button onclick="getEndpoints()">Show Endpoints</button>
-                <button onclick="setupAI()">Setup AI Function</button>
-            </div>
-            <div id="init-output" class="output"></div>
+    <!-- Character Creation -->
+    <div class="section">
+        <h3>👤 Character Creation</h3>
+        <div class="controls">
+            <input type="text" id="char-name" placeholder="Character Name" value="TestHero">
+            <select id="char-class">
+                <option value="warrior">Warrior</option>
+                <option value="mage">Mage</option>
+                <option value="rogue">Rogue</option>
+                <option value="ranger">Ranger</option>
+            </select>
+            <select id="char-gender">
+                <option value="male">Male</option>
+                <option value="female">Female</option>
+            </select>
+            <button onclick="createCharacter()">Create Character</button>
+            <button onclick="setupGeminiAPI()">Setup Gemini API</button>
         </div>
-
-        <!-- Character Management -->
-        <div class="section">
-            <h3>👤 Character Management</h3>
-            <div class="controls">
-                <input type="text" id="char-name" placeholder="Character Name" value="TestHero">
-                <select id="char-class">
-                    <option value="warrior">Warrior</option>
-                    <option value="mage">Mage</option>
-                    <option value="rogue">Rogue</option>
-                    <option value="ranger">Ranger</option>
-                </select>
-                <select id="char-gender">
-                    <option value="male">Male</option>
-                    <option value="female">Female</option>
-                </select>
-                <button onclick="createCharacter()">Create Character</button>
-                <button onclick="getPlayerData()">Get Player Data</button>
-            </div>
-            <div id="character-output" class="output"></div>
-        </div>
-
-        <!-- Location & Movement -->
-        <div class="section">
-            <h3>🗺️ Location & Movement</h3>
-            <div class="controls">
-                <input type="text" id="destination" placeholder="Destination" value="Mystic Forest">
-                <button onclick="getCurrentLocation()">Current Location</button>
-                <button onclick="moveToLocation()">Move To Location</button>
-            </div>
-            <div id="location-output" class="output"></div>
-        </div>
-
-        <!-- Quest System -->
-        <div class="section">
-            <h3>📜 Quest System</h3>
-            <div class="controls">
-                <button onclick="generateQuest()">Generate Quest</button>
-                <button onclick="getQuests()">View Quests</button>
-                <button onclick="completeFirstQuest()">Complete First Quest</button>
-            </div>
-            <div id="quest-output" class="output"></div>
-        </div>
+        <div id="character-output" class="output"></div>
     </div>
 
-    <!-- Game Interface -->
-    <div class="game-interface full-width">
-        <h3>🎮 Interactive Game Interface</h3>
-        
-        <!-- Player Status -->
-        <div class="status-display" id="player-status">
-            <div class="stat-card">
-                <strong>Name:</strong> <span id="status-name">-</span><br>
-                <strong>Class:</strong> <span id="status-class">-</span>
-            </div>
-            <div class="stat-card">
-                <strong>Level:</strong> <span id="status-level">-</span><br>
-                <strong>HP:</strong> <span id="status-hp">-</span>/<span id="status-maxhp">-</span>
-            </div>
-            <div class="stat-card">
-                <strong>Gold:</strong> <span id="status-gold">-</span><br>
-                <strong>Location:</strong> <span id="status-location">-</span>
-            </div>
-        </div>
-
-        <!-- Conversation Log -->
-        <div class="conversation-log" id="conversation-log">
-            <p style="text-align: center; color: #666;">Conversation will appear here...</p>
-        </div>
-
-        <!-- Command Input -->
+    <!-- Command Execution -->
+    <div class="section">
+        <h3>🎮 Execute Command</h3>
         <div class="controls">
-            <input type="text" id="ai-command" placeholder="Enter your command (e.g., 'explore the area', 'attack the goblin', 'talk to the merchant')" value="explore the ancient ruins">
-            <button onclick="processAICommand()">Execute Command</button>
-            <button onclick="quickActions()">Quick Actions</button>
-            <button onclick="clearConversation()">Clear Log</button>
-        </div>
-
-        <!-- Quick Actions -->
-        <div class="controls">
+            <textarea id="command-input" placeholder="Enter your command (e.g., 'explore the area', 'attack the goblin', 'check inventory')" rows="3">explore the ancient ruins</textarea>
+            <button onclick="executeCommand()">Execute Command</button>
             <button onclick="quickCommand('rest and recover')">Rest</button>
             <button onclick="quickCommand('explore the area')">Explore</button>
-            <button onclick="quickCommand('look around')">Look Around</button>
             <button onclick="quickCommand('check inventory')">Inventory</button>
-            <button onclick="quickCommand('cast a spell')">Cast Spell</button>
         </div>
+        <div id="game-output" class="output"></div>
     </div>
 
-    <!-- Full Game State -->
-    <div class="section full-width">
-        <h3>🔍 Complete Game State</h3>
-        <div class="controls">
-            <button onclick="getFullGameState()">Get Full State</button>
-            <button onclick="saveGame()">Save Game</button>
-            <button onclick="loadGame()">Load Game</button>
+    <!-- Game Data Display -->
+    <div class="grid">
+        <div class="section">
+            <h3>📊 Player Data</h3>
+            <button onclick="updatePlayerData()">Refresh Player Data</button>
+            <div id="player-data" class="output"></div>
         </div>
-        <div id="gamestate-output" class="output"></div>
+
+        <div class="section">
+            <h3>💾 LocalStorage Data</h3>
+            <button onclick="updateLocalStorageData()">Refresh Storage Data</button>
+            <div id="storage-data" class="output"></div>
+        </div>
     </div>
 
     <script type="module">
-        import gameAPI from './game-api.js';
+        // Gemini API Configuration
+        const GEMINI_API_KEY = 'AIzaSyDIFeql6HUpkZ8JJlr_kuN0WDFHUyOhijA';
+        let gameAPI;
 
-        // Make functions globally available
-        window.gameAPI = gameAPI;
-
-        // Simple AI function for demo purposes
-        window.demoAI = async (prompt, temperature = 0.7, maxTokens = 800, includeContext = false) => {
-            // Simulate AI processing delay
-            await new Promise(resolve => setTimeout(resolve, 500));
-            
-            console.log('Demo AI Processing:', prompt.substring(0, 100) + '...');
-            
-            // Basic response generation based on command analysis
-            if (prompt.includes('MOVEMENT')) {
-                const destinations = ['Mystic Forest', 'Ancient Temple', 'Dragon\'s Lair', 'Peaceful Village', 'Mountain Pass'];
-                const dest = destinations[Math.floor(Math.random() * destinations.length)];
-                return `You journey through winding paths and arrive at ${dest}. The area has an air of mystery about it.`;
-            } else if (prompt.includes('COMBAT')) {
-                const outcomes = [
-                    'You engage in fierce combat! After a challenging battle, you emerge victorious with 25 gold and 30 experience.',
-                    'You fight bravely against your foe. Your skills prove superior as you defeat the enemy.',
-                    'The battle is intense but you prevail! You find a healing potion among the defeated enemy\'s belongings.'
-                ];
-                return outcomes[Math.floor(Math.random() * outcomes.length)];
-            } else if (prompt.includes('EXPLORATION')) {
-                const discoveries = [
-                    'You explore the area thoroughly and discover a hidden chest containing 50 gold coins!',
-                    'Your investigation reveals ancient ruins with mysterious inscriptions. You feel wiser from the experience.',
-                    'You find a secret passage behind some overgrown vines. It leads to a small chamber with valuable items.',
-                    'While exploring, you encounter a friendly merchant who offers you a good deal on supplies.'
-                ];
-                return discoveries[Math.floor(Math.random() * discoveries.length)];
-            } else if (prompt.includes('INTERACTION')) {
-                const interactions = [
-                    'You have a pleasant conversation and learn valuable information about the local area.',
-                    'The person shares interesting stories about ancient legends and hidden treasures nearby.',
-                    'Your discussion reveals a new quest opportunity that could prove quite rewarding.'
-                ];
-                return interactions[Math.floor(Math.random() * interactions.length)];
-            } else if (prompt.includes('REST')) {
-                return 'You find a safe place to rest. Your health is restored and you feel refreshed and ready for new adventures.';
-            } else if (prompt.includes('MAGIC')) {
-                return 'You channel magical energy and cast your spell. Sparks of mystical power dance around you as the magic takes effect.';
-            } else {
-                const general = [
-                    'You take action with determination. Your efforts yield interesting results.',
-                    'Something intriguing happens in response to your actions. The adventure continues!',
-                    'Your choice leads to an unexpected but positive outcome.',
-                    'You feel a sense of accomplishment as your action produces favorable results.'
-                ];
-                return general[Math.floor(Math.random() * general.length)];
+        // Simple player object
+        let player = {
+            name: '',
+            class: '',
+            gender: '',
+            level: 1,
+            hp: 100,
+            maxHp: 100,
+            gold: 50,
+            exp: 0,
+            expToNextLevel: 100,
+            currentLocation: 'Pedena Town Square',
+            inventory: [],
+            quests: [],
+            stats: {
+                strength: 10,
+                dexterity: 10,
+                intelligence: 10,
+                constitution: 10,
+                wisdom: 10,
+                charisma: 10
+            },
+            equipment: {
+                head: null,
+                chest: null,
+                hands: null,
+                legs: null,
+                feet: null,
+                mainHand: null,
+                offHand: null
             }
         };
 
-        window.initializeAPI = async () => {
-            const result = await gameAPI.initialize(window.demoAI);
-            document.getElementById('init-output').textContent = JSON.stringify(result, null, 2);
-            updateStatus();
+        // Gemini API Function
+        async function callGeminiAPI(prompt, temperature = 0.7, maxTokens = 800) {
+            try {
+                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${GEMINI_API_KEY}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        contents: [{
+                            parts: [{
+                                text: prompt
+                            }]
+                        }],
+                        generationConfig: {
+                            temperature: temperature,
+                            maxOutputTokens: maxTokens
+                        }
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Gemini API error: ${response.status}`);
+                }
+
+                const data = await response.json();
+                return data.candidates[0].content.parts[0].text;
+            } catch (error) {
+                console.error('Gemini API error:', error);
+                return `Error: ${error.message}`;
+            }
+        }
+
+        // Setup Gemini API
+        window.setupGeminiAPI = async () => {
+            try {
+                // Test the API
+                const testResponse = await callGeminiAPI("Say 'Gemini API connected successfully for Pedena RPG!'");
+                document.getElementById('character-output').textContent = `API Test: ${testResponse}`;
+                
+                // Initialize game API
+                const gameAPIModule = await import('./game-api.js');
+                gameAPI = gameAPIModule.default;
+                await gameAPI.initialize(callGeminiAPI);
+                
+                window.gameAPI = gameAPI;
+                window.callGeminiAPI = callGeminiAPI;
+                
+                document.getElementById('character-output').textContent += '\n\nGame API initialized with Gemini!';
+            } catch (error) {
+                document.getElementById('character-output').textContent = `Setup Error: ${error.message}`;
+            }
         };
 
-        window.setupAI = () => {
-            const result = gameAPI.setAIFunction(window.demoAI);
-            document.getElementById('init-output').textContent = JSON.stringify(result, null, 2);
-        };
-
-        window.getEndpoints = () => {
-            const endpoints = gameAPI.getEndpoints();
-            document.getElementById('init-output').textContent = JSON.stringify(endpoints, null, 2);
-        };
-
+        // Create Character
         window.createCharacter = () => {
-            const characterData = {
-                name: document.getElementById('char-name').value,
-                charClass: document.getElementById('char-class').value,
-                gender: document.getElementById('char-gender').value,
-                background: 'A brave adventurer seeking glory and treasure.'
+            const name = document.getElementById('char-name').value;
+            const charClass = document.getElementById('char-class').value;
+            const gender = document.getElementById('char-gender').value;
+
+            if (!name.trim()) {
+                document.getElementById('character-output').textContent = 'Please enter a character name';
+                return;
+            }
+
+            // Update player object
+            player.name = name;
+            player.class = charClass;
+            player.gender = gender;
+            player.background = `A brave ${charClass} seeking adventure.`;
+
+            // Apply class bonuses
+            const classBonuses = {
+                warrior: { hp: 20, strength: 3, constitution: 2 },
+                mage: { hp: 5, intelligence: 3, wisdom: 2 },
+                rogue: { hp: 10, dexterity: 3, intelligence: 2 },
+                ranger: { hp: 15, dexterity: 3, wisdom: 2 }
             };
+
+            const bonus = classBonuses[charClass];
+            if (bonus) {
+                player.maxHp += bonus.hp;
+                player.hp = player.maxHp;
+                Object.keys(bonus).forEach(stat => {
+                    if (stat !== 'hp' && player.stats[stat]) {
+                        player.stats[stat] += bonus[stat];
+                    }
+                });
+            }
+
+            // Save to localStorage
+            localStorage.setItem('pedena_player', JSON.stringify(player));
             
-            const result = gameAPI.createCharacter(characterData);
-            document.getElementById('character-output').textContent = JSON.stringify(result, null, 2);
-            updateStatus();
-        };
-
-        window.getPlayerData = () => {
-            const result = gameAPI.getPlayerData();
-            document.getElementById('character-output').textContent = JSON.stringify(result, null, 2);
-            updateStatus();
-        };
-
-        window.getCurrentLocation = () => {
-            const result = gameAPI.getCurrentLocation();
-            document.getElementById('location-output').textContent = JSON.stringify(result, null, 2);
-        };
-
-        window.moveToLocation = async () => {
-            const destination = document.getElementById('destination').value;
-            const result = await gameAPI.moveToLocation(destination);
-            document.getElementById('location-output').textContent = JSON.stringify(result, null, 2);
-            updateStatus();
-        };
-
-        window.generateQuest = async () => {
-            const result = await gameAPI.generateQuest();
-            document.getElementById('quest-output').textContent = JSON.stringify(result, null, 2);
-        };
-
-        window.getQuests = () => {
-            const result = gameAPI.getQuests();
-            document.getElementById('quest-output').textContent = JSON.stringify(result, null, 2);
-        };
-
-        window.completeFirstQuest = () => {
-            const quests = gameAPI.getQuests();
-            if (quests.length > 0) {
-                const result = gameAPI.completeQuest(quests[0].id);
-                document.getElementById('quest-output').textContent = JSON.stringify(result, null, 2);
-                updateStatus();
+            // Create character via API if available
+            if (gameAPI) {
+                const result = gameAPI.createCharacter({
+                    name: name,
+                    charClass: charClass,
+                    gender: gender,
+                    background: player.background
+                });
+                document.getElementById('character-output').textContent = JSON.stringify(result, null, 2);
             } else {
-                document.getElementById('quest-output').textContent = 'No quests available to complete';
+                document.getElementById('character-output').textContent = JSON.stringify({
+                    success: true,
+                    message: `Character ${name} created successfully`,
+                    player: player
+                }, null, 2);
             }
+
+            updatePlayerData();
+            updateLocalStorageData();
         };
 
-        window.processAICommand = async () => {
-            const command = document.getElementById('ai-command').value;
+        // Execute Command
+        window.executeCommand = async () => {
+            const command = document.getElementById('command-input').value;
             if (!command.trim()) return;
-            
-            // Add user message to log
-            addToConversationLog('user', command);
-            
-            const result = await gameAPI.processCommand(command);
-            
-            // Add AI response to log
-            if (result.response) {
-                addToConversationLog('ai', result.response);
+
+            document.getElementById('game-output').textContent = 'Processing command...';
+
+            try {
+                let response;
+                
+                if (gameAPI && gameAPI.aiFunction) {
+                    // Use game API
+                    const result = await gameAPI.processCommand(command);
+                    response = result.response || 'Command processed';
+                    
+                    // Update player data if changed
+                    const newPlayerData = gameAPI.getPlayerData();
+                    if (newPlayerData) {
+                        player = { ...player, ...newPlayerData };
+                        localStorage.setItem('pedena_player', JSON.stringify(player));
+                    }
+                } else {
+                    // Direct Gemini call
+                    const gamePrompt = `
+You are the Game Master for a fantasy RPG. The player "${player.name}" (Level ${player.level} ${player.class}) is in "${player.currentLocation}".
+
+Player Stats:
+- HP: ${player.hp}/${player.maxHp}
+- Gold: ${player.gold}
+- Location: ${player.currentLocation}
+
+Command: "${command}"
+
+Respond as the Game Master describing what happens. Keep it engaging and under 200 words.
+If the action involves:
+- Combat: Describe the fight and outcome
+- Exploration: Describe discoveries
+- Movement: Describe the journey
+- Rest: Restore some HP
+- Shopping: Show available items
+
+Response:`;
+
+                    response = await callGeminiAPI(gamePrompt);
+                    
+                    // Simple state updates based on response
+                    if (command.toLowerCase().includes('rest')) {
+                        const healing = Math.floor(player.maxHp * 0.25);
+                        player.hp = Math.min(player.maxHp, player.hp + healing);
+                    }
+                    
+                    if (response.includes('gold') || response.includes('coins')) {
+                        const goldMatch = response.match(/(\d+)\s*gold/i);
+                        if (goldMatch) {
+                            player.gold += parseInt(goldMatch[1]);
+                        }
+                    }
+                    
+                    localStorage.setItem('pedena_player', JSON.stringify(player));
+                }
+
+                document.getElementById('game-output').textContent = response;
+                updatePlayerData();
+                updateLocalStorageData();
+
+            } catch (error) {
+                document.getElementById('game-output').textContent = `Error: ${error.message}`;
             }
-            
-            updateStatus();
-            document.getElementById('ai-command').value = '';
         };
 
+        // Quick Command
         window.quickCommand = async (command) => {
-            document.getElementById('ai-command').value = command;
-            await processAICommand();
+            document.getElementById('command-input').value = command;
+            await executeCommand();
         };
 
-        window.quickActions = () => {
-            alert('Quick Actions:\n• Rest - Recover health\n• Explore - Discover new things\n• Look Around - Examine surroundings\n• Inventory - Check items\n• Cast Spell - Use magic');
-        };
-
-        window.getFullGameState = () => {
-            const result = gameAPI.getGameState();
-            document.getElementById('gamestate-output').textContent = JSON.stringify(result, null, 2);
-        };
-
-        window.saveGame = () => {
-            const result = gameAPI.saveGame();
-            document.getElementById('gamestate-output').textContent = JSON.stringify(result, null, 2);
-        };
-
-        window.loadGame = () => {
-            const result = gameAPI.loadGame();
-            document.getElementById('gamestate-output').textContent = JSON.stringify(result, null, 2);
-            updateStatus();
-        };
-
-        window.clearConversation = () => {
-            document.getElementById('conversation-log').innerHTML = '<p style="text-align: center; color: #666;">Conversation cleared...</p>';
-        };
-
-        function updateStatus() {
-            const player = gameAPI.getPlayerData();
-            if (player) {
-                document.getElementById('status-name').textContent = player.name || '-';
-                document.getElementById('status-class').textContent = player.class || '-';
-                document.getElementById('status-level').textContent = player.level || '-';
-                document.getElementById('status-hp').textContent = player.hp || '-';
-                document.getElementById('status-maxhp').textContent = player.maxHp || '-';
-                document.getElementById('status-gold').textContent = player.gold || '-';
-                document.getElementById('status-location').textContent = player.currentLocation || '-';
+        // Update Player Data Display
+        window.updatePlayerData = () => {
+            // Load latest from localStorage
+            const savedPlayer = localStorage.getItem('pedena_player');
+            if (savedPlayer) {
+                player = JSON.parse(savedPlayer);
             }
-        }
 
-        function addToConversationLog(type, message) {
-            const log = document.getElementById('conversation-log');
-            const messageDiv = document.createElement('div');
-            messageDiv.className = `message ${type}-message`;
-            
-            const timestamp = new Date().toLocaleTimeString();
-            const prefix = type === 'user' ? '👤 You' : '🤖 DM';
-            
-            messageDiv.innerHTML = `<strong>${prefix}</strong> <small>(${timestamp})</small><br>${message}`;
-            
-            log.appendChild(messageDiv);
-            log.scrollTop = log.scrollHeight;
-        }
+            const playerDisplay = `Name: ${player.name || 'None'}
+Class: ${player.class || 'None'}
+Gender: ${player.gender || 'None'}
+Level: ${player.level}
+HP: ${player.hp}/${player.maxHp}
+Gold: ${player.gold}
+XP: ${player.exp}/${player.expToNextLevel}
+Location: ${player.currentLocation}
 
-        // Auto-initialize on page load
-        window.addEventListener('load', async () => {
-            await initializeAPI();
+Stats:
+- Strength: ${player.stats.strength}
+- Dexterity: ${player.stats.dexterity}
+- Intelligence: ${player.stats.intelligence}
+- Constitution: ${player.stats.constitution}
+- Wisdom: ${player.stats.wisdom}
+- Charisma: ${player.stats.charisma}
+
+Inventory: ${player.inventory.length} items
+Quests: ${player.quests.length} active`;
+
+            document.getElementById('player-data').textContent = playerDisplay;
+        };
+
+        // Update LocalStorage Data Display
+        window.updateLocalStorageData = () => {
+            const storageData = {};
+            
+            // Get all localStorage keys and their data
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                try {
+                    const value = localStorage.getItem(key);
+                    storageData[key] = JSON.parse(value);
+                } catch {
+                    storageData[key] = value;
+                }
+            }
+
+            document.getElementById('storage-data').textContent = JSON.stringify(storageData, null, 2);
+        };
+
+        // Initialize on load
+        window.addEventListener('load', () => {
+            updatePlayerData();
+            updateLocalStorageData();
+            setupGeminiAPI();
         });
 
         // Handle Enter key in command input
         document.addEventListener('DOMContentLoaded', () => {
-            const commandInput = document.getElementById('ai-command');
+            const commandInput = document.getElementById('command-input');
             if (commandInput) {
                 commandInput.addEventListener('keypress', (e) => {
-                    if (e.key === 'Enter') {
-                        processAICommand();
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        executeCommand();
                     }
                 });
             }
