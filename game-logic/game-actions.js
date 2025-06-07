@@ -326,6 +326,57 @@ AI INSTRUCTION: ${promptData.recommendedResponse}
 
 Please respond as the game master, interpreting this ${analysis.actionType} action and providing an appropriate narrative response that considers the analyzed context and expected consequences.`;
     }
+
+    static async processPlayerAction(command, player) {
+        try {
+            // Create a basic game state from player data
+            const gameState = {
+                currentLocation: player.currentLocation || 'Unknown Location',
+                level: player.level || 1,
+                class: player.class || 'adventurer',
+                hp: player.hp || 100,
+                maxHp: player.maxHp || 100,
+                gold: player.gold || 0,
+                quests: player.quests || [],
+                equipment: player.equipment || {},
+                inventory: player.inventory || [],
+                npcsInLocation: player.npcsInLocation || []
+            };
+
+            // Analyze the command
+            const analysis = this.analyzeCommand(command, gameState);
+            
+            // Log the action
+            this.logAction(analysis);
+
+            // Create structured prompt for AI
+            const prompt = this.createStructuredPrompt(analysis, gameState);
+
+            // Call AI to process the action
+            let response;
+            if (typeof window !== 'undefined' && window.callGeminiAPI) {
+                response = await window.callGeminiAPI(prompt, 0.7, 800, false);
+            } else {
+                response = `You ${command}. [AI processing not available]`;
+            }
+
+            return {
+                success: true,
+                response: response,
+                actionType: analysis.actionType,
+                confidence: analysis.confidence,
+                extractedData: analysis.extractedData
+            };
+
+        } catch (error) {
+            console.error('Error processing player action:', error);
+            return {
+                success: false,
+                response: `You attempt to ${command}, but something goes wrong.`,
+                error: error.message
+            };
+        }
+    }
 }
 
 export default GameActions;
