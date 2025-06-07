@@ -537,92 +537,134 @@ const classes = {
         statFocus: { dexterity: 3, wisdom: 2, strength: 1 },
         startingSkill: 'Precise Shot',
         startingAbility: 'Track'
+    },
+    cleric: {
+        hpBonus: 15,
+        statFocus: { wisdom: 3, constitution: 2, strength: 1 },
+        startingSkill: 'Heal',
+        startingAbility: 'Bless'
+    },
+    paladin: {
+        hpBonus: 20,
+        statFocus: { strength: 3, wisdom: 2, charisma: 1 },
+        startingSkill: 'Divine Smite',
+        startingAbility: 'Lay on Hands'
+    },
+    druid: {
+        hpBonus: 10,
+        statFocus: { wisdom: 3, constitution: 2, dexterity: 1 },
+        startingSkill: 'Wild Shape',
+        startingAbility: 'Entangle'
+    },
+    bard: {
+        hpBonus: 5,
+        statFocus: { charisma: 3, dexterity: 2, intelligence: 1 },
+        startingSkill: 'Inspire',
+        startingAbility: 'Distract'
+    },
+    sorcerer: {
+        hpBonus: 5,
+        statFocus: { charisma: 3, intelligence: 2, dexterity: 1 },
+        startingSkill: 'Fireball',
+        startingAbility: 'Mystic Armor'
+    },
+    warlock: {
+        hpBonus: 10,
+        statFocus: { charisma: 3, intelligence: 2, constitution: 1 },
+        startingSkill: 'Dark Bolt',
+        startingAbility: 'Summon Imp'
+    },
+    monk: {
+        hpBonus: 10,
+        statFocus: { dexterity: 3, wisdom: 2, strength: 1 },
+        startingSkill: 'Ki Blast',
+        startingAbility: 'Flurry of Blows'
+    },
+    barbarian: {
+        hpBonus: 20,
+        statFocus: { strength: 3, constitution: 2, dexterity: 1 },
+        startingSkill: 'Whirlwind',
+        startingAbility: 'Rage'
+    },
+    brawler: {
+        hpBonus: 15,
+        statFocus: { strength: 3, constitution: 2, dexterity: 1 },
+        startingSkill: 'Brutal Strike',
+        startingAbility: 'Berserk'
+    },
+    assassin: {
+        hpBonus: 10,
+        statFocus: { dexterity: 3, intelligence: 2, charisma: 1 },
+        startingSkill: 'Backstab',
+        startingAbility: 'Vanish'
+    },
+    necromancer: {
+        hpBonus: 5,
+        statFocus: { intelligence: 3, wisdom: 2, charisma: 1 },
+        startingSkill: 'Raise Dead',
+        startingAbility: 'Life Drain'
+    },
+    alchemist: {
+        hpBonus: 5,
+        statFocus: { intelligence: 3, dexterity: 2, wisdom: 1 },
+        startingSkill: 'Alchemical Bomb',
+        startingAbility: 'Potion Mastery'
+    },
+    engineer: {
+        hpBonus: 10,
+        statFocus: { intelligence: 3, dexterity: 2, strength: 1 },
+        startingSkill: 'Turret Deployment',
+        startingAbility: 'Gadgeteer'
+    },
+    summoner: {
+        hpBonus: 10,
+        statFocus: { wisdom: 3, intelligence: 2, charisma: 1 },
+        startingSkill: 'Summon Elemental',
+        startingAbility: 'Conjure Familiar'
+    },
+    illusionist: {
+        hpBonus: 5,
+        statFocus: { intelligence: 3, charisma: 2, dexterity: 1 },
+        startingSkill: 'Mirage',
+        startingAbility: 'Illusory Disguise'
+    },
+    shaman: {
+        hpBonus: 10,
+        statFocus: { wisdom: 3, constitution: 2, intelligence: 1 },
+        startingSkill: 'Spirit Walk',
+        startingAbility: 'Totem Summoning'
+        
+    },
+    ninja: {
+        hpBonus: 10,
+        statFocus: { dexterity: 3, strength: 2, wisdom: 1 },
+        startingSkill: 'Shadow Strike',
+        startingAbility: 'Smoke Bomb'
+    },
+    psychic: {
+        hpBonus: 5,
+        statFocus: { intelligence: 3, wisdom: 2, charisma: 1 },
+        startingSkill: 'Mind Blast',
+        startingAbility: 'Telekinetic Push'
+    },
+    hunter: {
+        hpBonus: 15,
+        statFocus: { dexterity: 3, wisdom: 2, strength: 1 },      startingSkill: 'Volley',
+        startingAbility: 'Trap Setting'
+    },
+    scholar: {
+        hpBonus: 5,
+        statFocus: { intelligence: 3, wisdom: 2, charisma: 1 },
+        startingSkill: 'Arcane Research',
+        startingAbility: 'Scroll Crafting'
+    },
+    gladiator: {
+        hpBonus: 20,
+        statFocus: { strength: 3, constitution: 2, dexterity: 1 },
+        startingSkill: 'Gladiator\'s Fury',
+        startingAbility: 'Shield Bash'
     }
 };
-
-const items = [
-    // Weapons
-    { id: 'short_sword', name: 'Short Sword', type: 'weapon', slot: 'mainHand', damage: '1d6', value: 10, description: 'A basic, well-balanced short sword.' },
-    { id: 'long_sword', name: 'Long Sword', type: 'weapon', slot: 'mainHand', damage: '1d8', value: 25, description: 'A versatile blade favored by knights.' },
-    { id: 'battle_axe', name: 'Battle Axe', type: 'weapon', slot: 'mainHand', damage: '1d10', value: 30, description: 'Heavy two-handed axe for devastating attacks.' },
-    { id: 'dagger', name: 'Steel Dagger', type: 'weapon', slot: 'mainHand', damage: '1d4', value: 5, description: 'Quick and silent blade for rogues.' },
-    { id: 'war_hammer', name: 'War Hammer', type: 'weapon', slot: 'mainHand', damage: '1d8', value: 20, description: 'Blunt weapon that crushes armor.' },
-    { id: 'crossbow', name: 'Light Crossbow', type: 'weapon', slot: 'mainHand', damage: '1d8', value: 35, description: 'Ranged weapon with mechanical precision.' },
-    { id: 'shortbow', name: 'Shortbow', type: 'weapon', slot: 'mainHand', damage: '1d6', value: 29, description: 'Compact bow ideal for quick shots and mobility.' },
-    { id: 'staff', name: 'Mage Staff', type: 'weapon', slot: 'mainHand', damage: '1d6', value: 40, description: 'Enchanted staff that amplifies magical power.' },
-    { id: 'rapier', name: 'Elven Rapier', type: 'weapon', slot: 'mainHand', damage: '1d8', value: 45, description: 'Elegant blade with superior craftsmanship.' },
-    { id: 'mace', name: 'Holy Mace', type: 'weapon', slot: 'mainHand', damage: '1d6', value: 28, description: 'Blessed weapon effective against undead.' },
-    { id: 'scimitar', name: 'Curved Scimitar', type: 'weapon', slot: 'mainHand', damage: '1d6', value: 22, description: 'Desert blade with curved design.' },
-
-    // Armor
-    { id: 'leather_armor', name: 'Leather Armor', type: 'armor', slot: 'chest', defense: 3, value: 15, description: 'Flexible and light leather protection.' },
-    { id: 'chain_mail', name: 'Chain Mail', type: 'armor', slot: 'chest', defense: 5, value: 50, description: 'Interlocked metal rings provide solid defense.' },
-    { id: 'plate_armor', name: 'Plate Armor', type: 'armor', slot: 'chest', defense: 8, value: 150, description: 'Heavy metal plates offering maximum protection.' },
-    { id: 'robe', name: 'Mage Robes', type: 'armor', slot: 'chest', defense: 1, value: 30, description: 'Enchanted robes that enhance magical abilities.' },
-    { id: 'scale_mail', name: 'Scale Mail', type: 'armor', slot: 'chest', defense: 6, value: 75, description: 'Overlapping metal scales like dragon hide.' },
-    { id: 'studded_leather', name: 'Studded Leather', type: 'armor', slot: 'chest', defense: 4, value: 25, description: 'Leather reinforced with metal studs.' },
-    { id: 'steel_helm', name: 'Steel Helmet', type: 'armor', slot: 'head', defense: 2, value: 20, description: 'Protective metal headgear.' },
-    { id: 'leather_boots', name: 'Leather Boots', type: 'armor', slot: 'feet', defense: 1, value: 8, description: 'Sturdy boots for long journeys.' },
-    { id: 'steel_gauntlets', name: 'Steel Gauntlets', type: 'armor', slot: 'hands', defense: 1, value: 15, description: 'Metal gloves for hand protection.' },
-    { id: 'cloak', name: 'Traveler\'s Cloak', type: 'armor', slot: 'chest', defense: 1, value: 12, description: 'Weather-resistant cloak for adventurers.' },
-
-    // Shields
-    { id: 'wooden_shield', name: 'Wooden Shield', type: 'armor', slot: 'offHand', defense: 2, value: 10, description: 'Simple round shield made of oak.' },
-    { id: 'steel_shield', name: 'Steel Shield', type: 'armor', slot: 'offHand', defense: 3, value: 30, description: 'Metal shield with reinforced rim.' },
-    { id: 'tower_shield', name: 'Tower Shield', type: 'armor', slot: 'offHand', defense: 4, value: 60, description: 'Large shield offering maximum coverage.' },
-
-    // Consumables
-    { id: 'healing_potion', name: 'Healing Potion', type: 'consumable', effect: { type: 'heal', amount: 30 }, value: 8, description: 'Restores a moderate amount of health.' },
-    { id: 'greater_healing', name: 'Greater Healing Potion', type: 'consumable', effect: { type: 'heal', amount: 60 }, value: 20, description: 'Powerful healing elixir.' },
-    { id: 'mana_potion', name: 'Mana Potion', type: 'consumable', effect: { type: 'mana', amount: 40 }, value: 12, description: 'Restores magical energy.' },
-    { id: 'antidote', name: 'Antidote', type: 'consumable', effect: { type: 'cure_poison' }, value: 15, description: 'Neutralizes poison and toxins.' },
-    { id: 'strength_elixir', name: 'Strength Elixir', type: 'consumable', effect: { type: 'buff_str', duration: 300 }, value: 25, description: 'Temporarily increases physical strength.' },
-    { id: 'invisibility_potion', name: 'Invisibility Potion', type: 'consumable', effect: { type: 'invisibility', duration: 180 }, value: 40, description: 'Grants temporary invisibility.' },
-    { id: 'fire_resistance', name: 'Fire Resistance Potion', type: 'consumable', effect: { type: 'resist_fire', duration: 600 }, value: 30, description: 'Protects against fire damage.' },
-
-    // Jewelry & Accessories
-    { id: 'silver_ring', name: 'Silver Ring', type: 'jewelry', slot: 'ring1', value: 25, description: 'Simple silver band with minor enchantment.' },
-    { id: 'gold_amulet', name: 'Gold Amulet', type: 'jewelry', slot: 'amulet', value: 50, description: 'Ornate necklace that radiates protective magic.' },
-    { id: 'sapphire_ring', name: 'Sapphire Ring', type: 'jewelry', slot: 'ring1', value: 100, description: 'Precious ring that enhances magical abilities.' },
-    { id: 'iron_bracers', name: 'Iron Bracers', type: 'armor', slot: 'hands', defense: 1, value: 18, description: 'Metal arm guards for extra protection.' },
-
-    // Tools & Utilities
-    { id: 'lockpicks', name: 'Thieves\' Tools', type: 'tool', value: 20, description: 'Set of picks and tools for opening locks.' },
-    { id: 'rope', name: 'Silk Rope', type: 'tool', value: 5, description: '50 feet of strong, lightweight rope.' },
-    { id: 'torch', name: 'Torch', type: 'tool', value: 1, description: 'Wooden torch that burns for hours.' },
-    { id: 'lantern', name: 'Brass Lantern', type: 'tool', value: 15, description: 'Reliable light source with oil reservoir.' },
-    { id: 'spyglass', name: 'Spyglass', type: 'tool', value: 35, description: 'Collapsible telescope for distant viewing.' },
-    { id: 'compass', name: 'Magnetic Compass', type: 'tool', value: 25, description: 'Never lose your way with this navigation aid.' },
-    { id: 'bedroll', name: 'Bedroll', type: 'tool', value: 3, description: 'Comfortable sleeping gear for camping.' },
-    { id: 'rations', name: 'Trail Rations', type: 'consumable', effect: { type: 'sustenance' }, value: 2, description: 'Preserved food for long journeys.' },
-
-    // Ammunition
-    { id: 'arrows', name: 'Arrows (20)', type: 'ammunition', value: 3, description: 'Bundle of 20 steel-tipped arrows for bows.' },
-    { id: 'arrow_quiver', name: 'Arrow Quiver', type: 'tool', value: 8, description: 'Leather quiver that holds up to 30 arrows securely.' },
-    { id: 'bolts', name: 'Crossbow Bolts (20)', type: 'ammunition', value: 4, description: 'Bundle of 20 heavy crossbow bolts.' },
-    { id: 'bolt_quiver', name: 'Bolt Quiver', type: 'tool', value: 10, description: 'Sturdy case designed to hold crossbow bolts safely.' },
-
-    // Spell Components & Magical Items
-    { id: 'scroll_fireball', name: 'Fireball Scroll', type: 'scroll', value: 60, description: 'Single-use scroll containing a fireball spell.' },
-    { id: 'scroll_heal', name: 'Healing Scroll', type: 'scroll', value: 40, description: 'Divine scroll that instantly heals wounds.' },
-    { id: 'crystal_orb', name: 'Crystal Orb', type: 'magical', value: 80, description: 'Scrying orb that reveals distant places.' },
-    { id: 'spell_components', name: 'Spell Components', type: 'magical', value: 10, description: 'Various herbs and minerals for spellcasting.' },
-    { id: 'enchanted_ink', name: 'Enchanted Ink', type: 'magical', value: 30, description: 'Magical ink for scribing powerful scrolls.' },
-    { id: 'phoenix_feather', name: 'Phoenix Feather', type: 'magical', value: 120, description: 'Rare component for fire-based enchantments.' },
-    { id: 'moonstone', name: 'Moonstone', type: 'magical', value: 75, description: 'Glowing stone that stores lunar energy.' },
-
-    // Rare & Unique Items
-    { id: 'dragons_tooth', name: 'Dragon\'s Tooth', type: 'rare', value: 200, description: 'Legendary crafting material from an ancient wyrm.' },
-    { id: 'elven_wine', name: 'Elven Wine', type: 'luxury', value: 45, description: 'Exquisite vintage from the Sylvanmere vineyards.' },
-    { id: 'dwarven_ale', name: 'Dwarven Ale', type: 'consumable', effect: { type: 'courage_boost' }, value: 8, description: 'Strong ale that boosts confidence and morale.' },
-    { id: 'ancient_map', name: 'Ancient Map', type: 'treasure', value: 90, description: 'Mysterious map showing forgotten treasure locations.' },
-    { id: 'gold_coin', name: 'Gold Coin', type: 'currency', value: 1, description: 'The standard currency of Pedena.' }
-];
-
-const enemies = [
-    { id: 'goblin', name: 'Goblin', hp: 25, attack: '1d4', defense: 2, expReward: 20, goldDrop: 5, loot: [{ id: 'gold_coin', chance: 0.8, quantity: '1d3' }] },
-    { id: 'dire_wolf', name: 'Dire Wolf', hp: 40, attack: '1d6', defense: 3, expReward: 35, goldDrop: 8, loot: [{ id: 'leather_scrap', chance: 0.7, quantity: '1d2' }] }
-];
 
 // Helper Functions
 // In script.js
@@ -2176,16 +2218,6 @@ async function playerAttack() {
     }
 }
 
-function getClassAttackMultiplier(playerClass) {
-    const multipliers = {
-        'warrior': 1.3,
-        'rogue': 1.1,
-        'ranger': 1.2,
-        'mage': 0.8
-    };
-    return multipliers[playerClass] || 1.0;
-}
-
 async function enemyAttack() {
     if (!player.currentEnemy) return;
 
@@ -2281,13 +2313,6 @@ async function enemyAttack() {
         addToConversationHistory('assistant', `${player.name} was defeated in combat and recovered at ${player.currentLocation}`);
     } else {
         // Combat continues - save progress
-    }
-}
-
-function updatePlayerHPDisplay() {
-    const hpDisplay = document.getElementById('player-hp');
-    if (hpDisplay) {
-        hpDisplay.textContent = `HP: ${player.hp}/${player.maxHp}`;
     }
 }
 
@@ -4217,7 +4242,28 @@ async function generateSVGPortrait(name, charClass) { // Accept parameters
         warrior: '#8B4513',
         mage: '#4B0082',
         rogue: '#2F4F4F',
-        ranger: '#228B22'
+        ranger: '#228B22',
+        priest: '#FFD700',
+        paladin: '#FF4500',
+        bard: '#8A2BE2',
+        cleric: '#FF6347',
+        druid: '#32CD32',
+        monk: '#FF8C00',
+        sorcerer: '#8B008B',
+        warlock: '#8B0000',
+        barbarian: '#A0522D',
+        brawler: '#8B4513',
+        assassin: '#2F4F4F',
+        hunter: '#228B22',
+        shaman: '#FFD700',
+        gladiator: '#FF4500',
+        ninja: '#8A2BE2',
+        summoner: '#FF6347',
+        necromancer: '#32CD32',
+        illusionist: '#FF8C00',
+        engineer: '#8B008B',
+        alchemist: '#8B0000',
+        scholar: '#A0522D'
     };
 
     const color = colors[charClass.toLowerCase()] || '#8B4513'; // Use charClass
@@ -4250,7 +4296,28 @@ function createPlaceholderPortrait(name, charClass, level = 1) { // Accept param
         warrior: '#8B4513',
         mage: '#4B0082',
         rogue: '#2F4F4F',
-        ranger: '#228B22'
+        ranger: '#228B22',
+        priest: '#FFD700',
+        paladin: '#FF4500',
+        bard: '#8A2BE2',
+        cleric: '#FF6347',
+        druid: '#32CD32',
+        monk: '#FF8C00',
+        sorcerer: '#8B008B',
+        warlock: '#8B0000',
+        barbarian: '#A0522D',
+        brawler: '#8B4513',
+        assassin: '#2F4F4F',
+        hunter: '#228B22',
+        shaman: '#FFD700',
+        gladiator: '#FF4500',
+        ninja: '#8A2BE2',
+        summoner: '#FF6347',
+        necromancer: '#32CD32',
+        illusionist: '#FF8C00',
+        engineer: '#8B008B',
+        alchemist: '#8B0000',
+        scholar: '#A0522D'
     };
 
     const color = colors[charClass.toLowerCase()] || '#8B4513'; // Use charClass
@@ -5464,9 +5531,90 @@ function updateQuickActionButtons() {
             castSpellBtn.innerHTML = `<i class="ra ra-bow mr-2"></i>Use Technique`;
             castSpellBtn.title = "Use a ranger technique or nature-based ability";
             break;
+        case 'cleric':
+            castSpellBtn.innerHTML = `<i class="ra ra-holy-symbol mr-2"></i>Cast Healing`;
+            castSpellBtn.title = "Cast a healing spell";
+            break;
+        case 'paladin':
+            castSpellBtn.innerHTML = `<i class="ra ra-shield mr-2"></i>Divine Strike`;
+            castSpellBtn.title = "Perform a divine strike";
+            break;
+        case 'bard':
+            castSpellBtn.innerHTML = `<i class="ra ra-music mr-2"></i>Perform`;
+            castSpellBtn.title = "Perform a musical ability";
+            break;
+        case 'druid':
+            castSpellBtn.innerHTML = `<i class="ra ra-tree mr-2"></i>Nature's Wrath`;
+            castSpellBtn.title = "Summon nature's wrath";
+            break;
+        case 'monk':
+            castSpellBtn.innerHTML = `<i class="ra ra-fist mr-2"></i>Martial Art`;
+            castSpellBtn.title = "Use a martial art";
+            break;
+        case 'sorcerer':
+            castSpellBtn.innerHTML = `<i class="ra ra-fireball mr-2"></i>Arcane Blast`;
+            castSpellBtn.title = "Cast an arcane blast";
+            break;
+        case 'warlock':
         default:
             castSpellBtn.innerHTML = `<i class="ra ra-fireball mr-2"></i>Special Action`;
             castSpellBtn.title = "Perform a special action";
+            break;
+        case 'barbarian':
+            castSpellBtn.innerHTML = `<i class="ra ra-axe mr-2"></i>Rage`;
+            castSpellBtn.title = "Enter a rage";
+            break;
+        case 'braweler':
+            castSpellBtn.innerHTML = `<i class="ra ra-fist mr-2"></i>Brawl`;
+            castSpellBtn.title = "Brawl with your fists";
+            break;
+        case 'necromancer':
+            castSpellBtn.innerHTML = `<i class="ra ra-skull mr-2"></i>Necrotic Blast`;
+            castSpellBtn.title = "Cast a necrotic blast";
+            break;
+        case 'assassin':
+            castSpellBtn.innerHTML = `<i class="ra ra-dagger mr-2"></i>Assassinate`;
+            castSpellBtn.title = "Assassinate your target";
+            break;
+        case 'alchemist':
+            castSpellBtn.innerHTML = `<i class="ra ra-flask mr-2"></i>Alchemy`;
+            castSpellBtn.title = "Use an alchemical ability";
+            break;
+        case 'engineer':
+            castSpellBtn.innerHTML = `<i class="ra ra-gears mr-2"></i>Engineer`;
+            castSpellBtn.title = "Use an engineering ability";
+            break;
+        case 'summoner':
+            castSpellBtn.innerHTML = `<i class="ra ra-owl mr-2"></i>Summon`;
+            castSpellBtn.title = "Summon a creature";
+            break;
+        case 'illusionist':
+            castSpellBtn.innerHTML = `<i class="ra ra-magic-palm mr-2"></i>Illusion`;
+            castSpellBtn.title = "Create an illusion";
+            break;
+        case 'shaman':
+            castSpellBtn.innerHTML = `<i class="ra ra-owl mr-2"></i>Spiritual Blast`;
+            castSpellBtn.title = "Cast a spiritual blast";
+            break;
+        case 'ninja':
+            castSpellBtn.innerHTML = `<i class="ra ra-ninja-mask mr-2"></i>Ninja Strike`;
+            castSpellBtn.title = "Perform a ninja strike";
+            break;
+        case 'psychic':
+            castSpellBtn.innerHTML = `<i class="ra ra-brain mr-2"></i>Psychic Blast`;
+            castSpellBtn.title = "Cast a psychic blast";
+            break;
+        case 'hunter':
+            castSpellBtn.innerHTML = `<i class="ra ra-bow mr-2"></i>Hunt`;
+            castSpellBtn.title = "Hunt your target";
+            break;
+        case 'scholar':
+            castSpellBtn.innerHTML = `<i class="ra ra-book mr-2"></i>Scholar`;
+            castSpellBtn.title = "Use a scholar ability";
+            break;
+        case 'gladiator':
+            castSpellBtn.innerHTML = `<i class="ra ra-sword mr-2"></i>Gladiator Strike`;
+            castSpellBtn.title = "Perform a gladiator strike";
             break;
     }
 }
