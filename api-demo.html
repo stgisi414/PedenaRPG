@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pedena Game API Demo - Simple</title>
+    <title>Pedena Game API Demo - Complete Test Character</title>
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -86,18 +86,29 @@
             background: #dc3545;
             color: white;
         }
+        .game-message {
+            margin: 8px 0;
+            padding: 8px;
+            border-left: 3px solid #ffcc00;
+            background: #2a2a2a;
+        }
+        .message-combat { border-left-color: #dc3545; }
+        .message-success { border-left-color: #28a745; }
+        .message-error { border-left-color: #dc3545; }
+        .message-info { border-left-color: #17a2b8; }
+        .message-exploration { border-left-color: #6f42c1; }
     </style>
 </head>
 <body>
-    <h1>🏰 Pedena Game API Demo</h1>
-    <p>Simple interface for character creation, command execution, and game data display.</p>
+    <h1>🏰 Pedena Game API Demo - Complete Test Character</h1>
+    <p>Full RPG gameplay with real test character and actual game mechanics.</p>
     <div class="status-indicator" id="api-status">🔴 API Not Connected</div>
 
     <!-- Character Creation -->
     <div class="section">
-        <h3>👤 Character Creation</h3>
+        <h3>👤 Test Character Creation</h3>
         <div class="controls">
-            <input type="text" id="char-name" placeholder="Character Name" value="Hero">
+            <input type="text" id="char-name" placeholder="Character Name" value="TestHero">
             <select id="char-class">
                 <option value="warrior">Warrior</option>
                 <option value="mage">Mage</option>
@@ -108,21 +119,22 @@
                 <option value="male">Male</option>
                 <option value="female">Female</option>
             </select>
-            <button onclick="createCharacter()">Create Character</button>
             <button onclick="initializeAPI()">Initialize API & Gemini</button>
+            <button onclick="createTestCharacter()">Create Test Character</button>
         </div>
         <div id="character-output" class="output">API not initialized. Click 'Initialize API & Gemini' first.</div>
     </div>
 
     <!-- Command Execution -->
     <div class="section">
-        <h3>🎮 Execute Command</h3>
+        <h3>🎮 Execute Game Command</h3>
         <div class="controls">
             <textarea id="command-input" placeholder="Enter your command (e.g., 'explore the area', 'check inventory', 'attack goblin')" rows="3">explore the ancient ruins</textarea>
-            <button onclick="executeCommand()">Execute Command</button>
+            <button onclick="executeGameCommand()">Execute Command</button>
             <button onclick="quickCommand('rest and recover')">Rest</button>
             <button onclick="quickCommand('explore the area')">Explore</button>
             <button onclick="quickCommand('check my stats')">Check Stats</button>
+            <button onclick="quickCommand('generate new quest')">New Quest</button>
         </div>
         <div id="game-output" class="output">No commands executed yet. Create a character and try a command!</div>
     </div>
@@ -130,15 +142,15 @@
     <!-- Game Data Display -->
     <div class="grid">
         <div class="section">
-            <h3>📊 Current Game Data</h3>
-            <button onclick="refreshGameData()">Refresh Game Data</button>
-            <div id="game-data" class="output">No game data available yet.</div>
+            <h3>📊 Test Character Game Data</h3>
+            <button onclick="refreshTestCharacterData()">Refresh Character Data</button>
+            <div id="test-character-data" class="output">No character data available yet.</div>
         </div>
 
         <div class="section">
             <h3>💾 LocalStorage Game Data</h3>
             <button onclick="refreshStorageData()">Refresh Storage Data</button>
-            <button onclick="clearStorage()">Clear All Storage</button>
+            <button onclick="clearTestStorage()">Clear Test Data</button>
             <div id="storage-data" class="output">No storage data loaded yet.</div>
         </div>
     </div>
@@ -150,8 +162,9 @@
 
         // Global variables
         let gameAPI = null;
-        let player = null;
+        let testPlayer = null;
         let isAPIInitialized = false;
+        let gameMessages = [];
 
         // Update status indicator
         function updateStatus(connected, message = '') {
@@ -163,6 +176,25 @@
                 statusEl.className = 'status-indicator status-disconnected';
                 statusEl.textContent = '🔴 API Disconnected' + (message ? ` - ${message}` : '');
             }
+        }
+
+        // Display game message with formatting
+        function displayGameMessage(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `game-message message-${type}`;
+            messageDiv.innerHTML = `[${timestamp}] ${message}`;
+            
+            const gameOutput = document.getElementById('game-output');
+            gameOutput.appendChild(messageDiv);
+            gameOutput.scrollTop = gameOutput.scrollHeight;
+
+            // Store message
+            gameMessages.push({
+                timestamp: Date.now(),
+                message: message,
+                type: type
+            });
         }
 
         // Gemini API call function
@@ -184,7 +216,25 @@
                             maxOutputTokens: maxTokens,
                             topP: 0.8,
                             topK: 40
-                        }
+                        },
+                        safetySettings: [
+                            {
+                                category: "HARM_CATEGORY_HARASSMENT",
+                                threshold: "BLOCK_NONE"
+                            },
+                            {
+                                category: "HARM_CATEGORY_HATE_SPEECH",
+                                threshold: "BLOCK_NONE"
+                            },
+                            {
+                                category: "HARM_CATEGORY_SEXUALLY_EXPLICIT",
+                                threshold: "BLOCK_NONE"
+                            },
+                            {
+                                category: "HARM_CATEGORY_DANGEROUS_CONTENT",
+                                threshold: "BLOCK_NONE"
+                            }
+                        ]
                     })
                 });
 
@@ -202,6 +252,46 @@
                 console.error('Gemini API error:', error);
                 throw new Error(`Gemini API failed: ${error.message}`);
             }
+        }
+
+        // Save test character data to localStorage (like the real game)
+        function saveTestCharacterData() {
+            if (!testPlayer) return;
+
+            // Save main game data
+            const saveData = {
+                player: testPlayer,
+                gameWorld: {
+                    npcs: [],
+                    locationMemory: [],
+                    lastNPCInteraction: null
+                },
+                conversationHistory: {
+                    messages: gameMessages.slice(-75),
+                    maxMessages: 75
+                }
+            };
+            localStorage.setItem('pedenaRPGSave', JSON.stringify(saveData));
+
+            // Save individual components like the real game
+            localStorage.setItem(`inventory_${testPlayer.name}`, JSON.stringify(testPlayer.inventory || []));
+            localStorage.setItem(`playerStats_${testPlayer.name}`, JSON.stringify(testPlayer.stats));
+            localStorage.setItem(`progression_${testPlayer.name}`, JSON.stringify({
+                classProgression: testPlayer.classProgression,
+                level: testPlayer.level,
+                maxHp: testPlayer.maxHp,
+                stats: testPlayer.stats
+            }));
+            localStorage.setItem(`statusEffects_${testPlayer.name}`, JSON.stringify(testPlayer.statusEffects || []));
+            localStorage.setItem(`passiveBonuses_${testPlayer.name}`, JSON.stringify(testPlayer.passiveBonuses || []));
+            localStorage.setItem(`recentLocations_${testPlayer.name}`, JSON.stringify([
+                { location: testPlayer.currentLocation, timestamp: Date.now() }
+            ]));
+            localStorage.setItem('pedenaConversationHistory', JSON.stringify({
+                messages: gameMessages.slice(-75),
+                maxMessages: 75
+            }));
+            localStorage.setItem('richTextEnabled', 'false');
         }
 
         // Initialize API and connect to Gemini
@@ -225,10 +315,10 @@
                         `✅ API Initialized Successfully!\n` +
                         `Version: ${initResult.version}\n` +
                         `Gemini Test: ${testResponse}\n` +
-                        `Ready for character creation and commands.`;
+                        `Ready for test character creation and commands.`;
                     
-                    // Load existing game data if any
-                    refreshGameData();
+                    // Load existing data if any
+                    refreshTestCharacterData();
                     refreshStorageData();
                 } else {
                     throw new Error('Failed to initialize game API');
@@ -240,8 +330,8 @@
             }
         };
 
-        // Create character
-        window.createCharacter = async () => {
+        // Create test character with full game mechanics
+        window.createTestCharacter = async () => {
             if (!isAPIInitialized) {
                 document.getElementById('character-output').textContent = '❌ Please initialize API first!';
                 return;
@@ -257,8 +347,9 @@
                     return;
                 }
 
-                document.getElementById('character-output').textContent = 'Creating character...';
+                document.getElementById('character-output').textContent = 'Creating test character with full game mechanics...';
 
+                // Create character using the game API
                 const result = gameAPI.createCharacter({
                     name: name,
                     charClass: charClass,
@@ -267,19 +358,102 @@
                 });
 
                 if (result.success) {
-                    player = result.player;
-                    document.getElementById('character-output').textContent = 
-                        `✅ Character Created Successfully!\n\n` +
-                        `Name: ${player.name}\n` +
-                        `Class: ${player.class}\n` +
-                        `Gender: ${player.gender}\n` +
-                        `Level: ${player.level}\n` +
-                        `HP: ${player.hp}/${player.maxHp}\n` +
-                        `Gold: ${player.gold}\n` +
-                        `Location: ${player.currentLocation}\n\n` +
-                        `Ready to begin adventure!`;
+                    testPlayer = result.player;
                     
-                    refreshGameData();
+                    // Add some initial items like a real character would have
+                    testPlayer.inventory = [
+                        {
+                            id: "healing_potion",
+                            name: "Healing Potion",
+                            type: "consumable",
+                            effect: { type: "heal", amount: 30 },
+                            value: 8,
+                            description: "Restores a moderate amount of health."
+                        },
+                        {
+                            id: "iron_sword",
+                            name: "Iron Sword",
+                            type: "weapon",
+                            slot: "mainHand",
+                            damage: "1d8",
+                            value: 25,
+                            description: "A sturdy iron blade."
+                        },
+                        {
+                            id: "leather_armor",
+                            name: "Leather Armor",
+                            type: "armor",
+                            slot: "chest",
+                            defense: 3,
+                            value: 15,
+                            description: "Basic leather protection."
+                        }
+                    ];
+
+                    // Add some status effects and bonuses
+                    testPlayer.statusEffects = [];
+                    testPlayer.passiveBonuses = ["basic_training"];
+                    
+                    // Initialize alignment system
+                    testPlayer.alignment = {
+                        score: 0,
+                        type: 'neutral',
+                        history: [],
+                        lastAssessment: Date.now(),
+                        totalAssessments: 0,
+                        messagesSinceLastAssessment: 0
+                    };
+
+                    // Add some quests
+                    testPlayer.quests = [
+                        {
+                            id: Date.now().toString(),
+                            title: "Explore the Ancient Ruins",
+                            description: "Investigate the mysterious ruins discovered near the town.",
+                            objective: "Find clues about the ancient civilization",
+                            completed: false,
+                            rewards: { gold: 100, experience: 50, items: ["Ancient Relic"] },
+                            difficulty: "Medium",
+                            location: "Ancient Ruins",
+                            questGiver: "Village Elder",
+                            dateCreated: new Date().toLocaleDateString()
+                        }
+                    ];
+
+                    // Add relationships
+                    testPlayer.relationships = {
+                        "Village Elder": {
+                            status: 'friendly',
+                            trust: 65,
+                            interactions: 2,
+                            lastInteraction: Date.now(),
+                            metAt: testPlayer.currentLocation,
+                            description: "An wise elder who gave you your first quest.",
+                            firstMeeting: new Date().toLocaleDateString()
+                        }
+                    };
+
+                    // Save all data to localStorage
+                    saveTestCharacterData();
+
+                    displayGameMessage(`Character ${name} created successfully!`, 'success');
+                    displayGameMessage(`You are a Level ${testPlayer.level} ${testPlayer.class} in ${testPlayer.currentLocation}`, 'info');
+                    displayGameMessage(`HP: ${testPlayer.hp}/${testPlayer.maxHp} | Gold: ${testPlayer.gold}`, 'info');
+                    
+                    document.getElementById('character-output').textContent = 
+                        `✅ Test Character Created Successfully!\n\n` +
+                        `Name: ${testPlayer.name}\n` +
+                        `Class: ${testPlayer.class}\n` +
+                        `Gender: ${testPlayer.gender}\n` +
+                        `Level: ${testPlayer.level}\n` +
+                        `HP: ${testPlayer.hp}/${testPlayer.maxHp}\n` +
+                        `Gold: ${testPlayer.gold}\n` +
+                        `Location: ${testPlayer.currentLocation}\n` +
+                        `Inventory Items: ${testPlayer.inventory.length}\n` +
+                        `Active Quests: ${testPlayer.quests.filter(q => !q.completed).length}\n\n` +
+                        `Ready to play! All localStorage data generated.`;
+                    
+                    refreshTestCharacterData();
                     refreshStorageData();
                 } else {
                     document.getElementById('character-output').textContent = `❌ Character creation failed: ${result.message}`;
@@ -290,129 +464,211 @@
             }
         };
 
-        // Execute command
-        window.executeCommand = async () => {
+        // Execute game command with full RPG mechanics
+        window.executeGameCommand = async () => {
             if (!isAPIInitialized) {
-                document.getElementById('game-output').textContent = '❌ Please initialize API first!';
+                displayGameMessage('❌ Please initialize API first!', 'error');
                 return;
             }
 
-            if (!player) {
-                document.getElementById('game-output').textContent = '❌ Please create a character first!';
+            if (!testPlayer) {
+                displayGameMessage('❌ Please create a character first!', 'error');
                 return;
             }
 
             try {
                 const command = document.getElementById('command-input').value.trim();
                 if (!command) {
-                    document.getElementById('game-output').textContent = '❌ Please enter a command';
+                    displayGameMessage('❌ Please enter a command', 'error');
                     return;
                 }
 
-                document.getElementById('game-output').textContent = `Processing command: "${command}"\n\nPlease wait...`;
+                displayGameMessage(`> ${command}`, 'info');
 
+                // Process command through the game API
                 const result = await gameAPI.processCommand(command);
 
                 if (result.success) {
-                    const timestamp = new Date().toLocaleTimeString();
-                    document.getElementById('game-output').textContent = 
-                        `[${timestamp}] Command: "${command}"\n\n` +
-                        `${result.response}\n\n` +
-                        `Action Type: ${result.actionType || 'general'}\n` +
-                        `Confidence: ${result.confidence || 'medium'}\n\n` +
-                        `--- Game State Updated ---`;
+                    displayGameMessage(result.response, 'info');
                     
                     // Update player reference
-                    player = result.player;
+                    testPlayer = result.player;
+                    
+                    // Handle special command effects
+                    await handleCommandEffects(command, result.response);
+                    
+                    // Save updated data
+                    saveTestCharacterData();
                     
                     // Refresh displays
-                    refreshGameData();
+                    refreshTestCharacterData();
                     refreshStorageData();
                 } else {
-                    document.getElementById('game-output').textContent = 
-                        `❌ Command failed: ${result.error || result.message}\n\n` +
-                        `Attempted command: "${command}"`;
+                    displayGameMessage(`❌ Command failed: ${result.error || result.message}`, 'error');
                 }
             } catch (error) {
-                document.getElementById('game-output').textContent = 
-                    `❌ Error executing command: ${error.message}\n\n` +
-                    `Command: "${command}"`;
+                displayGameMessage(`❌ Error executing command: ${error.message}`, 'error');
                 console.error('Command execution error:', error);
             }
         };
 
+        // Handle command effects on game state
+        async function handleCommandEffects(command, response) {
+            // Handle rest commands
+            if (command.toLowerCase().includes('rest')) {
+                const healAmount = Math.floor(testPlayer.maxHp * 0.25) + 10;
+                testPlayer.hp = Math.min(testPlayer.maxHp, testPlayer.hp + healAmount);
+                displayGameMessage(`You recover ${healAmount} HP.`, 'success');
+            }
+
+            // Handle exploration rewards
+            if (command.toLowerCase().includes('explore')) {
+                if (Math.random() > 0.7) {
+                    const goldFound = Math.floor(Math.random() * 30) + 10;
+                    testPlayer.gold += goldFound;
+                    displayGameMessage(`You found ${goldFound} gold!`, 'success');
+                }
+                
+                if (Math.random() > 0.8) {
+                    const newItem = {
+                        id: Date.now() + "_found",
+                        name: "Mysterious Artifact",
+                        type: "treasure",
+                        value: 50,
+                        description: "A strange item found during exploration."
+                    };
+                    testPlayer.inventory.push(newItem);
+                    displayGameMessage(`You found: ${newItem.name}!`, 'success');
+                }
+            }
+
+            // Handle quest generation
+            if (command.toLowerCase().includes('quest')) {
+                const questResult = await gameAPI.generateQuest();
+                if (questResult.success) {
+                    displayGameMessage(`New quest available: ${questResult.quest.title}`, 'success');
+                    displayGameMessage(questResult.quest.description, 'info');
+                }
+            }
+
+            // Handle combat simulation
+            if (command.toLowerCase().includes('attack') || command.toLowerCase().includes('fight')) {
+                const enemy = {
+                    name: "Goblin Raider",
+                    hp: 25,
+                    maxHp: 25,
+                    attack: 8,
+                    defense: 2
+                };
+                
+                displayGameMessage(`⚔️ Combat begins with ${enemy.name}!`, 'combat');
+                
+                // Simple combat simulation
+                const playerDamage = Math.floor(Math.random() * 12) + 5;
+                const enemyDamage = Math.floor(Math.random() * 8) + 3;
+                
+                displayGameMessage(`You attack for ${playerDamage} damage!`, 'combat');
+                displayGameMessage(`${enemy.name} attacks for ${enemyDamage} damage!`, 'combat');
+                
+                testPlayer.hp = Math.max(0, testPlayer.hp - enemyDamage);
+                
+                if (testPlayer.hp > 0) {
+                    const goldReward = Math.floor(Math.random() * 25) + 15;
+                    const xpReward = Math.floor(Math.random() * 20) + 10;
+                    
+                    testPlayer.gold += goldReward;
+                    testPlayer.exp += xpReward;
+                    
+                    displayGameMessage(`Victory! You gained ${goldReward} gold and ${xpReward} XP!`, 'success');
+                    
+                    // Check for level up
+                    if (testPlayer.exp >= testPlayer.expToNextLevel) {
+                        testPlayer.level++;
+                        testPlayer.exp = 0;
+                        testPlayer.expToNextLevel = Math.floor(testPlayer.expToNextLevel * 1.5);
+                        testPlayer.maxHp += 10;
+                        testPlayer.hp = testPlayer.maxHp;
+                        displayGameMessage(`🆙 Level up! You are now level ${testPlayer.level}!`, 'success');
+                    }
+                } else {
+                    displayGameMessage(`💀 You were defeated! You wake up at a safe location.`, 'error');
+                    testPlayer.hp = Math.floor(testPlayer.maxHp * 0.25);
+                    testPlayer.currentLocation = "Village Inn";
+                }
+            }
+        }
+
         // Quick command shortcuts
         window.quickCommand = async (command) => {
             document.getElementById('command-input').value = command;
-            await executeCommand();
+            await executeGameCommand();
         };
 
-        // Refresh game data display
-        window.refreshGameData = () => {
+        // Refresh test character data display
+        window.refreshTestCharacterData = () => {
             try {
-                if (!gameAPI) {
-                    document.getElementById('game-data').textContent = 'Game API not initialized';
-                    return;
-                }
-
-                const gameState = gameAPI.getGameState();
-                const playerData = gameAPI.getPlayerData();
-                
                 let output = '';
                 
-                if (playerData) {
-                    output += `=== PLAYER DATA ===\n`;
-                    output += `Name: ${playerData.name || 'Unknown'}\n`;
-                    output += `Class: ${playerData.class || 'Unknown'}\n`;
-                    output += `Gender: ${playerData.gender || 'Unknown'}\n`;
-                    output += `Level: ${playerData.level || 1}\n`;
-                    output += `HP: ${playerData.hp || 0}/${playerData.maxHp || 0}\n`;
-                    output += `Gold: ${playerData.gold || 0}\n`;
-                    output += `XP: ${playerData.exp || 0}/${playerData.expToNextLevel || 100}\n`;
-                    output += `Location: ${playerData.currentLocation || 'Unknown'}\n\n`;
+                if (testPlayer) {
+                    output += `=== TEST CHARACTER DATA ===\n`;
+                    output += `Name: ${testPlayer.name}\n`;
+                    output += `Class: ${testPlayer.class}\n`;
+                    output += `Gender: ${testPlayer.gender}\n`;
+                    output += `Level: ${testPlayer.level}\n`;
+                    output += `HP: ${testPlayer.hp}/${testPlayer.maxHp}\n`;
+                    output += `Gold: ${testPlayer.gold}\n`;
+                    output += `XP: ${testPlayer.exp}/${testPlayer.expToNextLevel}\n`;
+                    output += `Location: ${testPlayer.currentLocation}\n\n`;
                     
                     output += `=== STATS ===\n`;
-                    if (playerData.stats) {
-                        Object.entries(playerData.stats).forEach(([stat, value]) => {
+                    if (testPlayer.stats) {
+                        Object.entries(testPlayer.stats).forEach(([stat, value]) => {
                             output += `${stat}: ${value}\n`;
                         });
                     }
                     output += '\n';
                     
                     output += `=== INVENTORY ===\n`;
-                    const inventory = playerData.inventory || [];
-                    output += `Items: ${inventory.length}\n`;
-                    inventory.slice(0, 5).forEach((item, index) => {
-                        output += `${index + 1}. ${item.name || 'Unknown Item'}\n`;
+                    const inventory = testPlayer.inventory || [];
+                    output += `Total Items: ${inventory.length}\n`;
+                    inventory.forEach((item, index) => {
+                        output += `${index + 1}. ${item.name} (${item.type}) - ${item.value}g\n`;
                     });
-                    if (inventory.length > 5) {
-                        output += `... and ${inventory.length - 5} more items\n`;
-                    }
                     output += '\n';
                     
                     output += `=== QUESTS ===\n`;
-                    const quests = playerData.quests || [];
+                    const quests = testPlayer.quests || [];
                     const activeQuests = quests.filter(q => !q.completed);
                     const completedQuests = quests.filter(q => q.completed);
                     output += `Active: ${activeQuests.length}, Completed: ${completedQuests.length}\n`;
-                    activeQuests.slice(0, 3).forEach(quest => {
-                        output += `• ${quest.title || 'Untitled Quest'}\n`;
+                    activeQuests.forEach(quest => {
+                        output += `• ${quest.title} (${quest.difficulty})\n`;
+                        output += `  Objective: ${quest.objective}\n`;
+                        output += `  Rewards: ${quest.rewards.gold}g, ${quest.rewards.experience}xp\n`;
                     });
                     output += '\n';
                     
-                    if (playerData.alignmentInfo) {
-                        output += `=== ALIGNMENT ===\n`;
-                        output += `Type: ${playerData.alignmentInfo.type || 'neutral'}\n`;
-                        output += `Score: ${playerData.alignmentInfo.score || 0}\n\n`;
+                    output += `=== RELATIONSHIPS ===\n`;
+                    const relationships = testPlayer.relationships || {};
+                    Object.entries(relationships).forEach(([name, rel]) => {
+                        output += `${name}: ${rel.status} (Trust: ${rel.trust}%)\n`;
+                    });
+                    output += '\n';
+                    
+                    output += `=== ALIGNMENT ===\n`;
+                    if (testPlayer.alignment) {
+                        output += `Type: ${testPlayer.alignment.type}\n`;
+                        output += `Score: ${testPlayer.alignment.score}\n`;
+                        output += `Assessments: ${testPlayer.alignment.totalAssessments}\n`;
                     }
                 } else {
-                    output = 'No player data available. Create a character first.';
+                    output = 'No test character data available. Create a character first.';
                 }
                 
-                document.getElementById('game-data').textContent = output;
+                document.getElementById('test-character-data').textContent = output;
             } catch (error) {
-                document.getElementById('game-data').textContent = `Error loading game data: ${error.message}`;
-                console.error('Game data refresh error:', error);
+                document.getElementById('test-character-data').textContent = `Error loading character data: ${error.message}`;
+                console.error('Character data refresh error:', error);
             }
         };
 
@@ -421,10 +677,10 @@
             try {
                 const storageData = {};
                 
-                // Get all relevant localStorage keys
+                // Get all localStorage keys
                 for (let i = 0; i < localStorage.length; i++) {
                     const key = localStorage.key(i);
-                    if (key && (key.includes('pedena') || key.includes('game') || key.includes('player'))) {
+                    if (key) {
                         try {
                             const value = localStorage.getItem(key);
                             storageData[key] = JSON.parse(value);
@@ -435,20 +691,40 @@
                 }
                 
                 let output = `=== LOCALSTORAGE GAME DATA ===\n`;
-                output += `Total Keys Found: ${Object.keys(storageData).length}\n\n`;
+                output += `Total Keys: ${Object.keys(storageData).length}\n\n`;
                 
-                Object.entries(storageData).forEach(([key, value]) => {
-                    output += `[${key}]:\n`;
-                    if (typeof value === 'object') {
-                        output += JSON.stringify(value, null, 2);
-                    } else {
-                        output += value;
-                    }
-                    output += '\n\n';
+                // Show the key data formats like in the example
+                const keyOrder = [
+                    'pedenaRPGSave',
+                    'pedenaConversationHistory',
+                    'inventory_',
+                    'playerStats_',
+                    'progression_',
+                    'statusEffects_',
+                    'passiveBonuses_',
+                    'recentLocations_',
+                    'richTextEnabled'
+                ];
+                
+                keyOrder.forEach(keyPrefix => {
+                    Object.entries(storageData).forEach(([key, value]) => {
+                        if (key.startsWith(keyPrefix)) {
+                            output += `${key}:\n`;
+                            if (typeof value === 'object') {
+                                output += JSON.stringify(value, null, 2).substring(0, 500);
+                                if (JSON.stringify(value).length > 500) {
+                                    output += '...\n[truncated]\n';
+                                }
+                            } else {
+                                output += value;
+                            }
+                            output += '\n\n';
+                        }
+                    });
                 });
                 
                 if (Object.keys(storageData).length === 0) {
-                    output += 'No Pedena game data found in localStorage.\nCreate a character and execute commands to generate data.';
+                    output += 'No game data found in localStorage.\nCreate a character and execute commands to generate data.';
                 }
                 
                 document.getElementById('storage-data').textContent = output;
@@ -458,25 +734,22 @@
             }
         };
 
-        // Clear storage
-        window.clearStorage = () => {
-            if (confirm('Are you sure you want to clear all game data? This cannot be undone.')) {
-                const keysToRemove = [];
-                for (let i = 0; i < localStorage.length; i++) {
-                    const key = localStorage.key(i);
-                    if (key && (key.includes('pedena') || key.includes('game') || key.includes('player'))) {
-                        keysToRemove.push(key);
-                    }
-                }
+        // Clear test storage
+        window.clearTestStorage = () => {
+            if (confirm('Are you sure you want to clear all test character data? This cannot be undone.')) {
+                // Clear all localStorage
+                localStorage.clear();
                 
-                keysToRemove.forEach(key => localStorage.removeItem(key));
+                testPlayer = null;
+                gameMessages = [];
                 
-                player = null;
-                refreshGameData();
+                // Clear displays
+                document.getElementById('game-output').innerHTML = '';
+                refreshTestCharacterData();
                 refreshStorageData();
                 
-                document.getElementById('character-output').textContent = '✅ All game data cleared from localStorage.';
-                document.getElementById('game-output').textContent = 'Storage cleared. Create a new character to start fresh.';
+                document.getElementById('character-output').textContent = '✅ All test character data cleared from localStorage.';
+                displayGameMessage('Storage cleared. Create a new character to start fresh.', 'info');
             }
         };
 
@@ -487,7 +760,7 @@
                 commandInput.addEventListener('keypress', (e) => {
                     if (e.key === 'Enter' && !e.shiftKey) {
                         e.preventDefault();
-                        executeCommand();
+                        executeGameCommand();
                     }
                 });
             }
