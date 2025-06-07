@@ -703,6 +703,7 @@
                             const value = localStorage.getItem(key);
                             storageData[key] = JSON.parse(value);
                         } catch {
+                            const value = localStorage.getItem(key);
                             storageData[key] = value; // Keep as string if not JSON
                         }
                     }
