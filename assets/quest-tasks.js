@@ -2,6 +2,8 @@
 // Quest Task Generation System
 // Comprehensive quest templates and generation logic for varied, contextual quests
 
+import { itemTemplates, itemRarity } from './world-items.js';
+
 export const questCategories = {
     EXPLORATION: 'exploration',
     COMBAT: 'combat',
