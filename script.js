@@ -1912,21 +1912,11 @@ function checkQuestCompletion(playerAction) {
                     // Parse XP reward from structured quest data - check all possible property names
                     xpAwarded = parseInt(quest.rewards.experience) || parseInt(quest.rewards.exp) || parseInt(quest.rewards.xp) || 0;
 
-                    // If no XP found in structured rewards, calculate based on quest difficulty
-                    if (xpAwarded === 0) {
-                        const baseXP = 25 + (player.level * 15);
-                        const difficultyMultiplier = quest.difficulty === 'Easy' ? 0.8 :
-                            quest.difficulty === 'Medium' ? 1.0 :
-                            quest.difficulty === 'Hard' ? 1.4 :
-                            quest.difficulty === 'Very Hard' ? 2.0 : 1.0;
-                        xpAwarded = Math.floor(baseXP * difficultyMultiplier);
-                    }
-
-                    console.log('Structured quest rewards:', {
+                    console.log('Quest rewards parsing:', {
                         questTitle: quest.title,
                         rewardsObject: quest.rewards,
-                        goldAwarded: goldAwarded,
-                        xpAwarded: xpAwarded
+                        goldParsed: goldAwarded,
+                        xpParsed: xpAwarded
                     });
 
                     // Award items from structured quest data
@@ -1951,40 +1941,47 @@ function checkQuestCompletion(playerAction) {
                             }
                         });
                     }
-                } else {
-                    // Enhanced fallback reward system for legacy quests
+                }
+
+                // Always ensure minimum rewards regardless of quest structure
+                if (goldAwarded === 0) {
                     const difficultyMultiplier = quest.difficulty === 'Easy' ? 1.0 :
                         quest.difficulty === 'Medium' ? 1.5 :
-                            quest.difficulty === 'Hard' ? 2.0 : 2.5;
+                            quest.difficulty === 'Hard' ? 2.0 : 
+                            quest.difficulty === 'Very Hard' ? 2.5 : 1.5;
 
                     goldAwarded = Math.floor((50 + player.level * 25) * difficultyMultiplier);
-                    xpAwarded = Math.floor((25 + player.level * 15) * difficultyMultiplier);
-
-                    console.log('Fallback quest rewards:', {
-                        questTitle: quest.title,
-                        difficulty: quest.difficulty,
-                        multiplier: difficultyMultiplier,
-                        goldAwarded: goldAwarded,
-                        xpAwarded: xpAwarded
-                    });
                 }
 
-                // Apply rewards
-                if (goldAwarded > 0) {
-                    updateGold(goldAwarded, 'quest reward');
-                    displayMessage(`💰 You earned ${goldAwarded} gold!`, 'success');
+                if (xpAwarded === 0) {
+                    const baseXP = 25 + (player.level * 15);
+                    const difficultyMultiplier = quest.difficulty === 'Easy' ? 0.8 :
+                        quest.difficulty === 'Medium' ? 1.0 :
+                            quest.difficulty === 'Hard' ? 1.4 :
+                            quest.difficulty === 'Very Hard' ? 2.0 : 1.0;
+                    xpAwarded = Math.floor(baseXP * difficultyMultiplier);
                 }
 
-                if (xpAwarded > 0) {
-                    const oldLevel = player.level;
-                    gainExperience(xpAwarded);
-                    displayMessage(`⭐ You gained ${xpAwarded} experience!`, 'success');
+                console.log('Final quest rewards:', {
+                    questTitle: quest.title,
+                    difficulty: quest.difficulty || 'Medium',
+                    goldAwarded: goldAwarded,
+                    xpAwarded: xpAwarded,
+                    playerLevel: player.level
+                });
 
-                    if (player.level > oldLevel) {
-                        displayMessage(`🆙 Level up! You are now level ${player.level}!`, 'success');
-                        if (window.displayLevelUpRewards && player.classProgression) {
-                            displayLevelUpRewards(player.classProgression, oldLevel);
-                        }
+                // Apply rewards - Always award both gold and XP
+                updateGold(goldAwarded, 'quest reward');
+                displayMessage(`💰 You earned ${goldAwarded} gold!`, 'success');
+
+                const oldLevel = player.level;
+                gainExperience(xpAwarded);
+                displayMessage(`⭐ You gained ${xpAwarded} experience!`, 'success');
+
+                if (player.level > oldLevel) {
+                    displayMessage(`🆙 Level up! You are now level ${player.level}!`, 'success');
+                    if (window.displayLevelUpRewards && player.classProgression) {
+                        displayLevelUpRewards(player.classProgression, oldLevel);
                     }
                 }
 
