@@ -666,7 +666,10 @@
                     await executeGameCommand();
                 }
             } else if (command.includes('pray')) {
-                if (typeof window.executeCustomCommand === 'function') {
+                if (typeof window.pray === 'function') {
+                    displayGameMessage(`> ${command}`, 'info');
+                    await window.pray();
+                } else if (typeof window.executeCustomCommand === 'function') {
                     displayGameMessage(`> ${command}`, 'info');
                     await window.executeCustomCommand(command);
                 } else {
