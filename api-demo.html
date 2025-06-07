@@ -1,0 +1,242 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pedena Game API Demo</title>
+    <style>
+        body {
+            font-family: 'Courier New', monospace;
+            background: #1a1a1a;
+            color: #00ff00;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #333;
+            background: #2a2a2a;
+        }
+        button {
+            background: #333;
+            color: #00ff00;
+            border: 1px solid #555;
+            padding: 8px 16px;
+            margin: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #444;
+        }
+        .output {
+            background: #000;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #333;
+            white-space: pre-wrap;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        input, textarea {
+            background: #333;
+            color: #00ff00;
+            border: 1px solid #555;
+            padding: 5px;
+            margin: 5px;
+        }
+        .error { color: #ff4444; }
+        .success { color: #44ff44; }
+        .info { color: #4444ff; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎮 Pedena Game API - Live Demo</h1>
+        <p>Complete programmatic interface for the Pedena RPG game engine.</p>
+
+        <div class="section">
+            <h2>API Initialization</h2>
+            <button onclick="initializeAPI()">Initialize API</button>
+            <button onclick="getEndpoints()">Show Endpoints</button>
+            <div id="init-output" class="output"></div>
+        </div>
+
+        <div class="section">
+            <h2>Character Management</h2>
+            <input type="text" id="char-name" placeholder="Character Name" value="TestHero">
+            <select id="char-class">
+                <option value="warrior">Warrior</option>
+                <option value="mage">Mage</option>
+                <option value="rogue">Rogue</option>
+                <option value="ranger">Ranger</option>
+            </select>
+            <select id="char-gender">
+                <option value="male">Male</option>
+                <option value="female">Female</option>
+            </select>
+            <br>
+            <button onclick="createCharacter()">Create Character</button>
+            <button onclick="getPlayerData()">Get Player Data</button>
+            <div id="character-output" class="output"></div>
+        </div>
+
+        <div class="section">
+            <h2>Location & Movement</h2>
+            <input type="text" id="destination" placeholder="Destination" value="Crystal Peaks">
+            <button onclick="getCurrentLocation()">Current Location</button>
+            <button onclick="moveToLocation()">Move to Location</button>
+            <div id="location-output" class="output"></div>
+        </div>
+
+        <div class="section">
+            <h2>Quest System</h2>
+            <button onclick="generateQuest()">Generate Quest</button>
+            <button onclick="getQuests()">Show Quests</button>
+            <button onclick="completeFirstQuest()">Complete First Quest</button>
+            <div id="quest-output" class="output"></div>
+        </div>
+
+        <div class="section">
+            <h2>AI Commands</h2>
+            <textarea id="ai-command" placeholder="Enter command..." rows="3" cols="50">explore the area</textarea>
+            <br>
+            <button onclick="processAICommand()">Process Command</button>
+            <button onclick="getConversationHistory()">Show History</button>
+            <div id="ai-output" class="output"></div>
+        </div>
+
+        <div class="section">
+            <h2>Game Data Access</h2>
+            <button onclick="getWorldData()">World Data</button>
+            <button onclick="getCharacterData()">Character Data</button>
+            <button onclick="getItemData()">Item Data</button>
+            <button onclick="getCompleteState()">Complete Game State</button>
+            <div id="data-output" class="output"></div>
+        </div>
+
+        <div class="section">
+            <h2>Save/Load System</h2>
+            <button onclick="saveGame()">Save Game</button>
+            <button onclick="loadGame()">Load Game</button>
+            <div id="save-output" class="output"></div>
+        </div>
+    </div>
+
+    <script type="module">
+        import gameAPI from './game-api.js';
+
+        // Make functions globally available
+        window.gameAPI = gameAPI;
+
+        window.initializeAPI = async () => {
+            const result = await gameAPI.initialize();
+            document.getElementById('init-output').textContent = JSON.stringify(result, null, 2);
+        };
+
+        window.getEndpoints = () => {
+            const endpoints = gameAPI.getEndpoints();
+            document.getElementById('init-output').textContent = JSON.stringify(endpoints, null, 2);
+        };
+
+        window.createCharacter = () => {
+            const characterData = {
+                name: document.getElementById('char-name').value,
+                charClass: document.getElementById('char-class').value,
+                gender: document.getElementById('char-gender').value,
+                background: 'adventurer'
+            };
+            
+            const result = gameAPI.createCharacter(characterData);
+            document.getElementById('character-output').textContent = JSON.stringify(result, null, 2);
+        };
+
+        window.getPlayerData = () => {
+            const result = gameAPI.getPlayerData();
+            document.getElementById('character-output').textContent = JSON.stringify(result, null, 2);
+        };
+
+        window.getCurrentLocation = () => {
+            const result = gameAPI.getCurrentLocation();
+            document.getElementById('location-output').textContent = JSON.stringify(result, null, 2);
+        };
+
+        window.moveToLocation = async () => {
+            const destination = document.getElementById('destination').value;
+            const result = await gameAPI.moveToLocation(destination);
+            document.getElementById('location-output').textContent = JSON.stringify(result, null, 2);
+        };
+
+        window.generateQuest = async () => {
+            const result = await gameAPI.generateQuest();
+            document.getElementById('quest-output').textContent = JSON.stringify(result, null, 2);
+        };
+
+        window.getQuests = () => {
+            const result = gameAPI.getQuests();
+            document.getElementById('quest-output').textContent = JSON.stringify(result, null, 2);
+        };
+
+        window.completeFirstQuest = () => {
+            const quests = gameAPI.getQuests();
+            if (quests.length > 0) {
+                const result = gameAPI.completeQuest(quests[0].id);
+                document.getElementById('quest-output').textContent = JSON.stringify(result, null, 2);
+            } else {
+                document.getElementById('quest-output').textContent = 'No quests available to complete';
+            }
+        };
+
+        window.processAICommand = async () => {
+            const command = document.getElementById('ai-command').value;
+            const result = await gameAPI.processCommand(command);
+            document.getElementById('ai-output').textContent = JSON.stringify(result, null, 2);
+        };
+
+        window.getConversationHistory = () => {
+            const result = gameAPI.getConversationHistory();
+            document.getElementById('ai-output').textContent = JSON.stringify(result, null, 2);
+        };
+
+        window.getWorldData = () => {
+            const result = gameAPI.getWorldData();
+            document.getElementById('data-output').textContent = JSON.stringify(result, null, 2);
+        };
+
+        window.getCharacterData = () => {
+            const result = gameAPI.getCharacterData();
+            document.getElementById('data-output').textContent = JSON.stringify(result, null, 2);
+        };
+
+        window.getItemData = () => {
+            const result = gameAPI.getItemData();
+            document.getElementById('data-output').textContent = JSON.stringify(result, null, 2);
+        };
+
+        window.getCompleteState = () => {
+            const result = gameAPI.getGameState();
+            document.getElementById('data-output').textContent = JSON.stringify(result, null, 2);
+        };
+
+        window.saveGame = () => {
+            const result = gameAPI.saveGame();
+            document.getElementById('save-output').textContent = JSON.stringify(result, null, 2);
+        };
+
+        window.loadGame = () => {
+            const result = gameAPI.loadGame();
+            document.getElementById('save-output').textContent = JSON.stringify(result, null, 2);
+        };
+
+        // Auto-initialize on page load
+        window.addEventListener('load', () => {
+            initializeAPI();
+        });
+    </script>
+</body>
+</html>
