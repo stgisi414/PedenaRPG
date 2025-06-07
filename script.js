@@ -3303,6 +3303,78 @@ function learnNewSpell(spellName) {
     }
 }
 
+async function pray() {
+    // Initialize alignment if not present
+    AlignmentSystem.initializeAlignment(player);
+
+    const alignmentInfo = AlignmentSystem.getAlignmentDisplayInfo(player);
+    const prayerEffects = alignmentInfo.modifier.prayerEffects;
+
+    displayMessage("You offer a prayer to the gods...", 'info');
+
+    setTimeout(() => {
+        if (prayerEffects.length > 0) {
+            const effect = prayerEffects[0];
+
+            // Apply healing
+            if (effect.healAmount) {
+                const oldHp = player.hp;
+                player.hp = Math.min(player.maxHp, player.hp + effect.healAmount);
+                const actualHeal = player.hp - oldHp;
+                if (actualHeal > 0) {
+                    displayMessage(`${effect.name}: You recover ${actualHeal} HP!`, 'success');
+                }
+            }
+
+            // Apply gold bonus (for neutral alignments)
+            if (effect.goldBonus) {
+                updateGold(effect.goldBonus, 'divine fortune');
+                displayMessage(`Fortune smiles upon you! You found ${effect.goldBonus} gold!`, 'success');
+            }
+
+            // Apply stat bonuses temporarily
+            if (effect.statBonus) {
+                Object.entries(effect.statBonus).forEach(([stat, bonus]) => {
+                    if (player.stats[stat] !== undefined) {
+                        player.stats[stat] += bonus;
+                    }
+                });
+
+                // Set timer to remove stat bonuses
+                setTimeout(() => {
+                    Object.entries(effect.statBonus).forEach(([stat, bonus]) => {
+                        if (player.stats[stat] !== undefined) {
+                            player.stats[stat] -= bonus;
+                        }
+                    });
+                    displayMessage(`The ${effect.name.toLowerCase()} effect has worn off.`, 'info');
+                    updatePlayerStatsDisplay();
+                }, effect.duration * 1000);
+            }
+
+            // Apply status effects
+            if (effect.effects && player.statusEffects) {
+                effect.effects.forEach(statusEffect => {
+                    if (!player.statusEffects) player.statusEffects = [];
+                    player.statusEffects.push({
+                        name: effect.name,
+                        description: effect.description,
+                        expiresAt: Date.now() + (effect.duration * 1000),
+                        type: alignmentInfo.type.includes('evil') || alignmentInfo.type === 'malevolent' ? 'negative' : 'positive'
+                    });
+                });
+            }
+
+            displayMessage(effect.description, 'success');
+            displayMessage(`Effect duration: ${Math.floor(effect.duration / 60)} minutes`, 'info');
+
+            updatePlayerStatsDisplay();
+        } else {
+            displayMessage("The gods listen but remain silent.", 'info');
+        }
+    }, 1000);
+}
+
 async function explore() {
     displayMessage("Exploring the area...", 'info');
 
@@ -4503,75 +4575,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     document.getElementById('pray-btn')?.addEventListener('click', () => {
-        // Initialize alignment if not present
-        AlignmentSystem.initializeAlignment(player);
-
-        const alignmentInfo = AlignmentSystem.getAlignmentDisplayInfo(player);
-        const prayerEffects = alignmentInfo.modifier.prayerEffects;
-
-        displayMessage("You offer a prayer to the gods...", 'info');
-
-        setTimeout(() => {
-            if (prayerEffects.length > 0) {
-                const effect = prayerEffects[0];
-
-                // Apply healing
-                if (effect.healAmount) {
-                    const oldHp = player.hp;
-                    player.hp = Math.min(player.maxHp, player.hp + effect.healAmount);
-                    const actualHeal = player.hp - oldHp;
-                    if (actualHeal > 0) {
-                        displayMessage(`${effect.name}: You recover ${actualHeal} HP!`, 'success');
-                    }
-                }
-
-                // Apply gold bonus (for neutral alignments)
-                if (effect.goldBonus) {
-                    updateGold(effect.goldBonus, 'divine fortune');
-                    displayMessage(`Fortune smiles upon you! You found ${effect.goldBonus} gold!`, 'success');
-                }
-
-                // Apply stat bonuses temporarily
-                if (effect.statBonus) {
-                    Object.entries(effect.statBonus).forEach(([stat, bonus]) => {
-                        if (player.stats[stat] !== undefined) {
-                            player.stats[stat] += bonus;
-                        }
-                    });
-
-                    // Set timer to remove stat bonuses
-                    setTimeout(() => {
-                        Object.entries(effect.statBonus).forEach(([stat, bonus]) => {
-                            if (player.stats[stat] !== undefined) {
-                                player.stats[stat] -= bonus;
-                            }
-                        });
-                        displayMessage(`The ${effect.name.toLowerCase()} effect has worn off.`, 'info');
-                        updatePlayerStatsDisplay();
-                    }, effect.duration * 1000);
-                }
-
-                // Apply status effects
-                if (effect.effects && player.statusEffects) {
-                    effect.effects.forEach(statusEffect => {
-                        if (!player.statusEffects) player.statusEffects = [];
-                        player.statusEffects.push({
-                            name: effect.name,
-                            description: effect.description,
-                            expiresAt: Date.now() + (effect.duration * 1000),
-                            type: alignmentInfo.type.includes('evil') || alignmentInfo.type === 'malevolent' ? 'negative' : 'positive'
-                        });
-                    });
-                }
-
-                displayMessage(effect.description, 'success');
-                displayMessage(`Effect duration: ${Math.floor(effect.duration / 60)} minutes`, 'info');
-
-                updatePlayerStatsDisplay();
-            } else {
-                displayMessage("The gods listen but remain silent.", 'info');
-            }
-        }, 1000);
+        pray();
     });
 
     // Add event listeners for progression and quest buttons
@@ -4737,6 +4741,7 @@ document.addEventListener('DOMContentLoaded', () => {
     window.generateCharacterPortrait = generateCharacterPortrait;
     window.debugInventory = debugInventory;
     window.fixInventory = fixInventory;
+    window.pray = pray;
 
 
     // <<< --- ADD INVENTORY EVENT LISTENER HERE --- >>>
