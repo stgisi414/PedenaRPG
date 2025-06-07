@@ -1909,8 +1909,18 @@ function checkQuestCompletion(playerAction) {
                     // Parse gold reward from structured quest data
                     goldAwarded = parseInt(quest.rewards.gold) || 0;
 
-                    // Parse XP reward from structured quest data
-                    xpAwarded = parseInt(quest.rewards.experience) || parseInt(quest.rewards.exp) || 0;
+                    // Parse XP reward from structured quest data - check all possible property names
+                    xpAwarded = parseInt(quest.rewards.experience) || parseInt(quest.rewards.exp) || parseInt(quest.rewards.xp) || 0;
+
+                    // If no XP found in structured rewards, calculate based on quest difficulty
+                    if (xpAwarded === 0) {
+                        const baseXP = 25 + (player.level * 15);
+                        const difficultyMultiplier = quest.difficulty === 'Easy' ? 0.8 :
+                            quest.difficulty === 'Medium' ? 1.0 :
+                            quest.difficulty === 'Hard' ? 1.4 :
+                            quest.difficulty === 'Very Hard' ? 2.0 : 1.0;
+                        xpAwarded = Math.floor(baseXP * difficultyMultiplier);
+                    }
 
                     console.log('Structured quest rewards:', {
                         questTitle: quest.title,
