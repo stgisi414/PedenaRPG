@@ -1,7 +1,6 @@
-
 // Game Actions System - Analyzes and categorizes player commands
 export class GameActions {
-    
+
     static actionTypes = {
         MOVEMENT: 'movement',
         COMBAT: 'combat', 
@@ -148,7 +147,7 @@ export class GameActions {
 
     static analyzeCommand(command, gameState) {
         const lowerCommand = command.toLowerCase().trim();
-        
+
         const analysis = {
             originalCommand: command,
             actionType: this.actionTypes.UNKNOWN,
@@ -172,7 +171,7 @@ export class GameActions {
 
         // Build AI prompt data
         analysis.aiPromptData = this.buildAIPromptData(analysis, gameState);
-        
+
         return analysis;
     }
 
@@ -297,8 +296,12 @@ export class GameActions {
     }
 
     static createStructuredPrompt(analysis, gameState) {
+        return this.createDetailedPrompt(analysis, gameState);
+    }
+
+    static createDetailedPrompt(analysis, gameState) {
         const promptData = analysis.aiPromptData;
-        
+
         return `GAME ACTION ANALYSIS:
 Action Type: ${analysis.actionType.toUpperCase()}
 Confidence: ${(analysis.confidence * 100).toFixed(1)}%
@@ -345,7 +348,7 @@ Please respond as the game master, interpreting this ${analysis.actionType} acti
 
             // Analyze the command
             const analysis = this.analyzeCommand(command, gameState);
-            
+
             // Log the action
             this.logAction(analysis);
 

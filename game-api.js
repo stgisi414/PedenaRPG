@@ -429,7 +429,7 @@ export class PedenaGameAPI {
             // Analyze the command
             const analysis = GameActions.analyzeCommand(command, gameState);
             
-            // Create structured prompt for AI
+            // Create structured prompt for AI using GameActions method
             const prompt = GameActions.createStructuredPrompt(analysis, gameState);
 
             // Use the AI function to process the command
@@ -438,6 +438,15 @@ export class PedenaGameAPI {
                 response = await this.aiFunction(prompt, 0.7, 800, false);
             } else {
                 response = `You ${command}. [AI processing not available - call setAIFunction() first]`;
+            }
+
+            // Check for alignment assessment
+            const alignmentChange = AlignmentSystem.addMessage(command, response);
+            if (alignmentChange !== null) {
+                const alignmentResult = AlignmentSystem.updateAlignment(this.gameState.player, alignmentChange);
+                if (alignmentResult.changed) {
+                    response += `\n\n[Your moral alignment shifts to ${alignmentResult.newType.replace('_', ' ')}]`;
+                }
             }
 
             // Add AI response to conversation history
