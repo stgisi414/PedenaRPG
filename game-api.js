@@ -136,54 +136,78 @@ export class PedenaGameAPI {
     createCharacter(characterData) {
         const { name, gender, charClass, background } = characterData;
         
-        const player = {
-            name: name,
-            gender: gender,
-            class: charClass,
-            background: background,
-            stats: {
-                strength: 10,
-                dexterity: 10,
-                intelligence: 10,
-                constitution: 10,
-                wisdom: 10,
-                charisma: 10
-            },
-            hp: 100,
-            maxHp: 100,
-            level: 1,
-            exp: 0,
-            expToNextLevel: 100,
-            gold: 50,
-            inventory: [],
-            equipment: {
-                head: null,
-                chest: null,
-                hands: null,
-                legs: null,
-                feet: null,
-                mainHand: null,
-                offHand: null,
-                amulet: null,
-                ring1: null,
-                ring2: null
-            },
-            skills: [],
-            abilities: [],
-            quests: [],
-            relationships: {},
-            currentLocation: 'Pedena Town Square',
-            currentEnemy: null,
-            alignment: null
-        };
+        // Use the existing window.player object if it exists, otherwise create new
+        if (typeof window !== 'undefined' && window.player) {
+            // Update existing player
+            window.player.name = name;
+            window.player.gender = gender;
+            window.player.class = charClass;
+            window.player.background = background;
+            window.player.currentLocation = 'Pedena Town Square';
+            
+            // Initialize character progression
+            CharacterManager.initializeCharacter(window.player, charClass);
+            
+            // Initialize alignment system
+            AlignmentSystem.initializeAlignment(window.player);
+            
+            this.gameState.player = window.player;
+        } else {
+            // Create new player object
+            const player = {
+                name: name,
+                gender: gender,
+                class: charClass,
+                background: background,
+                stats: {
+                    strength: 10,
+                    dexterity: 10,
+                    intelligence: 10,
+                    constitution: 10,
+                    wisdom: 10,
+                    charisma: 10
+                },
+                hp: 100,
+                maxHp: 100,
+                level: 1,
+                exp: 0,
+                expToNextLevel: 100,
+                gold: 50,
+                inventory: [],
+                equipment: {
+                    head: null,
+                    chest: null,
+                    hands: null,
+                    legs: null,
+                    feet: null,
+                    mainHand: null,
+                    offHand: null,
+                    amulet: null,
+                    ring1: null,
+                    ring2: null
+                },
+                skills: [],
+                abilities: [],
+                quests: [],
+                relationships: {},
+                currentLocation: 'Pedena Town Square',
+                currentEnemy: null,
+                alignment: null
+            };
 
-        // Initialize character progression
-        CharacterManager.initializeCharacter(player, charClass);
-        
-        // Initialize alignment system
-        AlignmentSystem.initializeAlignment(player);
-        
-        this.gameState.player = player;
+            // Initialize character progression
+            CharacterManager.initializeCharacter(player, charClass);
+            
+            // Initialize alignment system
+            AlignmentSystem.initializeAlignment(player);
+            
+            this.gameState.player = player;
+            
+            // Set as global player if window is available
+            if (typeof window !== 'undefined') {
+                window.player = player;
+            }
+        }
         
         return {
             success: true,
@@ -194,23 +218,31 @@ export class PedenaGameAPI {
 
     // Get current player data
     getPlayerData() {
-        if (!this.gameState.player) return null;
+        // Always use window.player if available
+        const player = (typeof window !== 'undefined' && window.player) ? window.player : this.gameState.player;
+        if (!player) return null;
         
         return {
-            ...this.gameState.player,
-            progression: CharacterManager.getCharacterProgression(this.gameState.player),
-            alignmentInfo: AlignmentSystem.getAlignmentDisplayInfo(this.gameState.player),
-            modifiers: AlignmentSystem.getAlignmentModifier(this.gameState.player)
+            ...player,
+            progression: CharacterManager.getCharacterProgression(player),
+            alignmentInfo: AlignmentSystem.getAlignmentDisplayInfo(player),
+            modifiers: AlignmentSystem.getAlignmentModifier(player)
         };
     }
 
     // Update player stats or properties
     updatePlayer(updates) {
-        if (!this.gameState.player) {
+        const player = (typeof window !== 'undefined' && window.player) ? window.player : this.gameState.player;
+        if (!player) {
             return { success: false, message: "No player character exists" };
         }
 
-        Object.assign(this.gameState.player, updates);
+        Object.assign(player, updates);
+        
+        // Keep both references in sync
+        if (typeof window !== 'undefined' && window.player) {
+            this.gameState.player = window.player;
+        }
         
         return {
             success: true,
@@ -399,9 +431,13 @@ export class PedenaGameAPI {
     
     // Process AI command
     async processCommand(command, includeContext = true) {
-        if (!this.gameState.player) {
+        const player = (typeof window !== 'undefined' && window.player) ? window.player : this.gameState.player;
+        if (!player) {
             return { success: false, message: "No player character exists" };
         }
+
+        // Keep references in sync
+        this.gameState.player = player;
 
         // Add to conversation history
         this.gameState.conversationHistory.messages.push({
@@ -413,16 +449,16 @@ export class PedenaGameAPI {
         try {
             // Create game state for processing
             const gameState = {
-                name: this.gameState.player.name,
-                currentLocation: this.gameState.player.currentLocation || 'Unknown Location',
-                level: this.gameState.player.level || 1,
-                class: this.gameState.player.class || 'adventurer',
-                hp: this.gameState.player.hp || 100,
-                maxHp: this.gameState.player.maxHp || 100,
-                gold: this.gameState.player.gold || 0,
-                quests: this.gameState.player.quests || [],
-                equipment: this.gameState.player.equipment || {},
-                inventory: this.gameState.player.inventory || [],
+                name: player.name,
+                currentLocation: player.currentLocation || 'Unknown Location',
+                level: player.level || 1,
+                class: player.class || 'adventurer',
+                hp: player.hp || 100,
+                maxHp: player.maxHp || 100,
+                gold: player.gold || 0,
+                quests: player.quests || [],
+                equipment: player.equipment || {},
+                inventory: player.inventory || [],
                 npcsInLocation: []
             };
 
@@ -443,7 +479,7 @@ export class PedenaGameAPI {
             // Check for alignment assessment
             const alignmentChange = AlignmentSystem.addMessage(command, response);
             if (alignmentChange !== null) {
-                const alignmentResult = AlignmentSystem.updateAlignment(this.gameState.player, alignmentChange);
+                const alignmentResult = AlignmentSystem.updateAlignment(player, alignmentChange);
                 if (alignmentResult.changed) {
                     response += `\n\n[Your moral alignment shifts to ${alignmentResult.newType.replace('_', ' ')}]`;
                 }
@@ -480,7 +516,7 @@ export class PedenaGameAPI {
 
     // Handle command effects on game state
     async handleCommandEffects(command, analysis, response) {
-        const player = this.gameState.player;
+        const player = (typeof window !== 'undefined' && window.player) ? window.player : this.gameState.player;
         
         // Handle movement commands
         if (analysis.actionType === 'movement' && analysis.extractedData.primary) {
