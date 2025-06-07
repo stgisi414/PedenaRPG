@@ -442,6 +442,100 @@ export class PedenaGameAPI {
         };
     }
 
+    // === PRAYER AND DIVINE INTERACTION ===
+    
+    // Execute prayer action
+    async pray() {
+        const player = (typeof window !== 'undefined' && window.player) ? window.player : this.gameState.player;
+        if (!player) {
+            return { success: false, message: "No player character exists" };
+        }
+
+        // Keep references in sync
+        this.gameState.player = player;
+
+        // Initialize alignment if not present
+        AlignmentSystem.initializeAlignment(player);
+
+        const alignmentInfo = AlignmentSystem.getAlignmentDisplayInfo(player);
+        const prayerEffects = alignmentInfo.modifier.prayerEffects;
+
+        let results = {
+            success: true,
+            message: "You offer a prayer to the gods...",
+            effects: [],
+            healingApplied: 0,
+            goldReceived: 0,
+            statBonuses: {},
+            effectDuration: 0
+        };
+
+        if (prayerEffects.length > 0) {
+            const effect = prayerEffects[0];
+
+            // Apply healing
+            if (effect.healAmount) {
+                const oldHp = player.hp;
+                player.hp = Math.min(player.maxHp, player.hp + effect.healAmount);
+                const actualHeal = player.hp - oldHp;
+                if (actualHeal > 0) {
+                    results.healingApplied = actualHeal;
+                    results.effects.push(`${effect.name}: You recover ${actualHeal} HP!`);
+                }
+            }
+
+            // Apply gold bonus (for neutral alignments)
+            if (effect.goldBonus) {
+                player.gold += effect.goldBonus;
+                results.goldReceived = effect.goldBonus;
+                results.effects.push(`Fortune smiles upon you! You found ${effect.goldBonus} gold!`);
+            }
+
+            // Apply stat bonuses temporarily
+            if (effect.statBonus) {
+                Object.entries(effect.statBonus).forEach(([stat, bonus]) => {
+                    if (player.stats[stat] !== undefined) {
+                        player.stats[stat] += bonus;
+                        results.statBonuses[stat] = bonus;
+                    }
+                });
+
+                // Set timer to remove stat bonuses after duration
+                if (typeof window !== 'undefined') {
+                    setTimeout(() => {
+                        Object.entries(effect.statBonus).forEach(([stat, bonus]) => {
+                            if (player.stats[stat] !== undefined) {
+                                player.stats[stat] -= bonus;
+                            }
+                        });
+                    }, effect.duration * 1000);
+                }
+            }
+
+            // Apply status effects
+            if (effect.effects && player.statusEffects) {
+                effect.effects.forEach(statusEffect => {
+                    if (!player.statusEffects) player.statusEffects = [];
+                    player.statusEffects.push({
+                        name: effect.name,
+                        description: effect.description,
+                        expiresAt: Date.now() + (effect.duration * 1000),
+                        type: alignmentInfo.type.includes('evil') || alignmentInfo.type === 'malevolent' ? 'negative' : 'positive'
+                    });
+                });
+            }
+
+            results.effects.push(effect.description);
+            results.effectDuration = Math.floor(effect.duration / 60);
+            results.message += ` The gods respond with ${effect.name}!`;
+        } else {
+            results.effects.push("The gods listen but remain silent.");
+            results.message += " The gods listen but remain silent.";
+        }
+
+        return results;
+    }
+
     // === AI INTERACTION ===
     
     // Process AI command
@@ -660,6 +754,9 @@ export class PedenaGameAPI {
             ai: {
                 command: 'processCommand(command)',
                 history: 'getConversationHistory()'
+            },
+            prayer: {
+                pray: 'pray()'
             },
             game: {
                 save: 'saveGame()',

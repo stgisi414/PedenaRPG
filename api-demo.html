@@ -136,6 +136,7 @@
             <button onclick="quickCommand('check my stats')">Check Stats</button>
             <button onclick="quickCommand('generate new quest')">New Quest</button>
             <button onclick="quickCommand('pray for divine guidance')">Pray</button>
+            <button onclick="testPrayAPI()">Test Pray API</button>
         </div>
         <div id="game-output" class="output">No commands executed yet. Create a character and try a command!</div>
     </div>
@@ -625,6 +626,73 @@
                 }
             }
         }
+
+        // Test the pray API function directly
+        window.testPrayAPI = async () => {
+            if (!isAPIInitialized) {
+                displayGameMessage('❌ Please initialize API first!', 'error');
+                return;
+            }
+
+            if (!testPlayer) {
+                displayGameMessage('❌ Please create a character first!', 'error');
+                return;
+            }
+
+            try {
+                displayGameMessage('> Testing Pray API function...', 'info');
+                
+                // Set the global player reference
+                window.player = testPlayer;
+                
+                // Call the API pray function directly
+                const prayResult = await gameAPI.pray();
+                
+                if (prayResult.success) {
+                    displayGameMessage(prayResult.message, 'success');
+                    
+                    if (prayResult.effects && prayResult.effects.length > 0) {
+                        prayResult.effects.forEach(effect => {
+                            displayGameMessage(effect, 'success');
+                        });
+                    }
+                    
+                    if (prayResult.healingApplied > 0) {
+                        displayGameMessage(`HP restored: ${prayResult.healingApplied}`, 'success');
+                    }
+                    
+                    if (prayResult.goldReceived > 0) {
+                        displayGameMessage(`Gold received: ${prayResult.goldReceived}`, 'success');
+                    }
+                    
+                    if (Object.keys(prayResult.statBonuses).length > 0) {
+                        const bonusText = Object.entries(prayResult.statBonuses)
+                            .map(([stat, bonus]) => `${stat}: +${bonus}`)
+                            .join(', ');
+                        displayGameMessage(`Temporary stat bonuses: ${bonusText}`, 'success');
+                        
+                        if (prayResult.effectDuration > 0) {
+                            displayGameMessage(`Effect duration: ${prayResult.effectDuration} minutes`, 'info');
+                        }
+                    }
+                    
+                    // Update test player from global player
+                    testPlayer = window.player;
+                    
+                    // Save and refresh displays
+                    saveTestCharacterData();
+                    refreshTestCharacterData();
+                    refreshStorageData();
+                    
+                } else {
+                    displayGameMessage(`❌ Pray API failed: ${prayResult.message}`, 'error');
+                }
+                
+            } catch (error) {
+                displayGameMessage(`❌ Error testing Pray API: ${error.message}`, 'error');
+                console.error('Pray API test error:', error);
+            }
+        };
 
         // Quick command shortcuts - linked to actual game functions
         window.quickCommand = async (command) => {
