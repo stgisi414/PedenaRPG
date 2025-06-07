@@ -11,7 +11,7 @@ export class TransactionMiddleware {
             'added to inventory', 'removed from inventory'
         ];
 
-        const hasTransactionKeywords = transactionKeywords.some(keyword => 
+        const hasTransactionKeywords = transactionKeywords.some(keyword =>
             aiResponse.toLowerCase().includes(keyword.toLowerCase()) ||
             new RegExp(keyword, 'i').test(aiResponse)
         );
@@ -34,9 +34,10 @@ Current gold: ${player.gold}
 Location: ${player.currentLocation}
 
 CRITICAL RULES:
-1. ONLY detect transactions that have ACTUALLY HAPPENED in this response
-2. Look for explicit indicators like "you buy", "you sell", "you pay", "costs X gold", "you receive"
-3. DO NOT detect transactions for:
+1. ONLY detect transactions that have ACTUALLY HAPPENED in this response.
+2. Look for explicit indicators like "you buy", "you sell", "you pay", "costs X gold".
+3. **DO NOT detect quest rewards.** Text like "you receive 150 gold for the quest" is a quest reward, NOT a transaction, and should be ignored.
+4. DO NOT detect transactions for:
    - Item descriptions or mentions
    - Offers that weren't accepted
    - Items being shown or examined
@@ -84,21 +85,21 @@ If no actual transaction is detected, return {"hasTransaction": false, "confiden
 
             if (jsonMatch) {
                 const transactionData = JSON.parse(jsonMatch[0]);
-                
+
                 // Apply confidence threshold - only process high-confidence transactions
                 if (transactionData.confidence && transactionData.confidence < 0.7) {
                     console.log(`TransactionMiddleware: Low confidence transaction (${transactionData.confidence}), ignoring`);
                     return { hasTransaction: false };
                 }
-                
+
                 // Additional validation - ensure transaction has meaningful data
-                if (transactionData.hasTransaction && 
-                    (!transactionData.items || transactionData.items.length === 0) && 
+                if (transactionData.hasTransaction &&
+                    (!transactionData.items || transactionData.items.length === 0) &&
                     transactionData.goldChange === 0) {
                     console.log("TransactionMiddleware: Transaction flagged but no items or gold change detected, ignoring");
                     return { hasTransaction: false };
                 }
-                
+
                 return transactionData;
             }
         } catch (error) {
@@ -125,7 +126,7 @@ If no actual transaction is detected, return {"hasTransaction": false, "confiden
                 goldActuallyChanged = true;
             } else {
                 console.error("Invalid goldChange amount or updateGold function missing:", transactionData.goldChange);
-                if(typeof window.updateGold !== 'function') window.displayMessage("Error: updateGold function not found.", "error");
+                if (typeof window.updateGold !== 'function') window.displayMessage("Error: updateGold function not found.", "error");
             }
         }
 
@@ -173,7 +174,7 @@ If no actual transaction is detected, return {"hasTransaction": false, "confiden
                 console.log("TransactionMiddleware: Explicitly refreshing inventory display.");
                 window.displayInventory();
             }
-            
+
             // Also refresh shop display if it's open (for sell transactions)
             const shopInterface = document.getElementById('shop-interface');
             if (shopInterface && !shopInterface.classList.contains('hidden') && typeof window.showShop === 'function') {
@@ -260,7 +261,7 @@ If no actual transaction is detected, return {"hasTransaction": false, "confiden
             case 'mainHand':
                 if (!item.damage) {
                     const damageMap = {
-                        'COMMON': '1d6', 'UNCOMMON': '1d8', 'RARE': '1d10', 
+                        'COMMON': '1d6', 'UNCOMMON': '1d8', 'RARE': '1d10',
                         'EPIC': '2d6', 'LEGENDARY': '2d8', 'ARTIFACT': '2d10', 'MYTHIC': '3d6'
                     };
                     item.damage = damageMap[item.rarity] || '1d6';
@@ -278,27 +279,27 @@ If no actual transaction is detected, return {"hasTransaction": false, "confiden
 
     static removeItemFromInventory(player, itemName) {
         if (!player.inventory || player.inventory.length === 0) return null;
-        const itemIndex = player.inventory.findIndex(item => 
+        const itemIndex = player.inventory.findIndex(item =>
             item.name.toLowerCase().includes(itemName.toLowerCase()) ||
             itemName.toLowerCase().includes(item.name.toLowerCase())
         );
         if (itemIndex === -1) return null;
         const removedItem = player.inventory.splice(itemIndex, 1)[0];
-        
+
         console.log(`TransactionMiddleware: Removed item ${removedItem.name} from inventory`);
-        
+
         // Force save inventory immediately after removal
         if (typeof window.ItemManager !== 'undefined' && typeof window.ItemManager.saveInventoryToStorage === 'function') {
             window.ItemManager.saveInventoryToStorage(player);
             console.log(`TransactionMiddleware: Inventory saved after removing ${removedItem.name}`);
         }
-        
+
         // Also save the full game state
         if (typeof window.saveGame === 'function') {
             window.saveGame();
             console.log(`TransactionMiddleware: Full game saved after removing ${removedItem.name}`);
         }
-        
+
         return removedItem;
     }
 }

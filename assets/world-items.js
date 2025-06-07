@@ -1228,6 +1228,7 @@ export const itemTemplates = {
         ],
         "potions": [
             { "name": "Minor Health Potion", "rarity": "COMMON", "effect": { "type": "heal", "amount": 25 } },
+            { "name": "Major Health Potion", "rarity": "UNCOMMON", "effect": { "type": "heal", "amount": 60 } },
             { "name": "Salve of Soothing", "rarity": "COMMON", "effect": { "type": "heal", "amount": 10, "over_time": 10 } },
             { "name": "Tonic of Vigor", "rarity": "COMMON", "effect": { "type": "buff", "status": "remove_exhaustion_level_1", "duration": 3600 } },
             { "name": "Lesser Mana Potion", "rarity": "COMMON", "effect": { "type": "mana", "amount": 20 } },
@@ -2573,21 +2574,26 @@ export class ItemGenerator {
         }
     };
 
-    static generateItem(context = {}) {
+    static async generateItem(context = {}) {
         const {
             category = this.getRandomCategory(),
-            rarity = this.getRandomRarityKey(), // Changed to get key for itemRarity
-            questContext = null,
-            locationContext = null,
-            enemyContext = null
+            rarity = this.getRandomRarityKey(),
         } = context;
 
+        // 1. Get a base item template from your existing database
         const baseItem = this.getBaseItem(category, rarity);
-        const dynamicItem = this.enhanceItem(baseItem, context);
+        if (!baseItem) {
+            console.error("Could not find a base item for generation. Category:", category, "Rarity:", rarity);
+            return null; // Or return a generic fallback
+        }
 
+        // 2. Enhance the base item using the Gemini AI
+        const enhancedItem = await this.enhanceItemWithAI(baseItem, context);
+
+        // 3. Finalize and return the item
         return {
             id: this.generateItemId(),
-            ...dynamicItem,
+            ...enhancedItem, // The AI-enhanced properties
             generatedAt: Date.now(),
             context: context
         };
@@ -2595,6 +2601,66 @@ export class ItemGenerator {
 
     static generateItemId() {
         return `item_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    }
+
+    // NEW FUNCTION: This function sends the template to Gemini for creative enhancement
+    static async enhanceItemWithAI(baseItem, context) {
+        // Construct a detailed prompt for the AI
+        const prompt = `
+            You are a master RPG item designer. Based on the following template and context, create a more interesting and unique version of this item.
+
+            ITEM TEMPLATE (Do not change core function like damage/armor values unless instructed):
+            ${JSON.stringify(baseItem, null, 2)}
+
+            CONTEXT:
+            - Player Level: ${context.playerLevel || 'N/A'}
+            - Player Class: ${context.playerClass || 'N/A'}
+            - Location: ${context.locationContext || 'A mysterious place'}
+            - Quest: ${context.questContext?.title || 'No specific quest'}
+            - Enemy: ${context.enemyContext || 'No specific enemy'}
+
+            TASKS:
+            1.  **Name:** Generate a creative and evocative name. Use a prefix and/or suffix from the provided lists if it fits.
+            2.  **Description:** Write a new, flavorful description (2-3 sentences) that hints at the item's history or nature based on the context.
+            3.  **Effects (Optional):** You can suggest one additional thematic minor effect string that fits the new name and description.
+
+            PREFIX IDEAS: ${dynamicItemPrefixes.slice(0, 20).join(', ')}
+            SUFFIX IDEAS: ${dynamicItemSuffixes.slice(0, 20).join(', ')}
+
+            Respond with ONLY valid JSON in this exact format:
+            {
+                "name": "Generated Creative Name",
+                "description": "Your new 2-3 sentence flavorful description.",
+                "added_effect": "A single new thematic effect string (or null)"
+            }
+        `;
+
+        try {
+            // This assumes callGeminiAPI is globally available or imported
+            const response = await callGeminiAPI(prompt, 0.85, 400, false);
+            const jsonMatch = response.match(/\{[\s\S]*\}/);
+
+            if (jsonMatch) {
+                const aiData = JSON.parse(jsonMatch[0]);
+
+                // Merge AI creativity with base item stability
+                const finalItem = { ...baseItem };
+                finalItem.name = aiData.name || baseItem.name;
+                finalItem.description = aiData.description || baseItem.description;
+
+                if (aiData.added_effect) {
+                    // Add the new effect, ensuring no duplicates
+                    finalItem.effects = [...new Set([...(baseItem.effects || []), aiData.added_effect])];
+                }
+
+                return finalItem;
+            }
+        } catch (error) {
+            console.error("AI item enhancement failed. Returning base item.", error);
+        }
+
+        // Fallback to the original base item if AI fails
+        return baseItem;
     }
 
     static getRandomCategory() {

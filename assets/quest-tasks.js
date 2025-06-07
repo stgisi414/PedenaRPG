@@ -525,27 +525,36 @@ export class QuestTaskGenerator {
     
     static generateRewardItems(playerLevel, difficulty) {
         const items = [];
-        const itemPool = [
-            "Healing Potion", "Mana Potion", "Scroll of Protection", "Enchanted Dagger",
-            "Silver Ring", "Magic Scroll", "Rare Gem", "Ancient Coin",
-            "Blessed Amulet", "Potion of Strength", "Scroll of Fireball", "Mystical Herb",
-            "Enchanted Cloak", "Crystal Shard", "Holy Symbol", "Magical Tome"
-        ];
-        
-        const numItems = difficulty === 'Easy' ? 1 : 
-                        difficulty === 'Medium' ? Math.random() < 0.7 ? 1 : 2 :
-                        difficulty === 'Hard' ? Math.random() < 0.5 ? 2 : 3 :
-                        difficulty === 'Very Hard' ? 2 + Math.floor(Math.random() * 2) :
-                        3 + Math.floor(Math.random() * 2);
-        
-        for (let i = 0; i < numItems; i++) {
-            const item = itemPool[Math.floor(Math.random() * itemPool.length)];
-            if (!items.includes(item)) {
-                items.push(item);
+        const raritiesToConsider = {
+            'Easy': ['COMMON', 'UNCOMMON'],
+            'Medium': ['UNCOMMON', 'RARE'],
+            'Hard': ['RARE'],
+            'Very Hard': ['RARE', 'EPIC'],
+            'Legendary': ['EPIC', 'LEGENDARY']
+        }[difficulty] || ['COMMON'];
+
+        // Create a flat list of all possible reward items of the considered rarities
+        const itemPool = [];
+        for (const category in itemTemplates) {
+            for (const subcategory in itemTemplates[category]) {
+                itemTemplates[category][subcategory].forEach(item => {
+                    if (raritiesToConsider.includes(item.rarity)) {
+                        // We only need the name for the quest reward list
+                        itemPool.push(item.name);
+                    }
+                });
             }
         }
-        
-        return items;
+
+        if (itemPool.length === 0) return []; // No suitable items found
+
+        const numItems = difficulty === 'Easy' ? (Math.random() < 0.5 ? 1 : 2) : 
+                         difficulty === 'Medium' ? 2 : 
+                         difficulty === 'Hard' ? (Math.random() < 0.5 ? 2 : 3) : 3;
+
+        // Select unique items from the pool
+        const shuffledPool = [...new Set(itemPool)].sort(() => 0.5 - Math.random());
+        return shuffledPool.slice(0, numItems);
     }
     
     static generateRequirements(player, difficulty) {

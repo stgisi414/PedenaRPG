@@ -6,11 +6,12 @@ import { CharacterManager } from './game-logic/character-manager.js';
 import { GameActions } from './game-logic/game-actions.js';
 import { LocationManager } from './game-logic/location-manager.js';
 import { classProgression, spellDefinitions, abilityDefinitions } from './game-logic/class-progression.js';
-import { ItemGenerator, ItemManager, itemCategories, itemRarity, statusEffects } from './assets/world-items.js';
+import { ItemGenerator, ItemManager, itemCategories, itemRarity, statusEffects, itemTemplates } from './assets/world-items.js';
 import { TransactionMiddleware } from './game-logic/transaction-middleware.js';
 import { ItemExchangeMiddleware } from './game-logic/item-exchange-middleware.js';
 import { CombatSystem } from './game-logic/combat-system.js';
 import { AlignmentSystem } from './game-logic/alignment-system.js';
+
 
 const GEMINI_API_KEY = 'AIzaSyDIFeql6HUpkZ8JJlr_kuN0WDFHUyOhijA'; // Replace with your actual Gemini API Key
 const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`;
@@ -2526,7 +2527,7 @@ function handleCombatEnd(result) {
         updateGold(baseGold, 'multi-combat victory');
 
         displayMessage(`You gained ${playerXP} XP and ${baseGold} gold!`, 'success');
-
+F
         // Check for level up
         if (player.exp >= player.expToNextLevel) {
             displayMessage("Level up achieved!", 'success');
@@ -4526,6 +4527,42 @@ IMPORTANT: If the player is trying to interact with something from recent explor
     }
 }
 
+// Reset pagination when inventory or quests change significantly
+function resetInventoryPagination() {
+    inventoryPagination.currentPage = 0;
+}
+
+function resetQuestPagination() {
+    questPagination.completedQuestsPage = 0;
+}
+
+// Pagination control functions
+function changeCompletedQuestsPage(direction) {
+    const completedQuests = player.quests ? player.quests.filter(q => q.completed) : [];
+    const totalPages = Math.ceil(completedQuests.length / questPagination.itemsPerPage);
+
+    questPagination.completedQuestsPage += direction;
+    questPagination.completedQuestsPage = Math.max(0, Math.min(questPagination.completedQuestsPage, totalPages - 1));
+
+    displayQuests(); // Refresh the display
+}
+
+function changeInventoryPage(direction) {
+    const unequippedItems = player.inventory ? player.inventory.filter(item => {
+        if (!player.equipment) return true;
+        return !Object.values(player.equipment).some(equippedItem =>
+            equippedItem && equippedItem.id === item.id
+        );
+    }) : [];
+
+    const totalPages = Math.ceil(unequippedItems.length / inventoryPagination.itemsPerPage);
+
+    inventoryPagination.currentPage += direction;
+    inventoryPagination.currentPage = Math.max(0, Math.min(inventoryPagination.currentPage, totalPages - 1));
+
+    displayInventory(); // Refresh the display
+}
+
 // Initialize game
 document.addEventListener('DOMContentLoaded', () => {
     // Check if there's a saved game to enable load button
@@ -4773,42 +4810,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Add main event listeners (this function should also be defined or its contents integrated)
     addMainEventListeners(); // Assuming this function is defined elsewhere in your script.js
-
-    // Pagination control functions
-    function changeCompletedQuestsPage(direction) {
-        const completedQuests = player.quests ? player.quests.filter(q => q.completed) : [];
-        const totalPages = Math.ceil(completedQuests.length / questPagination.itemsPerPage);
-
-        questPagination.completedQuestsPage += direction;
-        questPagination.completedQuestsPage = Math.max(0, Math.min(questPagination.completedQuestsPage, totalPages - 1));
-
-        displayQuests(); // Refresh the display
-    }
-
-    function changeInventoryPage(direction) {
-        const unequippedItems = player.inventory ? player.inventory.filter(item => {
-            if (!player.equipment) return true;
-            return !Object.values(player.equipment).some(equippedItem =>
-                equippedItem && equippedItem.id === item.id
-            );
-        }) : [];
-
-        const totalPages = Math.ceil(unequippedItems.length / inventoryPagination.itemsPerPage);
-
-        inventoryPagination.currentPage += direction;
-        inventoryPagination.currentPage = Math.max(0, Math.min(inventoryPagination.currentPage, totalPages - 1));
-
-        displayInventory(); // Refresh the display
-    }
-
-    // Reset pagination when inventory or quests change significantly
-    function resetInventoryPagination() {
-        inventoryPagination.currentPage = 0;
-    }
-
-    function resetQuestPagination() {
-        questPagination.completedQuestsPage = 0;
-    }
 
     // Abandon quest function
     function abandonQuest(questId) {
