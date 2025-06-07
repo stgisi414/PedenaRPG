@@ -71,12 +71,12 @@
                     <h2 class="text-3xl font-bold mb-6 text-center">Character Creation</h2>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                         <div>
-                            <label for="char-name" class="block text-lg mb-2">Character Name:</label>
+                            <label for="char-name" class="block text-lg mb-2" style="color: #F5DEB3 !important;">Character Name:</label>
                             <input type="text" id="char-name" class="input-parchment"
                                 placeholder="Enter your hero's name">
                         </div>
                         <div>
-                            <label for="char-class" class="block text-lg mb-2">Class:</label>
+                            <label for="char-class" class="block text-lg mb-2" style="color: #F5DEB3 !important;">Class:</label>
                             <select id="char-class" class="input-parchment">
                                 <option value="">Choose a Class</option>
                                 <option value="warrior">Warrior</option>
@@ -87,15 +87,15 @@
                         </div>
                     </div>
                     <div class="mb-6">
-                        <label class="block text-lg mb-2">Gender:</label>
+                        <label class="block text-lg mb-2" style="color: #F5DEB3 !important;">Gender:</label>
                         <div class="flex gap-4">
                             <label class="inline-flex items-center">
                                 <input type="radio" name="char-gender" value="male" class="form-radio text-amber-700">
-                                <span class="ml-2">Male</span>
+                                <span class="ml-2" style="color: #F5DEB3 !important;">♂️ Male</span>
                             </label>
                             <label class="inline-flex items-center">
                                 <input type="radio" name="char-gender" value="female" class="form-radio text-amber-700">
-                                <span class="ml-2">Female</span>
+                                <span class="ml-2" style="color: #F5DEB3 !important;">♀️ Female</span>
                             </label>
 
                         </div>
@@ -106,8 +106,8 @@
                         <button id="generate-portrait-btn" class="btn-parchment mt-4">Generate Portrait</button>
                     </div>
                     <div class="mb-6">
-                        <label for="char-background" class="block text-lg mb-2">Background Story (AI Generated):</label>
-                        <textarea id="char-background" class="input-parchment" readonly></textarea>
+                        <label for="char-background" class="block text-lg mb-2" style="color: #F5DEB3 !important;">Background Story (AI Generated):</label>
+                        <textarea id="char-background" class="input-parchment" style="width:100%;" readonly></textarea>
                         <button id="generate-background-btn" class="btn-parchment mt-4 w-full">Generate
                             Background</button>
                     </div>
