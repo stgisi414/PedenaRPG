@@ -1,7 +1,6 @@
-
 // game-logic/relationship-middleware.js
 
-class RelationshipMiddleware {
+export class RelationshipMiddleware {
 
     /**
      * Analyzes the conversation to detect if a relationship change has occurred.
@@ -200,5 +199,4 @@ class RelationshipMiddleware {
     }
 }
 
-// Make it globally available
-window.RelationshipMiddleware = RelationshipMiddleware;
+export default RelationshipMiddleware;
