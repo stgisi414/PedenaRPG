@@ -1,6 +1,6 @@
 
 // Party Management System for Multi-Member Combat
-class PartyManager {
+export class PartyManager {
     constructor() {
         this.party = [];
         this.maxPartySize = 4;
