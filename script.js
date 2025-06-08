@@ -3599,6 +3599,8 @@ INTERACTABLE: altar, wooden box, runes
 
 async function showShop() {
     // Ensure shopInterface exists and is correctly defined globally (e.g., const shopInterface = document.getElementById('shop-interface');)
+    // If 'shopInterface' is not defined as a global 'const' at the top of your script.js, you might need to add:
+    // const shopInterface = document.getElementById('shop-interface');
     if (!shopInterface) {
         displayMessage("Error: The main shop interface (ID 'shop-interface') was not found in the HTML. Cannot open shop.", "error");
         console.error("Shop interface element with ID 'shop-interface' not found or is null.");
@@ -3614,7 +3616,6 @@ async function showShop() {
 
     shopInterface.classList.remove('hidden'); // Make the shop visible
 
-    // Ensure shopItems (the display area for items) exists within shopInterface
     const shopItems = shopInterface.querySelector('#shop-items'); // Correct variable name as per your code
     if (!shopItems) {
         displayMessage("Error: The shop items display area (ID 'shop-items') was not found within the shop interface. Cannot display shop items.", "error");
@@ -3622,69 +3623,75 @@ async function showShop() {
         return; // Exit the function if the items display area is missing
     }
 
-    // --- Start: Display Loading Message ---
+    // --- Display Loading Message ---
     shopItems.innerHTML = `
         <div style="margin: auto; padding: 50px; color: #D2B48C; font-size: 1.5em; font-weight: bold;">
             <span class="loading-dots">Loading Shop Items</span>
         </div>
     `;
-    // --- End: Display Loading Message ---
-
+    // --- End Display Loading Message ---
 
     // Generate a merchant name for this shop visit
     const merchantName = QuestCharacterGenerator.generateMerchant();
-
-    // Update shop header with merchant name
-    const shopHeader = shopInterface.querySelector('h4');
-    if (shopHeader) { // Add null check for shopHeader
+    const shopHeader = shopInterface.querySelector('h4'); // Assuming shopHeader is defined here or globally
+    if (shopHeader) {
         shopHeader.textContent = `${merchantName}'s Shop`;
     } else {
         console.warn("Shop header (h4) element not found within shop interface.");
     }
 
-
-    // Generate 15-20 random items using world-items system
     const itemCount = 15 + Math.floor(Math.random() * 6); // 15-20 items
     let shopInventory = [];
+    let generatedItemNames = []; // NEW: Array to store names generated in this session
 
-    // Helper function for delay (should be defined outside showShop, but included here for context)
-    // If you already have this globally, you don't need to redeclare it here.
-
+    // Helper function for delay (ensure this is defined globally, e.g., at the top of script.js, if not already)
+    // For example:
+    /*
     function delay(ms) {
         return new Promise(resolve => setTimeout(resolve, ms));
     }
+    */
 
-
-    const itemGenerationPromises = [];
+    // --- MODIFIED LOOP FOR SEQUENTIAL GENERATION WITH CONTEXT ---
+    // This loop replaces your previous Promise.all() block.
     for (let i = 0; i < itemCount; i++) {
         const context = {
             locationContext: player.currentLocation,
             playerLevel: player.level,
-            playerClass: player.class
+            playerClass: player.class,
+            // NEW: Pass the names generated SO FAR in this session
+            previouslyGeneratedNames: generatedItemNames.slice(-10) // Pass last 10 names to keep context manageable for AI
         };
-        // Introduce a cumulative delay before pushing each promise
-        // This will space out the actual API calls by 500ms
-        await delay(200 * i); // Changed from 200 * i to 500 * i for potentially better rate limit handling
-        itemGenerationPromises.push(ItemGenerator.generateItem(context));
-    }
 
-    try {
-        // Wait for all item generation promises to resolve
-        const generatedItems = await Promise.all(itemGenerationPromises);
-        // Filter out any null items if some generation failed (e.g., due to AI errors)
-        shopInventory = generatedItems.filter(item => item !== null);
-    } catch (error) {
-        console.error("Error generating shop items due to API issues:", error);
-        displayMessage("The merchant seems to be out of stock or the shop is experiencing strange magical interference. Please try again later.", "error");
-        // Fallback: create a few generic items if API fails completely
-        for (let i = 0; i < 5; i++) {
-            shopInventory.push(ItemGenerator.generateGenericItem(ItemGenerator.getRandomCategory(), ItemGenerator.getRandomRarityKey()));
+        // Apply a delay before generating each item to respect API rate limits
+        await delay(500); // Fixed delay of 500ms between each item's AI call
+
+        try {
+            const item = await ItemGenerator.generateItem(context);
+            if (item) {
+                shopInventory.push(item);
+                if (item.name) {
+                    generatedItemNames.push(item.name); // Add successfully generated name to list for next iteration
+                }
+            }
+        } catch (error) {
+            console.error(`Error generating item ${i + 1} (falling back to generic item):`, error);
+            displayMessage(`A shop item failed to generate. Replacing with a generic item.`, "error");
+            // Fallback for this specific item if AI generation fails
+            const fallbackItem = ItemGenerator.generateGenericItem(
+                ItemGenerator.getRandomCategory(), ItemGenerator.getRandomRarityKey()
+            );
+            shopInventory.push(fallbackItem);
+            if (fallbackItem.name) {
+                generatedItemNames.push(fallbackItem.name); // Add fallback item name to context
+            }
         }
-    } finally {
-        // --- Start: Clear Loading Message (in the finally block to ensure it's always cleared) ---
-        shopItems.innerHTML = ''; // Clear the loading message before populating with items
-        // --- End: Clear Loading Message ---
     }
+    // --- END MODIFIED LOOP ---
+
+    // --- Clear Loading Message (in the finally block to ensure it's always cleared) ---
+    shopItems.innerHTML = ''; // Clear the loading message before populating with items
+    // --- End Clear Loading Message ---
 
     // Sort items by rarity and value for better shop organization
     shopInventory.sort((a, b) => {
