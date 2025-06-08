@@ -1,6 +1,6 @@
 
 // Multi-Member Combat System
-class MultiCombatSystem {
+export class MultiCombatSystem {
     constructor(partyManager) {
         this.partyManager = partyManager;
         this.turnOrder = [];

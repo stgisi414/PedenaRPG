@@ -3597,7 +3597,7 @@ INTERACTABLE: altar, wooden box, runes
     }
 }
 
-function showShop() {
+async function showShop() {
     // Hide other interfaces
     const interfaces = ['combat-interface', 'inventory-interface', 'skills-interface', 'quest-interface', 'background-interface', 'progression-interface'];
     interfaces.forEach(id => {
@@ -3620,17 +3620,30 @@ function showShop() {
     const itemCount = 15 + Math.floor(Math.random() * 6); // 15-20 items
     const shopInventory = [];
 
+    const itemGenerationPromises = [];
     for (let i = 0; i < itemCount; i++) {
         const context = {
             locationContext: player.currentLocation,
             playerLevel: player.level,
             playerClass: player.class
         };
-
-        const item = ItemGenerator.generateItem(context);
-        shopInventory.push(item);
+        // ItemGenerator.generateItem is an async function and returns a Promise
+        itemGenerationPromises.push(ItemGenerator.generateItem(context));
     }
 
+    try {
+        // Wait for all item generation promises to resolve
+        const generatedItems = await Promise.all(itemGenerationPromises);
+        // Filter out any null items if some generation failed (e.g., due to AI errors)
+        shopInventory = generatedItems.filter(item => item !== null);
+    } catch (error) {
+        console.error("Error generating shop items due to API issues:", error);
+        displayMessage("The merchant seems to be out of stock or the shop is experiencing strange magical interference. Please try again later.", "error");
+        // Fallback: create a few generic items if API fails completely
+        for (let i = 0; i < 5; i++) {
+            shopInventory.push(ItemGenerator.generateGenericItem(ItemGenerator.getRandomCategory(), ItemGenerator.getRandomRarityKey()));
+        }
+    }
     // Sort items by rarity and value for better shop organization
     shopInventory.sort((a, b) => {
         const rarityOrder = { 'COMMON': 1, 'UNCOMMON': 2, 'RARE': 3, 'EPIC': 4, 'LEGENDARY': 5, 'ARTIFACT': 6, 'MYTHIC': 7 };
