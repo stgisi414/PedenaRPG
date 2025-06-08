@@ -390,6 +390,12 @@ Rules:
             const response = await window.callGeminiAPI(enemyPrompt, 0.8, 500, false);
             const actionResult = this.parseActionResponse(response, 'enemy_action');
 
+            // Check if enemy is fleeing based on narrative
+            if (this.checkEnemyFlee(actionResult, response)) {
+                this.endCombat('enemy_fled', actualPlayer, enemy);
+                return;
+            }
+
             await this.applyActionResults(actionResult, actualPlayer, enemy, 'enemy');
 
             // Check for combat end
@@ -449,18 +455,23 @@ The enemy takes their turn. Consider:
 - Environmental factors
 - Enemy type and natural behaviors
 
+IMPORTANT: If the enemy is severely wounded (low HP) or outmatched, they may attempt to flee. 
+If fleeing, include clear flee language like "escapes", "flees", "vanishes", "runs away", or "the fight is over".
+
 Respond with ONLY valid JSON:
 {
     "success": true,
-    "narrative": "2-3 sentence description of enemy action",
+    "narrative": "2-3 sentence description of enemy action - use clear flee language if escaping",
     "damage": 0,
     "playerHpChange": 0,
     "enemyHpChange": 0,
     "effects": [],
-    "actionComplete": true
+    "actionComplete": true,
+    "fled": false
 }
 
 Make the enemy action feel intelligent and appropriate for the creature type.
+If the enemy flees, set "fled": true and use clear escape language in the narrative.
 `;
     }
 
@@ -473,6 +484,50 @@ Make the enemy action feel intelligent and appropriate for the creature type.
             playerHpChange: -damage,
             actionComplete: true
         };
+    }
+
+    static checkEnemyFlee(actionResult, response) {
+        // Check for explicit fled flag in JSON response
+        if (actionResult.fled === true) {
+            return true;
+        }
+
+        // Check for flee keywords in the narrative
+        const fleeKeywords = [
+            'escape', 'escaped', 'flee', 'fled', 'run', 'running', 'dash', 'vanish', 'vanished',
+            'disappear', 'disappeared', 'gone', 'is gone', 'fight is over', 'encounter is over',
+            'successful escape', 'makes a dash', 'slips away', 'breaks away', 'darts away',
+            'slipping through', 'disappearing into', 'already gone', 'too far away'
+        ];
+
+        const narrative = (actionResult.narrative || '').toLowerCase();
+        const fullResponse = (response || '').toLowerCase();
+
+        // Check if any flee keywords are present
+        const hasFleeKeyword = fleeKeywords.some(keyword => 
+            narrative.includes(keyword) || fullResponse.includes(keyword)
+        );
+
+        // Additional checks for explicit flee indicators
+        const explicitFleeIndicators = [
+            'the fight is over',
+            'he is gone',
+            'she is gone',
+            'it is gone',
+            'has escaped',
+            'successful escape',
+            'vanishes completely',
+            'already vanished',
+            'already disappeared',
+            'combat is over',
+            'encounter is over'
+        ];
+
+        const hasExplicitFlee = explicitFleeIndicators.some(indicator =>
+            narrative.includes(indicator) || fullResponse.includes(indicator)
+        );
+
+        return hasFleeKeyword || hasExplicitFlee;
     }
 
     static async applyActionResults(result, player, enemy, actor) {
@@ -642,6 +697,11 @@ Make the enemy action feel intelligent and appropriate for the creature type.
         } else if (result === 'flee') {
             if (typeof window.displayMessage === 'function') {
                 window.displayMessage("🏃 You successfully escape from combat!", 'info');
+            }
+        } else if (result === 'enemy_fled') {
+            if (typeof window.displayMessage === 'function') {
+                window.displayMessage("💨 The enemy has fled from combat!", 'info');
+                window.displayMessage("You remain victorious on the battlefield.", 'success');
             }
         }
 
