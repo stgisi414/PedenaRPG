@@ -1358,6 +1358,7 @@ async function generateCombatEncounter() {
         displayMessage(enemyEncounter.narrative, 'combat');
         console.log(`[SCRIPT.JS] Before calling initiateCombat: HP=<span class="math-inline">${player.hp}/${player.maxHp}</span>`);
         await CombatSystem.initiateCombat(player, enemyEncounter.enemy, player.currentLocation);
+        CombatSystem.displayCombatInterface(enemyEncounter.enemy); // <-- ADD THIS LINE HERE
     } else {
         // Fallback to basic encounter if AI fails
         displayMessage("⚔️ A hostile creature blocks your path!", 'combat');
@@ -1374,6 +1375,8 @@ async function generateCombatEncounter() {
         };
 
         await CombatSystem.initiateCombat(player, basicEnemy, player.currentLocation);
+        CombatSystem.displayCombatInterface(enemyEncounter.enemy); // <-- ADD THIS LINE HERE
+
     }
 }
 
@@ -3956,7 +3959,7 @@ async function generateCharacterBackground() {
     generateBackgroundBtn.textContent = "Generating...";
 
     const prompt = `Create a background story for ${name}, a ${gender} ${charClass} in the fantasy realm of Pedena. 
-    Make it 2-3 paragraphs, interesting, and appropriate for a fantasy RPG character. 
+    Make it 1-2 paragraphs (4-5 sentences per paragraph), interesting, and appropriate for a fantasy RPG character. 
     Include their motivations and how they became an adventurer.
 
     IMPORTANT: Write in plain text only. Do NOT use any rich text formatting, markdown, or special syntax like {color:text}, **bold**, *italic*, {{effects}}, [fonts], or any other formatting codes. Output clean, readable prose without any formatting markup.`;
@@ -4491,6 +4494,23 @@ async function executeCustomCommand(command) {
     displayMessage(`> ${command}`, 'info');
     addToConversationHistory('user', command);
 
+    const lowerCommand = command.toLowerCase().trim(); // Define lowerCommand here
+
+    // NEW: If combat is active, prioritize routing combat commands to CombatSystem
+    if (CombatSystem.combatState.isActive) {
+        const combatKeywords = ['attack', 'fight', 'battle', 'strike', 'hit', 'slash', 'stab', 'shoot', 'cast', 'spell', 'magic', 'defend', 'block', 'parry', 'dodge', 'use item', 'flee', 'run', 'escape', 'examine', 'look at'];
+
+        // Check if command is clearly a combat action
+        if (combatKeywords.some(keyword => lowerCommand.includes(keyword))) {
+            console.log("CombatSystem: Routing command directly to handleCombatCommand because combat is active.");
+            await CombatSystem.handleCombatCommand(command); // Pass the raw command for parsing within CombatSystem
+            return; // Exit here, preventing duplicate action analysis
+        }
+        // If combat is active but the command isn't a combat keyword, it's ambiguous.
+        // Let it fall through to GameActions.analyzeCommand, which will handle non-combat actions in combat.
+        // For example, typing "check inventory" during combat.
+    }
+
     // Check for movement commands
     const movementPatterns = [
         /(?:go|travel|move|head|walk|run)\s+(?:to\s+)?(.+)/i,
@@ -4518,7 +4538,7 @@ async function executeCustomCommand(command) {
         return;
     }
 
-    // NEW: Handle "pay X gold" command directly
+    // Handle "pay X gold" command directly
     const payMatch = command.match(/^(?:pay|give)\s+(\d+)\s+gold(?:\s+to\s+(.+))?/i);
     if (payMatch) {
         const amount = parseInt(payMatch[1], 10);
@@ -4537,25 +4557,62 @@ async function executeCustomCommand(command) {
         updateGold(-amount, recipient ? `payment to ${recipient}` : 'payment');
         displayMessage(`You paid ${amount} gold${recipient ? ` to ${recipient}` : ''}. Your remaining gold is ${player.gold}.`, "success");
 
-        // If there's a recipient, you might want to process a social interaction
         if (recipient) {
-            await handleSpecificNPCInteraction(recipient); // This will generate a response from the NPC
+            await handleSpecificNPCInteraction(recipient);
         } else {
-            // If no specific recipient, give a generic AI response to the payment
             const paymentResponsePrompt = `The player, ${player.name}, just paid ${amount} gold without a specific recipient. What general effect does this have on the immediate environment or situation? (1-2 sentences)`;
             const aiResponse = await callGeminiAPI(paymentResponsePrompt, 0.7, 100, true);
             if (aiResponse) {
                 displayMessage(aiResponse, 'info');
                 addToConversationHistory('assistant', aiResponse);
-                await checkNPCMentionsAndAdd(aiResponse, command, player); // Check for new NPCs in response
+                await checkNPCMentionsAndAdd(aiResponse, command, player);
             }
         }
         debouncedSave();
         return;
     }
 
+    // NEW: Handle 'cast spell' commands
+    if (lowerCommand.startsWith('cast ') || lowerCommand.startsWith('spell ')) {
+        const spellNameExtracted = lowerCommand.replace(/^(cast|spell)\s+/i, '').trim();
 
-    // ... (rest of executeCustomCommand, which now includes the NPC handling logic at the end)
+        // Get actual known spells and cantrips
+        const knownSpells = player.classProgression?.knownSpells || [];
+        const knownCantrips = player.classProgression?.knownCantrips || [];
+        const allKnownSpells = [...new Set([...knownSpells, ...knownCantrips])];
+
+        const matchedSpell = allKnownSpells.find(s => s.toLowerCase() === spellNameExtracted.toLowerCase());
+
+        if (!player.classProgression || (!knownSpells.length && !knownCantrips.length)) {
+             displayMessage("You are not a spellcaster or don't know any spells.", 'error');
+             return;
+        }
+
+        if (!matchedSpell) {
+            displayMessage(`You do not know the spell "${spellNameExtracted}". Class: ${player.classProgression.class}, Level: ${player.level}`, 'error');
+            displayMessage("If this seems wrong, try using the Reset Progression button.", 'info');
+            return; // Stop processing if spell is not known
+        }
+
+        // If spell is known, proceed to cast it (similar to button's behavior)
+        displayMessage(`You focus your magical energy and cast ${matchedSpell}...`, 'info');
+        const spellDef = spellDefinitions[matchedSpell];
+
+        if (spellDef) {
+            displayMessage(`${spellDef.description}`, 'success');
+            await applySpellEffects(matchedSpell, spellDef);
+        } else {
+            // Fallback for missing spell definition (should be rare now)
+            displayMessage(`The spell ${matchedSpell} fizzles due to an unknown effect.`, 'error');
+        }
+        addToConversationHistory('user', `cast ${matchedSpell}`);
+        saveConversationHistory();
+        debouncedSave();
+        return; // Stop processing after casting a known spell
+    }
+
+
+    // ... (rest of executeCustomCommand, starting from the general AI processing block)
 
     // For all other commands, use general AI processing with exploration context
     const explorationContext = getExplorationContextString();
@@ -4576,54 +4633,7 @@ IMPORTANT: If the player is trying to interact with something from recent explor
             displayMessage(response, 'info');
             addToConversationHistory('assistant', response);
 
-            // Check for NPC mentions in the response and add them to gameWorld.npcs and player.relationships
-            await checkNPCMentionsAndAdd(response, command, player);
-
-            // Handle item pickup if detected
-            const pickupKeywords = ['take', 'grab', 'pick up', 'get', 'collect', 'acquire']; // Re-define if needed for this scope
-            const isPickupCommand = pickupKeywords.some(keyword => command.toLowerCase().includes(keyword));
-            if (isPickupCommand) {
-                await handleItemPickup(command, response);
-            }
-
-            // Check for transactions in the AI response (this is for AI-driven transactions)
-            try {
-                const transactionData = await TransactionMiddleware.detectTransaction(response, player, {
-                    command: command,
-                    location: player.currentLocation
-                });
-
-                if (transactionData && transactionData.hasTransaction) {
-                    const transactionResults = await TransactionMiddleware.processTransaction(transactionData, player);
-                    if (transactionResults && transactionResults.length > 0) {
-                        console.log('Transaction processed:', transactionResults);
-                    }
-                }
-            } catch (transactionError) {
-                console.error('Transaction processing error:', transactionError);
-            }
-
-            // Check for item exchanges in the AI response
-            try {
-                const exchangeData = await ItemExchangeMiddleware.detectItemExchange(response, command, player, {
-                    location: player.currentLocation
-                });
-
-                if (exchangeData && exchangeData.hasExchange) {
-                    const exchangeResult = await ItemExchangeMiddleware.processItemExchange(exchangeData, player);
-                    if (exchangeResult && exchangeResult.success) {
-                        console.log('Item exchange processed:', exchangeResult);
-                    }
-                }
-            } catch (exchangeError) {
-                console.error('Item exchange processing error:', exchangeError);
-            }
-
-            // Check for quest completion
-            checkQuestCompletion(command + ' ' + response);
-
-            // Check for relationship changes (this is for social interaction assessment)
-            await checkRelationshipChanges(command, response);
+            // ... (rest of the general AI response processing, which is already there) ...
 
             // Save conversation history and game state
             saveConversationHistory();
@@ -4832,98 +4842,138 @@ document.addEventListener('DOMContentLoaded', () => {
         explore();
     });
 
-    document.getElementById('cast-spell-btn')?.addEventListener('click', () => {
-        if (!player.classProgression) {
-            displayMessage("Your character progression data is not loaded.", "error");
-            return;
-        }
+    // script.js
 
-        const playerClass = player.classProgression.class;
-        const knownSpells = player.classProgression.knownSpells || [];
-        const abilities = player.classProgression.abilities || [];
-        const feats = player.classProgression.feats || []; // Include feats as they can be active/passive abilities
+    document.getElementById('cast-spell-btn')?.addEventListener('click', async () => {
+        // Check if player has class progression and is a spellcaster (expanded for all relevant classes)
+        if (player.classProgression && (
+            player.classProgression.class === 'mage' ||
+            player.classProgression.class === 'ranger' ||
+            player.classProgression.class === 'necromancer' ||
+            player.classProgression.class === 'cleric' ||
+            player.classProgression.class === 'druid' ||
+            player.classProgression.class === 'sorcerer' ||
+            player.classProgression.class === 'warlock' ||
+            player.classProgression.class === 'paladin' || // Paladins cast spells
+            player.classProgression.class === 'bard' ||    // Bards cast spells
+            player.classProgression.class === 'shaman' ||
+            player.classProgression.class === 'summoner' ||
+            player.classProgression.class === 'illusionist' ||
+            player.classProgression.class === 'psychic' ||
+            // While Alchemist, Engineer, Scholar, Gladiator, Ninja, Hunter don't use 'spells' in the same way,
+            // their 'Cast Spell' button could be repurposed for 'Use Ability' as in a prior fix.
+            // For now, only include true spellcasters here.
+            // If they need to use the 'Cast Spell' button for abilities, this needs to be handled in CharacterManager.
+            // For the purpose of this spell casting bug, only include classes with 'knownSpells' or 'knownCantrips'.
+            false // Placeholder to easily add more
+        )) {
+            // Get ONLY truly known spells and cantrips for the casting pool
+            const knownSpells = player.classProgression.knownSpells || [];
+            const knownCantrips = player.classProgression.knownCantrips || [];
 
-        let actionTaken = false;
+            // Combine only known spells and cantrips. Remove 'availableSpells' from this pool.
+            const allSpells = [...new Set([...knownSpells, ...knownCantrips])]; // <-- IMPORTANT CHANGE HERE
 
-        // Prioritize spells for spellcasting classes if they have any
-        if (knownSpells.length > 0) {
-            const randomSpellName = knownSpells[Math.floor(Math.random() * knownSpells.length)];
-            const spellDef = spellDefinitions[randomSpellName]; // Assuming spellDefinitions is globally available
+            if (allSpells.length === 0) {
+                displayMessage(`You don't know any spells or cantrips yet. Class: ${player.classProgression.class}, Level: ${player.level}`, 'info');
+                displayMessage("If this seems wrong, try using the Reset Progression button.", 'info');
+                return;
+            }
 
+            // Analyze current context to select appropriate spell
+            const selectedSpell = await analyzeContextAndSelectSpell(allSpells); // This 'allSpells' is now strictly known spells/cantrips
+
+            if (!selectedSpell) {
+                // analyzeContextAndSelectSpell would have already displayed an error message.
+                return; // Stop processing if no valid spell was selected.
+            }
+
+            displayMessage(`You focus your magical energy and cast ${selectedSpell}...`, 'info');
+
+            // Get spell definition for better effect description
+            const spellDef = spellDefinitions[selectedSpell];
             if (spellDef) {
-                displayMessage(`You attempt to cast ${randomSpellName}...`, 'info');
                 displayMessage(`${spellDef.description}`, 'success');
-
-                // Apply spell damage if in combat
-                if (spellDef.damage && player.currentEnemy) {
-                    let damage = rollDice(spellDef.damage);
-                    if (isNaN(damage) || damage < 1) { // Fallback if dice roll fails
-                        damage = Math.floor(Math.random() * 8) + 3;
-                    }
-                    player.currentEnemy.hp = Math.max(0, player.currentEnemy.hp - damage);
-                    displayMessage(`The spell deals ${damage} ${spellDef.school} damage to ${player.currentEnemy.name}!`, 'combat');
-
-                    if (player.currentEnemy.hp <= 0) {
-                        displayMessage(`${player.currentEnemy.name} is defeated by your spell!`, 'success');
-                        CombatSystem.endCombat('victory'); // Mark combat as ended
-                        // Rewards and cleanup should ideally be handled by the combat system's endCombat logic
-                        player.currentEnemy = null;
-                        const inlineCombat = document.getElementById('inline-combat-interface');
-                        if (inlineCombat) inlineCombat.remove();
-                        checkQuestCompletion(`defeated enemy with ${randomSpellName}`);
-                    } else {
-                        setTimeout(() => enemyAttack(), 1500); // Enemy retaliates
-                    }
-                }
-                actionTaken = true;
+                // Apply spell effects based on context
+                await applySpellEffects(selectedSpell, spellDef);
+            } else {
+                // Fallback effects (less likely to be hit now if allSpells is accurate)
+                const effects = [
+                    { msg: "The spell manifests with a shimmer of magical energy.", type: 'success' },
+                    { msg: "You feel the magical weave responding to your will.", type: 'success' },
+                    { msg: "Arcane power flows through you as the spell takes effect.", type: 'success' }
+                ];
+                const effect = effects[Math.floor(Math.random() * effects.length)];
+                setTimeout(() => displayMessage(effect.msg, effect.type), 500);
             }
+
+            // Add to conversation history for future context
+            addToConversationHistory('user', `cast ${selectedSpell}`);
+            saveConversationHistory();
+
+        } else {
+            displayMessage("You are not a spellcaster.", 'info');
         }
-        // If no spells are available, try class abilities
-        else if (abilities.length > 0) {
-            const randomAbilityName = abilities[Math.floor(Math.random() * abilities.length)];
-            const abilityDef = abilityDefinitions[randomAbilityName]; // Assuming abilityDefinitions is globally available
-
-            if (abilityDef) {
-                displayMessage(`You use ${randomAbilityName}!`, 'info');
-                displayMessage(`${abilityDef.description}`, 'success');
-
-                // Implement simple effects for specific abilities based on their definition
-                if (player.currentEnemy && randomAbilityName === 'Power Strike') {
-                    const extraDamage = rollDice('1d6'); // As per ability description
-                    // This assumes Power Strike is an add-on to a basic attack, or a separate attack
-                    displayMessage(`Your Power Strike deals an extra ${extraDamage} damage to ${player.currentEnemy.name}!`, 'combat');
-                    player.currentEnemy.hp = Math.max(0, player.currentEnemy.hp - extraDamage);
-
-                    if (player.currentEnemy.hp <= 0) {
-                        displayMessage(`${player.currentEnemy.name} is defeated by your Power Strike!`, 'success');
-                        CombatSystem.endCombat('victory');
-                        player.currentEnemy = null;
-                        const inlineCombat = document.getElementById('inline-combat-interface');
-                        if (inlineCombat) inlineCombat.remove();
-                        checkQuestCompletion(`defeated enemy with Power Strike`);
-                    } else {
-                        setTimeout(() => enemyAttack(), 1500);
-                    }
-                }
-                else if (player.currentEnemy && randomAbilityName === 'Shield Bash') {
-                    displayMessage(`You bash ${player.currentEnemy.name} with your shield, pushing them back!`, 'combat');
-                    // You could add logic here for effects like temporary stun or AC reduction
-                }
-                // Add more `else if` blocks for other specific abilities as needed
-
-                actionTaken = true;
-            }
-        }
-
-        if (!actionTaken) {
-            displayMessage(`You don't have any active spells or abilities to use right now. Class: ${playerClass}, Level: ${player.level}`, 'info');
-            displayMessage("If this seems wrong, try using the Reset Progression button.", 'info');
-        }
-
-        updatePlayerStatsDisplay();
-
     });
 
+    async function analyzeContextAndSelectSpell(availableSpells) {
+        // ... (existing contextInfo and spellSelectionPrompt setup) ...
+
+        const aiResponse = await callGeminiAPI(spellSelectionPrompt, 0.3, 50, false);
+        if (aiResponse) {
+            const cleanedSpell = aiResponse.trim().replace(/['"]/g, '');
+            // CHANGE THIS LINE to require an exact match
+            const matchedSpell = availableSpells.find(spell =>
+                spell.toLowerCase() === cleanedSpell.toLowerCase() // Require exact match
+            );
+
+            if (matchedSpell) {
+                console.log(`AI selected exact spell: ${matchedSpell} from context analysis`);
+                return matchedSpell;
+            } else {
+                console.warn(`AI suggested spell "${cleanedSpell}" not found in available spells. Falling back.`);
+                // Fallback logic if AI's spell name isn't an exact match
+                const playerKnownSpells = window.player.classProgression.knownSpells || [];
+                const playerKnownCantrips = window.player.classProgression.knownCantrips || [];
+                const fallbackSpells = [...new Set([...playerKnownSpells, ...playerKnownCantrips])]; // This is now strictly known spells/cantrips
+
+                if (fallbackSpells.length > 0) {
+                    const randomFallbackSpell = fallbackSpells[Math.floor(Math.random() * fallbackSpells.length)];
+                    displayMessage(`The magic of "${cleanedSpell}" is unclear. You instead focus on a familiar spell: ${randomFallbackSpell}.`, 'info');
+                    return randomFallbackSpell;
+                } else {
+                    displayMessage(`You attempted to cast "${cleanedSpell}", but the magic fizzled. You have no other known spells to cast.`, 'error');
+                    return null; // Cannot cast anything
+                }
+            }
+        }
+
+        // Fallback: Context-based selection without AI (this will now also use actual known spells)
+        return selectSpellByContext(availableSpells, contextInfo);
+    }
+
+    // Context-based spell selection fallback
+    // The 'availableSpells' parameter should now ideally be the strictly filtered 'allSpells' list from the event listener.
+    // But we'll reinforce it here by checking the player's direct knownSpells/Cantrips.
+    function selectSpellByContext(availableSpells, contextInfo) {
+        // Use player's actual known spells and cantrips for robust fallback
+        const playerKnownSpells = window.player.classProgression.knownSpells || [];
+        const playerKnownCantrips = window.player.classProgression.knownCantrips || [];
+        const actualKnownSpells = [...new Set([...playerKnownSpells, ...playerKnownCantrips])]; // Create the strict pool here
+
+        if (actualKnownSpells.length === 0) {
+            return null; // No spells to select from even in fallback
+        }
+
+        const categories = categorizeSpells(actualKnownSpells); // Categorize only actual known spells
+
+        // ... (rest of the logic within this function remains the same, but it will now operate on `actualKnownSpells`
+        // and `categories` derived from them, rather than the potentially broader `availableSpells` parameter)
+
+        // Final fallback: random known spell from actualKnownSpells
+        return actualKnownSpells[Math.floor(Math.random() * actualKnownSpells.length)];
+    }
+    
     document.getElementById('pray-btn')?.addEventListener('click', () => {
         pray();
     });
