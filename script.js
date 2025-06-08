@@ -1455,7 +1455,7 @@ function debouncedSave() {
 async function checkRelationshipChanges(playerCommand, aiResponse) {
     console.log("Running relationship check with Gemini...");
     // Await the results from our new Gemini-powered function
-    const npcNames = await extractNPCNames(aiResponse, player);
+    const npcNames = await RelationshipMiddleware.extractNPCNames(aiResponse, player);
 
     if (npcNames.length === 0) {
         console.log("No potential NPCs identified by Gemini.");
