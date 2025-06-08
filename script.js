@@ -1,12 +1,12 @@
 // Import game data and assets
 import { gameData, GameDataManager } from './assets/game-data-loader.js';
 import { QuestCharacterGenerator } from './assets/quest-character-names.js';
-import { QuestTaskGenerator, questCategories, questThemes, questTemplates, questVariables } from './assets/quest-tasks.js';
+import { QuestTaskGenerator, questCategories, questThemes } from './assets/quest-tasks.js';
 import { CharacterManager } from './game-logic/character-manager.js';
 import { GameActions } from './game-logic/game-actions.js';
 import { LocationManager } from './game-logic/location-manager.js';
 import { classProgression, spellDefinitions, abilityDefinitions } from './game-logic/class-progression.js';
-import { ItemGenerator, ItemManager, itemCategories, itemRarity, statusEffects, itemTemplates } from './assets/world-items.js';
+import { ItemGenerator, ItemManager, itemCategories, itemRarity, statusEffects } from './assets/world-items.js';
 import { TransactionMiddleware } from './game-logic/transaction-middleware.js';
 import { ItemExchangeMiddleware } from './game-logic/item-exchange-middleware.js';
 import { CombatSystem } from './game-logic/combat-system.js';
