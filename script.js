@@ -1473,51 +1473,6 @@ async function checkRelationshipChanges(playerCommand, aiResponse) {
     });
 }
 
-// Function to extract NPC names from AI responses
-// In script.js, REPLACE the old extractNPCNames function with this one.
-async function extractNPCNames(aiResponse, player) {
-    console.log("Extracting NPC names using Gemini...");
-    const extractionPrompt = `
-    From the following game text, identify and extract the full names of all Non-Player Characters (NPCs) being interacted with.
-    - Exclude the player's name, which is "${player.name}".
-    - Only include characters who are clearly people or sentient beings.
-    - Do not include names of items, general creatures, or places.
-    - Respond with ONLY a valid JSON array of strings. Example: ["Seraphina", "Lysandra", "Frost Giant"]
-
-    Game Text:
-    ---
-    ${aiResponse}
-    ---
-
-    JSON Array of NPC Names:
-    `;
-
-    try {
-        // Use low temperature for more predictable, structured output
-        const response = await callGeminiAPI(extractionPrompt, 0.1, 200, false);
-        if (!response) {
-            console.error("Gemini name extraction returned no response.");
-            return [];
-        }
-
-        // Find and parse the JSON array from the response string
-        const jsonMatch = response.match(/\[[\s\S]*\]/);
-        if (jsonMatch) {
-            const names = JSON.parse(jsonMatch[0]);
-            // Ensure we have an array of unique names
-            const uniqueNames = [...new Set(names)];
-            console.log("Gemini successfully extracted names:", uniqueNames);
-            return uniqueNames;
-        } else {
-            console.error("Could not parse JSON array from Gemini name extraction response:", response);
-            return [];
-        }
-    } catch (error) {
-        console.error("Error calling Gemini API for NPC name extraction:", error);
-        return []; // Return an empty array on error to prevent crashes
-    }
-}
-
 // Debug function to check inventory consistency
 function debugInventory() {
     console.log("=== INVENTORY DEBUG ===");
@@ -3556,7 +3511,8 @@ async function pray() {
     }, 1000);
 }
 
-async function explore() {
+// Modified explore function to accept 'command'
+async function explore(command) { // 'command' parameter is already being passed
     displayMessage("Exploring the area...", 'info');
 
     // Generate potential characters they might encounter (these are *ideas* for the AI)
@@ -3576,75 +3532,117 @@ Potential characters in the area (for AI to choose from, or create new ones):
 Generate a brief exploration result that includes:
 1. What they discover (location feature, item, person, or event)
 2. Specific interactable elements they can engage with. If a person, use their FULL NAME.
-3. Use named characters if mentioning NPCs. If you mention a person, you MUST also add their name to the INTERACTABLE list.
+3. Use named characters if mentioning NPCs. If you mention a person, you MUST also add their name to the INTERACTABLE.people list.
 4. Keep it appropriate for their level.
 
 IMPORTANT: If you mention any objects, creatures, or interactive elements, they should be consistently available for future interactions.
-If you mention a person, the name in INTERACTABLE MUST match the name in DISCOVERY EXACTLY.
+If you mention a person, the name in INTERACTABLE.people MUST match the name in DISCOVERY EXACTLY.
 
-Format the response as:
-DISCOVERY: [What they find]
-INTERACTABLE: [Comma-separated list of things they can interact with, INCLUDING names of people if mentioned]
+Respond with ONLY valid JSON in this exact format:
+{
+    "discovery": "What they find",
+    "interactable": {
+        "people": ["Full Name of NPC 1", "Full Name of NPC 2"],
+        "objects": ["Object 1", "Object 2", "Object 3"]
+    }
+}
 
 Example:
-DISCOVERY: You discover a moss-covered altar with strange runes, and a small wooden box sits in a hidden compartment. A concerned-looking Master Theron Steelbeard is pacing near the fountain.
-INTERACTABLE: altar, wooden box, runes, Master Theron Steelbeard
+{
+    "discovery": "You discover a moss-covered altar with strange runes, and a small wooden box sits in a hidden compartment. A concerned-looking Master Theron Steelbeard is pacing near the fountain. A curious squirrel watches from a nearby tree.",
+    "interactable": {
+        "people": ["Master Theron Steelbeard"],
+        "objects": ["altar", "wooden box", "runes", "squirrel"]
+    }
+}
 `;
 
-    const explorationResult = await callGeminiAPI(explorePrompt, 0.7, 300);
+    const explorationResult = await callGeminiAPI(explorePrompt, 0.7, 400, false); // Increased tokens slightly for structured JSON
 
     if (explorationResult) {
-        // Parse the structured response
-        const discoveryMatch = explorationResult.match(/DISCOVERY:\s*(.+?)(?=\nINTERACTABLE:|$)/s);
-        const interactableMatch = explorationResult.match(/INTERACTABLE:\s*(.+?)$/s);
+        let parsedResult;
+        try {
+            // Attempt to parse the AI's structured JSON response
+            const cleanResponse = explorationResult.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+            const jsonMatch = cleanResponse.match(/\{[\s\S]*\}/);
+            if (jsonMatch) {
+                parsedResult = JSON.parse(jsonMatch[0]);
+            } else {
+                throw new Error("No valid JSON structure found in AI response for explore.");
+            }
 
-        const discovery = discoveryMatch ? discoveryMatch[1].trim() : explorationResult;
-        let interactablesRaw = interactableMatch
-            ? interactableMatch[1].split(',').map(s => s.trim()) // Keep raw casing here for resolveNpcIdentity
-            : [];
+            // Basic validation of parsed structure
+            if (!parsedResult.discovery || !parsedResult.interactable || 
+                !Array.isArray(parsedResult.interactable.people) || !Array.isArray(parsedResult.interactable.objects)) {
+                throw new Error("Invalid structure for 'interactable' object in AI response.");
+            }
 
-        displayMessage(discovery, 'exploration');
+        } catch (parseError) {
+            console.error("Explore: Failed to parse structured JSON from AI. Falling back to simple parsing. Error:", parseError, "Raw response:", explorationResult);
+            // Fallback to old, less reliable parsing if AI doesn't give perfect JSON
+            const discoveryMatch = explorationResult.match(/DISCOVERY:\s*(.+?)(?=\nINTERACTABLE:|$)/s);
+            const interactableMatch = explorationResult.match(/INTERACTABLE:\s*(.+?)$/s);
+            const discoveryText = discoveryMatch ? discoveryMatch[1].trim() : explorationResult;
+            const interactablesFlat = interactableMatch ? interactableMatch[1].split(',').map(s => s.trim()) : [];
 
-        // --- NEW LOGIC: Create and save NPCs mentioned in interactables ---
-        const playerRelationshipsCopy = { ...player.relationships }; // Copy to pass to resolveNpcIdentity
+            parsedResult = {
+                discovery: discoveryText,
+                interactable: {
+                    people: interactablesFlat.filter(e => e.match(/^[A-Z]/) || e.includes(' ')), // Simple heuristic for people
+                    objects: interactablesFlat.filter(e => !(e.match(/^[A-Z]/) || e.includes(' '))) // Everything else is object
+                }
+            };
+            displayMessage("Warning: AI returned unexpected format for 'explore'. Using fallback interpretation.", "error");
+        }
+
+        displayMessage(parsedResult.discovery, 'exploration');
+
+        const playerRelationshipsCopy = { ...player.relationships };
         let interactablesForDisplay = []; // To store lowercase for display
 
-        for (const element of interactablesRaw) { // Iterate through raw interactables
-            interactablesForDisplay.push(element.toLowerCase()); // Add lowercase to display list
+        // --- Process PEOPLE (NPCs) ---
+        for (const npcNameRaw of parsedResult.interactable.people) {
+            interactablesForDisplay.push(npcNameRaw.toLowerCase()); // Add lowercase for display list
 
-            // Check if it's likely an NPC (starts with a capital letter, or contains a space indicating a name)
-            // Use the raw element for initial check
-            if (element.match(/^[A-Z]/) || element.includes(' ')) {
-                console.log(`Explore: Potential NPC identified from interactablesRaw: "${element}"`);
+            console.log(`Explore: Processing potential NPC: "${npcNameRaw}"`);
 
-                // Resolve NPC identity to get canonical name and description
-                const identity = await RelationshipMiddleware.resolveNpcIdentity(element, playerRelationshipsCopy, command, discovery);
-                console.log(`Explore: Resolved identity for "${element}": canonicalName="${identity.canonicalName}", isNew=${identity.isNew}`);
+            // Resolve NPC identity to get canonical name and description
+            const identity = await RelationshipMiddleware.resolveNpcIdentity(npcNameRaw, playerRelationshipsCopy, command, parsedResult.discovery);
+            console.log(`Explore: Resolved identity for "${npcNameRaw}": canonicalName="${identity.canonicalName}"`);
 
-                // Create and save NPC only if it's genuinely new to gameWorld.npcs for this location
-                // Use the canonicalName for lookup and storage
-                const existingNPCsInLocation = getNPCsInLocation(player.currentLocation);
-                const npcAlreadyInLocation = existingNPCsInLocation.some(npc => npc.name === identity.canonicalName);
+            // Check if the NPC is already explicitly in gameWorld.npcs for the current location
+            const existingNPCsInLocation = getNPCsInLocation(player.currentLocation);
+            const npcAlreadyInLocation = existingNPCsInLocation.some(npc => npc.name === identity.canonicalName);
 
-                if (!npcAlreadyInLocation) {
-                    const newNPC = createNPC(identity.canonicalName, identity.description, player.currentLocation);
-                    saveNPCToLocation(newNPC, player.currentLocation);
-                    console.log(`Explore: Created and saved new NPC to gameWorld.npcs: "${newNPC.name}" at "${newNPC.location}"`);
-                } else {
-                    console.log(`Explore: NPC "${identity.canonicalName}" already exists in gameWorld.npcs for this location.`);
+            if (!npcAlreadyInLocation) {
+                const newNPC = createNPC(identity.canonicalName, identity.description, player.currentLocation);
+                saveNPCToLocation(newNPC, player.currentLocation);
+                console.log(`Explore: Created and saved new NPC to gameWorld.npcs: "${newNPC.name}" at "${newNPC.location}".`);
+            } else {
+                console.log(`Explore: NPC "${identity.canonicalName}" already exists in gameWorld.npcs for this location.`);
+                const existingNpcRef = existingNPCsInLocation.find(npc => npc.name === identity.canonicalName);
+                if (existingNpcRef && identity.description && existingNpcRef.description !== identity.description) {
+                     existingNpcRef.description = identity.description;
+                     console.log(`Explore: Updated description for existing NPC "${existingNpcRef.name}".`);
                 }
-
-                // Update relationship (this will create it if new to player.relationships, or update if existing)
-                // Passing `true` for `forceCreate` here is important because `explore` is creating potential new NPCs.
-                updateRelationship(identity.canonicalName, 0, 5, identity.description, true); // Small trust gain for being encountered
-                console.log(`Explore: Updated relationship for "${identity.canonicalName}" in player.relationships.`);
             }
+
+            // Ensure a relationship entry exists for this NPC in player.relationships
+            updateRelationship(identity.canonicalName, 0, 0, identity.description, true); // No trust change, just ensure presence
+            console.log(`Explore: Ensured relationship for "${identity.canonicalName}" in player.relationships.`);
         }
+
+        // --- Process OBJECTS ---
+        for (const objectNameRaw of parsedResult.interactable.objects) {
+            interactablesForDisplay.push(objectNameRaw.toLowerCase()); // Add lowercase for display list
+            // For objects, we do NOT create relationships. They are just listed as interactable.
+            console.log(`Explore: Identified interactable object: "${objectNameRaw}"`);
+        }
+
         // --- END NEW LOGIC ---
 
-        // Store exploration context
-        addExplorationContext(discovery, interactablesForDisplay); // Store lowercase for context string
-        addToConversationHistory('assistant', discovery);
+        addExplorationContext(parsedResult.discovery, interactablesForDisplay); // Store lowercase for context string
+        addToConversationHistory('assistant', parsedResult.discovery);
 
         if (interactablesForDisplay.length > 0) {
             displayMessage(`You can interact with: ${interactablesForDisplay.join(', ')}`, 'info');
@@ -3653,6 +3651,35 @@ INTERACTABLE: altar, wooden box, runes, Master Theron Steelbeard
         displayMessage("The area seems quiet. You don't find anything of interest.", 'info');
     }
 }
+
+// The handleSpecificNPCInteraction function should be defined as below (already provided in the previous fix):
+async function handleSpecificNPCInteraction(npcNameInput) {
+    displayMessage(`You try to talk to ${npcNameInput}...`, 'info');
+
+    const existingNPCs = getNPCsInLocation(player.currentLocation);
+    console.log(`handleSpecificNPCInteraction: Searching for "${npcNameInput}" in current location's NPCs:`, existingNPCs.map(n => n.name));
+
+    const targetNPC = existingNPCs.find(npc => npc.name.toLowerCase() === npcNameInput.toLowerCase());
+
+    if (targetNPC) {
+        console.log(`handleSpecificNPCInteraction: Found NPC: "${targetNPC.name}"`);
+        const prompt = `The player, ${player.name}, talks to ${targetNPC.name} in ${player.currentLocation}. What is the NPC's response to being approached?`;
+        const response = await callGeminiAPI(prompt, 0.7, 250, true);
+
+        if (response) {
+            displayMessage(response);
+            addToConversationHistory('assistant', response);
+            updateRelationship(targetNPC.name, 0, 5, targetNPC.description, true);
+        } else {
+            displayMessage(`${targetNPC.name} doesn't seem to have much to say right now.`, 'info');
+        }
+    } else {
+        console.log(`handleSpecificNPCInteraction: NPC "${npcNameInput}" not found in gameWorld.npcs for this location.`);
+        displayMessage(`You look around, but you don't see anyone named "${npcNameInput}" here.`, 'error');
+    }
+}
+
+window.handleSpecificNPCInteraction = handleSpecificNPCInteraction;
 
 async function showShop() {
     // Ensure shopInterface exists and is correctly defined globally (e.g., const shopInterface = document.getElementById('shop-interface');)
@@ -4454,50 +4481,6 @@ function createPlaceholderPortrait(name, charClass, level = 1) { // Accept param
     `;
 }
 
-// This function will be called after every AI response to identify and register NPCs mentioned in the narrative.
-async function checkNPCMentionsAndAdd(aiResponse, playerCommand, gameContext) {
-    console.log("checkNPCMentionsAndAdd: Scanning AI response for NPC mentions...");
-    // Use the robust extractNPCNames from RelationshipMiddleware
-    const npcNames = await RelationshipMiddleware.extractNPCNames(aiResponse, player);
-
-    if (npcNames.length === 0) {
-        console.log("checkNPCMentionsAndAdd: No NPC names identified in AI response.");
-        return;
-    }
-
-    console.log("checkNPCMentionsAndAdd: Identified potential NPCs:", npcNames);
-
-    for (const npcName of npcNames) {
-        // Resolve NPC identity to get canonical name and description
-        const identity = await RelationshipMiddleware.resolveNpcIdentity(npcName, player.relationships || {}, playerCommand, aiResponse);
-        console.log(`checkNPCMentionsAndAdd: Resolved identity for "${npcName}": canonicalName="${identity.canonicalName}"`);
-
-        // Check if the NPC is already explicitly in gameWorld.npcs for the current location
-        const existingNPCsInLocation = getNPCsInLocation(player.currentLocation);
-        const npcAlreadyInLocation = existingNPCsInLocation.some(npc => npc.name === identity.canonicalName);
-
-        if (!npcAlreadyInLocation) {
-            // If it's not already in gameWorld.npcs for this location, create and save it
-            const newNPC = createNPC(identity.canonicalName, identity.description, player.currentLocation);
-            saveNPCToLocation(newNPC, player.currentLocation);
-            console.log(`checkNPCMentionsAndAdd: Added new NPC "${newNPC.name}" to gameWorld.npcs at "${newNPC.location}".`);
-        } else {
-            console.log(`checkNPCMentionsAndAdd: NPC "${identity.canonicalName}" already exists in gameWorld.npcs at "${player.currentLocation}".`);
-            // Optionally, update existing NPC's description if it's more detailed now
-            const existingNpcRef = existingNPCsInLocation.find(npc => npc.name === identity.canonicalName);
-            if (existingNpcRef && identity.description && existingNpcRef.description !== identity.description) {
-                 existingNpcRef.description = identity.description;
-                 console.log(`checkNPCMentionsAndAdd: Updated description for existing NPC "${existingNpcRef.name}".`);
-            }
-        }
-
-        // Ensure a relationship entry exists for this NPC in player.relationships
-        // Use forceCreate: true to ensure it's added if it doesn't exist yet, or updated.
-        updateRelationship(identity.canonicalName, 0, 0, identity.description, true); // No trust change, just ensure presence
-        console.log(`checkNPCMentionsAndAdd: Ensured relationship for "${identity.canonicalName}" in player.relationships.`);
-    }
-}
-
 // Execute custom commands
 // In script.js, replace your entire executeCustomCommand function with this one.
 // In script.js, find executeCustomCommand and replace it with this one.
@@ -4528,7 +4511,6 @@ async function executeCustomCommand(command) {
     }
 
     if (basicMovementMatch && destination) {
-        // Clean up the destination name
         destination = destination.replace(/^(the|a|an)\s+/i, '').trim();
         destination = destination.replace(/\s+(and|then|,).*$/i, '').trim();
 
@@ -4536,156 +4518,44 @@ async function executeCustomCommand(command) {
         return;
     }
 
-    // Check if we're in combat and handle combat commands
-    if (CombatSystem.combatState.isActive) {
-        const combatHandled = await CombatSystem.handleCombatCommand(command);
-        if (combatHandled) {
-            // addToConversationHistory('user', command); // Already added at the top of this function
+    // NEW: Handle "pay X gold" command directly
+    const payMatch = command.match(/^(?:pay|give)\s+(\d+)\s+gold(?:\s+to\s+(.+))?/i);
+    if (payMatch) {
+        const amount = parseInt(payMatch[1], 10);
+        const recipient = payMatch[2] ? payMatch[2].trim() : null;
+
+        if (isNaN(amount) || amount <= 0) {
+            displayMessage("Please specify a valid amount of gold to pay.", "error");
             return;
         }
-    }
 
-    // Check for combat initiation commands
-    const combatKeywords = ['attack', 'fight', 'battle', 'combat', 'engage', 'strike', 'assault'];
-    const isCombatCommand = combatKeywords.some(keyword => command.toLowerCase().includes(keyword));
+        if (player.gold < amount) {
+            displayMessage(`You only have ${player.gold} gold, which is not enough to pay ${amount} gold.`, "error");
+            return;
+        }
 
-    if (isCombatCommand) {
-        // Use intelligent enemy generation based on the specific command
-        const enemyEncounter = await CombatSystem.generateSpecificEnemyEncounter(command, player);
+        updateGold(-amount, recipient ? `payment to ${recipient}` : 'payment');
+        displayMessage(`You paid ${amount} gold${recipient ? ` to ${recipient}` : ''}. Your remaining gold is ${player.gold}.`, "success");
 
-        if (enemyEncounter) {
-            // Display the narrative setup
-            displayMessage(enemyEncounter.narrative, 'combat');
-
-            // Initiate combat with the specific enemy
-            await CombatSystem.initiateCombat(player, enemyEncounter.enemy, player.currentLocation);
+        // If there's a recipient, you might want to process a social interaction
+        if (recipient) {
+            await handleSpecificNPCInteraction(recipient); // This will generate a response from the NPC
         } else {
-            // If no plausible enemy found, don't start combat
-            displayMessage("There's nothing here to attack that makes sense.", 'info');
+            // If no specific recipient, give a generic AI response to the payment
+            const paymentResponsePrompt = `The player, ${player.name}, just paid ${amount} gold without a specific recipient. What general effect does this have on the immediate environment or situation? (1-2 sentences)`;
+            const aiResponse = await callGeminiAPI(paymentResponsePrompt, 0.7, 100, true);
+            if (aiResponse) {
+                displayMessage(aiResponse, 'info');
+                addToConversationHistory('assistant', aiResponse);
+                await checkNPCMentionsAndAdd(aiResponse, command, player); // Check for new NPCs in response
+            }
         }
+        debouncedSave();
         return;
     }
 
-    // Check for party management commands
-    if (command.toLowerCase().includes('recruit') || command.toLowerCase().includes('invite to party')) {
-        const npcNameMatch = command.match(/recruit\s+(.+)|invite\s+(.+)\s+to\s+party/i);
-        if (npcNameMatch) {
-            const npcName = npcNameMatch[1] || npcNameMatch[2];
-            await recruitNPC(npcName.trim());
-            return;
-        }
-    }
 
-    if (command.toLowerCase().includes('party status') || command.toLowerCase().includes('check party')) {
-        displayPartyStatus();
-        return;
-    }
-
-    if (command.toLowerCase().includes('dismiss') && command.toLowerCase().includes('party')) {
-        const memberMatch = command.match(/dismiss\s+(.+)\s+from\s+party|dismiss\s+(.+)/i);
-        if (memberMatch && partyManager && partyManager.party.length > 0) {
-            const memberName = memberMatch[1] || memberMatch[2];
-            const member = partyManager.party.find(m => m.name.toLowerCase().includes(memberName.toLowerCase()));
-            if (member) {
-                dismissPartyMember(member.id);
-            } else {
-                displayMessage(`No party member named "${memberName}" found.`, 'error');
-            }
-        }
-        return;
-    }
-
-    // Handle multi-combat player actions
-    if (multiCombatSystem && multiCombatSystem.isActive && multiCombatSystem.waitingForPlayerInput) {
-        let actionTaken = false;
-
-        if (command.toLowerCase().includes('attack')) {
-            const result = await multiCombatSystem.processTurn('attack');
-            if (result.combatEnded) {
-                handleCombatEnd(result);
-            } else {
-                displayCombatState();
-                await processCombatTurns(); // Continue combat loop
-            }
-            actionTaken = true;
-        } else if (command.toLowerCase().includes('defend')) {
-            const result = await multiCombatSystem.processTurn('defend');
-            if (result.combatEnded) {
-                handleCombatEnd(result);
-            } else {
-                displayCombatState();
-                await processCombatTurns();
-            }
-            actionTaken = true;
-        } else if (command.toLowerCase().includes('ability') || command.toLowerCase().includes('spell')) {
-            const result = await multiCombatSystem.processTurn('ability');
-            if (result.combatEnded) {
-                handleCombatEnd(result);
-            } else {
-                displayCombatState();
-                await processCombatTurns();
-            }
-            actionTaken = true;
-        } else if (command.toLowerCase().includes('flee')) {
-            const result = await multiCombatSystem.processTurn('flee');
-            if (result.combatEnded) {
-                handleCombatEnd(result);
-            } else {
-                displayCombatState();
-                await processCombatTurns();
-            }
-            actionTaken = true;
-        }
-
-        if (actionTaken) {
-            multiCombatSystem.waitingForPlayerInput = false;
-            return;
-        }
-    }
-
-    // Check for manual quest completion command
-    if (command.toLowerCase().includes('complete quest') || command.toLowerCase().includes('finish quest')) {
-        const questMatch = command.match(/complete quest\s+(.+)|finish quest\s+(.+)/i);
-        if (questMatch) {
-            const questTitle = (questMatch[1] || questMatch[2]).trim();
-            manualCompleteQuest(questTitle);
-            return;
-        } else {
-            // Show active quests to complete
-            const activeQuests = player.quests?.filter(q => !q.completed) || [];
-            if (activeQuests.length > 0) {
-                displayMessage("Which quest would you like to complete?", 'info');
-                activeQuests.forEach((quest, index) => {
-                    displayMessage(`${index + 1}. ${quest.title}`, 'info');
-                });
-                displayMessage("Use 'complete quest [quest title]' to manually complete a quest.", 'info');
-            } else {
-                displayMessage("You have no active quests to complete.", 'info');
-            }
-            return;
-        }
-    }
-
-    // Check for other command types
-    const talkMatch = command.match(/talk to (.+)/i) || command.match(/speak with (.+)/i);
-    if (talkMatch && talkMatch[1]) {
-        const npcName = talkMatch[1].trim();
-        await handleSpecificNPCInteraction(npcName); // A new function we'll create
-        return; // Stop further processing
-    } else if (command.toLowerCase().includes('talk') || command.toLowerCase().includes('speak')) {
-        // Fallback for generic "talk" commands
-        await startConversation();
-        return;
-    }
-
-    if (command.toLowerCase().includes('explore') || command.toLowerCase().includes('look around')) {
-        await explore();
-        return;
-    }
-
-    // Check if this is an item pickup command
-    const pickupKeywords = ['take', 'grab', 'pick up', 'get', 'collect', 'acquire'];
-    const isPickupCommand = pickupKeywords.some(keyword => command.toLowerCase().includes(keyword));
+    // ... (rest of executeCustomCommand, which now includes the NPC handling logic at the end)
 
     // For all other commands, use general AI processing with exploration context
     const explorationContext = getExplorationContextString();
@@ -4706,15 +4576,17 @@ IMPORTANT: If the player is trying to interact with something from recent explor
             displayMessage(response, 'info');
             addToConversationHistory('assistant', response);
 
-            // NEW: Check for NPC mentions in the response and add them to gameWorld.npcs and player.relationships
+            // Check for NPC mentions in the response and add them to gameWorld.npcs and player.relationships
             await checkNPCMentionsAndAdd(response, command, player);
 
             // Handle item pickup if detected
+            const pickupKeywords = ['take', 'grab', 'pick up', 'get', 'collect', 'acquire']; // Re-define if needed for this scope
+            const isPickupCommand = pickupKeywords.some(keyword => command.toLowerCase().includes(keyword));
             if (isPickupCommand) {
                 await handleItemPickup(command, response);
             }
 
-            // Check for transactions in the AI response
+            // Check for transactions in the AI response (this is for AI-driven transactions)
             try {
                 const transactionData = await TransactionMiddleware.detectTransaction(response, player, {
                     command: command,
@@ -4750,7 +4622,7 @@ IMPORTANT: If the player is trying to interact with something from recent explor
             // Check for quest completion
             checkQuestCompletion(command + ' ' + response);
 
-            // We now 'await' the result of our async relationship check.
+            // Check for relationship changes (this is for social interaction assessment)
             await checkRelationshipChanges(command, response);
 
             // Save conversation history and game state
@@ -4769,6 +4641,57 @@ IMPORTANT: If the player is trying to interact with something from recent explor
     if (isIllustrationModeActive && player.portraitUrl && player.portraitUrl.trim() !== '' && userInputCounterForImage > 0 && userInputCounterForImage % 7 === 0) {
         displayMessage("7 user inputs reached. Auto-generating new scenery image...", "info");
         await generateAndDisplaySceneryImage();
+    }
+}
+
+// Add this function. Make sure it's not defined inside any other function.
+// This function will now be the one called by executeCustomCommand after every AI response.
+async function checkNPCMentionsAndAdd(aiResponse, playerCommand, gameContext) {
+    console.log("checkNPCMentionsAndAdd: Scanning AI response for NPC mentions...");
+    // Use the robust extractNPCNames from RelationshipMiddleware
+    const npcNames = await RelationshipMiddleware.extractNPCNames(aiResponse, player);
+
+    if (npcNames.length === 0) {
+        console.log("checkNPCMentionsAndAdd: No NPC names identified in AI response.");
+        return;
+    }
+
+    console.log("checkNPCMentionsAndAdd: Identified potential NPCs:", npcNames);
+
+    for (const npcName of npcNames) {
+        // Resolve NPC identity to get canonical name and description
+        const identity = await RelationshipMiddleware.resolveNpcIdentity(npcName, player.relationships || {}, playerCommand, aiResponse);
+        console.log(`checkNPCMentionsAndAdd: Resolved identity for "${npcName}": canonicalName="${identity.canonicalName}"`);
+
+        // Only proceed if it's confirmed as an NPC (not a non-NPC, as determined by resolveNpcIdentity's internal filter)
+        if (identity.description === 'Not an NPC.') {
+            console.log(`checkNPCMentionsAndAdd: Skipping relationship creation for "${npcName}" as it's identified as a non-NPC.`);
+            continue;
+        }
+
+        // Check if the NPC is already explicitly in gameWorld.npcs for the current location
+        const existingNPCsInLocation = getNPCsInLocation(player.currentLocation);
+        const npcAlreadyInLocation = existingNPCsInLocation.some(npc => npc.name === identity.canonicalName);
+
+        if (!npcAlreadyInLocation) {
+            // If it's not already in gameWorld.npcs for this location, create and save it
+            const newNPC = createNPC(identity.canonicalName, identity.description, player.currentLocation);
+            saveNPCToLocation(newNPC, player.currentLocation);
+            console.log(`checkNPCMentionsAndAdd: Added new NPC "${newNPC.name}" to gameWorld.npcs at "${newNPC.location}".`);
+        } else {
+            console.log(`checkNPCMentionsAndAdd: NPC "${identity.canonicalName}" already exists in gameWorld.npcs at "${player.currentLocation}".`);
+            // Optionally, update existing NPC's description if it's more detailed now
+            const existingNpcRef = existingNPCsInLocation.find(npc => npc.name === identity.canonicalName);
+            if (existingNpcRef && identity.description && existingNpcRef.description !== identity.description) {
+                 existingNpcRef.description = identity.description;
+                 console.log(`checkNPCMentionsAndAdd: Updated description for existing NPC "${existingNpcRef.name}".`);
+            }
+        }
+
+        // Ensure a relationship entry exists for this NPC in player.relationships
+        // Use forceCreate: true to ensure it's added if it doesn't exist yet, or updated.
+        updateRelationship(identity.canonicalName, 0, 0, identity.description, true); // No trust change, just ensure presence
+        console.log(`checkNPCMentionsAndAdd: Ensured relationship for "${identity.canonicalName}" in player.relationships.`);
     }
 }
 

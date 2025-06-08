@@ -7,7 +7,7 @@ export class RelationshipMiddleware {
      * This version has an improved prompt to explicitly identify all interacting NPCs.
      */
     static async detectRelationshipChange(aiResponse, command, player, gameContext) {
-        const potentialNpcNames = this.extractNPCNames(aiResponse, player);
+        const potentialNpcNames = await this.extractNPCNames(aiResponse, player); // Use await here
         if (potentialNpcNames.length === 0) {
             console.log("RelationshipMiddleware: No potential new NPC names detected in text.");
             return { hasRelationshipChange: false };
@@ -33,7 +33,7 @@ export class RelationshipMiddleware {
         Here are 13 more critical interpretation rules, building upon the ones you've provided:
 
         CRITICAL INTERPRETATION RULES:
-        
+
         A heroic sacrifice, like taking on a curse for someone, is a HUGE positive event. Assign a large positive trustChange (e.g., +40 to +60).
         Declarations of love ("I love you"), celebratory toasts ("To love!"), and successful quests for an NPC are MAJOR positive and romantic events. Assign a significant positive trustChange (e.g., +20 to +30).
         Destroying a cursed object for someone is a helpful, positive act. Assign a positive trustChange (e.g., +15).
@@ -120,6 +120,8 @@ export class RelationshipMiddleware {
         1. Is "${npcName}" a new character, or an alias/title for one of the existing NPCs?
         2. Generate a concise, 1-sentence description for the character suitable for a relationship log.
 
+        IMPORTANT: This is for identifying *people* or *sentient beings*. Do NOT categorize inanimate objects, locations, concepts, or general creatures as NPCs.
+
         Respond ONLY with valid JSON:
         {
           "isNew": true/false,
@@ -132,8 +134,15 @@ export class RelationshipMiddleware {
             const jsonMatch = response.match(/\{[\s\S]*\}/);
             if (jsonMatch) {
                 const data = JSON.parse(jsonMatch[0]);
-                // Basic validation
+                // Basic validation and ensure it's not a generic object
                 if (typeof data.isNew === 'boolean' && data.canonicalName && data.description) {
+                    // Add an extra check here to avoid common object names if AI still fails
+                    const lowerName = data.canonicalName.toLowerCase();
+                    const commonNonNpcWords = ['town', 'square', 'forest', 'woods', 'flagon', 'fountain', 'chest', 'note', 'dragon', 'item', 'gold', 'tavern', 'bar'];
+                    if (commonNonNpcWords.some(word => lowerName.includes(word))) {
+                        console.warn(`Resolved identity "${data.canonicalName}" flagged as potentially non-NPC due to common object name. Setting isNew to false.`);
+                        return { isNew: false, canonicalName: npcName, description: `Not an NPC.` };
+                    }
                     return data;
                 }
             }
@@ -158,12 +167,20 @@ export class RelationshipMiddleware {
             // **NEW STEP: Resolve identity before updating**
             const identity = await this.resolveNpcIdentity(npcName, player.relationships || {}, command, aiResponse);
 
+            // Only create relationship if identity confirms it's a new NPC (or a known NPC that we are interacting with)
+            // and if it's not explicitly flagged as not an NPC by resolveNpcIdentity's internal filtering.
+            if (identity.isNew === false && identity.description === 'Not an NPC.') {
+                console.log(`RelationshipMiddleware: Skipping relationship creation for "${npcName}" as it's identified as a non-NPC.`);
+                continue;
+            }
+
             const finalName = identity.canonicalName;
             const finalDescription = identity.description;
 
             // Now, update or create the relationship with the resolved canonical name
             if (typeof window.updateRelationship === 'function') {
-                window.updateRelationship(finalName, 0, trustChange || 0, finalDescription);
+                // Pass true for forceCreate if it's a new NPC or a known NPC (not a non-NPC)
+                window.updateRelationship(finalName, 0, trustChange || 0, finalDescription, true); // forceCreate is true here
             } else {
                 console.error("Global function 'updateRelationship' not found!");
             }
@@ -178,24 +195,55 @@ export class RelationshipMiddleware {
     /**
      * Improved function to extract potential NPC names from text.
      * It looks for capitalized names that are not common English words.
+     * This is the version that will be used by checkNPCMentionsAndAdd.
      */
-    static extractNPCNames(text, player) {
-        const names = new Set();
+    static async extractNPCNames(text, player) {
+        console.log("RelationshipMiddleware: Extracting NPC names using Gemini from raw text...");
+        const extractionPrompt = `
+        From the following game text, identify and extract the FULL NAMES of all **Non-Player Characters (NPCs)** being interacted with or explicitly mentioned as a *person* or *sentient being*.
 
-        // Regex to find capitalized words (potential names) that are not at the start of a sentence.
-        const namePatterns = /(?<!\.\s)\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)\b/g;
-        const commonWords = new Set(['The', 'A', 'An', 'You', 'Your', 'My', 'He', 'She', 'It', 'But', 'And', 'If', 'Or', 'So', 'With', 'From', 'In', 'On', 'At']);
+        - **Exclude:**
+            - The player's name, which is "${player.name}".
+            - Inanimate objects (e.g., "Wooden Chest", "Noticeboard", "Fountain", "Door", "Note").
+            - Concepts or abstract entities (e.g., "Dragon's Breath" drink, "The Whispering Egg", "Church of the Eternal Light", "Shadowed Cult", "Gods").
+            - General roles not tied to a specific named individual (e.g., "townsfolk", "merchant", "barman", "bartender" unless they are explicitly given a unique name like "Barman Bartholomew").
+            - Creatures unless they are specifically named or clearly depicted as sentient (e.g., "wolf" is not an NPC, "Grim the Rogue" is an NPC).
+            - Locations (e.g., "Pedena Town Square", "Rusty Flagon", "Whispering Woods", "Forest Entrance").
+        - **Include:** Only specific, named individuals who are clearly people or sentient beings.
+        - **Respond with ONLY a valid JSON array of strings.** Example: ["Seraphina", "Lysandra", "Master Theron Steelbeard", "Norina Boulderfist", "Iris the Inviting"]
 
-        let match;
-        while ((match = namePatterns.exec(text)) !== null) {
-            const potentialName = match[1].trim();
-            // Add if it's not a common word and not the player's name
-            if (!commonWords.has(potentialName) && potentialName.toLowerCase() !== player.name.toLowerCase()) {
-                names.add(potentialName);
+        Game Text:
+        ---
+        ${text}
+        ---
+
+        JSON Array of NPC Names:
+        `;
+
+        try {
+            // Use low temperature for more predictable, structured output
+            const response = await window.callGeminiAPI(extractionPrompt, 0.1, 200, false);
+            if (!response) {
+                console.error("Gemini name extraction returned no response.");
+                return [];
             }
-        }
 
-        return Array.from(names);
+            // Find and parse the JSON array from the response string
+            const jsonMatch = response.match(/\[[\s\S]*\]/);
+            if (jsonMatch) {
+                const names = JSON.parse(jsonMatch[0]);
+                // Ensure we have an array of unique names and filter out any empty strings
+                const uniqueNames = [...new Set(names)].filter(name => name.trim() !== '');
+                console.log("RelationshipMiddleware: Gemini successfully extracted names:", uniqueNames);
+                return uniqueNames;
+            } else {
+                console.error("RelationshipMiddleware: Could not parse JSON array from Gemini name extraction response:", response);
+                return [];
+            }
+        } catch (error) {
+            console.error("RelationshipMiddleware: Error calling Gemini API for NPC name extraction:", error);
+            return []; // Return an empty array on error to prevent crashes
+        }
     }
 }
 
