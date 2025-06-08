@@ -321,4 +321,4 @@ export class AlignmentSystem {
     }
 }
 
-export default AlignmentSystem;
+window.AlignmentSystem = AlignmentSystem

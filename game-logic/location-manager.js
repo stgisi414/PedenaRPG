@@ -581,4 +581,4 @@ Please provide a detailed, immersive travel narrative that moves the player from
     }
 }
 
-export default LocationManager;
+window.locationManager = LocationManager

@@ -199,4 +199,4 @@ export class RelationshipMiddleware {
     }
 }
 
-export default RelationshipMiddleware;
+window.RelationshipMiddleware = RelationshipMiddleware

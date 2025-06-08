@@ -947,5 +947,3 @@ If no enemy is mentioned, suggest an appropriate one for the location.
 if (typeof window !== 'undefined') {
     window.CombatSystem = CombatSystem;
 }
-
-export default CombatSystem;

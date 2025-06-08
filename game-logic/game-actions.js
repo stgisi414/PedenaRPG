@@ -382,4 +382,4 @@ Please respond as the game master, interpreting this ${analysis.actionType} acti
     }
 }
 
-export default GameActions;
+window.GameActions = GameActions

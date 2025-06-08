@@ -331,4 +331,4 @@ export class CharacterManager {
     }
 }
 
-export default CharacterManager;
+window.CharacterManager = CharacterManager

@@ -304,4 +304,4 @@ If no actual transaction is detected, return {"hasTransaction": false, "confiden
     }
 }
 
-export default TransactionMiddleware;
+window.TransactionMiddleware = TransactionMiddleware

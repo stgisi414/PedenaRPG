@@ -168,4 +168,4 @@ If no actual item exchange is detected, return {"hasExchange": false, "confidenc
     }
 }
 
-export default ItemExchangeMiddleware;
+window.ItemExchangeMiddleware = ItemExchangeMiddleware
