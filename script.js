@@ -11,6 +11,8 @@ import { TransactionMiddleware } from './game-logic/transaction-middleware.js';
 import { ItemExchangeMiddleware } from './game-logic/item-exchange-middleware.js';
 import { CombatSystem } from './game-logic/combat-system.js';
 import { AlignmentSystem } from './game-logic/alignment-system.js';
+import { PartyManager } from './game-logic/party-manager.js';
+import { MultiCombatSystem } from './game-logic/multi-combat-system.js';
 
 
 const GEMINI_API_KEY = 'AIzaSyDIFeql6HUpkZ8JJlr_kuN0WDFHUyOhijA'; // Replace with your actual Gemini API Key
