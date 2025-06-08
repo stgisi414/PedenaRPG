@@ -394,7 +394,7 @@ function updateRelationship(npcName, statusChange = 0, trustChange = 0, npcDescr
         // **This block is now conditional**
         if (!forceCreate) {
             // If not forcing creation, just return and do nothing for new NPCs.
-            return null; 
+            return null;
         }
 
         // This part now only runs if forceCreate is true
@@ -409,7 +409,7 @@ function updateRelationship(npcName, statusChange = 0, trustChange = 0, npcDescr
             firstMeeting: new Date().toLocaleDateString()
         };
         // This message will now only appear when intended
-        displayMessage(`You've established a new relationship with ${npcName}.`, 'success'); 
+        displayMessage(`You've established a new relationship with ${npcName}.`, 'success');
     }
 
     const relationship = player.relationships[npcName];
@@ -635,7 +635,7 @@ const classes = {
         statFocus: { wisdom: 3, constitution: 2, intelligence: 1 },
         startingSkill: 'Spirit Walk',
         startingAbility: 'Totem Summoning'
-        
+
     },
     ninja: {
         hpBonus: 10,
@@ -651,7 +651,7 @@ const classes = {
     },
     hunter: {
         hpBonus: 15,
-        statFocus: { dexterity: 3, wisdom: 2, strength: 1 },      startingSkill: 'Volley',
+        statFocus: { dexterity: 3, wisdom: 2, strength: 1 }, startingSkill: 'Volley',
         startingAbility: 'Trap Setting'
     },
     scholar: {
@@ -1939,7 +1939,7 @@ function checkQuestCompletion(playerAction) {
                 'completed the mission', 'achieved the objective'
             ];
 
-            const hasExplicitCompletion = explicitCompletionPhrases.some(phrase => 
+            const hasExplicitCompletion = explicitCompletionPhrases.some(phrase =>
                 actionText.includes(phrase) || questText.includes('completed')
             );
 
@@ -2010,8 +2010,8 @@ function checkQuestCompletion(playerAction) {
                 if (goldAwarded === 0) {
                     const difficultyMultiplier = quest.difficulty === 'Easy' ? 1.0 :
                         quest.difficulty === 'Medium' ? 1.5 :
-                            quest.difficulty === 'Hard' ? 2.0 : 
-                            quest.difficulty === 'Very Hard' ? 2.5 : 1.5;
+                            quest.difficulty === 'Hard' ? 2.0 :
+                                quest.difficulty === 'Very Hard' ? 2.5 : 1.5;
 
                     goldAwarded = Math.floor((50 + player.level * 25) * difficultyMultiplier);
                 }
@@ -2021,7 +2021,7 @@ function checkQuestCompletion(playerAction) {
                     const difficultyMultiplier = quest.difficulty === 'Easy' ? 0.8 :
                         quest.difficulty === 'Medium' ? 1.0 :
                             quest.difficulty === 'Hard' ? 1.4 :
-                            quest.difficulty === 'Very Hard' ? 2.0 : 1.0;
+                                quest.difficulty === 'Very Hard' ? 2.0 : 1.0;
                     xpAwarded = Math.floor(baseXP * difficultyMultiplier);
                 }
 
@@ -2087,10 +2087,10 @@ function manualCompleteQuest(questTitle) {
     }
 
     // Find quest by partial title match
-    const quest = player.quests.find(q => 
-        !q.completed && 
-        (q.title.toLowerCase().includes(questTitle.toLowerCase()) || 
-         questTitle.toLowerCase().includes(q.title.toLowerCase()))
+    const quest = player.quests.find(q =>
+        !q.completed &&
+        (q.title.toLowerCase().includes(questTitle.toLowerCase()) ||
+            questTitle.toLowerCase().includes(q.title.toLowerCase()))
     );
 
     if (!quest) {
@@ -2144,8 +2144,8 @@ function manualCompleteQuest(questTitle) {
     if (goldAwarded === 0) {
         const difficultyMultiplier = quest.difficulty === 'Easy' ? 1.0 :
             quest.difficulty === 'Medium' ? 1.5 :
-                quest.difficulty === 'Hard' ? 2.0 : 
-                quest.difficulty === 'Very Hard' ? 2.5 : 1.5;
+                quest.difficulty === 'Hard' ? 2.0 :
+                    quest.difficulty === 'Very Hard' ? 2.5 : 1.5;
         goldAwarded = Math.floor((50 + player.level * 25) * difficultyMultiplier);
     }
 
@@ -2154,7 +2154,7 @@ function manualCompleteQuest(questTitle) {
         const difficultyMultiplier = quest.difficulty === 'Easy' ? 0.8 :
             quest.difficulty === 'Medium' ? 1.0 :
                 quest.difficulty === 'Hard' ? 1.4 :
-                quest.difficulty === 'Very Hard' ? 2.0 : 1.0;
+                    quest.difficulty === 'Very Hard' ? 2.0 : 1.0;
         xpAwarded = Math.floor(baseXP * difficultyMultiplier);
     }
 
@@ -2558,7 +2558,7 @@ function handleCombatEnd(result) {
         updateGold(baseGold, 'multi-combat victory');
 
         displayMessage(`You gained ${playerXP} XP and ${baseGold} gold!`, 'success');
-F
+        F
         // Check for level up
         if (player.exp >= player.expToNextLevel) {
             displayMessage("Level up achieved!", 'success');
@@ -3598,6 +3598,13 @@ INTERACTABLE: altar, wooden box, runes
 }
 
 async function showShop() {
+    // Ensure shopInterface exists and is correctly defined globally (e.g., const shopInterface = document.getElementById('shop-interface');)
+    if (!shopInterface) {
+        displayMessage("Error: The main shop interface (ID 'shop-interface') was not found in the HTML. Cannot open shop.", "error");
+        console.error("Shop interface element with ID 'shop-interface' not found or is null.");
+        return; // Exit the function if the main shop container is missing
+    }
+
     // Hide other interfaces
     const interfaces = ['combat-interface', 'inventory-interface', 'skills-interface', 'quest-interface', 'background-interface', 'progression-interface'];
     interfaces.forEach(id => {
@@ -3605,26 +3612,49 @@ async function showShop() {
         if (element) element.classList.add('hidden');
     });
 
-    shopInterface.classList.remove('hidden');
-    const shopItems = shopInterface.querySelector('#shop-items');
-    shopItems.innerHTML = '';
+    shopInterface.classList.remove('hidden'); // Make the shop visible
+
+    // Ensure shopItems (the display area for items) exists within shopInterface
+    const shopItems = shopInterface.querySelector('#shop-items'); // Correct variable name as per your code
+    if (!shopItems) {
+        displayMessage("Error: The shop items display area (ID 'shop-items') was not found within the shop interface. Cannot display shop items.", "error");
+        console.error("Shop items display element with ID 'shop-items' not found within shop interface.");
+        return; // Exit the function if the items display area is missing
+    }
+
+    // --- Start: Display Loading Message ---
+    shopItems.innerHTML = `
+        <div style="margin: auto; padding: 50px; color: #D2B48C; font-size: 1.5em; font-weight: bold;">
+            <span class="loading-dots">Loading Shop Items</span>
+        </div>
+    `;
+    // --- End: Display Loading Message ---
+
 
     // Generate a merchant name for this shop visit
     const merchantName = QuestCharacterGenerator.generateMerchant();
 
     // Update shop header with merchant name
     const shopHeader = shopInterface.querySelector('h4');
-    shopHeader.textContent = `${merchantName}'s Shop`;
+    if (shopHeader) { // Add null check for shopHeader
+        shopHeader.textContent = `${merchantName}'s Shop`;
+    } else {
+        console.warn("Shop header (h4) element not found within shop interface.");
+    }
+
 
     // Generate 15-20 random items using world-items system
     const itemCount = 15 + Math.floor(Math.random() * 6); // 15-20 items
     let shopInventory = [];
 
-    // Helper function for delay
+    // Helper function for delay (should be defined outside showShop, but included here for context)
+    // If you already have this globally, you don't need to redeclare it here.
+
     function delay(ms) {
         return new Promise(resolve => setTimeout(resolve, ms));
     }
-    
+
+
     const itemGenerationPromises = [];
     for (let i = 0; i < itemCount; i++) {
         const context = {
@@ -3634,7 +3664,7 @@ async function showShop() {
         };
         // Introduce a cumulative delay before pushing each promise
         // This will space out the actual API calls by 500ms
-        await delay(500 * i); 
+        await delay(200 * i); // Changed from 200 * i to 500 * i for potentially better rate limit handling
         itemGenerationPromises.push(ItemGenerator.generateItem(context));
     }
 
@@ -3650,7 +3680,12 @@ async function showShop() {
         for (let i = 0; i < 5; i++) {
             shopInventory.push(ItemGenerator.generateGenericItem(ItemGenerator.getRandomCategory(), ItemGenerator.getRandomRarityKey()));
         }
+    } finally {
+        // --- Start: Clear Loading Message (in the finally block to ensure it's always cleared) ---
+        shopItems.innerHTML = ''; // Clear the loading message before populating with items
+        // --- End: Clear Loading Message ---
     }
+
     // Sort items by rarity and value for better shop organization
     shopInventory.sort((a, b) => {
         const rarityOrder = { 'COMMON': 1, 'UNCOMMON': 2, 'RARE': 3, 'EPIC': 4, 'LEGENDARY': 5, 'ARTIFACT': 6, 'MYTHIC': 7 };
@@ -3676,13 +3711,13 @@ async function showShop() {
                 <h6 class="font-bold text-lg">${item.name}</h6>
                 <span class="text-xs px-2 py-1 rounded ${getRarityColor(item.rarity)}">${item.rarity}</span>
             </div>
-            <p class="text-sm text-amber-200 mb-2">${item.description}</p>
-            
+            <p class="text-sm text-amber-700 mb-2">${item.description}</p>
+
             ${item.damage ? `<p class="text-xs text-red-600">Damage: ${item.damage}</p>` : ''}
             ${item.armor ? `<p class="text-xs text-blue-600">Armor: ${item.armor}</p>` : ''}
             ${item.effect ? `<p class="text-xs text-purple-600">Effect: ${getEffectDescription(item.effect)}</p>` : ''}
             ${item.effects && item.effects.length > 0 ? `<p class="text-xs text-purple-600">Effects: ${item.effects.slice(0, 2).join(', ').replace(/_/g, ' ')}</p>` : ''}
-            
+
             <div class="flex justify-between items-center mt-3">
                 <span class="font-bold ${affordabilityClass}">${item.value} gold</span>
                 <button class="shop-action-btn ${buttonClass} text-sm py-1 px-3" data-action="buy" data-index="${index}" ${buttonDisabled}>
@@ -4689,6 +4724,57 @@ function changeInventoryPage(direction) {
     displayInventory(); // Refresh the display
 }
 
+function buyShopItem(itemIndex) {
+    if (!window.currentShopInventory || !window.currentShopInventory[itemIndex]) {
+        displayMessage('Item no longer available.', 'error');
+        return;
+    }
+
+    const item = window.currentShopInventory[itemIndex]; // item here has .name, .value, .price, .description etc.
+
+    if (player.gold < item.value) { // Use item.value instead of item.price
+        displayMessage(`You need ${item.value} gold but only have ${player.gold} gold.`, 'error');
+        return;
+    }
+
+    // Ensure inventory exists
+    if (!player.inventory) {
+        player.inventory = [];
+    }
+
+    // Purchase the item
+    updateGold(-item.value, 'shop purchase'); // Deduct item.value
+    const purchasedItem = { ...item }; // Create a copy
+    // Ensure the item has a unique ID if it doesn't have one
+    if (!purchasedItem.id) {
+        purchasedItem.id = Date.now() + Math.random();
+    }
+    player.inventory.push(purchasedItem);
+    displayMessage(`Purchased ${item.name} for ${item.value} gold!`, 'success');
+
+    // Remove item from shop inventory
+    window.currentShopInventory.splice(itemIndex, 1);
+
+    // Save game state
+    if (typeof ItemManager !== 'undefined' && ItemManager.saveInventoryToStorage) {
+        ItemManager.saveInventoryToStorage(player);
+    }
+    saveGame();
+
+    // Reset inventory pagination since items changed
+    resetInventoryPagination();
+
+    // Refresh shop display
+    showShop();
+
+    // Check if inventory is open and refresh it
+    const inventoryInterface = document.getElementById('inventory-interface');
+    if (inventoryInterface && !inventoryInterface.classList.contains('hidden')) {
+        console.log("buyShopItem: Inventory is open, refreshing display.");
+        displayInventory();
+    }
+}
+
 // Initialize game
 document.addEventListener('DOMContentLoaded', () => {
     // Check if there's a saved game to enable load button
@@ -4713,59 +4799,8 @@ document.addEventListener('DOMContentLoaded', () => {
         // It's generally better to define this function outside and then assign to window if needed,
         // rather than defining it inside another event listener.
         // However, I'll keep your current structure for this part.
-        function buyShopItem(itemIndex) {
-            if (!window.currentShopInventory || !window.currentShopInventory[itemIndex]) {
-                displayMessage('Item no longer available.', 'error');
-                return;
-            }
-
-            const item = window.currentShopInventory[itemIndex]; // item here has .name, .value, .price, .description etc.
-
-            if (player.gold < item.value) { // Use item.value instead of item.price
-                displayMessage(`You need ${item.value} gold but only have ${player.gold} gold.`, 'error');
-                return;
-            }
-
-            // Ensure inventory exists
-            if (!player.inventory) {
-                player.inventory = [];
-            }
-
-            // Purchase the item
-            updateGold(-item.value, 'shop purchase'); // Deduct item.value
-            const purchasedItem = { ...item }; // Create a copy
-            // Ensure the item has a unique ID if it doesn't have one
-            if (!purchasedItem.id) {
-                purchasedItem.id = Date.now() + Math.random();
-            }
-            player.inventory.push(purchasedItem);
-            displayMessage(`Purchased ${item.name} for ${item.value} gold!`, 'success');
-
-            // Remove item from shop inventory
-            window.currentShopInventory.splice(itemIndex, 1);
-
-            // Save game state
-            if (typeof ItemManager !== 'undefined' && ItemManager.saveInventoryToStorage) {
-                ItemManager.saveInventoryToStorage(player);
-            }
-            saveGame();
-
-            // Reset inventory pagination since items changed
-            resetInventoryPagination();
-
-            // Refresh shop display
-            showShop();
-
-            // Check if inventory is open and refresh it
-            const inventoryInterface = document.getElementById('inventory-interface');
-            if (inventoryInterface && !inventoryInterface.classList.contains('hidden')) {
-                console.log("buyShopItem: Inventory is open, refreshing display.");
-                displayInventory();
-            }
-        }
         // Make sure window.buyShopItem is updated if you are using inline HTML onclick
         if (typeof window !== 'undefined') {
-            window.buyShopItem = buyShopItem;
         }
 
         // Small chance of random event while resting
@@ -4786,7 +4821,7 @@ document.addEventListener('DOMContentLoaded', () => {
             displayMessage("Your character progression data is not loaded.", "error");
             return;
         }
-        
+
         const playerClass = player.classProgression.class;
         const knownSpells = player.classProgression.knownSpells || [];
         const abilities = player.classProgression.abilities || [];
@@ -4870,7 +4905,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         updatePlayerStatsDisplay();
-        
+
     });
 
     document.getElementById('pray-btn')?.addEventListener('click', () => {

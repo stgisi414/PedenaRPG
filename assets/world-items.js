@@ -2629,8 +2629,8 @@ export class ItemGenerator {
             2.  **Description:** Write a new, flavorful description (2-3 sentences) that hints at the item's history or nature based on the context.
             3.  **Effects (Optional):** You can suggest one additional thematic minor effect string that fits the new name and description.
 
-            PREFIX IDEAS: ${dynamicItemPrefixes.slice(0, 20).join(', ')}
-            SUFFIX IDEAS: ${dynamicItemSuffixes.slice(0, 20).join(', ')}
+            PREFIX IDEAS: ${dynamicItemPrefixes.join(', ')}
+            SUFFIX IDEAS: ${dynamicItemSuffixes.join(', ')}
 
             Respond with ONLY valid JSON in this exact format:
             {
@@ -3902,10 +3902,10 @@ export class ItemManager {
                 localStorage.setItem(`inventory_${player.name}`, JSON.stringify(player.inventory || []));
                 localStorage.setItem(`statusEffects_${player.name}`, JSON.stringify(player.statusEffects || []));
                 localStorage.setItem(`passiveBonuses_${player.name}`, JSON.stringify(player.passiveBonuses || []));
-                localStorage.setItem(`playerStats_${player.name}`, JSON.stringify(player.stats || {}));
+                // Do NOT save player.stats here, as main saveGame handles it.
 
             } catch (e) {
-                console.error("Failed to save to localStorage:", e);
+                console.error("Failed to save inventory-related data to localStorage:", e);
             }
         }
     }
@@ -3916,22 +3916,23 @@ export class ItemManager {
                 const savedInventory = localStorage.getItem(`inventory_${player.name}`);
                 const savedEffects = localStorage.getItem(`statusEffects_${player.name}`);
                 const savedPassives = localStorage.getItem(`passiveBonuses_${player.name}`);
-                const savedStats = localStorage.getItem(`playerStats_${player.name}`);
+                // const savedStats = localStorage.getItem(`playerStats_${player.name}`); // This line is now removed.
 
 
                 if (savedInventory) player.inventory = JSON.parse(savedInventory); else player.inventory = [];
                 if (savedEffects) player.statusEffects = JSON.parse(savedEffects); else player.statusEffects = [];
                 if (savedPassives) player.passiveBonuses = JSON.parse(savedPassives); else player.passiveBonuses = [];
-                if (savedStats) player.stats = JSON.parse(savedStats);
-                // else if (!player.stats) player.stats = { hp:10,maxHp:10,mp:10,maxMp:10, strength:5, dexterity:5, constitution:5, intelligence:5, wisdom:5, charisma:5 };
+                // Do NOT load player.stats here. Player.stats should be loaded by the main saveGame/loadGame logic.
+                // if (savedStats) player.stats = JSON.parse(savedStats);
 
 
                 this.updateStatusEffects(player); // Clean up expired effects immediately on load
             } catch (e) {
-                console.error("Failed to load from localStorage:", e);
+                console.error("Failed to load inventory-related data from localStorage:", e);
                  player.inventory = [];
                  player.statusEffects = [];
                  player.passiveBonuses = [];
+                 // Do not reset player.stats here.
             }
         }
     }

@@ -707,3 +707,27 @@ h1, h2, h3, h4 {
     border-left: 4px solid #ec4899;
     background-color: rgba(236, 72, 153, 0.1);
 }
+
+/* For animated ellipsis dots */
+.loading-dots::after {
+    content: ' .';
+    animation: ellipsis 1.5s infinite;
+}
+
+@keyframes ellipsis {
+    0% { content: ' .'; }
+    33% { content: ' ..'; }
+    66% { content: ' ...'; }
+    100% { content: ' .'; }
+}
+
+/* Ensure #shop-items can center its content */
+#shop-items {
+    display: flex;
+    flex-direction: column; /* Stack content vertically if needed */
+    justify-content: center; /* Center horizontally in a row, vertically in a column */
+    align-items: center;   /* Center vertically in a row, horizontally in a column */
+    min-height: 250px;     /* Give it some height so content can be truly centered even when empty */
+    text-align: center;    /* For text alignment */
+    /* Add any other existing #shop-items styles you have here */
+}
