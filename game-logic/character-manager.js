@@ -167,15 +167,17 @@ export class CharacterManager {
         const feat = featDefinitions[featName];
         if (!feat) return;
         
-        // Apply feat effects to player stats/abilities
-        if (feat.effect.attack_bonus) {
-            player.stats.attackBonus = (player.stats.attackBonus || 0) + feat.effect.attack_bonus;
-        }
-        if (feat.effect.ac_bonus) {
-            player.stats.acBonus = (player.stats.acBonus || 0) + feat.effect.ac_bonus;
-        }
-        if (feat.effect.damage_bonus) {
-            player.stats.damageBonus = (player.stats.damageBonus || 0) + feat.effect.damage_bonus;
+        // Apply feat effects to player stats/abilities (if they exist)
+        if (feat.effect) {
+            if (feat.effect.attack_bonus) {
+                player.stats.attackBonus = (player.stats.attackBonus || 0) + feat.effect.attack_bonus;
+            }
+            if (feat.effect.ac_bonus) {
+                player.stats.acBonus = (player.stats.acBonus || 0) + feat.effect.ac_bonus;
+            }
+            if (feat.effect.damage_bonus) {
+                player.stats.damageBonus = (player.stats.damageBonus || 0) + feat.effect.damage_bonus;
+            }
         }
         
         console.log(`Applied feat: ${featName}`);
