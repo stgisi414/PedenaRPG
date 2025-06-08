@@ -4762,114 +4762,95 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     document.getElementById('cast-spell-btn')?.addEventListener('click', () => {
-        // ... (your existing cast-spell logic) ...
-        // Check if player has class progression and is a spellcaster
-        if (player.classProgression && (player.classProgression.class === 'mage' || player.classProgression.class === 'ranger')) {
-            // Debug logging
-            console.log('Player class progression:', player.classProgression);
-            console.log('Known spells:', player.classProgression.knownSpells);
-            console.log('Available spells:', player.classProgression.availableSpells);
-
-            // Check both known spells and available spells
-            const spellsToUse = player.classProgression.knownSpells && player.classProgression.knownSpells.length > 0
-                ? player.classProgression.knownSpells
-                : player.classProgression.availableSpells || [];
-
-            if (spellsToUse.length > 0) {
-                const randomSpell = spellsToUse[Math.floor(Math.random() * spellsToUse.length)];
-                displayMessage(`You attempt to cast ${randomSpell}...`, 'info');
-
-                // Get spell definition for better effect description
-                const spellDef = spellDefinitions[randomSpell];
-                if (spellDef) {
-                    displayMessage(`${spellDef.description}`, 'success');
-
-                    // Apply spell damage if it has any
-                    if (spellDef.damage && player.currentEnemy) {
-                        let damage = 0;
-
-                        // Handle different damage formats
-                        if (typeof spellDef.damage === 'string') {
-                            if (spellDef.damage.includes('d')) {
-                                // Standard dice notation like "3d8"
-                                damage = rollDice(spellDef.damage);
-                            } else if (spellDef.damage.includes('+')) {
-                                // Handle format like "1d4+1 force"
-                                const damagePart = spellDef.damage.split(' ')[0]; // Get "1d4+1"
-                                const parts = damagePart.split('+');
-                                damage = rollDice(parts[0]) + parseInt(parts[1] || 0);
-                            } else {
-                                // Try to parse as a number
-                                damage = parseInt(spellDef.damage) || 8;
-                            }
-                        } else if (typeof spellDef.damage === 'number') {
-                            damage = spellDef.damage;
-                        } else {
-                            damage = 8; // Default damage
-                        }
-
-                        // Ensure damage is a valid number
-                        if (isNaN(damage) || damage < 1) {
-                            damage = Math.floor(Math.random() * 8) + 3; // 3-10 damage
-                        }
-
-                        // Apply damage to enemy if in combat
-                        if (player.currentEnemy) {
-                            player.currentEnemy.hp = Math.max(0, player.currentEnemy.hp - damage);
-                            displayMessage(`The spell deals ${damage} ${spellDef.school} damage!`, 'combat');
-
-                            // Update enemy HP display
-                            const enemyHpDisplay = document.getElementById('enemy-hp-display');
-                            if (enemyHpDisplay) {
-                                enemyHpDisplay.textContent = player.currentEnemy.hp;
-                            }
-
-                            // Check if enemy is defeated
-                            if (player.currentEnemy.hp <= 0) {
-                                displayMessage(`${player.currentEnemy.name} is defeated by your spell!`, 'success');
-
-                                // Reward gold and XP
-                                const goldReward = Math.floor(Math.random() * 40) + 20;
-                                const xpReward = Math.floor(Math.random() * 25) + 15;
-
-                                updateGold(goldReward, 'magical victory');
-                                gainExperience(xpReward);
-
-                                displayMessage(`You gained ${goldReward} gold and ${xpReward} XP!`, 'success');
-
-                                player.currentEnemy = null;
-                                // Remove inline combat interface
-                                const inlineCombat = document.getElementById('inline-combat-interface');
-                                if (inlineCombat) {
-                                    inlineCombat.remove();
-                                }
-                                checkQuestCompletion(`defeated enemy with ${randomSpell}`);
-                            } else {
-                                // Enemy retaliates
-                                setTimeout(() => enemyAttack(), 1500);
-                            }
-                        } else {
-                            displayMessage(`The spell deals ${damage} ${spellDef.school} damage!`, 'combat');
-                        }
-                    }
-                } else {
-                    // Fallback effects
-                    const effects = [
-                        { msg: "The spell fizzles out harmlessly.", type: 'info' },
-                        { msg: "You feel magical energy coursing through you!", type: 'success' },
-                        { msg: "Sparks of magic dance around your fingers.", type: 'success' },
-                        { msg: "You sense the magical weave responding to your call.", type: 'success' }
-                    ];
-                    const effect = effects[Math.floor(Math.random() * effects.length)];
-                    setTimeout(() => displayMessage(effect.msg, effect.type), 500);
-                }
-            } else {
-                displayMessage(`You don't know any spells yet. Class: ${player.classProgression.class}, Level: ${player.level}`, 'info');
-                displayMessage("If this seems wrong, try using the Reset Progression button.", 'info');
-            }
-        } else {
-            displayMessage("You are not a spellcaster.", 'info');
+        if (!player.classProgression) {
+            displayMessage("Your character progression data is not loaded.", "error");
+            return;
         }
+        
+        const playerClass = player.classProgression.class;
+        const knownSpells = player.classProgression.knownSpells || [];
+        const abilities = player.classProgression.abilities || [];
+        const feats = player.classProgression.feats || []; // Include feats as they can be active/passive abilities
+
+        let actionTaken = false;
+
+        // Prioritize spells for spellcasting classes if they have any
+        if (knownSpells.length > 0) {
+            const randomSpellName = knownSpells[Math.floor(Math.random() * knownSpells.length)];
+            const spellDef = spellDefinitions[randomSpellName]; // Assuming spellDefinitions is globally available
+
+            if (spellDef) {
+                displayMessage(`You attempt to cast ${randomSpellName}...`, 'info');
+                displayMessage(`${spellDef.description}`, 'success');
+
+                // Apply spell damage if in combat
+                if (spellDef.damage && player.currentEnemy) {
+                    let damage = rollDice(spellDef.damage);
+                    if (isNaN(damage) || damage < 1) { // Fallback if dice roll fails
+                        damage = Math.floor(Math.random() * 8) + 3;
+                    }
+                    player.currentEnemy.hp = Math.max(0, player.currentEnemy.hp - damage);
+                    displayMessage(`The spell deals ${damage} ${spellDef.school} damage to ${player.currentEnemy.name}!`, 'combat');
+
+                    if (player.currentEnemy.hp <= 0) {
+                        displayMessage(`${player.currentEnemy.name} is defeated by your spell!`, 'success');
+                        CombatSystem.endCombat('victory'); // Mark combat as ended
+                        // Rewards and cleanup should ideally be handled by the combat system's endCombat logic
+                        player.currentEnemy = null;
+                        const inlineCombat = document.getElementById('inline-combat-interface');
+                        if (inlineCombat) inlineCombat.remove();
+                        checkQuestCompletion(`defeated enemy with ${randomSpellName}`);
+                    } else {
+                        setTimeout(() => enemyAttack(), 1500); // Enemy retaliates
+                    }
+                }
+                actionTaken = true;
+            }
+        }
+        // If no spells are available, try class abilities
+        else if (abilities.length > 0) {
+            const randomAbilityName = abilities[Math.floor(Math.random() * abilities.length)];
+            const abilityDef = abilityDefinitions[randomAbilityName]; // Assuming abilityDefinitions is globally available
+
+            if (abilityDef) {
+                displayMessage(`You use ${randomAbilityName}!`, 'info');
+                displayMessage(`${abilityDef.description}`, 'success');
+
+                // Implement simple effects for specific abilities based on their definition
+                if (player.currentEnemy && randomAbilityName === 'Power Strike') {
+                    const extraDamage = rollDice('1d6'); // As per ability description
+                    // This assumes Power Strike is an add-on to a basic attack, or a separate attack
+                    displayMessage(`Your Power Strike deals an extra ${extraDamage} damage to ${player.currentEnemy.name}!`, 'combat');
+                    player.currentEnemy.hp = Math.max(0, player.currentEnemy.hp - extraDamage);
+
+                    if (player.currentEnemy.hp <= 0) {
+                        displayMessage(`${player.currentEnemy.name} is defeated by your Power Strike!`, 'success');
+                        CombatSystem.endCombat('victory');
+                        player.currentEnemy = null;
+                        const inlineCombat = document.getElementById('inline-combat-interface');
+                        if (inlineCombat) inlineCombat.remove();
+                        checkQuestCompletion(`defeated enemy with Power Strike`);
+                    } else {
+                        setTimeout(() => enemyAttack(), 1500);
+                    }
+                }
+                else if (player.currentEnemy && randomAbilityName === 'Shield Bash') {
+                    displayMessage(`You bash ${player.currentEnemy.name} with your shield, pushing them back!`, 'combat');
+                    // You could add logic here for effects like temporary stun or AC reduction
+                }
+                // Add more `else if` blocks for other specific abilities as needed
+
+                actionTaken = true;
+            }
+        }
+
+        if (!actionTaken) {
+            displayMessage(`You don't have any active spells or abilities to use right now. Class: ${playerClass}, Level: ${player.level}`, 'info');
+            displayMessage("If this seems wrong, try using the Reset Progression button.", 'info');
+        }
+
+        updatePlayerStatsDisplay();
+        
     });
 
     document.getElementById('pray-btn')?.addEventListener('click', () => {
