@@ -293,6 +293,8 @@ h1, h2, h3, h4 {
     text-decoration: underline;
     text-decoration-color: currentColor;
     text-decoration-thickness: 2px;
+    text-underline-offset: 2px;
+    display: inline;
 }
 .rt-strikethrough { 
     text-decoration: line-through;

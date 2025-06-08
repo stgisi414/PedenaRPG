@@ -5385,8 +5385,9 @@ function processRichText(text, messageType = null) {
     processed = processed.replace(/(?<!\*)\*([^*]+?)\*(?!\*)/g, '<span class="rt-italic">$1</span>');
     processed = processed.replace(/(?<!_)_([^_]+?)_(?!_)/g, '<span class="rt-italic">$1</span>');
 
-    // Underline: __text__ (single underscore for underline when not used for bold)
-    processed = processed.replace(/__([^_]+?)__/g, '<span class="rt-underline">$1</span>');
+    // Process underline before bold to avoid conflicts
+    // Underline: {{underline:text}}
+    processed = processed.replace(/\{\{underline:(.*?)\}\}/g, '<span class="rt-underline">$1</span>');
 
     // Strikethrough: ~~text~~
     processed = processed.replace(/~~(.*?)~~/g, '<span class="rt-strikethrough">$1</span>');
@@ -5462,6 +5463,7 @@ function processRichText(text, messageType = null) {
     processed = processed.replace(/\{\{stretch-h:(.*?)\}\}/g, '<span class="rt-stretch-h">$1</span>');
     processed = processed.replace(/\{\{stretch-v:(.*?)\}\}/g, '<span class="rt-stretch-v">$1</span>');
     processed = processed.replace(/\{\{glow-shadow:(.*?)\}\}/g, '<span class="rt-shadow-glow">$1</span>');
+    processed = processed.replace(/\{\{underline:(.*?)\}\}/g, '<span class="rt-underline">$1</span>');
 
     return processed;
 }
