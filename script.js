@@ -3962,7 +3962,7 @@ async function generateCharacterBackground() {
     Make it 1-2 paragraphs (4-5 sentences per paragraph), interesting, and appropriate for a fantasy RPG character. 
     Include their motivations and how they became an adventurer.
 
-    IMPORTANT: Write in plain text only. Do NOT use any rich text formatting, markdown, or special syntax like {color:text}, **bold**, *italic*, {{effects}}, [fonts], or any other formatting codes. Output clean, readable prose without any formatting markup.`;
+    IMPORTANT: Write in plain text only. Do NOT use any rich text formatting, markdown, or special syntax like {color:text}, **bold**, *italic*, {{effects}}, [fonts], or any other formatting codes. Output clean, readable prose without any formatting markup. Output only the summary, no other introductory text or closing statements.`;
 
     try {
         const background = await callGeminiAPI(prompt, 0.8, 400, false);
