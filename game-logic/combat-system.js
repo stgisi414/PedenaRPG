@@ -455,13 +455,23 @@ The enemy takes their turn. Consider:
 - Environmental factors
 - Enemy type and natural behaviors
 
-IMPORTANT: If the enemy is severely wounded (low HP) or outmatched, they may attempt to flee. 
-If fleeing, include clear flee language like "escapes", "flees", "vanishes", "runs away", or "the fight is over".
+IMPORTANT COMBAT GUIDELINES:
+- Enemies fight bravely and aggressively by default
+- Only consider fleeing when critically wounded (below 25% HP) AND clearly outmatched
+- Most creatures will fight to the death rather than flee
+- Intelligent creatures may flee when facing certain death
+- If the enemy does flee, it must be VERY explicit: set "fled": true and use phrases like "flees from combat", "abandons the fight completely", or "the encounter is over"
+
+FLEEING RESTRICTIONS:
+- Do NOT flee unless enemy HP is critically low (under 25%)
+- Do NOT use ambiguous language that could be misinterpreted as fleeing
+- Avoid words like "moves away", "steps back", "retreats temporarily" unless actually fleeing
+- Focus on aggressive combat actions: attacks, special abilities, defensive maneuvers
 
 Respond with ONLY valid JSON:
 {
     "success": true,
-    "narrative": "2-3 sentence description of enemy action - use clear flee language if escaping",
+    "narrative": "2-3 sentence description of enemy action - be explicit if fleeing",
     "damage": 0,
     "playerHpChange": 0,
     "enemyHpChange": 0,
@@ -470,8 +480,7 @@ Respond with ONLY valid JSON:
     "fled": false
 }
 
-Make the enemy action feel intelligent and appropriate for the creature type.
-If the enemy flees, set "fled": true and use clear escape language in the narrative.
+Make the enemy fight courageously and only flee when facing certain death with clear, unambiguous language.
 `;
     }
 
@@ -492,42 +501,39 @@ If the enemy flees, set "fled": true and use clear escape language in the narrat
             return true;
         }
 
-        // Check for flee keywords in the narrative
-        const fleeKeywords = [
-            'escape', 'escaped', 'flee', 'fled', 'run', 'running', 'dash', 'vanish', 'vanished',
-            'disappear', 'disappeared', 'gone', 'is gone', 'fight is over', 'encounter is over',
-            'successful escape', 'makes a dash', 'slips away', 'breaks away', 'darts away',
-            'slipping through', 'disappearing into', 'already gone', 'too far away'
+        // Only check for flee if enemy is critically wounded (below 25% HP)
+        const enemy = this.combatState.currentEnemy;
+        if (!enemy || enemy.currentHp > (enemy.maxHp * 0.25)) {
+            return false;
+        }
+
+        // Very specific flee keywords that clearly indicate escape
+        const strictFleeKeywords = [
+            'flees from combat', 'escapes from the battle', 'retreats completely',
+            'abandons the fight', 'vanishes from sight', 'disappears into',
+            'the fight is over', 'combat ends as', 'encounter is over'
         ];
 
         const narrative = (actionResult.narrative || '').toLowerCase();
         const fullResponse = (response || '').toLowerCase();
 
-        // Check if any flee keywords are present
-        const hasFleeKeyword = fleeKeywords.some(keyword => 
+        // Only trigger flee on very explicit indicators
+        const hasExplicitFlee = strictFleeKeywords.some(keyword =>
             narrative.includes(keyword) || fullResponse.includes(keyword)
         );
 
-        // Additional checks for explicit flee indicators
-        const explicitFleeIndicators = [
-            'the fight is over',
-            'he is gone',
-            'she is gone',
-            'it is gone',
-            'has escaped',
-            'successful escape',
-            'vanishes completely',
-            'already vanished',
-            'already disappeared',
-            'combat is over',
-            'encounter is over'
+        // Additional check for complete phrases that indicate fleeing
+        const fleePatterns = [
+            /the .+ (has )?(fled|escaped|vanished|disappeared) (completely|entirely|from sight)/,
+            /combat (is |has )?over.+escaped/,
+            /encounter (ends|is over).+flee/
         ];
 
-        const hasExplicitFlee = explicitFleeIndicators.some(indicator =>
-            narrative.includes(indicator) || fullResponse.includes(indicator)
+        const hasFleePattern = fleePatterns.some(pattern =>
+            pattern.test(narrative) || pattern.test(fullResponse)
         );
 
-        return hasFleeKeyword || hasExplicitFlee;
+        return hasExplicitFlee || hasFleePattern;
     }
 
     static async applyActionResults(result, player, enemy, actor) {
@@ -904,6 +910,35 @@ If no enemy is mentioned, suggest an appropriate one for the location.
                 window.displayMessage(fleeResult.narrative, 'error');
             }
             setTimeout(() => this.processEnemyTurn(this.getPlayerReference(), this.combatState.currentEnemy), 1000);
+        }
+    }
+
+    // Clear combat state when traveling or changing locations
+    static clearCombatState() {
+        if (this.combatState.isActive) {
+            if (typeof window.displayMessage === 'function') {
+                window.displayMessage("💨 You leave the combat behind as you travel to a new location.", 'info');
+            }
+            
+            // Clear player's enemy reference
+            const player = this.getPlayerReference();
+            if (player) {
+                player.currentEnemy = null;
+            }
+            
+            // Reset combat state
+            this.combatState = {
+                isActive: false,
+                currentEnemy: null,
+                turnOrder: [],
+                currentTurn: 0,
+                combatLog: [],
+                playerActions: [],
+                enemyActions: [],
+                battleConditions: {},
+                environment: null,
+                turnNumber: 1
+            };
         }
     }
 }

@@ -519,6 +519,11 @@ Please provide a detailed, immersive travel narrative that moves the player from
             const encounterChance = analysis.encounterChance || 0.2;
             const travelTime = analysis.estimatedTime || 60;
 
+            // Clear any active combat when traveling
+            if (typeof window.CombatSystem !== 'undefined') {
+                window.CombatSystem.clearCombatState();
+            }
+
             // Save location to history
             this.saveLocationToHistory(newLocation, player.name);
 
