@@ -8,7 +8,7 @@ export class PartyManager {
         this.combatPositions = new Map();
     }
 
-    // Add NPC to party
+    // Add NPC to partyconst enhancedItem = await this.enhanc
     addMember(npc) {
         if (this.party.length >= this.maxPartySize) {
             return { success: false, message: "Party is full! Maximum 4 members allowed." };

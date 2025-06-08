@@ -2588,12 +2588,17 @@ export class ItemGenerator {
         }
 
         // 2. Enhance the base item using the Gemini AI
-        const enhancedItem = await this.enhanceItemWithAI(baseItem, context);
+        let enhancedItem = await this.enhanceItemWithAI(baseItem, context);
 
-        // 3. Finalize and return the item
+        // 3. Apply base enhancements (like value and color) using enhanceItem
+        // It's important to do this AFTER AI enhancement, so AI can add to base,
+        // and then core properties like value are calculated.
+        enhancedItem = this.enhanceItem(enhancedItem, context); // ADD THIS LINE
+
+        // 4. Finalize and return the item
         return {
             id: this.generateItemId(),
-            ...enhancedItem, // The AI-enhanced properties
+            ...enhancedItem, // The AI-enhanced properties and base calculations
             generatedAt: Date.now(),
             context: context
         };

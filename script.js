@@ -3618,8 +3618,13 @@ async function showShop() {
 
     // Generate 15-20 random items using world-items system
     const itemCount = 15 + Math.floor(Math.random() * 6); // 15-20 items
-    const shopInventory = [];
+    let shopInventory = [];
 
+    // Helper function for delay
+    function delay(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms));
+    }
+    
     const itemGenerationPromises = [];
     for (let i = 0; i < itemCount; i++) {
         const context = {
@@ -3627,7 +3632,9 @@ async function showShop() {
             playerLevel: player.level,
             playerClass: player.class
         };
-        // ItemGenerator.generateItem is an async function and returns a Promise
+        // Introduce a cumulative delay before pushing each promise
+        // This will space out the actual API calls by 500ms
+        await delay(500 * i); 
         itemGenerationPromises.push(ItemGenerator.generateItem(context));
     }
 
