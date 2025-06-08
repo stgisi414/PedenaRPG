@@ -16,7 +16,13 @@ import { MultiCombatSystem } from './game-logic/multi-combat-system.js';
 
 
 const GEMINI_API_KEY = 'AIzaSyDIFeql6HUpkZ8JJlr_kuN0WDFHUyOhijA'; // Replace with your actual Gemini API Key
-const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`;
+const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key=${GEMINI_API_KEY}`;
+
+//Global delay function
+function delay(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+window.delay = delay;
 
 // Game State
 let isIllustrationModeActive = false;
@@ -693,7 +699,7 @@ function updateGold(amount, reason = '') {
         displayInventory();
     }
     if (!shopInterface.classList.contains('hidden')) {
-        displayShop();
+        //displayShop();
     }
 
     console.log(`updateGold: About to call saveGame(). Current player.gold is ${player.gold}`); // ADD THIS LOG
@@ -921,7 +927,7 @@ function rollDice(diceString) {
 }
 
 // AI Interaction Functions (Gemini API Calls)
-async function callGeminiAPI(prompt, temperature = 0.10, maxOutputTokens = 32000, includeContext = true) {
+async function callGeminiAPI(prompt, temperature = 0.10, maxOutputTokens = 44000, includeContext = true) {
     try {
         let fullPrompt = prompt;
 
@@ -3542,33 +3548,36 @@ async function pray() {
 async function explore() {
     displayMessage("Exploring the area...", 'info');
 
-    // Generate potential characters they might encounter
-    const potentialNPC = QuestCharacterGenerator.generateRandomCharacter();
-    const potentialMerchant = QuestCharacterGenerator.generateMerchant();
+    // Generate potential characters they might encounter (these are *ideas* for the AI)
+    const potentialNPCName1 = QuestCharacterGenerator.generateRandomCharacter();
+    const potentialNPCName2 = QuestCharacterGenerator.generateMerchant();
+    const potentialNPCName3 = QuestCharacterGenerator.generateInnkeeper(); // Add more variety
 
     const explorePrompt = `
 ${player.name} (${player.class}, Level ${player.level}) explores ${player.currentLocation}.
 Current status: HP ${player.hp}/${player.maxHp}, Gold ${player.gold}
 
-Potential characters in the area:
-- ${potentialNPC}
-- ${potentialMerchant}
+Potential characters in the area (for AI to choose from, or create new ones):
+- ${potentialNPCName1}
+- ${potentialNPCName2}
+- ${potentialNPCName3}
 
 Generate a brief exploration result that includes:
 1. What they discover (location feature, item, person, or event)
-2. Specific interactable elements they can engage with
-3. Use named characters if mentioning NPCs
-4. Keep it appropriate for their level
+2. Specific interactable elements they can engage with. If a person, use their FULL NAME.
+3. Use named characters if mentioning NPCs. If you mention a person, you MUST also add their name to the INTERACTABLE list.
+4. Keep it appropriate for their level.
 
 IMPORTANT: If you mention any objects, creatures, or interactive elements, they should be consistently available for future interactions.
+If you mention a person, the name in INTERACTABLE MUST match the name in DISCOVERY EXACTLY.
 
 Format the response as:
 DISCOVERY: [What they find]
-INTERACTABLE: [Comma-separated list of things they can interact with]
+INTERACTABLE: [Comma-separated list of things they can interact with, INCLUDING names of people if mentioned]
 
 Example:
-DISCOVERY: You discover a moss-covered altar with strange runes, and a small wooden box sits in a hidden compartment.
-INTERACTABLE: altar, wooden box, runes
+DISCOVERY: You discover a moss-covered altar with strange runes, and a small wooden box sits in a hidden compartment. A concerned-looking Master Theron Steelbeard is pacing near the fountain.
+INTERACTABLE: altar, wooden box, runes, Master Theron Steelbeard
 `;
 
     const explorationResult = await callGeminiAPI(explorePrompt, 0.7, 300);
@@ -3579,18 +3588,46 @@ INTERACTABLE: altar, wooden box, runes
         const interactableMatch = explorationResult.match(/INTERACTABLE:\s*(.+?)$/s);
 
         const discovery = discoveryMatch ? discoveryMatch[1].trim() : explorationResult;
-        const interactables = interactableMatch
-            ? interactableMatch[1].split(',').map(s => s.trim().toLowerCase())
+        let interactables = interactableMatch
+            ? interactableMatch[1].split(',').map(s => s.trim()) // Remove toLowerCase() here
             : [];
 
         displayMessage(discovery, 'exploration');
+
+        // --- NEW LOGIC: Create and save NPCs mentioned in interactables ---
+        const playerRelationshipsCopy = { ...player.relationships }; // Copy to pass to resolveNpcIdentity
+        for (const element of interactables) {
+            // Check if it's likely an NPC (starts with a capital letter, or contains a space indicating a name)
+            if (element.match(/^[A-Z]/) || element.includes(' ')) {
+                // Resolve NPC identity to get canonical name and description
+                const identity = await RelationshipMiddleware.resolveNpcIdentity(element, playerRelationshipsCopy, command, discovery);
+
+                // Create and save NPC only if it's genuinely new to gameWorld.npcs for this location
+                // This prevents duplicate NPCs if the player explores the same area multiple times.
+                const existingNPCsInLocation = getNPCsInLocation(player.currentLocation);
+                const npcAlreadyInLocation = existingNPCsInLocation.some(npc => npc.name === identity.canonicalName);
+
+                if (!npcAlreadyInLocation) {
+                    const newNPC = createNPC(identity.canonicalName, identity.description, player.currentLocation);
+                    saveNPCToLocation(newNPC, player.currentLocation);
+                    console.log(`Created new NPC from exploration: ${newNPC.name}`);
+                }
+
+                // Update relationship (this will create it if new to player.relationships, or update if existing)
+                // Passing `true` for `forceCreate` here is important because `explore` is creating potential new NPCs.
+                updateRelationship(identity.canonicalName, 0, 5, identity.description, true); // Small trust gain for being encountered
+            }
+        }
+        // --- END NEW LOGIC ---
 
         // Store exploration context
         addExplorationContext(discovery, interactables);
         addToConversationHistory('assistant', discovery);
 
-        if (interactables.length > 0) {
-            displayMessage(`You can interact with: ${interactables.join(', ')}`, 'info');
+        // Convert interactables to lowercase for display consistency, AFTER processing for NPCs
+        const displayInteractables = interactables.map(s => s.toLowerCase());
+        if (displayInteractables.length > 0) {
+            displayMessage(`You can interact with: ${displayInteractables.join(', ')}`, 'info');
         }
     } else {
         displayMessage("The area seems quiet. You don't find anything of interest.", 'info');
@@ -3664,7 +3701,7 @@ async function showShop() {
         };
 
         // Apply a delay before generating each item to respect API rate limits
-        await delay(500); // Fixed delay of 500ms between each item's AI call
+        await delay(200); // Fixed delay of 500ms between each item's AI call
 
         try {
             const item = await ItemGenerator.generateItem(context);
@@ -4579,12 +4616,12 @@ async function executeCustomCommand(command) {
     async function handleSpecificNPCInteraction(npcName) {
         displayMessage(`You try to talk to ${npcName}...`, 'info');
 
-        // Find the NPC in the current location's list
+        // Find the NPC in the current location's list (from gameWorld.npcs map)
         const existingNPCs = getNPCsInLocation(player.currentLocation);
         const targetNPC = existingNPCs.find(npc => npc.name.toLowerCase().includes(npcName.toLowerCase()));
 
         if (targetNPC) {
-            // If the NPC is found, generate a specific response
+            // If the NPC is found, use its canonical name and description for interaction
             const prompt = `The player, ${player.name}, talks to ${targetNPC.name} in ${player.currentLocation}. What is the NPC's response to being approached?`;
             const response = await callGeminiAPI(prompt, 0.7, 250, true);
 
@@ -4592,13 +4629,15 @@ async function executeCustomCommand(command) {
                 displayMessage(response);
                 addToConversationHistory('assistant', response);
 
-                // Force the creation of a relationship if one doesn't exist, since this is a direct interaction
+                // Update relationship using the found NPC's properties
+                // forceCreate is true because this function is specifically for interacting with an NPC
+                // that we *believe* exists, so it should be added to player.relationships if it isn't already.
                 updateRelationship(targetNPC.name, 0, 5, targetNPC.description, true); // +5 trust for initiating conversation
             } else {
                 displayMessage(`${targetNPC.name} doesn't seem to have much to say right now.`, 'info');
             }
         } else {
-            // If the NPC is not found in the area
+            // If the NPC is not found in the gameWorld.npcs for this location
             displayMessage(`You look around, but you don't see anyone named "${npcName}" here.`, 'error');
         }
     }
@@ -4731,53 +4770,62 @@ function changeInventoryPage(direction) {
     displayInventory(); // Refresh the display
 }
 
-function buyShopItem(itemIndex) {
+function buyShopItem(itemIndex) { // Renamed parameter to itemIndex for clarity and consistency
     if (!window.currentShopInventory || !window.currentShopInventory[itemIndex]) {
         displayMessage('Item no longer available.', 'error');
         return;
     }
 
-    const item = window.currentShopInventory[itemIndex]; // item here has .name, .value, .price, .description etc.
+    const item = window.currentShopInventory[itemIndex];
 
-    if (player.gold < item.value) { // Use item.value instead of item.price
+    if (player.gold < item.value) {
         displayMessage(`You need ${item.value} gold but only have ${player.gold} gold.`, 'error');
         return;
     }
 
-    // Ensure inventory exists
-    if (!player.inventory) {
-        player.inventory = [];
+    // Process the purchase - updateGold handles player.gold, saves game, and updates main stats display
+    // It also now directly handles the "You lost X gold" message.
+    updateGold(-item.value, 'shop purchase');
+
+    const purchasedItem = { ...item };
+    // Remove the price property from the item when it's added to inventory, as it's no longer needed for inventory.
+    delete purchasedItem.price;
+
+    // Use ItemManager.addItemToInventory to correctly add the item to the player's inventory.
+    // This function also handles generating a unique ID if one is missing and saving the inventory.
+    if (typeof ItemManager !== 'undefined' && typeof ItemManager.addItemToInventory === 'function') {
+        ItemManager.addItemToInventory(player, purchasedItem);
+        // Display a message specific to the item being purchased.
+        displayMessage(`Purchased ${item.name} for ${item.value} gold!`, 'success');
+    } else {
+        // Fallback: If ItemManager is not available, directly push to inventory and save.
+        // This is a less robust fallback and indicates an issue with ItemManager import/availability.
+        if (!player.inventory) {
+            player.inventory = [];
+        }
+        player.inventory.push(purchasedItem);
+        displayMessage(`Purchased ${item.name} for ${item.value} gold! (Fallback)`, 'success');
+        if (typeof ItemManager !== 'undefined' && typeof ItemManager.saveInventoryToStorage === 'function') {
+            ItemManager.saveInventoryToStorage(player);
+        }
     }
 
-    // Purchase the item
-    updateGold(-item.value, 'shop purchase'); // Deduct item.value
-    const purchasedItem = { ...item }; // Create a copy
-    // Ensure the item has a unique ID if it doesn't have one
-    if (!purchasedItem.id) {
-        purchasedItem.id = Date.now() + Math.random();
-    }
-    player.inventory.push(purchasedItem);
-    displayMessage(`Purchased ${item.name} for ${item.value} gold!`, 'success');
-
-    // Remove item from shop inventory
+    // Remove the purchased item from the shop's current inventory.
     window.currentShopInventory.splice(itemIndex, 1);
 
-    // Save game state
-    if (typeof ItemManager !== 'undefined' && ItemManager.saveInventoryToStorage) {
-        ItemManager.saveInventoryToStorage(player);
+    // Refresh the shop display to reflect the purchase (item removed, gold updated).
+    // The `showShop` function is expected to regenerate the shop display.
+    //showShop();
+
+    // Remove the item element from the DOM
+    const itemElement = document.querySelector(`.shop-item:nth-child(${itemIndex + 1})`);
+    if (itemElement) {
+        itemElement.remove();
     }
-    saveGame();
 
-    // Reset inventory pagination since items changed
-    resetInventoryPagination();
-
-    // Refresh shop display
-    showShop();
-
-    // Check if inventory is open and refresh it
+    // Ensure the inventory display is updated if it's currently open.
     const inventoryInterface = document.getElementById('inventory-interface');
     if (inventoryInterface && !inventoryInterface.classList.contains('hidden')) {
-        console.log("buyShopItem: Inventory is open, refreshing display.");
         displayInventory();
     }
 }

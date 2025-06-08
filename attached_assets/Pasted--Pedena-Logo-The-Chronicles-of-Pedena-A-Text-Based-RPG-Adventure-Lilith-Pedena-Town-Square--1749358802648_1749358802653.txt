@@ -1,0 +1,103 @@
+
+Pedena Logo
+The Chronicles of Pedena
+A Text-Based RPG Adventure
+
+Lilith - Pedena Town Square
+Level: 1 HP: 112/112
+Rich text styling disabled.
+
+Welcome to Pedena, Lilith! Your adventure begins in Pedena Town Square.
+
+The midday sun beats down on the bustling Pedena Town Square, casting long shadows from the colorful stalls and chattering crowds. Lilith, a young summoner barely out of her apprenticeship, clutches her worn spellbook, its cover adorned with a stylized raven. The air hums with the energy of the city, a symphony of hawkers, laughter, and the distant clang of a blacksmith's hammer. Lilith, however, is focused on a different kind of energy – the subtle thrum of magic that courses through her veins. She's here, in this vibrant heart of Pedena, to begin her own legend. A nervous flutter dances in her stomach as she takes a deep breath, the scent of exotic spices and freshly baked bread mingling with the faint, metallic tang of… something else. Something that prickles at the edge of her awareness, a whisper of a secret waiting to be uncovered. Her journey begins now. What does Lilith do?
+
+Seeking new adventures...
+
+New quest available: The Spider's Legacy
+
+The shriek of the giant spider echoes through Pedena Town Square, a desperate plea to protect its iridescent egg. As Lilith, you find yourself caught in the spider's web of desperation. The air thickens with the cloying sweetness, a scent that seems to whisper secrets of the egg's power and the spider's impending doom. Will you become a protector or a predator?
+
+Objective: Protect the spider egg from harm and discover its true nature.
+
+Rewards: 70 gold, 35 XP, Spider Silk Gloves
+
+Difficulty: Easy | Estimated Time: 1-2 hours
+
+Complication: A group of opportunistic scavengers, drawn by the spider's death and the egg's glow, will attempt to steal the egg. They are led by a surly rogue named 'Grim'.
+
+Quest Giver: The dying giant spider (it can communicate telepathically with Lilith due to the egg's influence). | Location: Pedena Town Square (specifically around the fountain)
+
+> talk to the dying giant spider
+
+You try to talk to the dying giant spider...
+
+You look around, but you don't see anyone named "the dying giant spider" here.
+
+> talk to the fountain
+
+You try to talk to the fountain...
+
+You look around, but you don't see anyone named "the fountain" here.
+
+> explore
+
+Exploring the area...
+
+Pedena Town Square is bustling with activity, despite the unsettling scent permeating the air. A small, weathered fountain sits in the center, its water strangely still. A concerned-looking Runar Grimbold is pacing near the fountain, muttering to himself. Several townsfolk are gathered nearby, their faces etched with worry.
+
+You can interact with: fountain, runar grimbold, townsfolk
+
+> talk to runar grimbold
+
+You try to talk to runar grimbold...
+
+You look around, but you don't see anyone named "runar grimbold" here.
+
+> talk to townsfolk
+
+You try to talk to townsfolk...
+
+You look around, but you don't see anyone named "townsfolk" here.
+
+Enter Command:
+Type your action here (e.g., 'examine the mysterious door', 'talk to the merchant', 'cast fireball')...
+
+Execute
+
+Save Game
+
+Quests (1)
+
+Inventory
+🛒 Shop
+
+Progression
+
+Background
+😴 Rest
+🔍 Explore
+
+Summon
+🙏 Pray
+Active Quests
+Active Quests (1)
+The Spider's Legacy
+Easy
+
+Abandon
+The shriek of the giant spider echoes through Pedena Town Square, a desperate plea to protect its iridescent egg. As Lilith, you find yourself caught in the spider's web of desperation. The air thickens with the cloying sweetness, a scent that seems to whisper secrets of the egg's power and the spider's impending doom. Will you become a protector or a predator?
+
+Objective: Protect the spider egg from harm and discover its true nature.
+
+Location: Pedena Town Square (specifically around the fountain)
+
+Quest Giver: The dying giant spider (it can communicate telepathically with Lilith due to the egg's influence).
+
+Rewards: 70 gold, 35 XP , Spider Silk Gloves
+
+Generate New Quest
+Close Quests
+© 2025 Pedena RPG. Powered by Gemini API & the spirit of adventure.
+
+🖼️
+0123456789101112
