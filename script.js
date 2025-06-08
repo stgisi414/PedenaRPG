@@ -13,7 +13,7 @@ import { CombatSystem } from './game-logic/combat-system.js';
 import { AlignmentSystem } from './game-logic/alignment-system.js';
 import { PartyManager } from './game-logic/party-manager.js';
 import { MultiCombatSystem } from './game-logic/multi-combat-system.js';
-
+import { RelationshipMiddleware } from './game-logic/relationship-middleware.js';
 
 const GEMINI_API_KEY = 'AIzaSyDIFeql6HUpkZ8JJlr_kuN0WDFHUyOhijA'; // Replace with your actual Gemini API Key
 const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key=${GEMINI_API_KEY}`;
@@ -1082,9 +1082,10 @@ REQUIREMENTS: Use at least 7-10 different formatting effects per response. Use *
 
 // NPC Management Functions
 function createNPC(name, description, location) {
+    console.log(`createNPC: Creating NPC with name "${name}"`);
     return {
         id: Date.now() + Math.random(),
-        name: name,
+        name: name, // Use the provided name directly
         description: description,
         location: location,
         dialogueHistory: [],
@@ -1093,11 +1094,21 @@ function createNPC(name, description, location) {
     };
 }
 
+// Ensure saveNPCToLocation stores NPCs by their actual canonical name
 function saveNPCToLocation(npc, location) {
     if (!gameWorld.npcs.has(location)) {
         gameWorld.npcs.set(location, []);
     }
-    gameWorld.npcs.get(location).push(npc);
+    const locationNPCs = gameWorld.npcs.get(location);
+    // Check if NPC already exists by name (case-sensitive as stored)
+    const existingIndex = locationNPCs.findIndex(n => n.name === npc.name);
+    if (existingIndex >= 0) {
+        locationNPCs[existingIndex] = npc; // Update existing
+        console.log(`saveNPCToLocation: Updated existing NPC "${npc.name}" at "${location}"`);
+    } else {
+        locationNPCs.push(npc); // Add new
+        console.log(`saveNPCToLocation: Added new NPC "${npc.name}" to location "${location}"`);
+    }
 }
 
 function getNPCsInLocation(location) {
@@ -3588,46 +3599,55 @@ INTERACTABLE: altar, wooden box, runes, Master Theron Steelbeard
         const interactableMatch = explorationResult.match(/INTERACTABLE:\s*(.+?)$/s);
 
         const discovery = discoveryMatch ? discoveryMatch[1].trim() : explorationResult;
-        let interactables = interactableMatch
-            ? interactableMatch[1].split(',').map(s => s.trim()) // Remove toLowerCase() here
+        let interactablesRaw = interactableMatch
+            ? interactableMatch[1].split(',').map(s => s.trim()) // Keep raw casing here for resolveNpcIdentity
             : [];
 
         displayMessage(discovery, 'exploration');
 
         // --- NEW LOGIC: Create and save NPCs mentioned in interactables ---
         const playerRelationshipsCopy = { ...player.relationships }; // Copy to pass to resolveNpcIdentity
-        for (const element of interactables) {
+        let interactablesForDisplay = []; // To store lowercase for display
+
+        for (const element of interactablesRaw) { // Iterate through raw interactables
+            interactablesForDisplay.push(element.toLowerCase()); // Add lowercase to display list
+
             // Check if it's likely an NPC (starts with a capital letter, or contains a space indicating a name)
+            // Use the raw element for initial check
             if (element.match(/^[A-Z]/) || element.includes(' ')) {
+                console.log(`Explore: Potential NPC identified from interactablesRaw: "${element}"`);
+
                 // Resolve NPC identity to get canonical name and description
                 const identity = await RelationshipMiddleware.resolveNpcIdentity(element, playerRelationshipsCopy, command, discovery);
+                console.log(`Explore: Resolved identity for "${element}": canonicalName="${identity.canonicalName}", isNew=${identity.isNew}`);
 
                 // Create and save NPC only if it's genuinely new to gameWorld.npcs for this location
-                // This prevents duplicate NPCs if the player explores the same area multiple times.
+                // Use the canonicalName for lookup and storage
                 const existingNPCsInLocation = getNPCsInLocation(player.currentLocation);
                 const npcAlreadyInLocation = existingNPCsInLocation.some(npc => npc.name === identity.canonicalName);
 
                 if (!npcAlreadyInLocation) {
                     const newNPC = createNPC(identity.canonicalName, identity.description, player.currentLocation);
                     saveNPCToLocation(newNPC, player.currentLocation);
-                    console.log(`Created new NPC from exploration: ${newNPC.name}`);
+                    console.log(`Explore: Created and saved new NPC to gameWorld.npcs: "${newNPC.name}" at "${newNPC.location}"`);
+                } else {
+                    console.log(`Explore: NPC "${identity.canonicalName}" already exists in gameWorld.npcs for this location.`);
                 }
 
                 // Update relationship (this will create it if new to player.relationships, or update if existing)
                 // Passing `true` for `forceCreate` here is important because `explore` is creating potential new NPCs.
                 updateRelationship(identity.canonicalName, 0, 5, identity.description, true); // Small trust gain for being encountered
+                console.log(`Explore: Updated relationship for "${identity.canonicalName}" in player.relationships.`);
             }
         }
         // --- END NEW LOGIC ---
 
         // Store exploration context
-        addExplorationContext(discovery, interactables);
+        addExplorationContext(discovery, interactablesForDisplay); // Store lowercase for context string
         addToConversationHistory('assistant', discovery);
 
-        // Convert interactables to lowercase for display consistency, AFTER processing for NPCs
-        const displayInteractables = interactables.map(s => s.toLowerCase());
-        if (displayInteractables.length > 0) {
-            displayMessage(`You can interact with: ${displayInteractables.join(', ')}`, 'info');
+        if (interactablesForDisplay.length > 0) {
+            displayMessage(`You can interact with: ${interactablesForDisplay.join(', ')}`, 'info');
         }
     } else {
         displayMessage("The area seems quiet. You don't find anything of interest.", 'info');
@@ -4434,8 +4454,53 @@ function createPlaceholderPortrait(name, charClass, level = 1) { // Accept param
     `;
 }
 
+// This function will be called after every AI response to identify and register NPCs mentioned in the narrative.
+async function checkNPCMentionsAndAdd(aiResponse, playerCommand, gameContext) {
+    console.log("checkNPCMentionsAndAdd: Scanning AI response for NPC mentions...");
+    // Use the robust extractNPCNames from RelationshipMiddleware
+    const npcNames = await RelationshipMiddleware.extractNPCNames(aiResponse, player);
+
+    if (npcNames.length === 0) {
+        console.log("checkNPCMentionsAndAdd: No NPC names identified in AI response.");
+        return;
+    }
+
+    console.log("checkNPCMentionsAndAdd: Identified potential NPCs:", npcNames);
+
+    for (const npcName of npcNames) {
+        // Resolve NPC identity to get canonical name and description
+        const identity = await RelationshipMiddleware.resolveNpcIdentity(npcName, player.relationships || {}, playerCommand, aiResponse);
+        console.log(`checkNPCMentionsAndAdd: Resolved identity for "${npcName}": canonicalName="${identity.canonicalName}"`);
+
+        // Check if the NPC is already explicitly in gameWorld.npcs for the current location
+        const existingNPCsInLocation = getNPCsInLocation(player.currentLocation);
+        const npcAlreadyInLocation = existingNPCsInLocation.some(npc => npc.name === identity.canonicalName);
+
+        if (!npcAlreadyInLocation) {
+            // If it's not already in gameWorld.npcs for this location, create and save it
+            const newNPC = createNPC(identity.canonicalName, identity.description, player.currentLocation);
+            saveNPCToLocation(newNPC, player.currentLocation);
+            console.log(`checkNPCMentionsAndAdd: Added new NPC "${newNPC.name}" to gameWorld.npcs at "${newNPC.location}".`);
+        } else {
+            console.log(`checkNPCMentionsAndAdd: NPC "${identity.canonicalName}" already exists in gameWorld.npcs at "${player.currentLocation}".`);
+            // Optionally, update existing NPC's description if it's more detailed now
+            const existingNpcRef = existingNPCsInLocation.find(npc => npc.name === identity.canonicalName);
+            if (existingNpcRef && identity.description && existingNpcRef.description !== identity.description) {
+                 existingNpcRef.description = identity.description;
+                 console.log(`checkNPCMentionsAndAdd: Updated description for existing NPC "${existingNpcRef.name}".`);
+            }
+        }
+
+        // Ensure a relationship entry exists for this NPC in player.relationships
+        // Use forceCreate: true to ensure it's added if it doesn't exist yet, or updated.
+        updateRelationship(identity.canonicalName, 0, 0, identity.description, true); // No trust change, just ensure presence
+        console.log(`checkNPCMentionsAndAdd: Ensured relationship for "${identity.canonicalName}" in player.relationships.`);
+    }
+}
+
 // Execute custom commands
 // In script.js, replace your entire executeCustomCommand function with this one.
+// In script.js, find executeCustomCommand and replace it with this one.
 async function executeCustomCommand(command) {
     if (!command.trim()) return;
 
@@ -4447,7 +4512,7 @@ async function executeCustomCommand(command) {
     const movementPatterns = [
         /(?:go|travel|move|head|walk|run)\s+(?:to\s+)?(.+)/i,
         /(?:visit|enter)\s+(?:the\s+)?(.+)/i,
-        /(?:leave|exit)\s+(?:the\s+)?(.+?)(?:\s+and\s+(?:go|head)\s+(?:to\s+)?(.+))?/i
+        /(?:leave|exit)\s+(?:the\s+)?(.+?)(?:\s+(?:and|then)\s+(?:go|head)\s+(?:to\s+)?(.+))?/i
     ];
 
     let basicMovementMatch = false;
@@ -4475,7 +4540,7 @@ async function executeCustomCommand(command) {
     if (CombatSystem.combatState.isActive) {
         const combatHandled = await CombatSystem.handleCombatCommand(command);
         if (combatHandled) {
-            addToConversationHistory('user', command);
+            // addToConversationHistory('user', command); // Already added at the top of this function
             return;
         }
     }
@@ -4613,35 +4678,6 @@ async function executeCustomCommand(command) {
         return;
     }
 
-    async function handleSpecificNPCInteraction(npcName) {
-        displayMessage(`You try to talk to ${npcName}...`, 'info');
-
-        // Find the NPC in the current location's list (from gameWorld.npcs map)
-        const existingNPCs = getNPCsInLocation(player.currentLocation);
-        const targetNPC = existingNPCs.find(npc => npc.name.toLowerCase().includes(npcName.toLowerCase()));
-
-        if (targetNPC) {
-            // If the NPC is found, use its canonical name and description for interaction
-            const prompt = `The player, ${player.name}, talks to ${targetNPC.name} in ${player.currentLocation}. What is the NPC's response to being approached?`;
-            const response = await callGeminiAPI(prompt, 0.7, 250, true);
-
-            if (response) {
-                displayMessage(response);
-                addToConversationHistory('assistant', response);
-
-                // Update relationship using the found NPC's properties
-                // forceCreate is true because this function is specifically for interacting with an NPC
-                // that we *believe* exists, so it should be added to player.relationships if it isn't already.
-                updateRelationship(targetNPC.name, 0, 5, targetNPC.description, true); // +5 trust for initiating conversation
-            } else {
-                displayMessage(`${targetNPC.name} doesn't seem to have much to say right now.`, 'info');
-            }
-        } else {
-            // If the NPC is not found in the gameWorld.npcs for this location
-            displayMessage(`You look around, but you don't see anyone named "${npcName}" here.`, 'error');
-        }
-    }
-
     if (command.toLowerCase().includes('explore') || command.toLowerCase().includes('look around')) {
         await explore();
         return;
@@ -4669,6 +4705,9 @@ IMPORTANT: If the player is trying to interact with something from recent explor
         if (response) {
             displayMessage(response, 'info');
             addToConversationHistory('assistant', response);
+
+            // NEW: Check for NPC mentions in the response and add them to gameWorld.npcs and player.relationships
+            await checkNPCMentionsAndAdd(response, command, player);
 
             // Handle item pickup if detected
             if (isPickupCommand) {
@@ -4711,7 +4750,6 @@ IMPORTANT: If the player is trying to interact with something from recent explor
             // Check for quest completion
             checkQuestCompletion(command + ' ' + response);
 
-            // <<< THIS IS THE UPDATED LINE >>>
             // We now 'await' the result of our async relationship check.
             await checkRelationshipChanges(command, response);
 
