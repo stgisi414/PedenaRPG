@@ -69,7 +69,7 @@ export class CombatSystem {
                 combatInterfaceElement.classList.remove('hidden');
             }
         }
-        
+
         await this.generateCombatEnvironment(playerInstance, enemy, environment);
         if (window.player) {
             // THIS IS THE CRITICAL CHECK:
@@ -119,7 +119,7 @@ export class CombatSystem {
         console.error("CombatSystem: Could not find player object! This is a critical error.");
         return null;
     }
-    
+
     static async generateCombatEnvironment(player, enemy, location) {
         const environmentPrompt = `
 Generate a combat environment description for this battle:
@@ -160,19 +160,19 @@ Focus on terrain, lighting, and immediate surroundings that could affect the fig
                 // Fallback if actualPlayer (from window.player) is null,
                 // you might want to use the 'player' parameter passed to displayCombatStart as a direct fallback.
                 if (player) { // Check if the 'player' parameter to this function is valid
-                     console.log(`[COMBATSYSTEM.JS] displayCombatStart FALLBACK using passed 'player' param: HP=${player.hp}/${player.maxHp}`);
-                     if (typeof window.displayMessage === 'function') {
+                    console.log(`[COMBATSYSTEM.JS] displayCombatStart FALLBACK using passed 'player' param: HP=${player.hp}/${player.maxHp}`);
+                    if (typeof window.displayMessage === 'function') {
                         // Corrected line: Use 'player' (the parameter) directly in the fallback
-                         window.displayMessage(`<span class="math-inline">\{player\.name\} \(</span>{player.hp}/${player.maxHp} HP) vs <span class="math-inline">\{enemy\.name\} \(</span>{enemy.currentHp}/${enemy.maxHp} HP)`, 'combat'); // Corrected line
+                        window.displayMessage(`<span class="math-inline">\{player\.name\} \(</span>{player.hp}/${player.maxHp} HP) vs <span class="math-inline">\{enemy\.name\} \(</span>{enemy.currentHp}/${enemy.maxHp} HP)`, 'combat'); // Corrected line
 
-                         if (typeof window.updatePlayerStatsDisplay === 'function') {
-                             // updatePlayerStatsDisplay in script.js will use window.player.
-                             // This is fine if you also ensure window.player is kept in sync (Solution 1).
-                             // If not, changes made to playerToDisplay here won't reflect in main UI unless playerToDisplay IS window.player.
-                             window.updatePlayerStatsDisplay();
-                         }
+                        if (typeof window.updatePlayerStatsDisplay === 'function') {
+                            // updatePlayerStatsDisplay in script.js will use window.player.
+                            // This is fine if you also ensure window.player is kept in sync (Solution 1).
+                            // If not, changes made to playerToDisplay here won't reflect in main UI unless playerToDisplay IS window.player.
+                            window.updatePlayerStatsDisplay();
+                        }
 
-                     }
+                    }
                 }
                 return;
             }
@@ -181,7 +181,7 @@ Focus on terrain, lighting, and immediate surroundings that could affect the fig
             if (typeof window.displayMessage === 'function') {
                 window.displayMessage("⚔️ COMBAT BEGINS!", 'combat');
                 if (this.combatState.environment && this.combatState.environment.description) {
-                     window.displayMessage(this.combatState.environment.description, 'combat');
+                    window.displayMessage(this.combatState.environment.description, 'combat');
                 }
                 // This message correctly uses actualPlayer from getPlayerReference
                 window.displayMessage(`${actualPlayer.name} (${actualPlayer.hp}/${actualPlayer.maxHp} HP) vs ${enemy.name} (${enemy.currentHp}/${enemy.maxHp} HP)`, 'combat');
@@ -202,30 +202,51 @@ Focus on terrain, lighting, and immediate surroundings that could affect the fig
             window.displayMessage("Commands: 'attack', 'defend', 'cast spell', 'use item', 'examine enemy', 'flee'", 'info');
         }
     }
-
-    static async processPlayerAction(currentPlayer, enemy, actionType, command) {
+    
+    async processPlayerAction(currentPlayer, enemy, actionType, command) {
         if (!this.combatState.isActive) return;
 
-        // Always use the actual player object from global reference
         const actualPlayer = this.getPlayerReference();
         if (!actualPlayer) {
             console.error("CombatSystem: Could not get player reference for action processing");
             return;
         }
+
         const actionPrompt = this.buildPlayerActionPrompt(currentPlayer, enemy, actionType, command);
 
         try {
             const response = await window.callGeminiAPI(actionPrompt, 0.8, 500, false);
             const actionResult = this.parseActionResponse(response, actionType);
 
-            await this.applyActionResults(actionResult, currentPlayer, enemy, 'player');
+            // --- MODIFICATION START ---
+            let finalActionResult = actionResult;
 
-            // Check for combat end
+            // If the action was not explicitly successful as a combat action, or if it's an unrecognized command,
+            // treat it as a "pass" or "unrecognized action" to allow the turn to proceed.
+            if (!finalActionResult.success || actionType === this.combatActions.UNKNOWN) {
+                const narrative = finalActionResult.narrative || "Your command is not recognized, or has no immediate effect in combat. You briefly lose focus.";
+                finalActionResult = {
+                    success: true, // Treat as a successful "pass" of the turn
+                    narrative: narrative,
+                    damage: 0,
+                    playerHpChange: 0,
+                    enemyHpChange: 0,
+                    effects: [],
+                    criticalHit: false,
+                    actionComplete: true, // Crucial: always complete the action so turn progresses
+                    spellSlotUsed: 0,
+                    abilityUsed: "",
+                    itemUsed: ""
+                };
+            }
+            // --- MODIFICATION END ---
+
+            await this.applyActionResults(finalActionResult, currentPlayer, enemy, 'player');
+
             if (this.checkCombatEnd(currentPlayer, enemy)) {
                 return;
             }
 
-            // Progress to next turn
             this.nextTurn(currentPlayer, enemy);
 
         } catch (error) {
@@ -239,7 +260,7 @@ Focus on terrain, lighting, and immediate surroundings that could affect the fig
     static buildPlayerActionPrompt(currentPlayer, enemy, actionType, command) {
 
         // Get complete character progression for AI context
-        const progression = typeof window !== 'undefined' && window.CharacterManager ? 
+        const progression = typeof window !== 'undefined' && window.CharacterManager ?
             window.CharacterManager.getCharacterProgression(currentPlayer) : null;
 
         const contextData = {
@@ -578,7 +599,7 @@ Make the enemy fight courageously and only flee when facing certain death with c
                     window.displayMessage(`Used a level ${result.spellSlotUsed} spell slot.`, 'info');
                 }
             }
-            
+
             if (result.abilityUsed && typeof window.CharacterManager !== 'undefined') {
                 // Mark ability as used (CharacterManager handles cooldowns)
                 window.CharacterManager.useAbility(actualPlayer, result.abilityUsed);
@@ -931,13 +952,13 @@ If no enemy is mentioned, suggest an appropriate one for the location.
             if (typeof window.displayMessage === 'function') {
                 window.displayMessage("💨 You leave the combat behind as you travel to a new location.", 'info');
             }
-            
+
             // Clear player's enemy reference
             const player = this.getPlayerReference();
             if (player) {
                 player.currentEnemy = null;
             }
-            
+
             // Reset combat state
             this.combatState = {
                 isActive: false,
