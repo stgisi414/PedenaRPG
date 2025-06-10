@@ -59,8 +59,8 @@ export class CombatSystem {
         }
 
         // Make the combat interface visible
-        /* if (typeof window.showScreen === 'function') {
-            window.showScreen('combat-interface'); // <--- ADD THIS LINE
+        if (typeof window.showScreen === 'function') {
+            window.showScreen('combat-interface'); // <--- UNCOMMENT THIS LINE
         } else {
             console.error("CombatSystem: window.showScreen is not defined. Cannot show combat interface.");
             // Fallback for direct DOM manipulation if showScreen is not available
@@ -68,7 +68,7 @@ export class CombatSystem {
             if (combatInterfaceElement) {
                 combatInterfaceElement.classList.remove('hidden');
             }
-        } */
+        }
 
         await this.generateCombatEnvironment(playerInstance, enemy, environment);
         if (window.player) {

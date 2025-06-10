@@ -3887,15 +3887,32 @@ function addExplorationContext(discovery, interactableElements = []) {
 }
 
 function getExplorationContextString() {
-    if (currentExplorationContext.discoveries.length === 0) return '';
+    const playerLocation = player.currentLocation;
+    const inventoryItems = player.inventory.map(item => `<span class="math-inline">\{item\.name\} \(x</span>{item.quantity})`).join(', ') || 'none';
+    const equippedWeapon = player.equipment?.mainHand?.name || 'unarmed'; // Add this line
+    const equippedArmor = CombatSystem.calculatePlayerDefense(player); // Assuming this is defined and calculates defense from equipped armor
 
-    const recent = currentExplorationContext.discoveries.slice(-3);
-    const contextString = recent.map(d => d.discovery).join(' ');
-    const activeElements = currentExplorationContext.activeElements.length > 0
-        ? `\n\nCurrently visible/interactable: ${currentExplorationContext.activeElements.join(', ')}`
-        : '';
+    // Ensure relationships are initialized if not already
+    if (!player.relationships) {
+        player.relationships = {};
+    }
+    const relationships = Object.values(player.relationships).map(rel => `${rel.name}: ${rel.status}`).join(', ') || 'none';
 
-    return `\n\nRECENT EXPLORATION CONTEXT:\n${contextString}${activeElements}`;
+    let context = `Player is currently in ${playerLocation}. ` +
+                  `Player HP: <span class="math-inline">\{player\.hp\}/</span>{player.maxHp}. ` +
+                  `Player Gold: ${player.gold}. ` +
+                  `Player Inventory: ${inventoryItems}. ` +
+                  `Equipped Weapon: ${equippedWeapon}. `; // Use the new variable
+    if (equippedArmor > 0) {
+        context += `Player Armor: ${equippedArmor}. `;
+    }
+    context += `Player Relationships: ${relationships}. `;
+
+    if (player.currentEnemy) {
+        context += `Currently in combat with <span class="math-inline">\{player\.currentEnemy\.name\} \(</span>{player.currentEnemy.currentHp}/${player.currentEnemy.maxHp} HP). `;
+    }
+
+    return context;
 }
 
 // Auto-generate world event
@@ -4513,6 +4530,11 @@ function createPlaceholderPortrait(name, charClass, level = 1) { // Accept param
 // ... (other functions before executeCustomCommand) ...
 
 async function executeCustomCommand(command) {
+    if (player.hp <= 0) {
+        displayMessage("You are too wounded to act. You need to rest.", 'error');
+        return;
+    }
+    
     if (!command.trim()) return;
 
     userInputCounterForImage++;
@@ -4523,9 +4545,18 @@ async function executeCustomCommand(command) {
 
     // If combat is active, prioritize routing combat commands to CombatSystem
     if (CombatSystem.combatState.isActive) {
-        console.log("Routing command through CombatSystem.handleCombatCommand as combat is active.");
-        await CombatSystem.handleCombatCommand(command);
-        return;
+        // Check if the command is a recognized combat action
+        const isCombatAction = Object.values(CombatSystem.combatActions).some(action => lowerCommand.includes(action));
+
+        if (!isCombatAction) {
+            displayMessage("You are currently in combat! You can only use combat commands like 'attack', 'defend', 'cast spell', 'use item', or 'flee'.", 'error');
+            return; // Block non-combat commands
+        } else {
+            // If it is a combat action, let the CombatSystem handle it
+            if (await CombatSystem.handleCombatCommand(command)) {
+                return; // Command handled by CombatSystem
+            }
+        }
     }
 
     // NEW GEMINI-POWERED COMBAT INITIATION LOGIC
