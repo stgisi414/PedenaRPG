@@ -5225,23 +5225,23 @@ document.addEventListener('DOMContentLoaded', () => {
                     return;
                 }
 
-
+                // MODIFIED: Calls to ItemManager methods now pass 'player' as the first argument
                 switch (action) {
                     case 'use':
-                        if (itemIndex !== null) useItem(itemIndex);
+                        if (itemIndex !== null) ItemManager.useItem(player, itemIndex); // MODIFIED
                         break;
                     case 'equip':
-                        if (itemIndex !== null) equipItem(itemIndex);
+                        if (itemIndex !== null) ItemManager.equipItem(player, itemIndex); // MODIFIED
                         break;
                     case 'sell':
-                        if (itemIndex !== null) sellItem(itemIndex);
+                        if (itemIndex !== null) ItemManager.sellItem(player, itemIndex); // MODIFIED
                         break;
                     case 'drop':
-                        if (itemIndex !== null) dropItem(itemIndex);
+                        if (itemIndex !== null) ItemManager.dropItem(player, itemIndex); // MODIFIED
                         break;
                     case 'unequip': // 'unequip' uses 'data-slot'
                         if (slot) {
-                            unequipItem(slot);
+                            ItemManager.unequipItem(player, slot); // MODIFIED
                         } else {
                             console.error("Unequip action requires a slot, but it's missing.");
                             displayMessage("Error: Slot not found for unequip action.", "error");

@@ -2,6 +2,8 @@
 // Character Management System - Handles leveling, abilities, and progression
 import { classProgression, spellDefinitions, abilityDefinitions, featDefinitions } from './class-progression.js';
 
+import { ItemGenerator, ItemManager, itemCategories } from '../assets/world-items.js';
+
 export class CharacterManager {
     
     static initializeCharacter(player, charClass) {
@@ -31,8 +33,136 @@ export class CharacterManager {
         
         // Set class-specific starting equipment and bonuses
         this.applyClassBonuses(player, progression);
+
+        this.assignInitialEquipment(player); // ADD THIS LINE
         
         return player;
+    }
+
+    static assignInitialEquipment(player) {
+        console.log(`Assigning initial equipment for ${player.name} (${player.class}).`);
+        const { ItemGenerator, ItemManager, itemCategories } = window; // Access globally exposed modules
+
+        if (!ItemGenerator || !ItemManager || !itemCategories) {
+            console.error("ItemManager or ItemGenerator not available for initial equipment assignment.");
+            return;
+        }
+
+        // Helper to generate and equip an item
+        const addAndEquip = async (category, rarity, subType = null) => { // Made async because generateItem is async
+            const item = await ItemGenerator.generateItem({ category, rarity, subType }); // AWAIT the async call
+            if (item) {
+                console.log("[DEBUG] assignInitialEquipment - item before addItemToInventory:", JSON.stringify(item, null, 2)); // ADDED DEBUG LOG
+                const itemToPass = JSON.parse(JSON.stringify(item)); // ADDED DEEP COPY BEFORE PASSING
+
+                ItemManager.addItemToInventory(player, itemToPass);
+                ItemManager.equipItem(player, player.inventory.length - 1);
+                console.log(`Equipped: ${itemToPass.name} (${itemToPass.slot || 'N/A'})`);
+            } else {
+                console.warn(`Failed to generate item for ${player.class}: Category=${category}, Rarity=${rarity}, SubType=${subType}`);
+            }
+        };
+
+        // Note: You need to `await` the calls to `addAndEquip` as well, as it now uses async `generateItem`
+        switch (player.class.toLowerCase()) {
+            case 'warrior':
+            case 'gladiator':
+            case 'barbarian':
+            case 'brawler':
+                addAndEquip(itemCategories.WEAPON, 'COMMON', 'swords');
+                addAndEquip(itemCategories.ARMOR, 'COMMON', 'shields');
+                addAndEquip(itemCategories.ARMOR, 'COMMON', 'chestplates');
+                addAndEquip(itemCategories.ARMOR, 'COMMON', 'helmets');
+                addAndEquip(itemCategories.ARMOR, 'COMMON', 'leggings');
+                addAndEquip(itemCategories.ARMOR, 'COMMON', 'boots');
+                break;
+            case 'paladin':
+            case 'knight':
+                addAndEquip(itemCategories.WEAPON, 'COMMON', 'swords');
+                addAndEquip(itemCategories.ARMOR, 'COMMON', 'shields');
+                addAndEquip(itemCategories.ARMOR, 'COMMON', 'chestplates');
+                addAndEquip(itemCategories.ARMOR, 'COMMON', 'helmets');
+                addAndEquip(itemCategories.ARMOR, 'COMMON', 'leggings');
+                addAndEquip(itemCategories.ARMOR, 'COMMON', 'boots');
+                break;
+            case 'mage':
+            case 'sorcerer':
+            case 'warlock':
+            case 'necromancer': // This is the class you're testing
+            case 'illusionist':
+            case 'psychic':
+                addAndEquip(itemCategories.WEAPON, 'COMMON', 'staves');
+                addAndEquip(itemCategories.ARMOR, 'COMMON', 'cloaks');
+                addAndEquip(itemCategories.ARMOR, 'COMMON', 'chestplates');
+                addAndEquip(itemCategories.ARMOR, 'COMMON', 'leggings');
+                addAndEquip(itemCategories.ARMOR, 'COMMON', 'boots');
+                break;
+            case 'rogue':
+            case 'assassin':
+            case 'thief':
+            case 'smuggler':
+                addAndEquip(itemCategories.WEAPON, 'COMMON', 'daggers');
+                addAndEquip(itemCategories.WEAPON, 'COMMON', 'daggers'); // Secondary Dagger
+                addAndEquip(itemCategories.ARMOR, 'COMMON', 'chestplates');
+                addAndEquip(itemCategories.ARMOR, 'COMMON', 'leggings');
+                addAndEquip(itemCategories.ARMOR, 'COMMON', 'boots');
+                break;
+            case 'ranger':
+            case 'hunter':
+            case 'outlander':
+                addAndEquip(itemCategories.WEAPON, 'COMMON', 'bows');
+                addAndEquip(itemCategories.ARMOR, 'COMMON', 'chestplates');
+                addAndEquip(itemCategories.ARMOR, 'COMMON', 'leggings');
+                addAndEquip(itemCategories.ARMOR, 'COMMON', 'boots');
+                break;
+            case 'cleric':
+            case 'druid':
+            case 'shaman':
+            case 'acolyte':
+            case 'pilgrim':
+                addAndEquip(itemCategories.WEAPON, 'COMMON', 'maces');
+                addAndEquip(itemCategories.ARMOR, 'COMMON', 'shields');
+                addAndEquip(itemCategories.ARMOR, 'COMMON', 'chestplates');
+                addAndEquip(itemCategories.ARMOR, 'COMMON', 'leggings');
+                addAndEquip(itemCategories.ARMOR, 'COMMON', 'boots');
+                break;
+            case 'bard':
+            case 'entertainer':
+                addAndEquip(itemCategories.WEAPON, 'COMMON', 'daggers');
+                addAndEquip(itemCategories.ARMOR, 'COMMON', 'cloaks');
+                addAndEquip(itemCategories.ARMOR, 'COMMON', 'chestplates');
+                addAndEquip(itemCategories.ARMOR, 'COMMON', 'leggings');
+                addAndEquip(itemCategories.ARMOR, 'COMMON', 'boots');
+                break;
+            case 'monk':
+            case 'ninja':
+                addAndEquip(itemCategories.WEAPON, 'COMMON', 'fistWeapons');
+                addAndEquip(itemCategories.ARMOR, 'COMMON', 'cloaks');
+                addAndEquip(itemCategories.ARMOR, 'COMMON', 'chestplates');
+                addAndEquip(itemCategories.ARMOR, 'COMMON', 'leggings');
+                addAndEquip(itemCategories.ARMOR, 'COMMON', 'boots');
+                break;
+            case 'alchemist':
+            case 'engineer':
+            case 'scholar':
+            case 'investigator':
+            case 'doctor':
+            case 'gambler':
+                addAndEquip(itemCategories.WEAPON, 'COMMON', 'daggers');
+                addAndEquip(itemCategories.ARMOR, 'COMMON', 'cloaks');
+                addAndEquip(itemCategories.ARMOR, 'COMMON', 'chestplates');
+                addAndEquip(itemCategories.ARMOR, 'COMMON', 'leggings');
+                addAndEquip(itemCategories.ARMOR, 'COMMON', 'boots');
+                addAndEquip(itemCategories.TOOL, 'COMMON', 'utility');
+                break;
+            default:
+                console.log(`No specific initial equipment defined for ${player.class}. Assigning basic defaults.`);
+                addAndEquip(itemCategories.WEAPON, 'COMMON', 'swords');
+                addAndEquip(itemCategories.ARMOR, 'COMMON', 'chestplates');
+                addAndEquip(itemCategories.ARMOR, 'COMMON', 'boots');
+                break;
+        }
+        console.log(`Finished assigning initial equipment for ${player.name}.`);
     }
     
     static applyLevelProgression(player, level) {

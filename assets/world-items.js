@@ -2582,23 +2582,25 @@ export class ItemGenerator {
 
         // 1. Get a base item template from your existing database
         const baseItem = this.getBaseItem(category, rarity);
+        console.log("[DEBUG] generateItem - baseItem after getBaseItem:", JSON.stringify(baseItem, null, 2)); // ADDED DEBUG LOG
         if (!baseItem) {
             console.error("Could not find a base item for generation. Category:", category, "Rarity:", rarity);
             return null; // Or return a generic fallback
         }
 
         // 2. Enhance the base item using the Gemini AI
-        let enhancedItem = await this.enhanceItemWithAI(baseItem, context);
+        let enhancedItem = await this.enhanceItemWithAI(baseItem, context); // THIS RETURNS AN OBJECT
 
         // 3. Apply base enhancements (like value and color) using enhanceItem
         // It's important to do this AFTER AI enhancement, so AI can add to base,
         // and then core properties like value are calculated.
-        enhancedItem = this.enhanceItem(enhancedItem, context); // ADD THIS LINE
+        enhancedItem = this.enhanceItem(enhancedItem, context); // THIS SHOULD RETURN A COMPLETE OBJECT
+        console.log("[DEBUG] generateItem - enhancedItem before final return:", JSON.stringify(enhancedItem, null, 2)); // ADDED DEBUG LOG
 
         // 4. Finalize and return the item
         return {
             id: this.generateItemId(),
-            ...enhancedItem, // The AI-enhanced properties and base calculations
+            ...enhancedItem, // <--- If enhancedItem is just { id: '...' } or null, this is the issue.
             generatedAt: Date.now(),
             context: context
         };
@@ -2774,52 +2776,12 @@ export class ItemGenerator {
         return selected || this.generateCustomWeapon(rarity, weaponType);
     }
 
-    static generateCustomWeapon(rarity, weaponType = 'swords') { // weaponType can be 'swords', 'axes' etc.
-        const damages = {
-            'COMMON': ['1d4', '1d6'], 'UNCOMMON': ['1d6+1', '1d8'], 'RARE': ['1d8+1', '1d10'],
-            'EPIC': ['1d10+2', '1d12', '2d6'], 'LEGENDARY': ['2d8+2', '2d10'], 'ARTIFACT': ['2d12+3', '3d8'], 'MYTHIC': ['3d10+5', '4d8']
-        };
-        const prefix = dynamicItemPrefixes[Math.floor(Math.random() * dynamicItemPrefixes.length)];
-        const suffix = dynamicItemSuffixes[Math.floor(Math.random() * dynamicItemSuffixes.length)];
-        const damage = damages[rarity] ? damages[rarity][Math.floor(Math.random() * damages[rarity].length)] : '1d6';
-        const weaponBaseName = weaponType.slice(0, -1); // sword from swords
-
-        return {
-            name: `${prefix} ${weaponBaseName.charAt(0).toUpperCase() + weaponBaseName.slice(1)} ${suffix}`,
-            type: itemCategories.WEAPON,
-            subType: weaponType,
-            rarity: rarity,
-            damage: damage,
-            effects: this.generateEffects(rarity, itemCategories.WEAPON)
-        };
-    }
-
     static generateArmor(rarity) {
         const armorCategories = Object.keys(itemTemplates.armor);
         const armorType = armorCategories[Math.floor(Math.random() * armorCategories.length)]; // e.g. 'helmets'
         const armors = itemTemplates.armor[armorType];
         const selected = this.selectFromTemplates(armors, rarity, itemCategories.ARMOR);
         return selected || this.generateCustomArmor(rarity, armorType);
-    }
-
-    static generateCustomArmor(rarity, armorType = 'chestplates') {
-        const armorValues = { // Base AC
-            'COMMON': [1,3], 'UNCOMMON': [2,4], 'RARE': [3,6],
-            'EPIC': [5,8], 'LEGENDARY': [7,10], 'ARTIFACT': [9,12], 'MYTHIC': [11,15]
-        };
-        const prefix = dynamicItemPrefixes[Math.floor(Math.random() * dynamicItemPrefixes.length)];
-        const suffix = dynamicItemSuffixes[Math.floor(Math.random() * dynamicItemSuffixes.length)];
-        const baseArmor = armorValues[rarity] ? (armorValues[rarity][0] + Math.floor(Math.random() * (armorValues[rarity][1] - armorValues[rarity][0] + 1))) : 1;
-        const armorBaseName = armorType.slice(0, -1); // helmet from helmets
-
-        return {
-            name: `${prefix} ${armorBaseName.charAt(0).toUpperCase() + armorBaseName.slice(1)} ${suffix}`,
-            type: itemCategories.ARMOR,
-            subType: armorType,
-            rarity: rarity,
-            armor: baseArmor,
-            effects: this.generateEffects(rarity, itemCategories.ARMOR)
-        };
     }
 
     static generateMagicalItem(rarity) { // Broad category for wands, orbs, talismans
@@ -2832,16 +2794,104 @@ export class ItemGenerator {
         return this.generateCustomMagicalDevice(rarity, typeKey);
     }
 
+    static generateTool(rarity) {
+        const toolCategories = Object.keys(itemTemplates.tools);
+        const toolType = toolCategories[Math.floor(Math.random() * toolCategories.length)];
+        const tools = itemTemplates.tools[toolType];
+        const selected = this.selectFromTemplates(tools, rarity, itemCategories.TOOL);
+        return selected || this.generateCustomTool(rarity, toolType);
+    }
+
+    static generateJewelry(rarity) {
+        const jewelryCategories = Object.keys(itemTemplates.jewelry);
+        const jewelryType = jewelryCategories[Math.floor(Math.random() * jewelryCategories.length)];
+        const jewelries = itemTemplates.jewelry[jewelryType];
+        const selected = this.selectFromTemplates(jewelries, rarity, 'armor'); // Changed to 'armor'
+        
+        // If we got a template item, ensure it has the correct type
+        if (selected) {
+            selected.type = 'armor';
+            return selected;
+        }
+        
+        return this.generateCustomJewelry(rarity, jewelryType);
+    }
+
+    static generateCustomWeapon(rarity, weaponType = 'swords') {
+        const damages = {
+            'COMMON': ['1d4', '1d6'], 'UNCOMMON': ['1d6+1', '1d8'], 'RARE': ['1d8+1', '1d10'],
+            'EPIC': ['1d10+2', '1d12', '2d6'], 'LEGENDARY': ['2d8+2', '2d10'], 'ARTIFACT': ['2d12+3', '3d8'], 'MYTHIC': ['3d10+5', '4d8']
+        };
+        const prefix = dynamicItemPrefixes[Math.floor(Math.random() * dynamicItemPrefixes.length)];
+        const suffix = dynamicItemSuffixes[Math.floor(Math.random() * dynamicItemSuffixes.length)];
+        // Determine weaponBaseName based on weaponType
+        let weaponBaseName = weaponType.replace(/s$/, ''); // Remove 's' from end (e.g., 'swords' -> 'sword')
+        if (weaponType === 'fistWeapons') weaponBaseName = 'Fist Weapon'; // Special case for clarity
+
+        const damage = damages[rarity] ? damages[rarity][Math.floor(Math.random() * damages[rarity].length)] : '1d6';
+
+        // Determine slot based on weaponType
+        let slot = 'mainHand';
+        if (['daggers', 'fistWeapons'].includes(weaponType) && Math.random() < 0.5) { // Daggers/fist weapons can be off-hand
+            slot = 'offHand';
+        }
+
+        return {
+            name: `${prefix} ${weaponBaseName.charAt(0).toUpperCase() + weaponBaseName.slice(1)} ${suffix}`,
+            type: itemCategories.WEAPON,
+            subType: weaponType,
+            rarity: rarity,
+            damage: damage,
+            slot: slot, // ADDED: Crucial for equipping
+            effects: this.generateEffects(rarity, itemCategories.WEAPON),
+            description: `A ${rarity.toLowerCase()} ${weaponBaseName.toLowerCase()} with a ${prefix.toLowerCase()} aura.` // ADDED default description
+        };
+    }
+
+    static generateCustomArmor(rarity, armorType = 'chestplates') {
+        const armorValues = { // Base AC
+            'COMMON': [1,3], 'UNCOMMON': [2,4], 'RARE': [3,6],
+            'EPIC': [5,8], 'LEGENDARY': [7,10], 'ARTIFACT': [9,12], 'MYTHIC': [11,15]
+        };
+        const prefix = dynamicItemPrefixes[Math.floor(Math.random() * dynamicItemPrefixes.length)];
+        const suffix = dynamicItemSuffixes[Math.floor(Math.random() * dynamicItemSuffixes.length)];
+        // Determine armorBaseName based on armorType
+        let armorBaseName = armorType.replace(/s$/, ''); // Remove 's' from end (e.g., 'helmets' -> 'helmet')
+        if (armorType === 'chestplates') armorBaseName = 'Chestplate'; // Special case
+
+        const baseArmor = armorValues[rarity] ? (armorValues[rarity][0] + Math.floor(Math.random() * (armorValues[rarity][1] - armorValues[rarity][0] + 1))) : 1;
+
+        return {
+            name: `${prefix} ${armorBaseName.charAt(0).toUpperCase() + armorBaseName.slice(1)} ${suffix}`,
+            type: itemCategories.ARMOR,
+            subType: armorType,
+            rarity: rarity,
+            armor: baseArmor,
+            slot: armorType.replace(/s$/, ''), // ADDED: Uses the singular form of armorType as the slot (e.g., 'head', 'chest')
+            effects: this.generateEffects(rarity, itemCategories.ARMOR),
+            description: `A ${rarity.toLowerCase()} ${armorBaseName.toLowerCase()} that feels ${prefix.toLowerCase()} and protective.` // ADDED default description
+        };
+    }
+
     static generateCustomMagicalDevice(rarity, deviceType = 'orbs') {
         const prefix = dynamicItemPrefixes[Math.floor(Math.random() * dynamicItemPrefixes.length)];
         const suffix = dynamicItemSuffixes[Math.floor(Math.random() * dynamicItemSuffixes.length)];
-        const deviceBaseName = deviceType.slice(0,-1);
+        const deviceBaseName = deviceType.replace(/s$/, ''); // e.g. 'wand', 'orb'
+
+        // Determine slot for magical devices
+        let slot = 'mainHand'; // Default for most wands/staves
+        if (deviceType === 'orbs' || deviceType === 'shields') { // Orbs can be off-hand, shields are off-hand
+            slot = 'offHand';
+        } else if (deviceType === 'talismans') { // Talismans are amulets
+            slot = 'amulet';
+        }
 
         return {
             name: `${prefix} ${deviceBaseName.charAt(0).toUpperCase() + deviceBaseName.slice(1)} ${suffix}`,
             type: itemCategories.MAGICAL,
             subType: deviceType,
             rarity: rarity,
+            slot: slot, // ADDED: Crucial for equipping
             effects: this.generateMagicalEffects(rarity), // Specific magical effects
             description: `A mystical ${deviceBaseName} radiating ${prefix.toLowerCase()} energy.`
         };
@@ -2850,11 +2900,13 @@ export class ItemGenerator {
     static generateCustomScroll(rarity) { // Fallback if no template matches
         const spellNameParts = ['Arcane Bolt', 'Mystic Shield', 'Shadow Veil', 'Healing Light', 'Elemental Fury', 'Summon Creature', 'Telekinetic Push', 'Chrono Stutter'];
         const spellName = spellNameParts[Math.floor(Math.random() * spellNameParts.length)];
+
         return {
             name: `Scroll of ${dynamicItemSuffixes[Math.floor(Math.random() * dynamicItemSuffixes.length)].replace('of ', '')} (${spellName})`,
             type: itemCategories.SCROLL,
             rarity: rarity,
             singleUse: true,
+            slot: null, // Scrolls are not equipped, set to null or omit if not applicable
             effects: this.generateScrollEffects(rarity), // Effects when read/cast
             spell: { type: 'utility', effect: `${spellName.toLowerCase().replace(/ /g, '_')}`, description: `Casts ${spellName}.`},
             description: `A hastily scribbled scroll detailing the incantation for ${spellName}.`
@@ -2869,6 +2921,7 @@ export class ItemGenerator {
             name: `${prefix} Tome of ${bookSubject}`,
             type: itemCategories.BOOK,
             rarity: rarity,
+            slot: null, // Books are not equipped
             effects: this.generateBookEffects(rarity),
             description: `A leather-bound book containing ${prefix.toLowerCase()} knowledge about ${bookSubject.toLowerCase()}.`
         };
@@ -2889,18 +2942,11 @@ export class ItemGenerator {
             type: itemCategories.CONSUMABLE,
             rarity: rarity,
             singleUse: true,
+            slot: null, // Consumables are not equipped
             effect: baseEffect, // Simpler effect for custom
             effects: this.generateConsumableEffects(rarity), // Can add status effect strings
             description: `A bubbling concoction with a ${potionType.toLowerCase()} aroma.`
         };
-    }
-
-    static generateTool(rarity) {
-        const toolCategories = Object.keys(itemTemplates.tools);
-        const toolType = toolCategories[Math.floor(Math.random() * toolCategories.length)];
-        const tools = itemTemplates.tools[toolType];
-        const selected = this.selectFromTemplates(tools, rarity, itemCategories.TOOL);
-        return selected || this.generateCustomTool(rarity, toolType);
     }
 
     static generateCustomTool(rarity, toolType = 'gathering') {
@@ -2911,31 +2957,17 @@ export class ItemGenerator {
             type: itemCategories.TOOL,
             subType: toolType,
             rarity: rarity,
+            slot: null, // Tools are not equipped (unless they are also weapons/armor)
             efficiency: 1 + (itemRarity[rarity]?.multiplier || 1) * 0.1,
             effects: this.generateEffects(rarity, itemCategories.TOOL),
             description: `A ${rarity.toLowerCase()} ${toolName.toLowerCase()} for various tasks.`
         };
     }
 
-    static generateJewelry(rarity) {
-        const jewelryCategories = Object.keys(itemTemplates.jewelry);
-        const jewelryType = jewelryCategories[Math.floor(Math.random() * jewelryCategories.length)];
-        const jewelries = itemTemplates.jewelry[jewelryType];
-        const selected = this.selectFromTemplates(jewelries, rarity, 'armor'); // Changed to 'armor'
-        
-        // If we got a template item, ensure it has the correct type
-        if (selected) {
-            selected.type = 'armor';
-            return selected;
-        }
-        
-        return this.generateCustomJewelry(rarity, jewelryType);
-    }
-
     static generateCustomJewelry(rarity, jewelryType = 'rings') {
         const prefix = dynamicItemPrefixes[Math.floor(Math.random() * dynamicItemPrefixes.length)];
-        const jewelryBaseName = jewelryType.slice(0,-1); // ring from rings
-        
+        const jewelryBaseName = jewelryType.replace(/s$/, ''); // ring from rings
+
         // Determine the correct slot based on jewelry type
         let slot;
         if (jewelryType === 'rings') {
@@ -2943,19 +2975,20 @@ export class ItemGenerator {
         } else if (jewelryType === 'amulets') {
             slot = 'amulet';
         } else {
-            slot = jewelryType.slice(0,-1); // fallback to singular form
+            slot = jewelryType.replace(/s$/, ''); // fallback to singular form
         }
-        
+
         return {
             name: `${prefix} ${jewelryBaseName.charAt(0).toUpperCase() + jewelryBaseName.slice(1)} ${dynamicItemSuffixes[Math.floor(Math.random() * dynamicItemSuffixes.length)]}`,
-            type: 'armor', // Changed from itemCategories.JEWELRY to 'armor'
+            type: itemCategories.JEWELRY, // Changed from itemCategories.JEWELRY to 'armor' in previous fix attempt, but jewelry should be its own type with a slot.
             subType: jewelryType,
-            slot: slot, // Added slot property
+            slot: slot, // ADDED: Crucial for equipping
             rarity: rarity,
             effects: this.generateMagicalEffects(rarity), // Jewelry often has magical effects
             description: `An ornate piece of ${jewelryBaseName.toLowerCase()} that feels ${prefix.toLowerCase()} to the touch.`
         };
     }
+
     static generateCraftingMaterial(rarity) {
         const materialCategories = Object.keys(itemTemplates.crafting);
         const materialType = materialCategories[Math.floor(Math.random() * materialCategories.length)];
@@ -3051,8 +3084,6 @@ export class ItemGenerator {
             description: `A legendary artifact of immense power, the ${baseName} ${suffix} is said to hold ${prefix.toLowerCase()} energies.`
         };
     }
-
-
     static generateGenericItem(category, rarity) {
         const prefix = dynamicItemPrefixes[Math.floor(Math.random() * dynamicItemPrefixes.length)];
         const suffix = dynamicItemSuffixes[Math.floor(Math.random() * dynamicItemSuffixes.length)];
@@ -3653,13 +3684,268 @@ export class ItemManager {
             player.inventory = [];
         }
         if (!item.id) {
-            item.id = ItemGenerator.generateItemId(); // Use generator's ID func
+            item.id = ItemGenerator.generateItemId();
         }
-        player.inventory.push(item);
-        console.log('ItemManager: Added item to inventory:', item.name, item.id);
+
+        // ADDED: Deep copy the item before pushing to inventory
+        // This creates a new, independent object that won't be affected by external references
+        const itemToAdd = JSON.parse(JSON.stringify(item)); 
+
+        player.inventory.push(itemToAdd); // Push the deep copy
+        console.log('ItemManager: Added item to inventory:', itemToAdd.name, itemToAdd.id); // Use itemToAdd for logging
         console.log('ItemManager: Current inventory length:', player.inventory.length);
         this.saveInventoryToStorage(player);
         return true;
+    }
+
+    static equipItem(player, itemIndex) { // MODIFIED: Added 'static' and 'player' parameter
+        // --- Start of Debugging Logs ---
+        console.log("--- ItemManager.equipItem called ---"); // Log is now in the static method
+        console.log("Item index:", itemIndex);
+        if (!player.inventory || !player.inventory[itemIndex]) {
+            displayMessage("Item not found in inventory at index: " + itemIndex, 'error');
+            console.error("Item not found in inventory at index:", itemIndex, "Current inventory:", JSON.stringify(player.inventory));
+            return;
+        }
+        const item = player.inventory[itemIndex];
+        console.log("Item to equip:", JSON.stringify(item, null, 2));
+        console.log("Current player.equipment state:", JSON.stringify(player.equipment, null, 2));
+        // --- End of Debugging Logs ---
+
+        if (!item.slot) {
+            displayMessage("This item cannot be equipped (no slot defined).", 'error');
+            return;
+        }
+
+        // Initialize equipment object and slots if they don't exist
+        if (!player.equipment) {
+            player.equipment = {};
+        }
+        const defaultSlots = { head: null, chest: null, hands: null, legs: null, feet: null, mainHand: null, offHand: null, amulet: null, ring1: null, ring2: null };
+        for (const slotKey in defaultSlots) {
+            if (player.equipment[slotKey] === undefined) {
+                player.equipment[slotKey] = null;
+            }
+        }
+
+        let targetSlot = item.slot; // Default targetSlot is the item's defined slot
+
+        // Special handling for rings to find an available slot or replace ring1
+        if (item.type === 'jewelry' && (item.slot === 'ring' || item.slot === 'ring1' || item.slot === 'ring2')) { // More specific check for rings
+            console.log("Processing as a ring. Item slot:", item.slot);
+            console.log("ring1 currently:", player.equipment.ring1 ? player.equipment.ring1.name : "Empty");
+            console.log("ring2 currently:", player.equipment.ring2 ? player.equipment.ring2.name : "Empty");
+
+            if (player.equipment.ring1 === null) {
+                targetSlot = 'ring1';
+                console.log("Targeting empty ring1 slot.");
+            } else if (player.equipment.ring2 === null) {
+                targetSlot = 'ring2';
+                console.log("Targeting empty ring2 slot.");
+            } else {
+                // Both slots are full, default to replacing ring1
+                targetSlot = 'ring1';
+                displayMessage("Both ring slots are full. Replacing the ring in the first slot.", "info");
+                console.log("Both ring slots full. Targeting ring1 for replacement.");
+            }
+        } else {
+            console.log(`Item is not a ring or has a specific non-ring slot. Target slot: ${targetSlot}`);
+        }
+
+        // Check if the targetSlot is valid in player.equipment
+        if (!player.equipment.hasOwnProperty(targetSlot)) {
+            displayMessage(`Cannot equip: Invalid target slot '${targetSlot}' on player equipment object.`, 'error');
+            console.error(`Invalid target slot: ${targetSlot}. Player equipment keys: ${Object.keys(player.equipment)}`);
+            return;
+        }
+
+        // Unequip existing item in the targetSlot if there is one
+        if (player.equipment[targetSlot] !== null) {
+            const oldItem = player.equipment[targetSlot];
+            if (!player.inventory) player.inventory = []; // Ensure inventory array exists
+            player.inventory.push(oldItem);
+            displayMessage(`Unequipped ${oldItem.name} from ${targetSlot}.`, 'info');
+            console.log(`Unequipped ${oldItem.name} from ${targetSlot}.`);
+        }
+
+        // Equip the new item
+        player.equipment[targetSlot] = item;
+        player.inventory.splice(itemIndex, 1); // Remove equipped item from inventory
+
+        displayMessage(`Equipped ${item.name} in ${targetSlot}!`, 'success');
+        console.log(`Equipped ${item.name} in ${targetSlot}.`);
+
+        // Apply item effects
+        if (item.effects && item.effects.length > 0) { // Check effects array has content
+            if (typeof ItemManager !== 'undefined' && typeof ItemManager.applyItemEffects === 'function') {
+                ItemManager.applyItemEffects(player, item);
+            } else if (typeof window.ItemManager !== 'undefined' && typeof window.ItemManager.applyItemEffects === 'function') {
+                window.ItemManager.applyItemEffects(player, item); // Fallback to window if needed
+            }
+        }
+
+        // Ensure updatePlayerStatsDisplay is called correctly
+        if (typeof updatePlayerStatsDisplay === 'function') { // Check global scope if not imported
+            updatePlayerStatsDisplay();
+        } else if (typeof window.updatePlayerStatsDisplay === 'function') {
+            window.updatePlayerStatsDisplay();
+        }
+
+        // Ensure displayInventory is called correctly
+        if (typeof displayInventory === 'function') { // Check global scope if not imported
+             displayInventory();
+        } else if (typeof window.displayInventory === 'function') {
+             window.displayInventory();
+        }
+    }
+
+    // Change unequipItem to a static method that accepts player and slot as arguments
+    static unequipItem(player, slot) { // MODIFIED: Added 'static' and 'player' parameter
+        if (!player.equipment[slot]) {
+            displayMessage("No item equipped in that slot.", 'error');
+            return;
+        }
+
+        const item = player.equipment[slot];
+
+        // Ensure inventory array exists
+        if (!player.inventory) {
+            player.inventory = [];
+        }
+
+        // Move item back to inventory
+        player.inventory.push(item);
+        player.equipment[slot] = null;
+
+        displayMessage(`Unequipped ${item.name}.`, 'success');
+
+        // Ensure updatePlayerStatsDisplay is called correctly
+        if (typeof updatePlayerStatsDisplay === 'function') { // Check global scope if not imported
+            updatePlayerStatsDisplay();
+        } else if (typeof window.updatePlayerStatsDisplay === 'function') {
+            window.updatePlayerStatsDisplay();
+        }
+
+        // Ensure displayInventory is called correctly
+        if (typeof displayInventory === 'function') { // Check global scope if not imported
+             displayInventory();
+        } else if (typeof window.displayInventory === 'function') {
+             window.displayInventory();
+        }
+    }
+
+    // Change useItem to a static method that accepts player and itemIndex as arguments
+    static useItem(player, itemIndex) { // MODIFIED: Added 'static' and 'player' parameter
+        if (!player.inventory || !player.inventory[itemIndex]) {
+            displayMessage("Item not found.", 'error');
+            return;
+        }
+
+        const item = player.inventory[itemIndex];
+
+        // Check if item is consumable
+        if (item.type !== 'consumable' && !item.effect) {
+            displayMessage("This item cannot be used.", 'error');
+            return;
+        }
+
+        // Apply item effects
+        let effectApplied = false;
+
+        if (item.effect) {
+            if (item.effect.type === 'heal') {
+                const healAmount = item.effect.amount || 30;
+                const oldHp = player.hp;
+                player.hp = Math.min(player.maxHp, player.hp + healAmount);
+                const actualHeal = player.hp - oldHp;
+                displayMessage(`You used ${item.name} and recovered ${actualHeal} HP.`, 'success');
+                effectApplied = true;
+            } else if (item.effect.type === 'mana') {
+                // Assuming player.mp exists for mana
+                player.mp = Math.min(player.maxMp, player.mp + (item.effect.amount || 0)); // Assuming player.mp and player.maxMp exist
+                displayMessage(`You used ${item.name} and feel your magical energy restored.`, 'success');
+                effectApplied = true;
+            } else if (window.ItemManager && typeof ItemManager.applyItemEffects === 'function') {
+                const result = ItemManager.applyItemEffects(player, item);
+                if (result.success) {
+                    displayMessage(result.message, 'success');
+                    effectApplied = true;
+                }
+            }
+        }
+
+        if (effectApplied) {
+            // Remove item from inventory after use
+            player.inventory.splice(itemIndex, 1);
+
+            // Ensure updatePlayerStatsDisplay is called correctly
+            if (typeof updatePlayerStatsDisplay === 'function') {
+                updatePlayerStatsDisplay();
+            } else if (typeof window.updatePlayerStatsDisplay === 'function') {
+                window.updatePlayerStatsDisplay();
+            }
+
+            // Ensure displayInventory is called correctly
+            if (typeof displayInventory === 'function') {
+                displayInventory();
+            } else if (typeof window.displayInventory === 'function') {
+                window.displayInventory();
+            }
+        } else {
+            displayMessage("The item has no effect.", 'info');
+        }
+    }
+
+    // Change sellItem to a static method that accepts player and itemIndex as arguments
+    static sellItem(player, itemIndex) { // MODIFIED: Added 'static' and 'player' parameter
+        if (!player.inventory || !player.inventory[itemIndex]) {
+            displayMessage("Item not found.", 'error');
+            return;
+        }
+
+        const item = player.inventory[itemIndex];
+        const sellValue = Math.floor((item.value || 10) * 0.6); // Sell for 60% of value
+
+        if (confirm(`Sell ${item.name} for ${sellValue} gold?`)) {
+            player.inventory.splice(itemIndex, 1);
+
+            // Ensure updateGold is called correctly
+            if (typeof updateGold === 'function') {
+                updateGold(sellValue, 'item sale');
+            } else if (typeof window.updateGold === 'function') {
+                window.updateGold(sellValue, 'item sale');
+            }
+            displayMessage(`Sold ${item.name} for ${sellValue} gold.`, 'success');
+
+            // Ensure displayInventory is called correctly
+            if (typeof displayInventory === 'function') {
+                displayInventory();
+            } else if (typeof window.displayInventory === 'function') {
+                window.displayInventory();
+            }
+        }
+    }
+
+    // Change dropItem to a static method that accepts player and itemIndex as arguments
+    static dropItem(player, itemIndex) { // MODIFIED: Added 'static' and 'player' parameter
+        if (!player.inventory || !player.inventory[itemIndex]) {
+            displayMessage("Item not found.", 'error');
+            return;
+        }
+
+        const item = player.inventory[itemIndex];
+
+        if (confirm(`Drop ${item.name}? This item will be lost forever.`)) {
+            player.inventory.splice(itemIndex, 1);
+            displayMessage(`Dropped ${item.name}.`, 'info');
+
+            // Ensure displayInventory is called correctly
+            if (typeof displayInventory === 'function') {
+                displayInventory();
+            } else if (typeof window.displayInventory === 'function') {
+                window.displayInventory();
+            }
+        }
     }
 
     static useItem(player, itemId) {
