@@ -3889,10 +3889,9 @@ function addExplorationContext(discovery, interactableElements = []) {
 function getExplorationContextString() {
     const playerLocation = player.currentLocation;
     const inventoryItems = player.inventory.map(item => `<span class="math-inline">\{item\.name\} \(x</span>{item.quantity})`).join(', ') || 'none';
-    const equippedWeapon = player.equipment?.mainHand?.name || 'unarmed'; // Add this line
+    const equippedWeapon = player.equipment?.mainHand?.name || 'unarmed'; // ENSURE THIS LINE IS PRESENT
     const equippedArmor = CombatSystem.calculatePlayerDefense(player); // Assuming this is defined and calculates defense from equipped armor
 
-    // Ensure relationships are initialized if not already
     if (!player.relationships) {
         player.relationships = {};
     }
@@ -3902,7 +3901,7 @@ function getExplorationContextString() {
                   `Player HP: <span class="math-inline">\{player\.hp\}/</span>{player.maxHp}. ` +
                   `Player Gold: ${player.gold}. ` +
                   `Player Inventory: ${inventoryItems}. ` +
-                  `Equipped Weapon: ${equippedWeapon}. `; // Use the new variable
+                  `Equipped Weapon: ${equippedWeapon}. `; // ENSURE THIS IS INCLUDED IN THE CONTEXT
     if (equippedArmor > 0) {
         context += `Player Armor: ${equippedArmor}. `;
     }
@@ -4545,14 +4544,12 @@ async function executeCustomCommand(command) {
 
     // If combat is active, prioritize routing combat commands to CombatSystem
     if (CombatSystem.combatState.isActive) {
-        // Check if the command is a recognized combat action
-        const isCombatAction = Object.values(CombatSystem.combatActions).some(action => lowerCommand.includes(action));
+        const combatRelevance = await CombatSystem.determineCommandCombatRelevance(lowerCommand, player, CombatSystem.combatState.currentEnemy);
 
-        if (!isCombatAction) {
+        if (combatRelevance === 'NON_COMBAT_ACTION') {
             displayMessage("You are currently in combat! You can only use combat commands like 'attack', 'defend', 'cast spell', 'use item', or 'flee'.", 'error');
             return; // Block non-combat commands
-        } else {
-            // If it is a combat action, let the CombatSystem handle it
+        } else { // combatRelevance === 'COMBAT_ACTION'
             if (await CombatSystem.handleCombatCommand(command)) {
                 return; // Command handled by CombatSystem
             }

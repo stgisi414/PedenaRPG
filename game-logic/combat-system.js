@@ -1,5 +1,6 @@
 // Text-Based Combat System with Gemini AI Integration
 export class CombatSystem {
+    
     static combatState = {
         isActive: false,
         currentEnemy: null,
@@ -59,7 +60,7 @@ export class CombatSystem {
         }
 
         // Make the combat interface visible
-        if (typeof window.showScreen === 'function') {
+        /* if (typeof window.showScreen === 'function') {
             window.showScreen('combat-interface'); // <--- UNCOMMENT THIS LINE
         } else {
             console.error("CombatSystem: window.showScreen is not defined. Cannot show combat interface.");
@@ -68,7 +69,7 @@ export class CombatSystem {
             if (combatInterfaceElement) {
                 combatInterfaceElement.classList.remove('hidden');
             }
-        }
+        } */
 
         await this.generateCombatEnvironment(playerInstance, enemy, environment);
         if (window.player) {
@@ -975,4 +976,38 @@ If no enemy is mentioned, suggest an appropriate one for the location.
             };
         }
     }
+
+    static async determineCommandCombatRelevance(command, player, enemy) {
+        const prompt = `
+        Analyze the following command in the context of an active combat situation:
+        Command: "${command}"
+        Player: ${player.name} (HP: ${player.hp}/${player.maxHp}, Equipped: ${player.equipment?.mainHand?.name || 'unarmed'})
+        Enemy: ${enemy.name} (HP: ${enemy.currentHp}/${enemy.maxHp})
+
+        Is this command a valid combat action (e.g., 'attack', 'defend', 'cast spell', 'use item', 'special ability', 'flee', 'examine enemy', 'tactical move') or a non-combat action (e.g., 'travel', 'talk', 'explore', 'pray', 'rest')?
+
+        Respond with ONLY one of the following exact strings:
+        'COMBAT_ACTION'
+        'NON_COMBAT_ACTION'
+        `;
+
+        try {
+            const response = await window.callGeminiAPI(prompt, 0.2, 50, false); // Lower temperature for direct classification
+            const cleanedResponse = response.trim().toUpperCase();
+            if (cleanedResponse === 'COMBAT_ACTION' || cleanedResponse === 'NON_COMBAT_ACTION') {
+                return cleanedResponse;
+            }
+            console.warn(`CombatSystem: Gemini returned unexpected classification: ${response}. Defaulting to NON_COMBAT_ACTION.`);
+            return 'NON_COMBAT_ACTION'; // Fallback
+        } catch (error) {
+            console.error('Error determining command combat relevance with Gemini:', error);
+            // Fallback to a safe default if Gemini call fails
+            const lowerCommand = command.toLowerCase();
+            if (lowerCommand.includes('attack') || lowerCommand.includes('defend') || lowerCommand.includes('cast') || lowerCommand.includes('spell') || lowerCommand.includes('use') || lowerCommand.includes('item') || lowerCommand.includes('ability') || lowerCommand.includes('flee') || lowerCommand.includes('examine') || lowerCommand.includes('move')) {
+                return 'COMBAT_ACTION';
+            }
+            return 'NON_COMBAT_ACTION';
+        }
+    }
+    
 }
