@@ -203,7 +203,7 @@ Focus on terrain, lighting, and immediate surroundings that could affect the fig
         }
     }
     
-    async processPlayerAction(currentPlayer, enemy, actionType, command) {
+    static async processPlayerAction(currentPlayer, enemy, actionType, command) {
         if (!this.combatState.isActive) return;
 
         const actualPlayer = this.getPlayerReference();
@@ -927,7 +927,7 @@ If no enemy is mentioned, suggest an appropriate one for the location.
         }
 
         // FIX: Explicitly call CombatSystem.processPlayerAction instead of this.processPlayerAction
-        await this.processPlayerAction(actualPlayer, enemy, actionType, command);
+        await CombatSystem.processPlayerAction(actualPlayer, enemy, actionType, command);
         return true;
     }
 
