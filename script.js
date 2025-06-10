@@ -4498,17 +4498,13 @@ async function executeCustomCommand(command) {
 
     // NEW: If combat is active, prioritize routing combat commands to CombatSystem
     if (CombatSystem.combatState.isActive) {
-        const combatKeywords = ['attack', 'fight', 'battle', 'strike', 'hit', 'slash', 'stab', 'shoot', 'cast', 'spell', 'magic', 'defend', 'block', 'parry', 'dodge', 'use item', 'flee', 'run', 'escape', 'examine', 'look at'];
-
-        // Check if command is clearly a combat action
-        if (combatKeywords.some(keyword => lowerCommand.includes(keyword))) {
-            console.log("CombatSystem: Routing command directly to handleCombatCommand because combat is active.");
-            await CombatSystem.handleCombatCommand(command); // Pass the raw command for parsing within CombatSystem
-            return; // Exit here, preventing duplicate action analysis
-        }
-        // If combat is active but the command isn't a combat keyword, it's ambiguous.
-        // Let it fall through to GameActions.analyzeCommand, which will handle non-combat actions in combat.
-        // For example, typing "check inventory" during combat.
+        // If combat is active, route all commands through the combat system handler.
+        // The handleCombatCommand will decide if it's a valid combat action or a "pass"
+        // and ensure the turn progresses correctly.
+        console.log("Routing command through CombatSystem.handleCombatCommand as combat is active.");
+        await CombatSystem.handleCombatCommand(command);
+        // After processing by CombatSystem, we assume the turn has progressed or combat state has changed.
+        return; // Exit to prevent further processing by the main game loop.
     }
 
     // NEW: If combat is NOT active but the command is 'attack', initiate combat
