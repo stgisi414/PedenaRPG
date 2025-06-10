@@ -706,7 +706,8 @@ function updateGold(amount, reason = '') {
     saveGame();
 }
 
-function displayMessage(message, type = 'info') {
+function 
+    displayMessage(message, type = 'info') {
     const p = document.createElement('p');
     p.classList.add('mb-2', 'pb-1', 'border-b', 'border-amber-700/50');
 
@@ -1358,7 +1359,6 @@ async function generateCombatEncounter() {
         displayMessage(enemyEncounter.narrative, 'combat');
         console.log(`[SCRIPT.JS] Before calling initiateCombat: HP=<span class="math-inline">${player.hp}/${player.maxHp}</span>`);
         await CombatSystem.initiateCombat(player, enemyEncounter.enemy, player.currentLocation);
-        CombatSystem.displayCombatInterface(enemyEncounter.enemy); // <-- ADD THIS LINE HERE
     } else {
         // Fallback to basic encounter if AI fails
         displayMessage("⚔️ A hostile creature blocks your path!", 'combat');
@@ -1375,7 +1375,6 @@ async function generateCombatEncounter() {
         };
 
         await CombatSystem.initiateCombat(player, basicEnemy, player.currentLocation);
-        CombatSystem.displayCombatInterface(enemyEncounter.enemy); // <-- ADD THIS LINE HERE
 
     }
 }
@@ -4486,7 +4485,8 @@ function createPlaceholderPortrait(name, charClass, level = 1) { // Accept param
 
 // Execute custom commands
 // In script.js, replace your entire executeCustomCommand function with this one.
-// In script.js, find executeCustomCommand and replace it with this one.
+// In script.js, inside the executeCustomCommand function:
+
 async function executeCustomCommand(command) {
     if (!command.trim()) return;
 
@@ -4511,6 +4511,13 @@ async function executeCustomCommand(command) {
         // For example, typing "check inventory" during combat.
     }
 
+    // NEW: If combat is NOT active but the command is 'attack', initiate combat
+    if (lowerCommand.includes('attack') || lowerCommand.includes('fight') || lowerCommand.includes('strike')) {
+        console.log("Player is attempting to attack outside of active combat. Initiating a new combat encounter.");
+        await generateCombatEncounter(); // Force a combat encounter
+        return; // Exit after initiating combat
+    }
+
     // Check for movement commands
     const movementPatterns = [
         /(?:go|travel|move|head|walk|run)\s+(?:to\s+)?(.+)/i,
@@ -4533,7 +4540,6 @@ async function executeCustomCommand(command) {
     if (basicMovementMatch && destination) {
         destination = destination.replace(/^(the|a|an)\s+/i, '').trim();
         destination = destination.replace(/\s+(and|then|,).*$/i, '').trim();
-
         await handleStructuredMovement(command, destination);
         return;
     }
@@ -4576,7 +4582,6 @@ async function executeCustomCommand(command) {
     if (lowerCommand.startsWith('cast ') || lowerCommand.startsWith('spell ')) {
         const spellNameExtracted = lowerCommand.replace(/^(cast|spell)\s+/i, '').trim();
 
-        // Get actual known spells and cantrips
         const knownSpells = player.classProgression?.knownSpells || [];
         const knownCantrips = player.classProgression?.knownCantrips || [];
         const allKnownSpells = [...new Set([...knownSpells, ...knownCantrips])];
@@ -4591,10 +4596,9 @@ async function executeCustomCommand(command) {
         if (!matchedSpell) {
             displayMessage(`You do not know the spell "${spellNameExtracted}". Class: ${player.classProgression.class}, Level: ${player.level}`, 'error');
             displayMessage("If this seems wrong, try using the Reset Progression button.", 'info');
-            return; // Stop processing if spell is not known
+            return;
         }
 
-        // If spell is known, proceed to cast it (similar to button's behavior)
         displayMessage(`You focus your magical energy and cast ${matchedSpell}...`, 'info');
         const spellDef = spellDefinitions[matchedSpell];
 
@@ -4602,19 +4606,16 @@ async function executeCustomCommand(command) {
             displayMessage(`${spellDef.description}`, 'success');
             await applySpellEffects(matchedSpell, spellDef);
         } else {
-            // Fallback for missing spell definition (should be rare now)
             displayMessage(`The spell ${matchedSpell} fizzles due to an unknown effect.`, 'error');
         }
         addToConversationHistory('user', `cast ${matchedSpell}`);
         saveConversationHistory();
         debouncedSave();
-        return; // Stop processing after casting a known spell
+        return;
     }
 
 
-    // ... (rest of executeCustomCommand, starting from the general AI processing block)
-
-    // For all other commands, use general AI processing with exploration context
+    // For all other commands (if combat is NOT active and not handled by specific actions), use general AI processing
     const explorationContext = getExplorationContextString();
 
     const contextPrompt = `
@@ -4632,13 +4633,143 @@ IMPORTANT: If the player is trying to interact with something from recent explor
         if (response) {
             displayMessage(response, 'info');
             addToConversationHistory('assistant', response);
-
-            // ... (rest of the general AI response processing, which is already there) ...
-
-            // Save conversation history and game state
             saveConversationHistory();
-            console.log("saving game");
             debouncedSave();
+            await checkNPCMentionsAndAdd(response, command, player);
+        } else {
+            displayMessage("Nothing interesting happens.", 'info');
+        }
+    } catch (error) {
+        console.error("Error processing command:", error);
+        displayMessage("You attempt your action, but nothing notable occurs.", 'info');
+    }
+
+    // Automatic scenery image generation after N inputs if mode is active
+    if (isIllustrationModeActive && player.portraitUrl && player.portraitUrl.trim() !== '' && userInputCounterForImage > 0 && userInputCounterForImage % 7 === 0) {
+        displayMessage("7 user inputs reached. Auto-generating new scenery image...", "info");
+        await generateAndDisplaySceneryImage();
+    }
+}
+
+    // --- Original non-combat command processing (if combat is NOT active at start) ---
+
+    // Check for movement commands
+    const movementPatterns = [
+        /(?:go|travel|move|head|walk|run)\s+(?:to\s+)?(.+)/i,
+        /(?:visit|enter)\s+(?:the\s+)?(.+)/i,
+        /(?:leave|exit)\s+(?:the\s+)?(.+?)(?:\s+(?:and|then)\s+(?:go|head)\s+(?:to\s+)?(.+))?/i
+    ];
+
+    let basicMovementMatch = false;
+    let destination = null;
+
+    for (const pattern of movementPatterns) {
+        const match = command.match(pattern);
+        if (match) {
+            basicMovementMatch = true;
+            destination = match[2] || match[1];
+            break;
+        }
+    }
+
+    if (basicMovementMatch && destination) {
+        destination = destination.replace(/^(the|a|an)\s+/i, '').trim();
+        destination = destination.replace(/\s+(and|then|,).*$/i, '').trim();
+        await handleStructuredMovement(command, destination);
+        return;
+    }
+
+    // Handle "pay X gold" command directly
+    const payMatch = command.match(/^(?:pay|give)\s+(\d+)\s+gold(?:\s+to\s+(.+))?/i);
+    if (payMatch) {
+        const amount = parseInt(payMatch[1], 10);
+        const recipient = payMatch[2] ? payMatch[2].trim() : null;
+
+        if (isNaN(amount) || amount <= 0) {
+            displayMessage("Please specify a valid amount of gold to pay.", "error");
+            return;
+        }
+
+        if (player.gold < amount) {
+            displayMessage(`You only have ${player.gold} gold, which is not enough to pay ${amount} gold.`, "error");
+            return;
+        }
+
+        updateGold(-amount, recipient ? `payment to ${recipient}` : 'payment');
+        displayMessage(`You paid ${amount} gold${recipient ? ` to ${recipient}` : ''}. Your remaining gold is ${player.gold}.`, "success");
+
+        if (recipient) {
+            await handleSpecificNPCInteraction(recipient);
+        } else {
+            const paymentResponsePrompt = `The player, ${player.name}, just paid ${amount} gold without a specific recipient. What general effect does this have on the immediate environment or situation? (1-2 sentences)`;
+            const aiResponse = await callGeminiAPI(paymentResponsePrompt, 0.7, 100, true);
+            if (aiResponse) {
+                displayMessage(aiResponse, 'info');
+                addToConversationHistory('assistant', aiResponse);
+                await checkNPCMentionsAndAdd(aiResponse, command, player);
+            }
+        }
+        debouncedSave();
+        return;
+    }
+
+    // NEW: Handle 'cast spell' commands
+    if (lowerCommand.startsWith('cast ') || lowerCommand.startsWith('spell ')) {
+        const spellNameExtracted = lowerCommand.replace(/^(cast|spell)\s+/i, '').trim();
+
+        const knownSpells = player.classProgression?.knownSpells || [];
+        const knownCantrips = player.classProgression?.knownCantrips || [];
+        const allKnownSpells = [...new Set([...knownSpells, ...knownCantrips])];
+
+        const matchedSpell = allKnownSpells.find(s => s.toLowerCase() === spellNameExtracted.toLowerCase());
+
+        if (!player.classProgression || (!knownSpells.length && !knownCantrips.length)) {
+             displayMessage("You are not a spellcaster or don't know any spells.", 'error');
+             return;
+        }
+
+        if (!matchedSpell) {
+            displayMessage(`You do not know the spell "${spellNameExtracted}". Class: ${player.classProgression.class}, Level: ${player.level}`, 'error');
+            displayMessage("If this seems wrong, try using the Reset Progression button.", 'info');
+            return;
+        }
+
+        displayMessage(`You focus your magical energy and cast ${matchedSpell}...`, 'info');
+        const spellDef = spellDefinitions[matchedSpell];
+
+        if (spellDef) {
+            displayMessage(`${spellDef.description}`, 'success');
+            await applySpellEffects(matchedSpell, spellDef);
+        } else {
+            displayMessage(`The spell ${matchedSpell} fizzles due to an unknown effect.`, 'error');
+        }
+        addToConversationHistory('user', `cast ${matchedSpell}`);
+        saveConversationHistory();
+        debouncedSave();
+        return;
+    }
+
+    // For all other commands (if combat is NOT active), use general AI processing
+    const explorationContext = getExplorationContextString();
+
+    const contextPrompt = `
+${player.name} (${player.class}, Level ${player.level}) in ${player.currentLocation} says: "${command}"
+
+Current status: HP ${player.hp}/${player.maxHp}, Gold ${player.gold}${explorationContext}
+
+Respond as a Dungeon Master. Describe what happens in 1-3 sentences. Be engaging and appropriate for a fantasy RPG.
+
+IMPORTANT: If the player is trying to interact with something from recent exploration (box, altar, runes, etc.), acknowledge and respond to that interaction based on the exploration context above.
+`;
+
+    try {
+        const response = await callGeminiAPI(contextPrompt, 0.7, 300, true);
+        if (response) {
+            displayMessage(response, 'info');
+            addToConversationHistory('assistant', response);
+            saveConversationHistory();
+            debouncedSave();
+            await checkNPCMentionsAndAdd(response, command, player);
         } else {
             displayMessage("Nothing interesting happens.", 'info');
         }

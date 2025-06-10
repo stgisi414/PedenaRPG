@@ -57,6 +57,19 @@ export class CombatSystem {
         if (window.player) {
             console.log(`[CS_INIT] BEFORE await generateCombatEnvironment: window.player (global) HP: <span class="math-inline">${window.player.hp}/${window.player.maxHp}</span>`);
         }
+
+        // Make the combat interface visible
+        if (typeof window.showScreen === 'function') {
+            window.showScreen('combat-interface'); // <--- ADD THIS LINE
+        } else {
+            console.error("CombatSystem: window.showScreen is not defined. Cannot show combat interface.");
+            // Fallback for direct DOM manipulation if showScreen is not available
+            const combatInterfaceElement = document.getElementById('combat-interface');
+            if (combatInterfaceElement) {
+                combatInterfaceElement.classList.remove('hidden');
+            }
+        }
+        
         await this.generateCombatEnvironment(playerInstance, enemy, environment);
         if (window.player) {
             // THIS IS THE CRITICAL CHECK:
@@ -149,9 +162,8 @@ Focus on terrain, lighting, and immediate surroundings that could affect the fig
                 if (player) { // Check if the 'player' parameter to this function is valid
                      console.log(`[COMBATSYSTEM.JS] displayCombatStart FALLBACK using passed 'player' param: HP=${player.hp}/${player.maxHp}`);
                      if (typeof window.displayMessage === 'function') {
-                        // Potentially display using 'player.hp' if actualPlayer is not found.
-                        // This depends on whether 'player' passed here is guaranteed to be up-to-date.
-                         window.displayMessage(`<span class="math-inline">${playerToDisplay.name} (${playerToDisplay.hp}/${playerToDisplay.maxHp} HP)</span> vs <span class="math-inline">${enemy.name} (${enemy.currentHp}/${enemy.maxHp} HP)`, 'combat</span>');
+                        // Corrected line: Use 'player' (the parameter) directly in the fallback
+                         window.displayMessage(`<span class="math-inline">\{player\.name\} \(</span>{player.hp}/${player.maxHp} HP) vs <span class="math-inline">\{enemy\.name\} \(</span>{enemy.currentHp}/${enemy.maxHp} HP)`, 'combat'); // Corrected line
 
                          if (typeof window.updatePlayerStatsDisplay === 'function') {
                              // updatePlayerStatsDisplay in script.js will use window.player.
@@ -164,7 +176,7 @@ Focus on terrain, lighting, and immediate surroundings that could affect the fig
                 }
                 return;
             }
-            console.log(`[COMBATSYSTEM.JS] displayCombatStart using actualPlayer (from getPlayerReference): HP=${actualPlayer.hp}/${actualPlayer.maxHp}`);
+            console.log(`[CS_DISPLAY_START] using actualPlayer (from getPlayerReference): HP=${actualPlayer.hp}/${actualPlayer.maxHp}`);
 
             if (typeof window.displayMessage === 'function') {
                 window.displayMessage("⚔️ COMBAT BEGINS!", 'combat');
