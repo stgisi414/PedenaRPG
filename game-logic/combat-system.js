@@ -59,7 +59,7 @@ export class CombatSystem {
         }
 
         // Make the combat interface visible
-        if (typeof window.showScreen === 'function') {
+        /* if (typeof window.showScreen === 'function') {
             window.showScreen('combat-interface'); // <--- ADD THIS LINE
         } else {
             console.error("CombatSystem: window.showScreen is not defined. Cannot show combat interface.");
@@ -68,7 +68,7 @@ export class CombatSystem {
             if (combatInterfaceElement) {
                 combatInterfaceElement.classList.remove('hidden');
             }
-        }
+        } */
 
         await this.generateCombatEnvironment(playerInstance, enemy, environment);
         if (window.player) {
@@ -926,6 +926,7 @@ If no enemy is mentioned, suggest an appropriate one for the location.
             actionType = this.combatActions.EXAMINE;
         }
 
+        // FIX: Explicitly call CombatSystem.processPlayerAction instead of this.processPlayerAction
         await this.processPlayerAction(actualPlayer, enemy, actionType, command);
         return true;
     }
@@ -974,9 +975,4 @@ If no enemy is mentioned, suggest an appropriate one for the location.
             };
         }
     }
-}
-
-// Make CombatSystem globally available
-if (typeof window !== 'undefined') {
-    window.CombatSystem = CombatSystem;
 }

@@ -495,11 +495,6 @@ const showInventoryBtn = document.getElementById('show-inventory-btn');
 const showShopBtn = document.getElementById('show-shop-btn');
 const showBackgroundBtn = document.getElementById('show-background-btn');
 
-const combatInterface = document.getElementById('combat-interface');
-const enemyInfoDisplay = document.getElementById('enemy-info');
-const attackBtn = document.getElementById('attack-btn');
-const fleeBtn = document.getElementById('flee-btn');
-
 const shopInterface = document.getElementById('shop-interface');
 const shopItemsDisplay = document.getElementById('shop-items');
 const exitShopBtn = document.getElementById('exit-shop-btn');
@@ -745,7 +740,7 @@ function updatePlayerStatsDisplay() {
 }
 
 function showScreen(screenId) {
-    const screens = [startScreen, characterCreationScreen, gamePlayScreen, combatInterface, shopInterface, inventoryInterface, skillsInterface, questInterface];
+    const screens = [startScreen, characterCreationScreen, gamePlayScreen, shopInterface, inventoryInterface, skillsInterface, questInterface];
     screens.forEach(screen => {
         if (screen.id === screenId) {
             screen.classList.remove('hidden');
@@ -756,7 +751,7 @@ function showScreen(screenId) {
 }
 
 function hideScreen(screenId) {
-    const screens = [startScreen, characterCreationScreen, gamePlayScreen, combatInterface, shopInterface, inventoryInterface, skillsInterface, questInterface, backgroundInterface, document.getElementById('progression-interface')];
+    const screens = [startScreen, characterCreationScreen, gamePlayScreen, shopInterface, inventoryInterface, skillsInterface, questInterface, backgroundInterface, document.getElementById('progression-interface')];
     screens.forEach(screen => {
         if (screen.id === screenId) {
             screen.classList.add('hidden');
@@ -1376,6 +1371,33 @@ async function generateCombatEncounter() {
 
         await CombatSystem.initiateCombat(player, basicEnemy, player.currentLocation);
 
+    }
+}
+
+async function generateCombatEncounterFromAI(suggestedEnemyType) {
+    displayMessage("⚔️ A hostile creature blocks your path!", 'combat');
+
+    // Use Gemini to generate a specific enemy based on the suggested type
+    const enemyEncounter = await CombatSystem.generateSpecificEnemyEncounter(suggestedEnemyType || "hostile creature", player);
+
+    if (enemyEncounter) {
+        displayMessage(enemyEncounter.narrative, 'combat');
+        console.log(`[SCRIPT.JS] Before calling initiateCombat with AI-suggested enemy: HP=${player.hp}/${player.maxHp}`);
+        await CombatSystem.initiateCombat(player, enemyEncounter.enemy, player.currentLocation);
+    } else {
+        // Fallback to basic encounter if AI fails to generate a specific enemy
+        console.log("Fallback: AI failed to generate specific enemy based on suggestion. Using generic hostile creature.");
+        const basicEnemy = {
+            name: suggestedEnemyType || 'Hostile Creature', // Use suggested name if it's generic enough
+            hp: 20 + (player.level * 3),
+            maxHp: 20 + (player.level * 3),
+            currentHp: 20 + (player.level * 3),
+            attack: 8 + (player.level * 1.333),
+            defense: 1 + (player.level * 0.75),
+            level: Math.max(1, player.level - Math.floor(Math.random() * 3) - 1),
+            type: 'Beast'
+        };
+        await CombatSystem.initiateCombat(player, basicEnemy, player.currentLocation);
     }
 }
 
@@ -3333,7 +3355,6 @@ function displayCharacterProgression() {
     inventoryInterface.classList.add('hidden');
     shopInterface.classList.add('hidden');
     questInterface.classList.add('hidden');
-    combatInterface.classList.add('hidden');
     backgroundInterface.classList.add('hidden');
 
     // Use the existing progression interface from HTML
@@ -3694,7 +3715,7 @@ async function showShop() {
     }
 
     // Hide other interfaces
-    const interfaces = ['combat-interface', 'inventory-interface', 'skills-interface', 'quest-interface', 'background-interface', 'progression-interface'];
+    const interfaces = ['inventory-interface', 'skills-interface', 'quest-interface', 'background-interface', 'progression-interface'];
     interfaces.forEach(id => {
         const element = document.getElementById(id);
         if (element) element.classList.add('hidden');
@@ -4487,6 +4508,10 @@ function createPlaceholderPortrait(name, charClass, level = 1) { // Accept param
 // In script.js, replace your entire executeCustomCommand function with this one.
 // In script.js, inside the executeCustomCommand function:
 
+// script.js
+
+// ... (other functions before executeCustomCommand) ...
+
 async function executeCustomCommand(command) {
     if (!command.trim()) return;
 
@@ -4494,27 +4519,73 @@ async function executeCustomCommand(command) {
     displayMessage(`> ${command}`, 'info');
     addToConversationHistory('user', command);
 
-    const lowerCommand = command.toLowerCase().trim(); // Define lowerCommand here
+    const lowerCommand = command.toLowerCase().trim();
 
-    // NEW: If combat is active, prioritize routing combat commands to CombatSystem
+    // If combat is active, prioritize routing combat commands to CombatSystem
     if (CombatSystem.combatState.isActive) {
-        // If combat is active, route all commands through the combat system handler.
-        // The handleCombatCommand will decide if it's a valid combat action or a "pass"
-        // and ensure the turn progresses correctly.
         console.log("Routing command through CombatSystem.handleCombatCommand as combat is active.");
         await CombatSystem.handleCombatCommand(command);
-        // After processing by CombatSystem, we assume the turn has progressed or combat state has changed.
-        return; // Exit to prevent further processing by the main game loop.
+        return;
     }
 
-    // NEW: If combat is NOT active but the command is 'attack', initiate combat
-    if (lowerCommand.includes('attack') || lowerCommand.includes('fight') || lowerCommand.includes('strike')) {
-        console.log("Player is attempting to attack outside of active combat. Initiating a new combat encounter.");
-        await generateCombatEncounter(); // Force a combat encounter
-        return; // Exit after initiating combat
-    }
+    // NEW GEMINI-POWERED COMBAT INITIATION LOGIC
+    const commandAnalysisPrompt = `
+Analyze the player's command to determine if it should initiate a combat encounter.
 
-    // Check for movement commands
+PLAYER CONTEXT:
+- Name: ${player.name}
+- Class: ${player.class}
+- Level: ${player.level}
+- Current Location: ${player.currentLocation}
+
+PLAYER COMMAND: "${command}"
+
+RULES:
+- If the command explicitly or implicitly indicates an attack, fight, or direct hostile action (e.g., "attack bandits", "fight the wolf", "kill the monster", "strike at enemy", "hit goblin"), set "initiateCombat" to true.
+- If "initiateCombat" is true, suggest a plausible "enemyType" for the encounter (e.g., "bandit", "wolf", "goblin"). Leave "enemyType" empty if no specific enemy is implied by the command.
+- If the command is a social action, movement, or general exploration that does NOT directly lead to combat, set "initiateCombat" to false.
+
+Respond with ONLY valid JSON in this exact format:
+{
+    "initiateCombat": true/false,
+    "enemyType": "Optional: Suggested enemy type (e.g., 'bandit', 'wolf', 'goblin') if combat is initiated. Leave empty if no specific enemy is implied."
+}
+`;
+
+    try {
+        const combatAnalysisResponse = await window.callGeminiAPI(commandAnalysisPrompt, 0.2, 100, false);
+        const cleanResponse = combatAnalysisResponse.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+        const jsonMatch = cleanResponse.match(/\{[\s\S]*\}/);
+
+        let combatAnalysis;
+        if (jsonMatch) {
+            combatAnalysis = JSON.parse(jsonMatch[0]);
+        } else {
+            throw new Error("No valid JSON structure found in AI response for combat analysis.");
+        }
+
+
+        if (combatAnalysis.initiateCombat) {
+            displayMessage("Player's command suggests combat. Initiating encounter...", 'combat');
+            // Use the suggested enemyType if available, otherwise generate a random one.
+            const enemyType = combatAnalysis.enemyType || "hostile creature";
+            await generateCombatEncounterFromAI(enemyType); // Call the new helper function
+            return;
+        }
+    } catch (error) {
+        console.error("Error during Gemini combat analysis:", error);
+        // Fallback: If AI analysis fails, still check for direct combat keywords
+        // This keeps a basic functionality if the AI call fails or returns unexpected format.
+        if (lowerCommand.includes('attack') || lowerCommand.includes('fight') || lowerCommand.includes('strike') || lowerCommand.includes('hit')) {
+            console.log("Fallback: Direct combat keywords detected. Initiating generic combat encounter.");
+            await generateCombatEncounter(); // Fallback to existing direct encounter function
+            return;
+        }
+    }
+    // END NEW GEMINI-POWERED COMBAT INITIATION LOGIC
+
+
+    // Check for movement commands (existing logic, keep this as is)
     const movementPatterns = [
         /(?:go|travel|move|head|walk|run)\s+(?:to\s+)?(.+)/i,
         /(?:visit|enter)\s+(?:the\s+)?(.+)/i,
@@ -4540,7 +4611,7 @@ async function executeCustomCommand(command) {
         return;
     }
 
-    // Handle "pay X gold" command directly
+    // Handle "pay X gold" command directly (existing logic, keep this as is)
     const payMatch = command.match(/^(?:pay|give)\s+(\d+)\s+gold(?:\s+to\s+(.+))?/i);
     if (payMatch) {
         const amount = parseInt(payMatch[1], 10);
@@ -4563,7 +4634,7 @@ async function executeCustomCommand(command) {
             await handleSpecificNPCInteraction(recipient);
         } else {
             const paymentResponsePrompt = `The player, ${player.name}, just paid ${amount} gold without a specific recipient. What general effect does this have on the immediate environment or situation? (1-2 sentences)`;
-            const aiResponse = await callGeminiAPI(paymentResponsePrompt, 0.7, 100, true);
+            const aiResponse = await window.callGeminiAPI(paymentResponsePrompt, 0.7, 100, true);
             if (aiResponse) {
                 displayMessage(aiResponse, 'info');
                 addToConversationHistory('assistant', aiResponse);
@@ -4574,7 +4645,7 @@ async function executeCustomCommand(command) {
         return;
     }
 
-    // NEW: Handle 'cast spell' commands
+    // Handle 'cast spell' commands (existing logic, keep this as is)
     if (lowerCommand.startsWith('cast ') || lowerCommand.startsWith('spell ')) {
         const spellNameExtracted = lowerCommand.replace(/^(cast|spell)\s+/i, '').trim();
 
@@ -4610,8 +4681,7 @@ async function executeCustomCommand(command) {
         return;
     }
 
-
-    // For all other commands (if combat is NOT active and not handled by specific actions), use general AI processing
+    // For all other commands, use general AI processing (existing logic, keep this as is)
     const explorationContext = getExplorationContextString();
 
     const contextPrompt = `
@@ -4625,7 +4695,7 @@ IMPORTANT: If the player is trying to interact with something from recent explor
 `;
 
     try {
-        const response = await callGeminiAPI(contextPrompt, 0.7, 300, true);
+        const response = await window.callGeminiAPI(contextPrompt, 0.7, 300, true);
         if (response) {
             displayMessage(response, 'info');
             addToConversationHistory('assistant', response);
@@ -4640,141 +4710,7 @@ IMPORTANT: If the player is trying to interact with something from recent explor
         displayMessage("You attempt your action, but nothing notable occurs.", 'info');
     }
 
-    // Automatic scenery image generation after N inputs if mode is active
-    if (isIllustrationModeActive && player.portraitUrl && player.portraitUrl.trim() !== '' && userInputCounterForImage > 0 && userInputCounterForImage % 7 === 0) {
-        displayMessage("7 user inputs reached. Auto-generating new scenery image...", "info");
-        await generateAndDisplaySceneryImage();
-    }
-}
-
-    // --- Original non-combat command processing (if combat is NOT active at start) ---
-
-    // Check for movement commands
-    const movementPatterns = [
-        /(?:go|travel|move|head|walk|run)\s+(?:to\s+)?(.+)/i,
-        /(?:visit|enter)\s+(?:the\s+)?(.+)/i,
-        /(?:leave|exit)\s+(?:the\s+)?(.+?)(?:\s+(?:and|then)\s+(?:go|head)\s+(?:to\s+)?(.+))?/i
-    ];
-
-    let basicMovementMatch = false;
-    let destination = null;
-
-    for (const pattern of movementPatterns) {
-        const match = command.match(pattern);
-        if (match) {
-            basicMovementMatch = true;
-            destination = match[2] || match[1];
-            break;
-        }
-    }
-
-    if (basicMovementMatch && destination) {
-        destination = destination.replace(/^(the|a|an)\s+/i, '').trim();
-        destination = destination.replace(/\s+(and|then|,).*$/i, '').trim();
-        await handleStructuredMovement(command, destination);
-        return;
-    }
-
-    // Handle "pay X gold" command directly
-    const payMatch = command.match(/^(?:pay|give)\s+(\d+)\s+gold(?:\s+to\s+(.+))?/i);
-    if (payMatch) {
-        const amount = parseInt(payMatch[1], 10);
-        const recipient = payMatch[2] ? payMatch[2].trim() : null;
-
-        if (isNaN(amount) || amount <= 0) {
-            displayMessage("Please specify a valid amount of gold to pay.", "error");
-            return;
-        }
-
-        if (player.gold < amount) {
-            displayMessage(`You only have ${player.gold} gold, which is not enough to pay ${amount} gold.`, "error");
-            return;
-        }
-
-        updateGold(-amount, recipient ? `payment to ${recipient}` : 'payment');
-        displayMessage(`You paid ${amount} gold${recipient ? ` to ${recipient}` : ''}. Your remaining gold is ${player.gold}.`, "success");
-
-        if (recipient) {
-            await handleSpecificNPCInteraction(recipient);
-        } else {
-            const paymentResponsePrompt = `The player, ${player.name}, just paid ${amount} gold without a specific recipient. What general effect does this have on the immediate environment or situation? (1-2 sentences)`;
-            const aiResponse = await callGeminiAPI(paymentResponsePrompt, 0.7, 100, true);
-            if (aiResponse) {
-                displayMessage(aiResponse, 'info');
-                addToConversationHistory('assistant', aiResponse);
-                await checkNPCMentionsAndAdd(aiResponse, command, player);
-            }
-        }
-        debouncedSave();
-        return;
-    }
-
-    // NEW: Handle 'cast spell' commands
-    if (lowerCommand.startsWith('cast ') || lowerCommand.startsWith('spell ')) {
-        const spellNameExtracted = lowerCommand.replace(/^(cast|spell)\s+/i, '').trim();
-
-        const knownSpells = player.classProgression?.knownSpells || [];
-        const knownCantrips = player.classProgression?.knownCantrips || [];
-        const allKnownSpells = [...new Set([...knownSpells, ...knownCantrips])];
-
-        const matchedSpell = allKnownSpells.find(s => s.toLowerCase() === spellNameExtracted.toLowerCase());
-
-        if (!player.classProgression || (!knownSpells.length && !knownCantrips.length)) {
-             displayMessage("You are not a spellcaster or don't know any spells.", 'error');
-             return;
-        }
-
-        if (!matchedSpell) {
-            displayMessage(`You do not know the spell "${spellNameExtracted}". Class: ${player.classProgression.class}, Level: ${player.level}`, 'error');
-            displayMessage("If this seems wrong, try using the Reset Progression button.", 'info');
-            return;
-        }
-
-        displayMessage(`You focus your magical energy and cast ${matchedSpell}...`, 'info');
-        const spellDef = spellDefinitions[matchedSpell];
-
-        if (spellDef) {
-            displayMessage(`${spellDef.description}`, 'success');
-            await applySpellEffects(matchedSpell, spellDef);
-        } else {
-            displayMessage(`The spell ${matchedSpell} fizzles due to an unknown effect.`, 'error');
-        }
-        addToConversationHistory('user', `cast ${matchedSpell}`);
-        saveConversationHistory();
-        debouncedSave();
-        return;
-    }
-
-    // For all other commands (if combat is NOT active), use general AI processing
-    const explorationContext = getExplorationContextString();
-
-    const contextPrompt = `
-${player.name} (${player.class}, Level ${player.level}) in ${player.currentLocation} says: "${command}"
-
-Current status: HP ${player.hp}/${player.maxHp}, Gold ${player.gold}${explorationContext}
-
-Respond as a Dungeon Master. Describe what happens in 1-3 sentences. Be engaging and appropriate for a fantasy RPG.
-
-IMPORTANT: If the player is trying to interact with something from recent exploration (box, altar, runes, etc.), acknowledge and respond to that interaction based on the exploration context above.
-`;
-
-    try {
-        const response = await callGeminiAPI(contextPrompt, 0.7, 300, true);
-        if (response) {
-            displayMessage(response, 'info');
-            addToConversationHistory('assistant', response);
-            saveConversationHistory();
-            debouncedSave();
-            await checkNPCMentionsAndAdd(response, command, player);
-        } else {
-            displayMessage("Nothing interesting happens.", 'info');
-        }
-    } catch (error) {
-        console.error("Error processing command:", error);
-        displayMessage("You attempt your action, but nothing notable occurs.", 'info');
-    }
-
-    // Automatic scenery image generation after N inputs if mode is active
+    // Automatic scenery image generation after N inputs if mode is active (existing logic, keep this as is)
     if (isIllustrationModeActive && player.portraitUrl && player.portraitUrl.trim() !== '' && userInputCounterForImage > 0 && userInputCounterForImage % 7 === 0) {
         displayMessage("7 user inputs reached. Auto-generating new scenery image...", "info");
         await generateAndDisplaySceneryImage();
@@ -5206,7 +5142,7 @@ document.addEventListener('DOMContentLoaded', () => {
     window.itemRarity = itemRarity;
     window.TransactionMiddleware = TransactionMiddleware;
     window.ItemExchangeMiddleware = ItemExchangeMiddleware;
-    window.CombatSystem = CombatSystem;
+    //window.CombatSystem = CombatSystem;
     window.AlignmentSystem = AlignmentSystem;
     window.player = player; // Make player globally accessible
     window.partyManager = partyManager;
@@ -5686,17 +5622,6 @@ function addMainEventListeners() {
             saveGame();
         });
 
-        // Combat buttons
-        attackBtn?.addEventListener('click', () => {
-            console.log('Attack button clicked');
-            playerAttack();
-        });
-
-        fleeBtn?.addEventListener('click', () => {
-            console.log('Flee button clicked');
-            fleeCombat();
-        });
-
         // Interface buttons
         showInventoryBtn?.addEventListener('click', () => {
             console.log('Show inventory button clicked');
@@ -5892,7 +5817,7 @@ function createCharacter() {
 
 function displayInventory() {
     // Hide other interfaces
-    const interfacesToHide = ['shop-interface', 'skills-interface', 'quest-interface', 'combat-interface', 'background-interface', 'progression-interface'];
+    const interfacesToHide = ['shop-interface', 'skills-interface', 'quest-interface', 'background-interface', 'progression-interface'];
     interfacesToHide.forEach(id => {
         const element = document.getElementById(id);
         if (element) element.classList.add('hidden');
@@ -6684,7 +6609,7 @@ async function generateCharacterPortraitOld() {
 
 function displayCharacterBackground() {
     // Hide other interfaces
-    const interfacesToHide = ['combat-interface', 'shop-interface', 'inventory-interface', 'skills-interface', 'quest-interface', 'progression-interface'];
+    const interfacesToHide = [ 'shop-interface', 'inventory-interface', 'skills-interface', 'quest-interface', 'progression-interface'];
     interfacesToHide.forEach(id => {
         const element = document.getElementById(id);
         if (element) element.classList.add('hidden');
