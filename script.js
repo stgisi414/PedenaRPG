@@ -4567,19 +4567,17 @@ Respond with ONLY valid JSON in this exact format:
 
         if (combatAnalysis.initiateCombat) {
             displayMessage("Player's command suggests combat. Initiating encounter...", 'combat');
-            // Use the suggested enemyType if available, otherwise generate a random one.
             const enemyType = combatAnalysis.enemyType || "hostile creature";
-            await generateCombatEncounterFromAI(enemyType); // Call the new helper function
-            return;
+            await generateCombatEncounterFromAI(enemyType);
+            return; // Exit here if combat initiated successfully
         }
     } catch (error) {
         console.error("Error during Gemini combat analysis:", error);
         // Fallback: If AI analysis fails, still check for direct combat keywords
-        // This keeps a basic functionality if the AI call fails or returns unexpected format.
         if (lowerCommand.includes('attack') || lowerCommand.includes('fight') || lowerCommand.includes('strike') || lowerCommand.includes('hit')) {
             console.log("Fallback: Direct combat keywords detected. Initiating generic combat encounter.");
-            await generateCombatEncounter(); // Fallback to existing direct encounter function
-            return;
+            await generateCombatEncounter();
+            return; // **ADD THIS LINE** - Exit here if fallback combat initiated
         }
     }
     // END NEW GEMINI-POWERED COMBAT INITIATION LOGIC
