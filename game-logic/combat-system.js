@@ -724,8 +724,8 @@ Make the enemy fight courageously and only flee when facing certain death with c
                 window.updateGold(goldReward, 'combat victory');
             }
 
-            if (typeof window.CharacterManager !== 'undefined' && window.CharacterManager.gainExperience) {
-                window.CharacterManager.gainExperience(player, xpReward);
+            if (typeof window.gainExperience === 'function') {
+                window.gainExperience(xpReward);
             }
 
             if (typeof window.checkQuestCompletion === 'function') {

@@ -460,13 +460,16 @@ export class CharacterManager {
             classProgression: player.classProgression,
             level: player.level,
             maxHp: player.maxHp,
-            stats: player.stats
+            stats: player.stats,
+            exp: player.exp, // ADDED: Save current experience
+            expToNextLevel: player.expToNextLevel // ADDED: Save XP needed for next level
         };
         
         localStorage.setItem(`progression_${player.name}`, JSON.stringify(progressionData));
         console.log('Character progression saved');
     }
     
+    // Modify CharacterManager.loadProgression to load XP fields:
     static loadProgression(player) {
         const savedData = localStorage.getItem(`progression_${player.name}`);
         if (savedData) {
@@ -475,6 +478,8 @@ export class CharacterManager {
             player.level = progressionData.level;
             player.maxHp = progressionData.maxHp;
             player.stats = { ...player.stats, ...progressionData.stats };
+            //player.exp = progressionData.exp || 0; // ADDED: Load current experience, with fallback for older saves
+            //player.expToNextLevel = progressionData.expToNextLevel || 100; // ADDED: Load XP to next level, with fallback
             console.log('Character progression loaded');
             return true;
         }

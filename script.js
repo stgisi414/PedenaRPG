@@ -2192,6 +2192,7 @@ function gainExperience(amount) {
     if (!amount || amount <= 0) return;
 
     player.exp = (player.exp || 0) + amount;
+    console.log(`[script.js] gainExperience: Player XP after update: ${player.exp}`);
 
     // Check for level up
     while (player.exp >= player.expToNextLevel) {
@@ -2200,6 +2201,7 @@ function gainExperience(amount) {
         player.maxHp += 10; // Basic HP increase
         player.hp = player.maxHp; // Full heal on level up
         player.expToNextLevel = Math.floor(player.expToNextLevel * 1.5); // Increase XP needed
+        console.log(`[script.js] gainExperience: Player leveled up to ${player.level}. New XP: ${player.exp}, New XP to Next: ${player.expToNextLevel}`);
 
         // Apply class progression if available
         if (window.CharacterManager && typeof CharacterManager.levelUp === 'function') {
@@ -2208,6 +2210,28 @@ function gainExperience(amount) {
     }
 
     updatePlayerStatsDisplay();
+
+    // NEW: Refresh progression and background displays if they are open
+    const progressionInterface = document.getElementById('progression-interface');
+    if (progressionInterface && !progressionInterface.classList.contains('hidden')) {
+        // Ensure latest data is loaded before displaying (as already implemented in button handler)
+        if (player && player.name) {
+            CharacterManager.loadProgression(player);
+        }
+        displayCharacterProgression();
+    }
+
+    const backgroundInterface = document.getElementById('background-interface');
+    if (backgroundInterface && !backgroundInterface.classList.contains('hidden')) {
+        // Ensure latest data is loaded before displaying (as already implemented in button handler)
+        if (player && player.name) {
+            CharacterManager.loadProgression(player);
+        }
+        displayCharacterBackground();
+    }
+
+    // Also call saveGame explicitly after XP gain, if not already handled by calling functions (combat/quest)
+    saveGame();
 }
 
 // Legacy playerAttack function - now handled by CombatSystem.playerAction()
@@ -5070,6 +5094,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Add event listeners for progression and quest buttons
     document.getElementById('show-progression-btn')?.addEventListener('click', () => {
+        if (player && player.name) {
+            CharacterManager.loadProgression(player); // Load the latest progression data
+        }
         displayCharacterProgression();
     });
 
@@ -5196,6 +5223,7 @@ document.addEventListener('DOMContentLoaded', () => {
     window.debugInventory = debugInventory;
     window.fixInventory = fixInventory;
     window.pray = pray;
+    window.gainExperience = gainExperience;
 
 
     // <<< --- ADD INVENTORY EVENT LISTENER HERE --- >>>
@@ -5662,6 +5690,9 @@ function addMainEventListeners() {
 
         showBackgroundBtn?.addEventListener('click', () => {
             console.log('Show background button clicked');
+            if (player && player.name) {
+                CharacterManager.loadProgression(player); // Load the latest progression data
+            }
             displayCharacterBackground();
         });
 
