@@ -14,6 +14,7 @@ import { AlignmentSystem } from './game-logic/alignment-system.js';
 import { PartyManager } from './game-logic/party-manager.js';
 import { MultiCombatSystem } from './game-logic/multi-combat-system.js';
 import { RelationshipMiddleware } from './game-logic/relationship-middleware.js';
+import { HelpSystem } from './game-logic/help-system.js';
 
 const GEMINI_API_KEY = 'AIzaSyDIFeql6HUpkZ8JJlr_kuN0WDFHUyOhijA'; // Replace with your actual Gemini API Key
 const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key=${GEMINI_API_KEY}`;
@@ -4642,6 +4643,32 @@ Respond with ONLY valid JSON in this exact format:
     // END NEW GEMINI-POWERED COMBAT INITIATION LOGIC
 
 
+    // Handle help commands
+    const helpMatch = lowerCommand.match(/^help(?:\s+(.+))?$/);
+    if (helpMatch) {
+        const helpTopic = helpMatch[1] ? helpMatch[1].trim() : null;
+        const helpText = HelpSystem.getHelp(helpTopic);
+        displayMessage(helpText, 'info');
+        addToConversationHistory('assistant', helpText);
+        return;
+    }
+
+    // Handle modules command
+    if (lowerCommand === 'modules' || lowerCommand === 'module list' || lowerCommand === 'show modules') {
+        const modulesText = HelpSystem.getModulesHelp();
+        displayMessage(modulesText, 'info');
+        addToConversationHistory('assistant', modulesText);
+        return;
+    }
+
+    // Handle quick reference command
+    if (lowerCommand === 'quickref' || lowerCommand === 'quick reference' || lowerCommand === 'commands') {
+        const quickRef = HelpSystem.getQuickReference();
+        displayMessage(quickRef, 'info');
+        addToConversationHistory('assistant', quickRef);
+        return;
+    }
+
     // Check for movement commands (existing logic, keep this as is)
     const movementPatterns = [
         /(?:go|travel|move|head|walk|run)\s+(?:to\s+)?(.+)/i,
@@ -5186,6 +5213,12 @@ document.addEventListener('DOMContentLoaded', () => {
         pray();
     });
 
+    document.getElementById('help-btn')?.addEventListener('click', () => {
+        const helpText = HelpSystem.getHelp();
+        displayMessage(helpText, 'info');
+        addToConversationHistory('assistant', helpText);
+    });
+
     // Add event listeners for progression and quest buttons
     document.getElementById('show-progression-btn')?.addEventListener('click', () => {
         if (player && player.name) {
@@ -5299,6 +5332,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Make other functions globally accessible if needed by other parts of the code or for debugging
     window.LocationManager = typeof LocationManager !== 'undefined' ? LocationManager : {};
     window.GameActions = typeof GameActions !== 'undefined' ? GameActions : {};
+    window.HelpSystem = HelpSystem;
     window.debugInventory = typeof debugInventory !== 'undefined' ? debugInventory : function() { /* ... */ };
     window.fixInventory = typeof fixInventory !== 'undefined' ? fixInventory : function() { /* ... */ };
     window.resetCharacterProgression = typeof resetCharacterProgression !== 'undefined' ? resetCharacterProgression : function() { /* ... */ };
