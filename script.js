@@ -7140,7 +7140,7 @@ const settingsBtn = document.createElement('button');
 settingsBtn.id = 'settings-btn';
 settingsBtn.className = 'btn-parchment bg-gray-600 hover:bg-gray-700 text-white text-xs md:text-sm py-1 px-2';
 settingsBtn.style.cssText = `position: fixed; top: 10px; right: 10px; z-index: 40;`;
-settingsBtn.innerHTML = '<i class="ra ra-gears mr-1"></i><span class="hidden sm:inline">Settings</span><span class="sm:hidden">⚙️</span>';
+settingsBtn.innerHTML = '<span class="hidden sm:inline">Settings</span><span class="sm:hidden">⚙️ Settings</span>';
 settingsBtn.title = 'Open Game Settings';
 
 // 2. Find the container inside the modal where the action buttons will go
@@ -7173,24 +7173,68 @@ if (settingsActionsContainer) {
 }
 
 // 5. Add ALL event listeners inside DOMContentLoaded to ensure elements exist
+// --- REFINED SETTINGS MODAL LOGIC ---
 document.addEventListener('DOMContentLoaded', () => {
+    // Load existing settings first
     loadSettings();
 
+    // Find modal elements
     const modal = document.getElementById('settings-modal');
     const closeBtn = document.getElementById('settings-modal-close-btn');
     const modelSelect = document.getElementById('gemini-model-select');
     const apiKeyInput = document.getElementById('gemini-api-key-input');
+    const settingsActionsContainer = document.getElementById('settings-actions-container');
 
-    // Modal visibility listeners
-    settingsBtn.addEventListener('click', () => modal.classList.toggle('hidden'));
+    // Create action buttons FOR THE MODAL LOCALLY to avoid conflicts
+    const removePortraitBtn = document.createElement('button');
+    removePortraitBtn.className = 'btn-parchment bg-red-600 hover:bg-red-700 text-white w-full';
+    removePortraitBtn.innerHTML = '<i class="ra ra-cancel mr-2"></i>Remove Portrait';
+
+    const resetProgressionBtn = document.createElement('button');
+    resetProgressionBtn.className = 'btn-parchment bg-orange-600 hover:bg-orange-700 text-white w-full';
+    resetProgressionBtn.innerHTML = '<i class="ra ra-recycle mr-2"></i>Reset Progression';
+
+    const illustrationToggleBtn = document.createElement('button');
+    illustrationToggleBtn.title = 'Toggle illustration mode for scenery images';
+
+    const richTextToggleBtn = document.createElement('button');
+    richTextToggleBtn.id = 'rich-text-toggle'; // Keep original ID for other functions
+    richTextToggleBtn.title = 'Toggle rich text styling for game messages';
+
+    // Append action buttons to their container in the modal
+    if (settingsActionsContainer) {
+        settingsActionsContainer.innerHTML = ''; // Clear container to prevent duplicates on hot reload
+        settingsActionsContainer.appendChild(removePortraitBtn);
+        settingsActionsContainer.appendChild(resetProgressionBtn);
+        settingsActionsContainer.appendChild(illustrationToggleBtn);
+        settingsActionsContainer.appendChild(richTextToggleBtn);
+    }
+
+    // --- Helper functions to keep button UI in sync ---
+    const updateIllustrationButton = () => {
+        if (isIllustrationModeActive) {
+            illustrationToggleBtn.innerHTML = '🖼️ Illustration Mode: ON';
+            illustrationToggleBtn.className = 'btn-parchment bg-green-600 hover:bg-green-700 text-white w-full';
+        } else {
+            illustrationToggleBtn.innerHTML = '🖼️ Illustration Mode: OFF';
+            illustrationToggleBtn.className = 'btn-parchment bg-indigo-600 hover:bg-indigo-700 text-white w-full';
+        }
+    };
+
+    // Use the existing global `updateRichTextToggle` function, but ensure it targets the correct button if needed.
+    // The original `updateRichTextToggle` uses `getElementById`, which is fine as we've kept the ID.
+
+    // --- Initialize button states on load ---
+    updateIllustrationButton();
+    updateRichTextToggle(); // This will find and update the richTextToggleBtn by its ID
+
+    // --- Add Event Listeners ---
+    settingsBtn.addEventListener('click', () => modal.classList.remove('hidden'));
     closeBtn.addEventListener('click', () => modal.classList.add('hidden'));
     modal.addEventListener('click', (e) => {
-        if (e.target === modal) {
-            modal.classList.add('hidden');
-        }
+        if (e.target === modal) modal.classList.add('hidden');
     });
 
-    // API settings listeners
     modelSelect.addEventListener('change', (e) => {
         gameSettings.model = e.target.value;
         saveSettings();
@@ -7200,7 +7244,6 @@ document.addEventListener('DOMContentLoaded', () => {
         saveSettings();
     });
 
-    // --- CORRECTED Action Button Listeners ---
     removePortraitBtn.addEventListener('click', () => {
         removeCharacterPortrait();
         modal.classList.add('hidden');
@@ -7211,32 +7254,24 @@ document.addEventListener('DOMContentLoaded', () => {
         modal.classList.add('hidden');
     });
 
-    illustrationToggle.addEventListener('click', async () => {
-        isIllustrationModeActive = !isIllustrationModeActive;
+    richTextToggleBtn.addEventListener('click', () => {
+        toggleRichText(); // This global function handles the logic and calls updateRichTextToggle
+    });
 
-        if (isIllustrationModeActive) {
+    illustrationToggleBtn.addEventListener('click', async () => {
+        if (!isIllustrationModeActive) {
             if (player && player.portraitUrl && player.portraitUrl.trim() !== '') {
-                illustrationToggle.innerHTML = '🖼️<span class="hidden sm:inline"> Illustration Mode: ON</span><span class="sm:hidden"> ON</span>';
-                illustrationToggle.className = 'btn-parchment bg-green-600 hover:bg-green-700 text-white text-xs md:text-sm py-1 px-2';
+                isIllustrationModeActive = true;
+                displayMessage("Illustration Mode Activated.", "info");
+                updateIllustrationButton();
                 await generateAndDisplaySceneryImage();
             } else {
                 displayMessage("Cannot activate Illustration Mode without a character portrait.", "error");
-                isIllustrationModeActive = false;
-                illustrationToggle.innerHTML = '🖼️<span class="hidden sm:inline"> Illustration Mode</span><span class="sm:hidden"> Illus</span>';
-                illustrationToggle.className = 'btn-parchment bg-indigo-600 hover:bg-indigo-700 text-white text-xs md:text-sm py-1 px-2';
             }
         } else {
-            illustrationToggle.innerHTML = '🖼️<span class="hidden sm:inline"> Illustration Mode</span><span class="sm:hidden"> Illus</span>';
-            illustrationToggle.className = 'btn-parchment bg-indigo-600 hover:bg-indigo-700 text-white text-xs md:text-sm py-1 px-2';
+            isIllustrationModeActive = false;
             displayMessage("Illustration Mode Deactivated.", "info");
+            updateIllustrationButton();
         }
-    });.
-
-    richTextToggle.addEventListener('click', () => {
-        toggleRichText(); // Your existing function already handles this correctly.
     });
-
-    // Initialize button text on page load
-    updateRichTextToggle();
-    illustrationToggle.innerHTML = `🖼️ Illustration Mode: ${isIllustrationModeActive ? 'ON' : 'OFF'}`;
 });
