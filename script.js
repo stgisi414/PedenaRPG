@@ -169,7 +169,10 @@ function autoFixStatsInStorage() {
 let gameWorld = {
     npcs: new Map(), // location -> array of NPCs
     locationMemory: new Map(), // location -> description cache
-    lastNPCInteraction: null
+    lastNPCInteraction: null,
+    // --- ADD THE NEXT TWO LINES ---
+    time: new Date(864, 5, 12, 8, 0, 0), // Default game start time
+    activeEvents: []
 };
 
 // Conversation History System for AI Context
@@ -4565,11 +4568,11 @@ function createMasterPrompt(command) {
     };
 
     const worldState = {
-        timeOfDay: world.time.toTimeString().split(' ')[0], // <-- NEW: e.g., "09:30:00"
-        day: world.time.toDateString(), // <-- NEW: e.g., "Tue Jun 11 2025"
+        timeOfDay: gameWorld.time.toTimeString().split(' ')[0], // Changed 'world' to 'gameWorld'
+        day: gameWorld.time.toDateString(), // Changed 'world' to 'gameWorld'
         nearbyNPCs: getNPCsInLocation(player.currentLocation).map(npc => npc.name),
         locationDescription: gameWorld.locationMemory.get(player.currentLocation) || `A place known as ${player.currentLocation}.`,
-        activeWorldEvents: world.activeEvents.map(e => e.details), // <-- NEW: List of ongoing world events
+        activeWorldEvents: gameWorld.activeEvents.map(e => e.details), // Changed 'world' to 'gameWorld'
         recentConversation: getConversationContext().slice(-1000)
     };
 
