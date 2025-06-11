@@ -4789,18 +4789,6 @@ IMPORTANT: If the player is trying to interact with something from recent explor
 
 // Add this function. Make sure it's not defined inside any other function.
 // This function will now be the one called by executeCustomCommand after every AI response.
-Of course, I can help you with that. It seems like a classic case of the game's narrative getting out of sync with the actual game state. When the AI describes finding an item like the "gleaming silver rapier," the game's code needs to understand that description and actually create the item and place it in your character's inventory.
-
-Here are the fixes to resolve this issue and make your game run more smoothly. The primary fix involves updating script.js to parse the AI's responses for items. I've also included a proactive fix for game-logic/character-manager.js to prevent similar issues with initial equipment assignment.
-
-1. Primary Fix: Automatically Adding Items from Narrative
-The core of the problem is that when the game's narrative mentions you've found an item, there's no mechanism to add it to your inventory. We'll add a new function to script.js that parses the AI's response and a few new lines to call it.
-
-Step 1: Add the Item Parsing Function
-Add the following new function to your script.js file. A good place for it is right after the checkNPCMentionsAndAdd function. This function will be responsible for finding item mentions in the AI's narrative and adding them to the player's inventory.
-
-JavaScript
-
 // In script.js
 
 async function checkAndAddItemsFromResponse(aiResponse) {
