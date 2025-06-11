@@ -57,7 +57,8 @@ let player = {
         offHand: null,
         amulet: null,
         ring1: null,
-        ring2: null
+        ring2: null,
+        back: null
     },
     skills: [],
     abilities: [],
@@ -6044,7 +6045,8 @@ function buildEquipmentDisplay() {
             offHand: null,
             amulet: null,
             ring1: null,
-            ring2: null
+            ring2: null,
+            back: null // Ensure this is initialized if not already
         };
     }
 
@@ -6056,6 +6058,7 @@ function buildEquipmentDisplay() {
         { slot: 'hands', name: 'Hands', icon: 'ra-gauntlet' },
         { slot: 'legs', name: 'Legs', icon: '👖' },
         { slot: 'feet', name: 'Feet', icon: 'ra-boots' },
+        { slot: 'back', name: 'Back', icon: 'ra-cape' }, // ADDED: New entry for the 'back' slot
         { slot: 'amulet', name: 'Amulet', icon: 'ra-gem' },
         { slot: 'ring1', name: 'Ring 1', icon: 'ra-ring' },
         { slot: 'ring2', name: 'Ring 2', icon: 'ra-ring' }
@@ -6096,19 +6099,19 @@ function buildEquipmentDisplay() {
                 <div class="parchment-box p-2 flex items-center gap-3 w-full">
                     <div class="flex-shrink-0">
                         ${isEmoji ?
-                    `<span class="text-xl text-green-600">${iconClass}</span>` :
-                    `<i class="ra ${iconClass} text-xl text-green-600"></i>`
-                }
+                            `<span class="text-xl text-green-600">${iconClass}</span>` :
+                            `<i class="ra ${iconClass} text-xl text-green-600"></i>`
+                        }
                     </div>
                     <div class="flex-grow">
                         <h6 class="font-bold text-sm">${slotData.name}</h6>
                         <p class="text-xs text-green-700 font-semibold">${item.name}</p>
                         ${combatStats.length > 0 ?
-                    `<div class="text-xs text-blue-600 mt-1">
+                            `<div class="text-xs text-blue-600 mt-1">
                                 ${combatStats.map(stat => `<span class="block">${stat}</span>`).join('')}
                             </div>` :
-                    '<p class="text-xs text-gray-500 italic">No combat bonuses</p>'
-                }
+                            '<p class="text-xs text-gray-500 italic">No combat bonuses</p>'
+                        }
                     </div>
                     <button class="btn-parchment inventory-action-btn text-xs py-1 px-2 flex-shrink-0" data-action="unequip" data-slot="${slotData.slot}" style="color: #8B4513 !important;">
                         Unequip
@@ -6120,9 +6123,9 @@ function buildEquipmentDisplay() {
                 <div class="parchment-box p-2 flex items-center gap-3 w-full border-dashed border-gray-400">
                     <div class="flex-shrink-0">
                         ${isEmoji ?
-                    `<span class="text-xl text-gray-400">${iconClass}</span>` :
-                    `<i class="ra ${iconClass} text-xl text-gray-400"></i>`
-                }
+                            `<span class="text-xl text-gray-400">${iconClass}</span>` :
+                            `<i class="ra ${iconClass} text-xl text-gray-400"></i>`
+                        }
                     </div>
                     <div class="flex-grow">
                         <h6 class="font-bold text-sm text-gray-500">${slotData.name}</h6>

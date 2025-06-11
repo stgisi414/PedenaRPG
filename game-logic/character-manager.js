@@ -39,9 +39,11 @@ export class CharacterManager {
         return player;
     }
 
-    static assignInitialEquipment(player) {
-        console.log(`Assigning initial equipment for ${player.name} (${player.class}).`);
-        const { ItemGenerator, ItemManager, itemCategories } = window; // Access globally exposed modules
+    static async assignInitialEquipment(player) {
+        
+        console.log(`Assigning initial equipment for <span class="math-inline">\{player\.name\} \(</span>{player.class}).`);
+        console.log(`[DEBUG_ASSIGN_EQUIP] Player Class: ${player.class}`); // NEW LOG
+        const { ItemGenerator, ItemManager, itemCategories } = window;
 
         if (!ItemGenerator || !ItemManager || !itemCategories) {
             console.error("ItemManager or ItemGenerator not available for initial equipment assignment.");
@@ -52,8 +54,8 @@ export class CharacterManager {
         const addAndEquip = async (category, rarity, subType = null) => { // Made async because generateItem is async
             const item = await ItemGenerator.generateItem({ category, rarity, subType }); // AWAIT the async call
             if (item) {
-                console.log("[DEBUG] assignInitialEquipment - item before addItemToInventory:", JSON.stringify(item, null, 2)); // ADDED DEBUG LOG
-                const itemToPass = JSON.parse(JSON.stringify(item)); // ADDED DEEP COPY BEFORE PASSING
+                console.log("[DEBUG] assignInitialEquipment - item before addItemToInventory:", JSON.stringify(item, null, 2));
+                const itemToPass = JSON.parse(JSON.stringify(item)); // Deep copy before passing
 
                 ItemManager.addItemToInventory(player, itemToPass);
                 ItemManager.equipItem(player, player.inventory.length - 1);
@@ -63,84 +65,99 @@ export class CharacterManager {
             }
         };
 
-        // Note: You need to `await` the calls to `addAndEquip` as well, as it now uses async `generateItem`
         switch (player.class.toLowerCase()) {
             case 'warrior':
             case 'gladiator':
             case 'barbarian':
             case 'brawler':
-                addAndEquip(itemCategories.WEAPON, 'COMMON', 'swords');
-                addAndEquip(itemCategories.ARMOR, 'COMMON', 'shields');
-                addAndEquip(itemCategories.ARMOR, 'COMMON', 'chestplates');
-                addAndEquip(itemCategories.ARMOR, 'COMMON', 'helmets');
-                addAndEquip(itemCategories.ARMOR, 'COMMON', 'leggings');
-                addAndEquip(itemCategories.ARMOR, 'COMMON', 'boots');
+                console.log(`[DEBUG_ASSIGN_EQUIP] Processing ${player.class} equipment assignments.`);
+                await addAndEquip(itemCategories.WEAPON, 'COMMON', 'swords');
+                await addAndEquip(itemCategories.ARMOR, 'COMMON', 'shields');
+                await addAndEquip(itemCategories.ARMOR, 'COMMON', 'chestplates');
+                await addAndEquip(itemCategories.ARMOR, 'COMMON', 'helmets');
+                await addAndEquip(itemCategories.ARMOR, 'COMMON', 'leggings');
+                await addAndEquip(itemCategories.ARMOR, 'COMMON', 'boots');
+                await addAndEquip(itemCategories.ARMOR, 'COMMON', 'gauntlets');
                 break;
             case 'paladin':
             case 'knight':
-                addAndEquip(itemCategories.WEAPON, 'COMMON', 'swords');
-                addAndEquip(itemCategories.ARMOR, 'COMMON', 'shields');
-                addAndEquip(itemCategories.ARMOR, 'COMMON', 'chestplates');
-                addAndEquip(itemCategories.ARMOR, 'COMMON', 'helmets');
-                addAndEquip(itemCategories.ARMOR, 'COMMON', 'leggings');
-                addAndEquip(itemCategories.ARMOR, 'COMMON', 'boots');
+                console.log(`[DEBUG_ASSIGN_EQUIP] Processing ${player.class} equipment assignments.`);
+                await addAndEquip(itemCategories.WEAPON, 'COMMON', 'swords');
+                await addAndEquip(itemCategories.ARMOR, 'COMMON', 'shields');
+                await addAndEquip(itemCategories.ARMOR, 'COMMON', 'chestplates');
+                await addAndEquip(itemCategories.ARMOR, 'COMMON', 'helmets');
+                await addAndEquip(itemCategories.ARMOR, 'COMMON', 'leggings');
+                await addAndEquip(itemCategories.ARMOR, 'COMMON', 'boots');
+                await addAndEquip(itemCategories.ARMOR, 'COMMON', 'gauntlets');
                 break;
             case 'mage':
             case 'sorcerer':
             case 'warlock':
-            case 'necromancer': // This is the class you're testing
+            case 'necromancer':
             case 'illusionist':
             case 'psychic':
-                addAndEquip(itemCategories.WEAPON, 'COMMON', 'staves');
-                addAndEquip(itemCategories.ARMOR, 'COMMON', 'cloaks');
-                addAndEquip(itemCategories.ARMOR, 'COMMON', 'chestplates');
-                addAndEquip(itemCategories.ARMOR, 'COMMON', 'leggings');
-                addAndEquip(itemCategories.ARMOR, 'COMMON', 'boots');
+                console.log(`[DEBUG_ASSIGN_EQUIP] Processing ${player.class} equipment assignments.`);
+                await addAndEquip(itemCategories.WEAPON, 'COMMON', 'staves');
+                await addAndEquip(itemCategories.ARMOR, 'COMMON', 'cloaks');
+                await addAndEquip(itemCategories.ARMOR, 'COMMON', 'chestplates');
+                await addAndEquip(itemCategories.ARMOR, 'COMMON', 'leggings');
+                await addAndEquip(itemCategories.ARMOR, 'COMMON', 'boots');
+                await addAndEquip(itemCategories.ARMOR, 'COMMON', 'sleeves');
                 break;
             case 'rogue':
             case 'assassin':
             case 'thief':
             case 'smuggler':
-                addAndEquip(itemCategories.WEAPON, 'COMMON', 'daggers');
-                addAndEquip(itemCategories.WEAPON, 'COMMON', 'daggers'); // Secondary Dagger
-                addAndEquip(itemCategories.ARMOR, 'COMMON', 'chestplates');
-                addAndEquip(itemCategories.ARMOR, 'COMMON', 'leggings');
-                addAndEquip(itemCategories.ARMOR, 'COMMON', 'boots');
+                console.log(`[DEBUG_ASSIGN_EQUIP] Processing ${player.class} equipment assignments.`);
+                await addAndEquip(itemCategories.WEAPON, 'COMMON', 'daggers');
+                await addAndEquip(itemCategories.WEAPON, 'COMMON', 'daggers'); // Secondary Dagger
+                await addAndEquip(itemCategories.ARMOR, 'COMMON', 'chestplates');
+                await addAndEquip(itemCategories.ARMOR, 'COMMON', 'leggings');
+                await addAndEquip(itemCategories.ARMOR, 'COMMON', 'boots');
+                await addAndEquip(itemCategories.ARMOR, 'COMMON', 'sleeves');
                 break;
             case 'ranger':
             case 'hunter':
             case 'outlander':
-                addAndEquip(itemCategories.WEAPON, 'COMMON', 'bows');
-                addAndEquip(itemCategories.ARMOR, 'COMMON', 'chestplates');
-                addAndEquip(itemCategories.ARMOR, 'COMMON', 'leggings');
-                addAndEquip(itemCategories.ARMOR, 'COMMON', 'boots');
+                console.log(`[DEBUG_ASSIGN_EQUIP] Processing ${player.class} equipment assignments.`);
+                await addAndEquip(itemCategories.WEAPON, 'COMMON', 'bows');
+                await addAndEquip(itemCategories.ARMOR, 'COMMON', 'chestplates');
+                await addAndEquip(itemCategories.ARMOR, 'COMMON', 'leggings');
+                await addAndEquip(itemCategories.ARMOR, 'COMMON', 'boots');
+                await addAndEquip(itemCategories.ARMOR, 'COMMON', 'sleeves');
                 break;
             case 'cleric':
             case 'druid':
             case 'shaman':
             case 'acolyte':
             case 'pilgrim':
-                addAndEquip(itemCategories.WEAPON, 'COMMON', 'maces');
-                addAndEquip(itemCategories.ARMOR, 'COMMON', 'shields');
-                addAndEquip(itemCategories.ARMOR, 'COMMON', 'chestplates');
-                addAndEquip(itemCategories.ARMOR, 'COMMON', 'leggings');
-                addAndEquip(itemCategories.ARMOR, 'COMMON', 'boots');
+                console.log(`[DEBUG_ASSIGN_EQUIP] Processing ${player.class} equipment assignments.`);
+                await addAndEquip(itemCategories.WEAPON, 'COMMON', 'maces');
+                await addAndEquip(itemCategories.ARMOR, 'COMMON', 'shields');
+                await addAndEquip(itemCategories.ARMOR, 'COMMON', 'chestplates');
+                await addAndEquip(itemCategories.ARMOR, 'COMMON', 'leggings');
+                await addAndEquip(itemCategories.ARMOR, 'COMMON', 'boots');
+                await addAndEquip(itemCategories.ARMOR, 'COMMON', 'sleeves');
                 break;
             case 'bard':
             case 'entertainer':
-                addAndEquip(itemCategories.WEAPON, 'COMMON', 'daggers');
-                addAndEquip(itemCategories.ARMOR, 'COMMON', 'cloaks');
-                addAndEquip(itemCategories.ARMOR, 'COMMON', 'chestplates');
-                addAndEquip(itemCategories.ARMOR, 'COMMON', 'leggings');
-                addAndEquip(itemCategories.ARMOR, 'COMMON', 'boots');
+                console.log(`[DEBUG_ASSIGN_EQUIP] Processing ${player.class} equipment assignments.`);
+                await addAndEquip(itemCategories.WEAPON, 'COMMON', 'daggers');
+                await addAndEquip(itemCategories.ARMOR, 'COMMON', 'cloaks');
+                await addAndEquip(itemCategories.ARMOR, 'COMMON', 'chestplates');
+                await addAndEquip(itemCategories.ARMOR, 'COMMON', 'leggings');
+                await addAndEquip(itemCategories.ARMOR, 'COMMON', 'boots');
+                await addAndEquip(itemCategories.ARMOR, 'COMMON', 'sleeves');
                 break;
             case 'monk':
             case 'ninja':
-                addAndEquip(itemCategories.WEAPON, 'COMMON', 'fistWeapons');
-                addAndEquip(itemCategories.ARMOR, 'COMMON', 'cloaks');
-                addAndEquip(itemCategories.ARMOR, 'COMMON', 'chestplates');
-                addAndEquip(itemCategories.ARMOR, 'COMMON', 'leggings');
-                addAndEquip(itemCategories.ARMOR, 'COMMON', 'boots');
+                console.log(`[DEBUG_ASSIGN_EQUIP] Processing ${player.class} equipment assignments.`);
+                await addAndEquip(itemCategories.WEAPON, 'COMMON', 'fistWeapons');
+                await addAndEquip(itemCategories.ARMOR, 'COMMON', 'cloaks');
+                await addAndEquip(itemCategories.ARMOR, 'COMMON', 'chestplates');
+                await addAndEquip(itemCategories.ARMOR, 'COMMON', 'leggings');
+                await addAndEquip(itemCategories.ARMOR, 'COMMON', 'boots');
+                await addAndEquip(itemCategories.ARMOR, 'COMMON', 'sleeves');
                 break;
             case 'alchemist':
             case 'engineer':
@@ -148,21 +165,25 @@ export class CharacterManager {
             case 'investigator':
             case 'doctor':
             case 'gambler':
-                addAndEquip(itemCategories.WEAPON, 'COMMON', 'daggers');
-                addAndEquip(itemCategories.ARMOR, 'COMMON', 'cloaks');
-                addAndEquip(itemCategories.ARMOR, 'COMMON', 'chestplates');
-                addAndEquip(itemCategories.ARMOR, 'COMMON', 'leggings');
-                addAndEquip(itemCategories.ARMOR, 'COMMON', 'boots');
-                addAndEquip(itemCategories.TOOL, 'COMMON', 'utility');
+                console.log(`[DEBUG_ASSIGN_EQUIP] Processing ${player.class} equipment assignments.`);
+                await addAndEquip(itemCategories.WEAPON, 'COMMON', 'daggers');
+                await addAndEquip(itemCategories.ARMOR, 'COMMON', 'cloaks');
+                await addAndEquip(itemCategories.ARMOR, 'COMMON', 'chestplates');
+                await addAndEquip(itemCategories.ARMOR, 'COMMON', 'leggings');
+                await addAndEquip(itemCategories.ARMOR, 'COMMON', 'boots');
+                await addAndEquip(itemCategories.TOOL, 'COMMON', 'utility');
+                await addAndEquip(itemCategories.ARMOR, 'COMMON', 'sleeves');
                 break;
             default:
                 console.log(`No specific initial equipment defined for ${player.class}. Assigning basic defaults.`);
-                addAndEquip(itemCategories.WEAPON, 'COMMON', 'swords');
-                addAndEquip(itemCategories.ARMOR, 'COMMON', 'chestplates');
-                addAndEquip(itemCategories.ARMOR, 'COMMON', 'boots');
+                await addAndEquip(itemCategories.WEAPON, 'COMMON', 'swords');
+                await addAndEquip(itemCategories.ARMOR, 'COMMON', 'chestplates');
+                await addAndEquip(itemCategories.ARMOR, 'COMMON', 'boots');
+                await addAndEquip(itemCategories.ARMOR, 'COMMON', 'sleeves');
                 break;
         }
         console.log(`Finished assigning initial equipment for ${player.name}.`);
+                                                              
     }
     
     static applyLevelProgression(player, level) {

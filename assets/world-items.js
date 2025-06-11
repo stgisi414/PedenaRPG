@@ -760,33 +760,33 @@ export const itemTemplates = {
             { "name": "Fate's Arrow", "damage": "2d10_force", "rarity": "LEGENDARY", "effects": ["reload_1", "bolt_never_misses", "one_shot_one_kill"], "slot": "mainHand" }
         ],
         "polearms": [
-            { "name": "Simple Halberd", "damage": "1d10", "rarity": "COMMON", "effects": ["reach", "brace"], "slot": "twoHand" },
-            { "name": "Rusty Voulge", "damage": "1d10-1", "rarity": "COMMON", "effects": ["reach"], "slot": "twoHand" },
-            { "name": "Pitchfork", "damage": "1d8", "rarity": "COMMON", "effects": ["reach"], "slot": "twoHand" },
-            { "name": "Glaive", "damage": "1d10", "rarity": "COMMON", "effects": ["reach", "sweeping_strike"], "slot": "twoHand" },
-            { "name": "Bardiche", "damage": "1d12-1", "rarity": "COMMON", "effects": ["reach", "cleave"], "slot": "twoHand" },
-            { "name": "Fauchard", "damage": "1d8", "rarity": "COMMON", "effects": ["reach", "trip"], "slot": "twoHand" },
-            { "name": "Billhook", "damage": "1d8", "rarity": "UNCOMMON", "effects": ["reach", "dismount_rider"], "slot": "twoHand" },
-            { "name": "Hooked Glaive", "damage": "1d10", "rarity": "UNCOMMON", "effects": ["reach", "disarm"], "slot": "twoHand" },
-            { "name": "Man-Catcher", "damage": "1d4", "rarity": "UNCOMMON", "effects": ["reach", "capture"], "slot": "twoHand" },
-            { "name": "Lucerne Hammer", "damage": "2d4", "rarity": "UNCOMMON", "effects": ["reach", "bludgeoning_and_piercing"], "slot": "twoHand" },
-            { "name": "Bec de Corbin", "damage": "1d10", "rarity": "UNCOMMON", "effects": ["reach", "armor_piercing_1"], "slot": "twoHand" },
-            { "name": "Poleaxe", "damage": "1d10+1", "rarity": "UNCOMMON", "effects": ["reach", "versatile"], "slot": "twoHand" },
-            { "name": "Reaper's Scythe", "damage": "2d4+1", "rarity": "RARE", "effects": ["cleave_2", "fear_on_crit"], "slot": "twoHand" },
-            { "name": "Death's Scythe", "damage": "2d4+1d4_necrotic", "rarity": "RARE", "effects": ["soul_harvest_tiny", "fear_aura_tiny"], "slot": "twoHand" },
-            { "name": "War Scythe", "damage": "2d6", "rarity": "RARE", "effects": ["sweeping_cleave", "bleeding_2"], "slot": "twoHand" },
-            { "name": "Dragon-tail Naginata", "damage": "1d12", "rarity": "RARE", "effects": ["reach", "dragon_fire_sweep"], "slot": "twoHand" },
-            { "name": "Phoenix-Feather Glaive", "damage": "1d10+1d4_fire", "rarity": "RARE", "effects": ["reach", "fiery_arc"], "slot": "twoHand" },
-            { "name": "Serpent's Kiss Halberd", "damage": "1d10+1d4_poison", "rarity": "RARE", "effects": ["reach", "poisonous_strike"], "slot": "twoHand" },
-            { "name": "Whirlwind Voulge", "damage": "2d6", "rarity": "EPIC", "effects": ["cyclone_attack", "pulls_enemies_in"], "slot": "twoHand" },
-            { "name": "Tempest's Reach", "damage": "2d8+1d4_wind", "rarity": "EPIC", "effects": ["gale_force_cleave", "vacuum_pull"], "slot": "twoHand" },
-            { "name": "Scythe of the Vortex", "damage": "2d6+2", "rarity": "EPIC", "effects": ["whirlwind_of_steel", "aoe_damage_aura"], "slot": "twoHand" },
-            { "name": "Celestial Halberd", "damage": "2d8_radiant", "rarity": "EPIC", "effects": ["reach", "divine_reach", "smite_undead_aura"], "slot": "twoHand" },
-            { "name": "Glaive of the Archon", "damage": "2d10_holy", "rarity": "EPIC", "effects": ["reach", "angelic_smite", "blinding_light_sweep"], "slot": "twoHand" },
-            { "name": "Pike of the Heavens", "damage": "2d8+2", "rarity": "EPIC", "effects": ["reach", "pierce_the_veil", "holy_ground"], "slot": "twoHand" },
-            { "name": "Graviton Glaive", "damage": "2d10_force", "rarity": "LEGENDARY", "effects": ["gravity_well", "manipulate_weight", "reach"], "slot": "twoHand" },
-            { "name": "Black Hole Halberd", "damage": "3d8_force", "rarity": "LEGENDARY", "effects": ["singularity_collapse", "time_dilation_field", "reach"], "slot": "twoHand" },
-            { "name": "Polearm of the Star's Core", "damage": "4d6_force", "rarity": "LEGENDARY", "effects": ["crushing_gravity", "event_horizon", "reach"], "slot": "twoHand" }
+            { "name": "Simple Halberd", "damage": "1d10", "rarity": "COMMON", "effects": ["reach", "brace", , "two_handed"], "slot": "mainHand" },
+            { "name": "Rusty Voulge", "damage": "1d10-1", "rarity": "COMMON", "effects": ["reach", "two_handed"], "slot": "mainHand" },
+            { "name": "Pitchfork", "damage": "1d8", "rarity": "COMMON", "effects": ["reach", "two_handed"], "slot": "mainHand" },
+            { "name": "Glaive", "damage": "1d10", "rarity": "COMMON", "effects": ["reach", "sweeping_strike", "two_handed"], "slot": "mainHand" },
+            { "name": "Bardiche", "damage": "1d12-1", "rarity": "COMMON", "effects": ["reach", "cleave", "two_handed"], "slot": "mainHand" },
+            { "name": "Fauchard", "damage": "1d8", "rarity": "COMMON", "effects": ["reach", "trip", "two_handed"], "slot": "mainHand" },
+            { "name": "Billhook", "damage": "1d8", "rarity": "UNCOMMON", "effects": ["reach", "dismount_rider", "two_handed"], "slot": "mainHand" },
+            { "name": "Hooked Glaive", "damage": "1d10", "rarity": "UNCOMMON", "effects": ["reach", "disarm", "two_handed"], "slot": "mainHand" },
+            { "name": "Man-Catcher", "damage": "1d4", "rarity": "UNCOMMON", "effects": ["reach", "capture", "two_handed"], "slot": "mainHand" },
+            { "name": "Lucerne Hammer", "damage": "2d4", "rarity": "UNCOMMON", "effects": ["reach", "bludgeoning_and_piercing", "two_handed"], "slot": "mainHand" },
+            { "name": "Bec de Corbin", "damage": "1d10", "rarity": "UNCOMMON", "effects": ["reach", "armor_piercing_1", "two_handed"], "slot": "mainHand" },
+            { "name": "Poleaxe", "damage": "1d10+1", "rarity": "UNCOMMON", "effects": ["reach", "versatile", "two_handed"], "slot": "mainHand" },
+            { "name": "Reaper's Scythe", "damage": "2d4+1", "rarity": "RARE", "effects": ["cleave_2", "fear_on_crit", "two_handed"], "slot": "mainHand" },
+            { "name": "Death's Scythe", "damage": "2d4+1d4_necrotic", "rarity": "RARE", "effects": ["soul_harvest_tiny", "fear_aura_tiny", "two_handed"], "slot": "mainHand" },
+            { "name": "War Scythe", "damage": "2d6", "rarity": "RARE", "effects": ["sweeping_cleave", "bleeding_2", "two_handed"], "slot": "mainHand" },
+            { "name": "Dragon-tail Naginata", "damage": "1d12", "rarity": "RARE", "effects": ["reach", "dragon_fire_sweep", "two_handed"], "slot": "mainHand" },
+            { "name": "Phoenix-Feather Glaive", "damage": "1d10+1d4_fire", "rarity": "RARE", "effects": ["reach", "fiery_arc", "two_handed"], "slot": "mainHand" },
+            { "name": "Serpent's Kiss Halberd", "damage": "1d10+1d4_poison", "rarity": "RARE", "effects": ["reach", "poisonous_strike", "two_handed"], "slot": "mainHand" },
+            { "name": "Whirlwind Voulge", "damage": "2d6", "rarity": "EPIC", "effects": ["cyclone_attack", "pulls_enemies_in", "two_handed"], "slot": "mainHand" },
+            { "name": "Tempest's Reach", "damage": "2d8+1d4_wind", "rarity": "EPIC", "effects": ["gale_force_cleave", "vacuum_pull", "two_handed"], "slot": "mainHand" },
+            { "name": "Scythe of the Vortex", "damage": "2d6+2", "rarity": "EPIC", "effects": ["whirlwind_of_steel", "aoe_damage_aura", "two_handed"], "slot": "mainHand" },
+            { "name": "Celestial Halberd", "damage": "2d8_radiant", "rarity": "EPIC", "effects": ["reach", "divine_reach", "smite_undead_aura", "two_handed"], "slot": "mainHand" },
+            { "name": "Glaive of the Archon", "damage": "2d10_holy", "rarity": "EPIC", "effects": ["reach", "angelic_smite", "blinding_light_sweep", "two_handed"], "slot": "mainHand" },
+            { "name": "Pike of the Heavens", "damage": "2d8+2", "rarity": "EPIC", "effects": ["reach", "pierce_the_veil", "holy_ground", "two_handed"], "slot": "mainHand" },
+            { "name": "Graviton Glaive", "damage": "2d10_force", "rarity": "LEGENDARY", "effects": ["gravity_well", "manipulate_weight", "reach", "two_handed"], "slot": "mainHand" },
+            { "name": "Black Hole Halberd", "damage": "3d8_force", "rarity": "LEGENDARY", "effects": ["singularity_collapse", "time_dilation_field", "reach", "two_handed"], "slot": "mainHand" },
+            { "name": "Polearm of the Star's Core", "damage": "4d6_force", "rarity": "LEGENDARY", "effects": ["crushing_gravity", "event_horizon", "reach", "two_handed"], "slot": "mainHand" }
         ],
         "fistWeapons": [
             { "name": "Knuckle Dusters", "damage": "1d4", "rarity": "COMMON", "effects": ["unarmed_synergy"], "slot": "mainHand" },
@@ -2578,29 +2578,33 @@ export class ItemGenerator {
         const {
             category = this.getRandomCategory(),
             rarity = this.getRandomRarityKey(),
+            subType = null // Ensure subType is extracted from context
         } = context;
 
+        console.log(`[DEBUG_ITEM_GEN] Starting generateItem for: Category=<span class="math-inline">\{category\}, Rarity\=</span>{rarity}, SubType=${subType}`); // NEW LOG
+
         // 1. Get a base item template from your existing database
-        const baseItem = this.getBaseItem(category, rarity);
-        console.log("[DEBUG] generateItem - baseItem after getBaseItem:", JSON.stringify(baseItem, null, 2)); // ADDED DEBUG LOG
+        // Pass subType explicitly to getBaseItem
+        const baseItem = this.getBaseItem(category, rarity, subType); // Pass subType
+        console.log("[DEBUG_ITEM_GEN] baseItem after getBaseItem:", JSON.stringify(baseItem, null, 2)); // Existing Debug Log
         if (!baseItem) {
-            console.error("Could not find a base item for generation. Category:", category, "Rarity:", rarity);
+            console.error("Could not find a base item for generation. Category:", category, "Rarity:", rarity, "SubType:", subType);
             return null; // Or return a generic fallback
         }
 
         // 2. Enhance the base item using the Gemini AI
-        let enhancedItem = await this.enhanceItemWithAI(baseItem, context); // THIS RETURNS AN OBJECT
+        // Pass the original context to enhanceItemWithAI
+        let enhancedItem = await this.enhanceItemWithAI(baseItem, context); 
 
         // 3. Apply base enhancements (like value and color) using enhanceItem
-        // It's important to do this AFTER AI enhancement, so AI can add to base,
-        // and then core properties like value are calculated.
-        enhancedItem = this.enhanceItem(enhancedItem, context); // THIS SHOULD RETURN A COMPLETE OBJECT
-        console.log("[DEBUG] generateItem - enhancedItem before final return:", JSON.stringify(enhancedItem, null, 2)); // ADDED DEBUG LOG
+        // Pass the original context to enhanceItem
+        enhancedItem = this.enhanceItem(enhancedItem, context); 
+        console.log("[DEBUG_ITEM_GEN] enhancedItem before final return:", JSON.stringify(enhancedItem, null, 2)); // Existing Debug Log
 
         // 4. Finalize and return the item
         return {
             id: this.generateItemId(),
-            ...enhancedItem, // <--- If enhancedItem is just { id: '...' } or null, this is the issue.
+            ...enhancedItem, // The AI-enhanced properties and base calculations
             generatedAt: Date.now(),
             context: context
         };
@@ -2698,97 +2702,129 @@ export class ItemGenerator {
     }
 
     static getBaseItem(category, rarity) { // Rarity is now a key string
+        // The context.subType is passed down from generateItem
+        const subTypeHint = this.context && this.context.subType ? this.context.subType : null; // Get subType from context
+
         let itemsOfType;
         switch (category) {
             case itemCategories.WEAPON:
-                return this.generateWeapon(rarity);
+                return this.generateWeapon(rarity, subTypeHint); // Pass subTypeHint
             case itemCategories.ARMOR:
-                return this.generateArmor(rarity);
+                return this.generateArmor(rarity, subTypeHint); // Pass subTypeHint
             case itemCategories.MAGICAL: // This can include potions, wands etc.
-                return this.generateMagicalItem(rarity); // Broader magical item generation
+                return this.generateMagicalItem(rarity, subTypeHint); // Pass subTypeHint
             case itemCategories.SCROLL:
                 itemsOfType = itemTemplates.magical.scrolls;
-                return this.selectFromTemplates(itemsOfType, rarity, category) || this.generateCustomScroll(rarity);
+                return this.selectFromTemplates(itemsOfType, rarity, category, subTypeHint) || this.generateCustomScroll(rarity);
             case itemCategories.BOOK:
-                 // Books can be from questItems or language books
-                if (Math.random() < 0.3) { // 30% chance for a language book
+                 if (Math.random() < 0.3) {
                     const languages = Object.keys(this.languageTemplates);
                     const langType = languages[Math.floor(Math.random() * languages.length)];
                     return this.generateLanguageBook(rarity, langType);
                 }
-                itemsOfType = itemTemplates.questItems.books; // Assuming 'questItems.books' holds general books too
-                return this.selectFromTemplates(itemsOfType, rarity, category) || this.generateCustomBook(rarity);
-            case itemCategories.CONSUMABLE: // Potions are here
+                itemsOfType = itemTemplates.questItems.books;
+                return this.selectFromTemplates(itemsOfType, rarity, category, subTypeHint) || this.generateCustomBook(rarity);
+            case itemCategories.CONSUMABLE:
                 itemsOfType = itemTemplates.magical.potions;
-                return this.selectFromTemplates(itemsOfType, rarity, category) || this.generateCustomConsumable(rarity);
+                return this.selectFromTemplates(itemsOfType, rarity, category, subTypeHint) || this.generateCustomConsumable(rarity);
             case itemCategories.TOOL:
-                return this.generateTool(rarity);
+                return this.generateTool(rarity, subTypeHint);
             case itemCategories.JEWELRY:
-                return this.generateJewelry(rarity);
+                return this.generateJewelry(rarity, subTypeHint);
             case itemCategories.CRAFTING:
-                return this.generateCraftingMaterial(rarity);
+                return this.generateCraftingMaterial(rarity, subTypeHint);
             case itemCategories.GLYPH:
-                return this.generateGlyph(rarity);
+                return this.generateGlyph(rarity, subTypeHint);
             case itemCategories.INGREDIENT:
-                return this.generateIngredient(rarity);
+                return this.generateIngredient(rarity, subTypeHint);
             case itemCategories.TRINKET:
-                return this.generateTrinket(rarity);
-            case itemCategories.ARTIFACT: // Specific artifact generation might be more complex
+                return this.generateTrinket(rarity, subTypeHint);
+            case itemCategories.ARTIFACT:
                  itemsOfType = itemTemplates.questItems.artifacts;
-                 return this.selectFromTemplates(itemsOfType, rarity, category) || this.generateCustomArtifact(rarity);
+                 return this.selectFromTemplates(itemsOfType, rarity, category, subTypeHint) || this.generateCustomArtifact(rarity);
 
             default:
                 return this.generateGenericItem(category, rarity);
         }
     }
 
-    static selectFromTemplates(templateArray, rarity, itemType) {
+    static selectFromTemplates(templateArray, rarity, itemType, subTypeHint = null) {
         if (!templateArray) return null;
-        const rarityItems = templateArray.filter(i => i.rarity === rarity);
+
+        let filteredItems = templateArray;
+        // REMOVED: The line `filteredItems = templateArray.filter(i => i.subType === subTypeHint);`
+        // It's incorrect as individual templates don't have 'subType' property.
+        // The 'templateArray' itself already implies the subType.
+
+        const rarityItems = filteredItems.filter(i => i.rarity === rarity);
         if (rarityItems.length > 0) {
-            return { ...rarityItems[Math.floor(Math.random() * rarityItems.length)], type: itemType };
+            return { ...rarityItems[Math.floor(Math.random() * rarityItems.length)], type: itemType, subType: subTypeHint || itemType }; // Ensure subType is set
         }
-        // If no items of specific rarity, try one step lower if not common
+
+        // If no items of specific rarity, try one step lower rarity with the already filtered list
         if (rarity !== 'COMMON') {
             const rarities = Object.keys(itemRarity);
             const currentRarityIndex = rarities.indexOf(rarity);
             if (currentRarityIndex > 0) {
-                const lowerRarity = rarities[currentRarityIndex -1];
-                const lowerRarityItems = templateArray.filter(i => i.rarity === lowerRarity);
-                 if (lowerRarityItems.length > 0) {
-                    return { ...lowerRarityItems[Math.floor(Math.random() * lowerRarityItems.length)], type: itemType };
+                const lowerRarity = rarities[currentRarityIndex - 1];
+                const lowerRarityItems = filteredItems.filter(i => i.rarity === lowerRarity);
+                if (lowerRarityItems.length > 0) {
+                    return { ...lowerRarityItems[Math.floor(Math.random() * lowerRarityItems.length)], type: itemType, subType: subTypeHint || itemType };
                 }
             }
         }
-        // Fallback: pick any item from the category if specific rarity fails
+
+        // If still no specific rarity match, try any item from the initially filtered list (by subTypeHint if applicable)
+        if (filteredItems.length > 0) {
+            return { ...filteredItems[Math.floor(Math.random() * filteredItems.length)], type: itemType, rarity: rarity, subType: subTypeHint || itemType }; // Force rarity and set subType
+        }
+
+        // Fallback: pick any item from the original templateArray if all filters fail
         if (templateArray.length > 0) {
-           return { ...templateArray[Math.floor(Math.random() * templateArray.length)], type: itemType, rarity: rarity }; // Force rarity
+           return { ...templateArray[Math.floor(Math.random() * templateArray.length)], type: itemType, rarity: rarity, subType: subTypeHint || itemType };
         }
         return null;
     }
 
-
-    static generateWeapon(rarity) {
+    static generateWeapon(rarity, subTypeHint = null) {
         const weaponCategories = Object.keys(itemTemplates.weapons);
-        const weaponType = weaponCategories[Math.floor(Math.random() * weaponCategories.length)];
+        let weaponType = subTypeHint; // Try to use the hint
+
+        if (!weaponType || !weaponCategories.includes(weaponType)) { // If hint is invalid or not provided, pick randomly
+            weaponType = weaponCategories[Math.floor(Math.random() * weaponCategories.length)];
+        }
+
         const weapons = itemTemplates.weapons[weaponType];
-        const selected = this.selectFromTemplates(weapons, rarity, itemCategories.WEAPON);
+        // Pass weaponType as subTypeHint to selectFromTemplates to ensure it populates 'subType' property on the returned item
+        const selected = this.selectFromTemplates(weapons, rarity, itemCategories.WEAPON, weaponType); 
         return selected || this.generateCustomWeapon(rarity, weaponType);
     }
 
-    static generateArmor(rarity) {
+    static generateArmor(rarity, subTypeHint = null) {
         const armorCategories = Object.keys(itemTemplates.armor);
-        const armorType = armorCategories[Math.floor(Math.random() * armorCategories.length)]; // e.g. 'helmets'
+        let armorType = subTypeHint; // Try to use the hint
+
+        if (!armorType || !armorCategories.includes(armorType)) { // If hint is invalid or not provided, pick randomly
+            armorType = armorCategories[Math.floor(Math.random() * armorCategories.length)];
+        }
+
         const armors = itemTemplates.armor[armorType];
-        const selected = this.selectFromTemplates(armors, rarity, itemCategories.ARMOR);
+        // Pass armorType as subTypeHint to selectFromTemplates to ensure it populates 'subType' property on the returned item
+        const selected = this.selectFromTemplates(armors, rarity, itemCategories.ARMOR, armorType); 
         return selected || this.generateCustomArmor(rarity, armorType);
     }
 
-    static generateMagicalItem(rarity) { // Broad category for wands, orbs, talismans
+    static generateMagicalItem(rarity, subTypeHint = null) { // Broad category for wands, orbs, talismans
         const magicalTypes = ['wands', 'orbs', 'talismans']; // from itemTemplates.magical
-        const typeKey = magicalTypes[Math.floor(Math.random() * magicalTypes.length)];
+        let typeKey = subTypeHint; // Try to use the hint
+
+        if (!typeKey || !magicalTypes.includes(typeKey)) { // If hint is invalid or not provided, pick randomly
+            typeKey = magicalTypes[Math.floor(Math.random() * magicalTypes.length)];
+        }
+
         const items = itemTemplates.magical[typeKey];
-        const selected = this.selectFromTemplates(items, rarity, itemCategories.MAGICAL);
+        // Pass typeKey as subTypeHint to selectFromTemplates to ensure it populates 'subType' property on the returned item
+        const selected = this.selectFromTemplates(items, rarity, itemCategories.MAGICAL, typeKey); 
 
         if (selected) return { ...selected, subType: typeKey };
         return this.generateCustomMagicalDevice(rarity, typeKey);
@@ -3721,7 +3757,7 @@ export class ItemManager {
         if (!player.equipment) {
             player.equipment = {};
         }
-        const defaultSlots = { head: null, chest: null, hands: null, legs: null, feet: null, mainHand: null, offHand: null, amulet: null, ring1: null, ring2: null };
+        const defaultSlots = { head: null, chest: null, hands: null, legs: null, feet: null, mainHand: null, offHand: null, amulet: null, ring1: null, ring2: null, back: null };
         for (const slotKey in defaultSlots) {
             if (player.equipment[slotKey] === undefined) {
                 player.equipment[slotKey] = null;
@@ -3766,6 +3802,35 @@ export class ItemManager {
             player.inventory.push(oldItem);
             displayMessage(`Unequipped ${oldItem.name} from ${targetSlot}.`, 'info');
             console.log(`Unequipped ${oldItem.name} from ${targetSlot}.`);
+        }
+
+        // Check if the targetSlot is valid in player.equipment
+        if (!player.equipment.hasOwnProperty(targetSlot)) {
+            displayMessage(`Cannot equip: Invalid target slot '${targetSlot}' on player equipment object.`, 'error');
+            console.error(`Invalid target slot: ${targetSlot}. Player equipment keys: ${Object.keys(player.equipment)}`);
+            return;
+        }
+
+        // Unequip existing item in the targetSlot if there is one
+        if (player.equipment[targetSlot] !== null) {
+            const oldItem = player.equipment[targetSlot];
+            if (!player.inventory) player.inventory = [];
+            player.inventory.push(oldItem);
+            displayMessage(`Unequipped ${oldItem.name} from ${targetSlot}.`, 'info');
+            console.log(`Unequipped ${oldItem.name} from ${targetSlot}.`);
+        }
+
+        // NEW LOGIC: Handle two-handed weapons
+        if (targetSlot === 'mainHand' && item.effects && item.effects.includes('two_handed')) {
+            if (player.equipment.offHand !== null) {
+                const offHandItem = player.equipment.offHand;
+                if (!player.inventory) player.inventory = [];
+                player.inventory.push(offHandItem);
+                displayMessage(`Unequipped ${offHandItem.name} from offHand (two-handed weapon).`, 'info');
+                console.log(`Unequipped ${offHandItem.name} from offHand.`);
+            }
+            player.equipment.offHand = null; // Clear offHand slot
+            console.log(`Two-handed weapon equipped to mainHand, offHand cleared.`);
         }
 
         // Equip the new item
