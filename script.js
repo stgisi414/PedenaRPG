@@ -5515,6 +5515,42 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    if (executeCommandBtn) {
+        executeCommandBtn.addEventListener('click', async () => {
+            const customCommandInput = document.getElementById('custom-command-input');
+            const command = customCommandInput.value.trim();
+            if (!command) return;
+
+            displayMessage(`> ${command}`, 'player-command');
+
+            // ** NEW CODE BLOCK TO ADD **
+            // Check if the command is a recruit command
+            if (command.toLowerCase().startsWith('recruit ')) {
+                const npcNameToRecruit = command.substring(8).trim();
+                if (window.partyManager) {
+                    // Call the specific function to handle recruitment
+                    await window.partyManager.recruitNPC(npcNameToRecruit, command);
+                } else {
+                    console.error("PartyManager is not available.");
+                    displayMessage("System error: Party Manager is not responding.", 'error');
+                }
+                customCommandInput.value = ''; // Clear the input
+                return; // Stop further processing
+            }
+            // ** END OF NEW CODE BLOCK **
+
+            // This is your existing code that sends the command to the AI
+            if (window.isAwaitingStoryContinuation) {
+                await continueStory(command);
+            } else {
+                await processPlayerCommand(command);
+            }
+            customCommandInput.value = '';
+            customCommandInput.focus();
+        });
+    }
+
+
 }); // End of DOMContentLoaded
 
 // Add debug button to remove portrait

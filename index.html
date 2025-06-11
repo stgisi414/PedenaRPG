@@ -60,252 +60,264 @@
     <link rel="stylesheet" type="text/css" href="style.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/rpg-awesome@0.2.0/css/rpg-awesome.min.css" crossorigin="anonymous"></head>
 
-<body class="bg-stone-800 text-stone-100 font-merriweather">
-    <div id="game-container" class="max-w-4xl mx-auto p-8 rounded-lg shadow-xl relative overflow-hidden">
+    <body class="bg-stone-800 text-stone-100 font-merriweather">
+        <div id="game-container" class="max-w-4xl mx-auto p-8 rounded-lg shadow-xl relative overflow-hidden">
 
-        <div id="settings-modal" class="hidden fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4">
-            <div id="settings-modal-content" class="parchment-bg p-6 rounded-lg shadow-xl w-full max-w-md relative border-4 border-amber-800">
-                <div class="text-center border-b-2 border-amber-800/50 pb-3 mb-4 relative">
-                    <h4 class="text-2xl font-bold text-amber-800">Game Settings</h4>
-                    <button id="settings-modal-close-btn" class="absolute top-0 right-0 text-3xl font-bold text-amber-700 hover:text-red-700 leading-none">&times;</button>
-                </div>
-
-                <div class="space-y-6">
-                    <div>
-                        <h5 class="font-bold mb-2 text-amber-700 text-lg" style="color: rgb(255 251 235);">API Configuration</h5>
-                        <div class="space-y-4">
-                            <div>
-                                <label for="gemini-model-select" class="block text-sm font-semibold mb-1">Gemini Model:</label>
-                                <select id="gemini-model-select" class="w-full p-2 border border-amber-700/50 rounded bg-amber-50 focus:outline-none focus:ring-2 focus:ring-amber-500" style="color: rgb(146 64 14) !important;" placeholder="Choose your Gemini model">
-                                    <option value="gemini-1.5-flash-latest">Gemini 1.5 Flash (Recommended)</option>
-                                    <option value="gemini-2.0.flash">Gemini 2.0 Flash</option>
-                                    <option value="gemini-2.0.flash-thinking-exp-01-21">Gemini 2.0 Flash Experimental Thinking</option>
-                                    <option value="gemini-2.0-flash-lite">Gemini 2.0 Flash Lite</option>
-                                    <option value="gemini-2.5-flash-preview-05-20">Gemini 2.5 Flash</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label for="gemini-api-key-input" class="block text-sm font-semibold mb-1">Your Gemini API Key:</label>
-                                <input type="password" id="gemini-api-key-input" placeholder="Enter your API key here" class="w-full p-2 border border-amber-700/50 rounded bg-amber-50 focus:outline-none focus:ring-2 focus:ring-amber-500" style="color: rgb(146 64 14) !important;">
-                            </div>
-                        </div>
+            <div id="settings-modal" class="hidden fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4">
+                <div id="settings-modal-content" class="parchment-bg p-6 rounded-lg shadow-xl w-full max-w-md relative border-4 border-amber-800">
+                    <div class="text-center border-b-2 border-amber-800/50 pb-3 mb-4 relative">
+                        <h4 class="text-2xl font-bold text-amber-800">Game Settings</h4>
+                        <button id="settings-modal-close-btn" class="absolute top-0 right-0 text-3xl font-bold text-amber-700 hover:text-red-700 leading-none">&times;</button>
                     </div>
 
-                    <div>
-                        <h5 class="font-bold mb-3 text-amber-700 text-lg" style="color: rgb(255 251 235);">Game Actions</h5>
-                        <div id="settings-actions-container" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div class="space-y-6">
+                        <div>
+                            <h5 class="font-bold mb-2 text-amber-700 text-lg" style="color: rgb(255 251 235);">API Configuration</h5>
+                            <div class="space-y-4">
+                                <div>
+                                    <label for="gemini-model-select" class="block text-sm font-semibold mb-1">Gemini Model:
+                                        <a href="https://aistudio.google.com/apikey" target="_blank"
+                                           class="text-xs text-google-blue hover:text-blue-600 underline"
+                                           style="float: right;">
+                                            Get API Key
+                                        </a>
+                                    </label>
+                                    <select id="gemini-model-select" class="w-full p-2 border border-amber-700/50 rounded bg-amber-50 focus:outline-none focus:ring-2 focus:ring-amber-500" style="color: rgb(146 64 14) !important;" placeholder="Choose your Gemini model">
+                                        <option value="gemini-1.5-flash-latest">Gemini 1.5 Flash (Recommended)</option>
+                                        <option value="gemini-2.0.flash">Gemini 2.0 Flash</option>
+                                        <option value="gemini-2.0.flash-thinking-exp-01-21">Gemini 2.0 Flash Experimental Thinking</option>
+                                        <option value="gemini-2.0-flash-lite">Gemini 2.0 Flash Lite</option>
+                                        <option value="gemini-2.5-flash-preview-05-20">Gemini 2.5 Flash</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label for="gemini-api-key-input" class="block text-sm font-semibold mb-1">Your Gemini API Key:</label>
+                                    <input type="password" id="gemini-api-key-input" placeholder="Enter your API key here" class="w-full p-2 border border-amber-700/50 rounded bg-amber-50 focus:outline-none focus:ring-2 focus:ring-amber-500" style="color: rgb(146 64 14) !important;">
+                                </div>
                             </div>
+                        </div>
+
+                        <div>
+                            <h5 class="font-bold mb-3 text-amber-700 text-lg" style="color: rgb(255 251 235);">Game Actions</h5>
+                            <div id="settings-actions-container" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                </div>
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
-        
-        <div id="parchment-background" class="absolute inset-0 z-0"></div>
-        <div class="relative z-10 p-6">
-            <header class="text-center mb-8">
-                <div class="flex items-center justify-center gap-4 mb-2">
-                    <img id="header-logo" src="assets/pedena-logo.png" alt="Pedena Logo" class="w-16 h-16 object-contain" style="cursor: pointer;">
-                    <h1 class="text-4xl font-bold font-old-standard-tt drop-shadow-lg">The Chronicles of Pedena</h1>
-                </div>
-                <p class="text-xl mt-2" style="color: #F5DEB3 !important;">A Text-Based RPG Adventure</p>
-            </header>
 
-            <main id="game-screen">
-                <section id="start-screen">
-                    <h2 class="text-3xl font-bold mb-6 text-center">Welcome, Adventurer!</h2>
-                    <div class="flex flex-col md:flex-row justify-center items-center gap-6">
-                        <button id="new-game-btn" class="btn-parchment">🧙‍♂️ New Game</button>
-                        <button id="load-game-btn" class="btn-parchment" disabled>📖 Load Game</button>
+            <div id="parchment-background" class="absolute inset-0 z-0"></div>
+            <div class="relative z-10 p-6">
+                <header class="text-center mb-8">
+                    <div class="flex items-center justify-center gap-4 mb-2">
+                        <img id="header-logo" src="assets/pedena-logo.png" alt="Pedena Logo" class="w-16 h-16 object-contain" style="cursor: pointer;">
+                        <h1 class="text-4xl font-bold font-old-standard-tt drop-shadow-lg">The Chronicles of Pedena</h1>
                     </div>
-                </section>
+                    <p class="text-xl mt-2" style="color: #F5DEB3 !important;">A Text-Based RPG Adventure</p>
+                </header>
 
-                <section id="character-creation-screen" class="hidden">
-                    <h2 class="text-3xl font-bold mb-6 text-center">Character Creation</h2>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                        <div>
-                            <label for="char-name" class="block text-lg mb-2" style="color: #F5DEB3 !important;">Character Name:</label>
-                            <input type="text" id="char-name" class="input-parchment"
-                                placeholder="Enter your hero's name">
+                <main id="game-screen">
+                    <section id="start-screen">
+                        <h2 class="text-3xl font-bold mb-6 text-center">Welcome, Adventurer!</h2>
+                        <div class="flex flex-col md:flex-row justify-center items-center gap-6">
+                            <button id="new-game-btn" class="btn-parchment">🧙‍♂️ New Game</button>
+                            <button id="load-game-btn" class="btn-parchment" disabled>📖 Load Game</button>
                         </div>
-                        <div>
-                            <label for="char-class" class="block text-lg mb-2" style="color: #F5DEB3 !important;">Class:</label>
-                            <select id="char-class" class="input-parchment">
-                                <option value="">Choose a Class</option>
-                                <option value="warrior">Warrior</option>
-                                <option value="mage">Mage</option>
-                                <option value="rogue">Rogue</option>
-                                <option value="ranger">Ranger</option>
-                                <option value="priest">Cleric</option>
-                                <option value="paladin">Paladin</option>
-                                <option value="bard">Bard</option>
-                                <option value="druid">Druid</option>
-                                <option value="monk">Monk</option>
-                                <option value="sorcerer">Sorcerer</option>
-                                <option value="warlock">Warlock</option>
-                                <option value="barbarian">Barbarian</option>
-                                <option value="brawler">Brawler</option>
-                                <option value="assassin">Assassin</option>
-                                <option value="hunter">Hunter</option>
-                                <option value="shaman">Shaman</option>
-                                <option value="gladiator">Gladiator</option>
-                                <option value="ninja">Ninja</option>
-                                <option value="summoner">Summoner</option>
-                                <option value="necromancer">Necromancer</option>
-                                <option value="illusionist">Illusionist</option>
-                                <option value="engineer">Engineer</option>
-                                <option value="alchemist">Alchemist</option>
-                                <option value="scholar">Scholar</option>
-                                <option value="psychic">Psychic</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="mb-6">
-                        <label class="block text-lg mb-2" style="color: #F5DEB3 !important;">Gender:</label>
-                        <div class="flex gap-4">
-                            <label class="inline-flex items-center">
-                                <input type="radio" name="char-gender" value="male" class="form-radio text-amber-700">
-                                <span class="ml-2" style="color: #F5DEB3 !important;">♂️ Male</span>
-                            </label>
-                            <label class="inline-flex items-center">
-                                <input type="radio" name="char-gender" value="female" class="form-radio text-amber-700">
-                                <span class="ml-2" style="color: #F5DEB3 !important;">♀️ Female</span>
-                            </label>
+                    </section>
 
-                        </div>
-                    </div>
-                    <div id="portrait-section" class="text-center my-4">
-                        <div id="portrait-container" class="w-full max-w-sm mx-auto parchment-box p-2">
+                    <section id="character-creation-screen" class="hidden">
+                        <h2 class="text-3xl font-bold mb-6 text-center">Character Creation</h2>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                            <div>
+                                <label for="char-name" class="block text-lg mb-2" style="color: #F5DEB3 !important;">Character Name:</label>
+                                <input type="text" id="char-name" class="input-parchment"
+                                    placeholder="Enter your hero's name">
                             </div>
-                        <button id="generate-portrait-btn" class="btn-parchment mt-4">Generate Portrait</button>
-                    </div>
-                    <div class="mb-6">
-                        <label for="char-background" class="block text-lg mb-2" style="color: #F5DEB3 !important;">Background Story (AI Generated):</label>
-                        <textarea id="char-background" class="input-parchment" style="width:100%;" readonly></textarea>
-                        <button id="generate-background-btn" class="btn-parchment mt-4 w-full">Generate
-                            Background</button>
-                    </div>
-                    <button id="create-character-btn" class="btn-parchment w-full"><i
-                            class="ra ra-crossed-swords mr-2"></i>Start Adventure!</button>
-                </section>
-
-                <section id="game-play-screen" class="hidden relative">
-                    <div class="flex justify-between items-center mb-6">
-                        <h3 id="player-name" class="text-2xl font-bold"></h3>
-                        <div style="color: #F5DEB3 !important;">
-                            <span id="player-level" class="text-xl mr-4"></span>
-                            <span id="player-hp" class="text-xl"></span>
+                            <div>
+                                <label for="char-class" class="block text-lg mb-2" style="color: #F5DEB3 !important;">Class:</label>
+                                <select id="char-class" class="input-parchment">
+                                    <option value="">Choose a Class</option>
+                                    <option value="warrior">Warrior</option>
+                                    <option value="mage">Mage</option>
+                                    <option value="rogue">Rogue</option>
+                                    <option value="ranger">Ranger</option>
+                                    <option value="priest">Cleric</option>
+                                    <option value="paladin">Paladin</option>
+                                    <option value="bard">Bard</option>
+                                    <option value="druid">Druid</option>
+                                    <option value="monk">Monk</option>
+                                    <option value="sorcerer">Sorcerer</option>
+                                    <option value="warlock">Warlock</option>
+                                    <option value="barbarian">Barbarian</option>
+                                    <option value="brawler">Brawler</option>
+                                    <option value="assassin">Assassin</option>
+                                    <option value="hunter">Hunter</option>
+                                    <option value="shaman">Shaman</option>
+                                    <option value="gladiator">Gladiator</option>
+                                    <option value="ninja">Ninja</option>
+                                    <option value="summoner">Summoner</option>
+                                    <option value="necromancer">Necromancer</option>
+                                    <option value="illusionist">Illusionist</option>
+                                    <option value="engineer">Engineer</option>
+                                    <option value="alchemist">Alchemist</option>
+                                    <option value="scholar">Scholar</option>
+                                    <option value="psychic">Psychic</option>
+                                </select>
+                            </div>
                         </div>
-                    </div>
+                        <div class="mb-6">
+                            <label class="block text-lg mb-2" style="color: #F5DEB3 !important;">Gender:</label>
+                            <div class="flex gap-4">
+                                <label class="inline-flex items-center">
+                                    <input type="radio" name="char-gender" value="male" class="form-radio text-amber-700">
+                                    <span class="ml-2" style="color: #F5DEB3 !important;">♂️ Male</span>
+                                </label>
+                                <label class="inline-flex items-center">
+                                    <input type="radio" name="char-gender" value="female" class="form-radio text-amber-700">
+                                    <span class="ml-2" style="color: #F5DEB3 !important;">♀️ Female</span>
+                                </label>
 
-                    <div id="game-output" class="parchment-box mb-6 h-96 overflow-y-auto">
-                    </div>
-
-                    <div id="custom-command-section" class="mb-6">
-                        <label for="custom-command-input" class="block text-lg mb-2" style="color:#F5DEB3 !important;">Enter Command: <span style="text-align: right;">
-<button id="help-btn" class="btn-parchment bg-purple-600 hover:bg-purple-700 text-xs md:text-sm py-1 px-2 text-white" title="Show help system" style="display: inline;">
-                            <i class="ra ra-quill mr-2"></i>Help
-                        </button></span></label>
-                        <div class="flex gap-2">
-                            <input type="text" id="custom-command-input" class="input-parchment flex-1"
-                                placeholder="Type your action here (e.g., 'examine the mysterious door', 'talk to the merchant', 'cast fireball')...">
-                            <button id="execute-command-btn" class="btn-parchment"><i
-                                    class="ra ra-lightning-bolt mr-2"></i>Execute</button>
+                            </div>
                         </div>
-                    </div>
-
-                    <div id="game-actions" class="grid grid-cols-2 md:grid-cols-6 gap-4">
-                        <button id="save-game-btn" class="btn-parchment"><i class="ra ra-save mr-2"></i>Save
-                            Game</button>
-                        <button id="new-quest-btn" class="btn-parchment">📜 New Quest</button>
-                        <button id="show-inventory-btn" class="btn-parchment"><i
-                                class="ra ra-backpack mr-2"></i>Inventory</button>
-                        <button id="show-shop-btn" class="btn-parchment">🛒 Shop</button>
-                        <button id="show-progression-btn" class="btn-parchment"><i
-                                class="ra ra-level-up mr-2"></i>Progression</button>
-                        <button id="show-background-btn" class="btn-parchment"><i
-                                class="ra ra-book mr-2"></i>Background</button>
-                    </div>
-
-                    <div id="quick-actions" class="grid grid-cols-2 md:grid-cols-4 gap-2 mt-4">
-                        <button id="rest-btn" class="btn-parchment text-sm">😴 Rest</button>
-                        <button id="explore-btn" class="btn-parchment text-sm">🔍 Explore</button>
-                        <button id="cast-spell-btn" class="btn-parchment text-sm"><i class="ra ra-magic-swirl mr-2"></i>Cast Spell</button>
-                        <button id="pray-btn" class="btn-parchment text-sm">🙏 Pray</button>
-                    </div>
-
-                    <div id="shop-interface" class="hidden mt-6">
-                        <h4 class="text-2xl font-bold text-green-700 mb-4 text-center">The Merchant's Stall</h4>
-                        <div id="shop-items" class="parchment-box p-4 mb-4 grid grid-cols-1 md:grid-cols-2 gap-4"></div>
-                        <div class="text-center">
-                            <button id="exit-shop-btn"
-                                class="btn-parchment bg-gray-600 hover:bg-gray-700 text-white">Exit Shop</button>
+                        <div id="portrait-section" class="text-center my-4">
+                            <div id="portrait-container" class="w-full max-w-sm mx-auto parchment-box p-2">
+                                </div>
+                            <button id="generate-portrait-btn" class="btn-parchment mt-4">Generate Portrait</button>
                         </div>
-                    </div>
-
-                    <div id="inventory-interface" class="hidden mt-6">
-                        <h4 class="text-2xl font-bold text-blue-700 mb-4 text-center">Your Inventory</h4>
-                        <div id="inventory-items" class="parchment-box p-4 mb-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="mb-6">
+                            <label for="char-background" class="block text-lg mb-2" style="color: #F5DEB3 !important;">Background Story (AI Generated):</label>
+                            <textarea id="char-background" class="input-parchment" style="width:100%;" readonly></textarea>
+                            <button id="generate-background-btn" class="btn-parchment mt-4 w-full">Generate
+                                Background</button>
                         </div>
-                        <div class="text-center">
-                            <button id="exit-inventory-btn"
-                                class="btn-parchment bg-gray-600 hover:bg-gray-700 text-white">Close Inventory</button>
+                        <button id="create-character-btn" class="btn-parchment w-full"><i
+                                class="ra ra-crossed-swords mr-2"></i>Start Adventure!</button>
+                    </section>
+
+                    <section id="game-play-screen" class="hidden relative">
+                        <div class="flex justify-between items-center mb-6">
+                            <h3 id="player-name" class="text-2xl font-bold"></h3>
+                            <div style="color: #F5DEB3 !important;">
+                                <span id="player-level" class="text-xl mr-4"></span>
+                                <span id="player-hp" class="text-xl"></span>
+                            </div>
                         </div>
-                    </div>
 
-                    <div id="skills-interface" class="hidden mt-6">
-                        <h4 class="text-2xl font-bold text-purple-700 mb-4 text-center">Your Skills & Abilities</h4>
-                        <div id="skills-list" class="parchment-box p-4 mb-4"></div>
-                        <div class="text-center">
-                            <button id="exit-skills-btn"
-                                class="btn-parchment bg-gray-600 hover:bg-gray-700 text-white">Close Skills</button>
+                        <div id="game-output" class="parchment-box mb-6 h-96 overflow-y-auto">
                         </div>
-                    </div>
 
-                    <div id="quest-interface" class="hidden mt-6">
-                        <h4 class="text-2xl font-bold text-orange-700 mb-4 text-center">Active Quests</h4>
-                        <div id="quest-list" class="parchment-box p-4 mb-4"></div>
-                        <div class="text-center">
-                            <button id="exit-quests-btn"
-                                class="btn-parchment bg-gray-600 hover:bg-gray-700 text-white">Close Quests</button>
+                        <div id="custom-command-section" class="mb-6">
+                            <label for="custom-command-input" class="block text-lg mb-2" style="color:#F5DEB3 !important;">Enter Command: <span style="text-align: right;">
+    <button id="help-btn" class="btn-parchment bg-purple-600 hover:bg-purple-700 text-xs md:text-sm py-1 px-2 text-white" title="Show help system" style="display: inline;">
+                                <i class="ra ra-quill mr-2"></i>Help
+                            </button></span></label>
+                            <div class="flex gap-2">
+                                <input type="text" id="custom-command-input" class="input-parchment flex-1"
+                                    placeholder="Type your action here (e.g., 'examine the mysterious door', 'talk to the merchant', 'cast fireball')...">
+                                <button id="execute-command-btn" class="btn-parchment"><i
+                                        class="ra ra-lightning-bolt mr-2"></i>Execute</button>
+                            </div>
                         </div>
-                    </div>
 
-                    <div id="progression-interface" class="hidden mt-6">
-                        <h4 class="text-2xl font-bold text-purple-700 mb-4 text-center">Character Progression</h4>
-                        <div id="progression-content" class="parchment-box p-4 mb-4"></div>
-                        <div class="text-center">
-                            <button id="exit-progression-btn"
-                                class="btn-parchment bg-gray-600 hover:bg-gray-700 text-white">Close
-                                Progression</button>
+                        <div id="game-actions" class="grid grid-cols-2 md:grid-cols-6 gap-4">
+                            <button id="save-game-btn" class="btn-parchment"><i class="ra ra-save mr-2"></i>Save
+                                Game</button>
+                            <button id="new-quest-btn" class="btn-parchment">📜 New Quest</button>
+                            <button id="show-inventory-btn" class="btn-parchment"><i
+                                    class="ra ra-backpack mr-2"></i>Inventory</button>
+                            <button id="show-shop-btn" class="btn-parchment">🛒 Shop</button>
+                            <button id="show-progression-btn" class="btn-parchment"><i
+                                    class="ra ra-level-up mr-2"></i>Progression</button>
+                            <button id="show-background-btn" class="btn-parchment"><i
+                                    class="ra ra-book mr-2"></i>Background</button>
                         </div>
-                    </div>
 
-                    <div id="background-interface" class="hidden mt-6">
-                        <h4 class="text-2xl font-bold text-blue-700 mb-4 text-center">Character Background</h4>
-                        <div id="background-content" class="parchment-box p-4 mb-4"></div>
-                        <div class="text-center">
-                            <button id="exit-background-btn"
-                                class="btn-parchment bg-gray-600 hover:bg-gray-700 text-white">Close Background</button>
+                        <div id="quick-actions" class="grid grid-cols-2 md:grid-cols-4 gap-2 mt-4">
+                            <button id="rest-btn" class="btn-parchment text-sm">😴 Rest</button>
+                            <button id="explore-btn" class="btn-parchment text-sm">🔍 Explore</button>
+                            <button id="cast-spell-btn" class="btn-parchment text-sm"><i class="ra ra-magic-swirl mr-2"></i>Cast Spell</button>
+                            <button id="pray-btn" class="btn-parchment text-sm">🙏 Pray</button>
                         </div>
-                    </div>
 
-            </main>
+                        <div id="shop-interface" class="hidden mt-6">
+                            <h4 class="text-2xl font-bold text-green-700 mb-4 text-center">The Merchant's Stall</h4>
+                            <div id="shop-items" class="parchment-box p-4 mb-4 grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+                            <div class="text-center">
+                                <button id="exit-shop-btn"
+                                    class="btn-parchment bg-gray-600 hover:bg-gray-700 text-white">Exit Shop</button>
+                            </div>
+                        </div>
 
-            <footer class="text-center mt-8 text-sm">
-                <p style="color: #F5DEB3 !important;">&copy; 2025 Pedena RPG. Powered by Gemini API & the spirit of adventure.</p>
-            </footer>
+                        <div id="inventory-interface" class="hidden mt-6">
+                            <h4 class="text-2xl font-bold text-blue-700 mb-4 text-center">Your Inventory</h4>
+                            <div id="inventory-items" class="parchment-box p-4 mb-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                            </div>
+                            <div class="text-center">
+                                <button id="exit-inventory-btn"
+                                    class="btn-parchment bg-gray-600 hover:bg-gray-700 text-white">Close Inventory</button>
+                            </div>
+                        </div>
+
+                        <div id="skills-interface" class="hidden mt-6">
+                            <h4 class="text-2xl font-bold text-purple-700 mb-4 text-center">Your Skills & Abilities</h4>
+                            <div id="skills-list" class="parchment-box p-4 mb-4"></div>
+                            <div class="text-center">
+                                <button id="exit-skills-btn"
+                                    class="btn-parchment bg-gray-600 hover:bg-gray-700 text-white">Close Skills</button>
+                            </div>
+                        </div>
+
+                        <div id="quest-interface" class="hidden mt-6">
+                            <h4 class="text-2xl font-bold text-orange-700 mb-4 text-center">Active Quests</h4>
+                            <div id="quest-list" class="parchment-box p-4 mb-4"></div>
+                            <div class="text-center">
+                                <button id="exit-quests-btn"
+                                    class="btn-parchment bg-gray-600 hover:bg-gray-700 text-white">Close Quests</button>
+                            </div>
+                        </div>
+
+                        <div id="progression-interface" class="hidden mt-6">
+                            <h4 class="text-2xl font-bold text-purple-700 mb-4 text-center">Character Progression</h4>
+                            <div id="progression-content" class="parchment-box p-4 mb-4"></div>
+                            <div id="party-manager-section" class="parchment-box p-4 mb-4">
+                                <h5 class="text-xl font-bold text-amber-800 border-b-2 border-amber-800/50 pb-2 mb-4">Party Manager</h5>
+                                <div id="party-members-list">
+                                    <p class="text-stone-400">You are currently adventuring alone.</p>
+                                </div>
+                            </div>
+                            <div class="text-center">
+                                <button id="exit-progression-btn"
+                                    class="btn-parchment bg-gray-600 hover:bg-gray-700 text-white">Close
+                                    Progression</button>
+                            </div>
+                        </div>
+
+                        <div id="background-interface" class="hidden mt-6">
+                            <h4 class="text-2xl font-bold text-blue-700 mb-4 text-center">Character Background</h4>
+                            <div id="background-content" class="parchment-box p-4 mb-4"></div>
+                            <div class="text-center">
+                                <button id="exit-background-btn"
+                                    class="btn-parchment bg-gray-600 hover:bg-gray-700 text-white">Close Background</button>
+                            </div>
+                        </div>
+
+                </main>
+
+                <footer class="text-center mt-8 text-sm">
+                    <p style="color: #F5DEB3 !important;">&copy; 2025 Pedena RPG. Powered by Gemini API & the spirit of adventure.</p>
+                </footer>
+            </div>
         </div>
-    </div>
 
-    <script type="module" src="script.js"></script>
-    
+        <script type="module" src="script.js"></script>
 
-    <div id="scenery-image-display" class="hidden fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
-        <div class="bg-stone-800 p-4 rounded-lg shadow-xl max-w-3xl w-full relative parchment-border">
-            <img id="generated-scenery-image" src="#" alt="Generated Scenery" class="w-full h-auto rounded mb-4 max-h-[70vh] object-contain">
-            <button id="close-scenery-image-btn" class="btn-parchment absolute top-2 right-2 bg-red-700 hover:bg-red-800 text-white py-1 px-2 text-sm">Close</button>
+
+        <div id="scenery-image-display" class="hidden fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
+            <div class="bg-stone-800 p-4 rounded-lg shadow-xl max-w-3xl w-full relative parchment-border">
+                <img id="generated-scenery-image" src="#" alt="Generated Scenery" class="w-full h-auto rounded mb-4 max-h-[70vh] object-contain">
+                <button id="close-scenery-image-btn" class="btn-parchment absolute top-2 right-2 bg-red-700 hover:bg-red-800 text-white py-1 px-2 text-sm">Close</button>
+            </div>
         </div>
-    </div>
-</body>
+    </body>
 
 </html>

@@ -30,9 +30,12 @@ export class RelationshipMiddleware {
         3. If an NPC is new, mark 'isNew: true'.
         4. Quantify the trust change.
 
-        Here are 13 more critical interpretation rules, building upon the ones you've provided:
+        Here are 14 more critical interpretation rules, building upon the ones you've provided:
 
         CRITICAL INTERPRETATION RULES:
+
+        // ** ADDED RULE **
+        A first-time, non-hostile interaction with a new named character establishes a new relationship. Assign a small positive trustChange (e.g., +5) to establish a baseline.
 
         A heroic sacrifice, like taking on a curse for someone, is a HUGE positive event. Assign a large positive trustChange (e.g., +40 to +60).
         Declarations of love ("I love you"), celebratory toasts ("To love!"), and successful quests for an NPC are MAJOR positive and romantic events. Assign a significant positive trustChange (e.g., +20 to +30).
