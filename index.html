@@ -62,6 +62,44 @@
 
 <body class="bg-stone-800 text-stone-100 font-merriweather">
     <div id="game-container" class="max-w-4xl mx-auto p-8 rounded-lg shadow-xl relative overflow-hidden">
+
+        <div id="settings-modal" class="hidden fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4">
+            <div id="settings-modal-content" class="parchment-bg p-6 rounded-lg shadow-xl w-full max-w-md relative border-4 border-amber-800">
+                <div class="text-center border-b-2 border-amber-800/50 pb-3 mb-4 relative">
+                    <h4 class="text-2xl font-bold text-amber-800">Game Settings</h4>
+                    <button id="settings-modal-close-btn" class="absolute top-0 right-0 text-3xl font-bold text-amber-700 hover:text-red-700 leading-none">&times;</button>
+                </div>
+
+                <div class="space-y-6">
+                    <div>
+                        <h5 class="font-bold mb-2 text-amber-700 text-lg" style="color: rgb(255 251 235);">API Configuration</h5>
+                        <div class="space-y-4">
+                            <div>
+                                <label for="gemini-model-select" class="block text-sm font-semibold mb-1">Gemini Model:</label>
+                                <select id="gemini-model-select" class="w-full p-2 border border-amber-700/50 rounded bg-amber-50 focus:outline-none focus:ring-2 focus:ring-amber-500" style="color: rgb(146 64 14) !important;" placeholder="Choose your Gemini model">
+                                    <option value="gemini-1.5-flash-latest">Gemini 1.5 Flash (Recommended)</option>
+                                    <option value="gemini-2.0.flash">Gemini 2.0 Flash</option>
+                                    <option value="gemini-2.0.flash-thinking-exp-01-21">Gemini 2.0 Flash Experimental Thinking</option>
+                                    <option value="gemini-2.0-flash-lite">Gemini 2.0 Flash Lite</option>
+                                    <option value="gemini-2.5-flash-preview-05-20">Gemini 2.5 Flash</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label for="gemini-api-key-input" class="block text-sm font-semibold mb-1">Your Gemini API Key:</label>
+                                <input type="password" id="gemini-api-key-input" placeholder="Enter your API key here" class="w-full p-2 border border-amber-700/50 rounded bg-amber-50 focus:outline-none focus:ring-2 focus:ring-amber-500" style="color: rgb(146 64 14) !important;">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <h5 class="font-bold mb-3 text-amber-700 text-lg" style="color: rgb(255 251 235);">Game Actions</h5>
+                        <div id="settings-actions-container" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
         <div id="parchment-background" class="absolute inset-0 z-0"></div>
         <div class="relative z-10 p-6">
             <header class="text-center mb-8">

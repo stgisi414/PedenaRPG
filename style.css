@@ -235,9 +235,6 @@ h1, h2, h3, h4 {
 #reset-progression-btn,
 #illustration-mode-toggle,
 .rich-text-toggle {
-    position: absolute;
-    right: 10px;
-    z-index: 999;
     font-size: 0.75rem;
     display: block !important;
     visibility: visible !important;
@@ -732,4 +729,30 @@ h1, h2, h3, h4 {
     min-height: 250px;     /* Give it some height so content can be truly centered even when empty */
     text-align: center;    /* For text alignment */
     /* Add any other existing #shop-items styles you have here */
+}
+
+#settings-modal-content {
+    animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: scale(0.95) translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+/* Make action buttons inside the modal look better */
+#settings-actions-container .btn-parchment {
+    padding-top: 0.75rem;
+    padding-bottom: 0.75rem;
+    font-size: 0.875rem; /* 14px */
+    text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }

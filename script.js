@@ -16,8 +16,42 @@ import { MultiCombatSystem } from './game-logic/multi-combat-system.js';
 import { RelationshipMiddleware } from './game-logic/relationship-middleware.js';
 import { HelpSystem } from './game-logic/help-system.js';
 
-const GEMINI_API_KEY = 'AIzaSyDIFeql6HUpkZ8JJlr_kuN0WDFHUyOhijA'; // Replace with your actual Gemini API Key
-const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-thinking-exp-01-21:generateContent?key=${GEMINI_API_KEY}`;
+//const GEMINI_API_KEY = 'AIzaSyDIFeql6HUpkZ8JJlr_kuN0WDFHUyOhijA'; // Replace with your actual Gemini API Key
+let GEMINI_API_KEY = ''; // We will load this from settings
+let GEMINI_API_URL = ``; // We will build this dynamically
+
+let gameSettings = {
+    apiKey: '',
+    model: 'gemini-1.5-flash-latest' // Default model
+};
+
+function saveSettings() {
+    if (typeof localStorage !== 'undefined') {
+        localStorage.setItem('pedenaGameSettings', JSON.stringify(gameSettings));
+        console.log("Game settings saved:", gameSettings);
+    }
+}
+
+function loadSettings() {
+    if (typeof localStorage !== 'undefined') {
+        const savedSettings = localStorage.getItem('pedenaGameSettings');
+        if (savedSettings) {
+            gameSettings = JSON.parse(savedSettings);
+        }
+    }
+
+    // Update variables and UI elements
+    GEMINI_API_KEY = gameSettings.apiKey;
+    GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${gameSettings.model}:generateContent?key=${GEMINI_API_KEY}`;
+
+    const modelSelect = document.getElementById('gemini-model-select');
+    const apiKeyInput = document.getElementById('gemini-api-key-input');
+
+    if (modelSelect) modelSelect.value = gameSettings.model;
+    if (apiKeyInput) apiKeyInput.value = gameSettings.apiKey;
+
+    console.log("Game settings loaded:", gameSettings);
+}    
 
 //Global delay function
 function delay(ms) {
@@ -983,6 +1017,7 @@ function rollDice(diceString) {
 
 // AI Interaction Functions (Gemini API Calls)
 async function callGeminiAPI(prompt, temperature = 0.10, maxOutputTokens = 56000, includeContext = true) {
+    GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${gameSettings.model}:generateContent?key=${gameSettings.apiKey}`;
     try {
         let fullPrompt = prompt;
 
@@ -5488,10 +5523,6 @@ const removePortraitBtn = document.createElement('button');
 removePortraitBtn.id = 'remove-portrait-btn';
 removePortraitBtn.className = 'btn-parchment bg-red-600 hover:bg-red-700 text-white text-xs md:text-sm py-1 px-2';
 removePortraitBtn.style.cssText = `
-    position: absolute;
-    top: 10px;
-    right: 10px;
-    z-index: 999;
     font-size: 0.75rem;
 `;
 removePortraitBtn.innerHTML = '<i class="ra ra-cancel mr-1"></i><span class="hidden sm:inline">Remove Portrait</span><span class="sm:hidden">Del Pic</span>';
@@ -5503,10 +5534,6 @@ const resetProgressionBtn = document.createElement('button');
 resetProgressionBtn.id = 'reset-progression-btn';
 resetProgressionBtn.className = 'btn-parchment bg-orange-600 hover:bg-orange-700 text-white text-xs md:text-sm py-1 px-2';
 resetProgressionBtn.style.cssText = `
-    position: absolute;
-    top: 60px;
-    right: 10px;
-    z-index: 999;
     font-size: 0.75rem;
 `;
 resetProgressionBtn.innerHTML = '<i class="ra ra-recycle mr-1"></i><span class="hidden sm:inline">Reset Progression</span><span class="sm:hidden">Reset</span>';
@@ -5517,10 +5544,6 @@ const illustrationToggle = document.createElement('button');
 illustrationToggle.id = 'illustration-mode-toggle';
 illustrationToggle.className = 'btn-parchment bg-indigo-600 hover:bg-indigo-700 text-white text-xs md:text-sm py-1 px-2';
 illustrationToggle.style.cssText = `
-    position: absolute;
-    top: 110px;
-    right: 10px;
-    z-index: 999;
     font-size: 0.75rem;
 `;
 illustrationToggle.innerHTML = '🖼️<span class="hidden sm:inline"> Illustration Mode</span><span class="sm:hidden"> Illus</span>';
@@ -5531,10 +5554,6 @@ const richTextToggle = document.createElement('button');
 richTextToggle.id = 'rich-text-toggle';
 richTextToggle.className = 'btn-parchment rich-text-toggle bg-purple-600 hover:bg-purple-700 text-white text-xs md:text-sm py-1 px-2';
 richTextToggle.style.cssText = `
-    position: absolute;
-    top: 160px;
-    right: 10px;
-    z-index: 999;
     font-size: 0.75rem;
 `;
 richTextToggle.innerHTML = '<i class="ra ra-fireball mr-1"></i><span class="hidden sm:inline">Rich Text: OFF</span><span class="sm:hidden">RT: OFF</span>';
@@ -5556,8 +5575,9 @@ function updateRichTextToggle() {
     const toggle = document.getElementById('rich-text-toggle');
     if (toggle) {
         const status = richTextEnabled ? 'ON' : 'OFF';
-        toggle.innerHTML = `<i class="ra ra-fireball mr-1"></i><span class="hidden sm:inline">Rich Text: ${status}</span><span class="sm:hidden">RT: ${status}</span>`;
-        toggle.className = `btn-parchment rich-text-toggle ${richTextEnabled ? 'bg-purple-600 hover:bg-purple-700' : 'bg-gray-600 hover:bg-gray-700'} text-white text-xs md:text-sm py-1 px-2`;
+        // This ensures the full "Rich Text: ON/OFF" is always displayed
+        toggle.innerHTML = `<i class="ra ra-fireball mr-2"></i>Rich Text: ${status}`;
+        toggle.className = `btn-parchment rich-text-toggle w-full ${richTextEnabled ? 'bg-purple-600 hover:bg-purple-700' : 'bg-gray-600 hover:bg-gray-700'} text-white`;
     }
 }
 
@@ -7110,3 +7130,113 @@ window.fixInventorySlots = function() {
 };
 
 console.log("Added fixInventorySlots() function. Run fixInventorySlots() in console to fix items missing slot properties.");
+
+// In script.js, replace the entire final block of code with this
+
+// --- FINALIZED SETTINGS MODAL LOGIC ---
+
+// 1. Create the main Settings button, which will be visible on the screen
+const settingsBtn = document.createElement('button');
+settingsBtn.id = 'settings-btn';
+settingsBtn.className = 'btn-parchment bg-gray-600 hover:bg-gray-700 text-white text-xs md:text-sm py-1 px-2';
+settingsBtn.style.cssText = `position: fixed; top: 10px; right: 10px; z-index: 40;`;
+settingsBtn.innerHTML = '<i class="ra ra-gears mr-1"></i><span class="hidden sm:inline">Settings</span><span class="sm:hidden">⚙️</span>';
+settingsBtn.title = 'Open Game Settings';
+
+// 2. Find the container inside the modal where the action buttons will go
+const settingsActionsContainer = document.getElementById('settings-actions-container');
+
+// 3. Create the action buttons (we will add event listeners separately below)
+removePortraitBtn.id = 'remove-portrait-btn';
+removePortraitBtn.className = 'btn-parchment bg-red-600 hover:bg-red-700 text-white w-full';
+removePortraitBtn.innerHTML = '<i class="ra ra-cancel mr-2"></i>Remove Portrait';
+
+resetProgressionBtn.id = 'reset-progression-btn';
+resetProgressionBtn.className = 'btn-parchment bg-orange-600 hover:bg-orange-700 text-white w-full';
+resetProgressionBtn.innerHTML = '<i class="ra ra-recycle mr-2"></i>Reset Progression';
+
+illustrationToggle.id = 'illustration-mode-toggle';
+illustrationToggle.className = 'btn-parchment bg-indigo-600 hover:bg-indigo-700 text-white w-full';
+illustrationToggle.title = 'Toggle illustration mode for scenery images';
+
+richTextToggle.className = 'btn-parchment rich-text-toggle bg-purple-600 hover:bg-purple-700 text-white w-full';
+richTextToggle.title = 'Toggle rich text styling for game messages';
+
+// 4. Append all buttons to their correct places
+document.body.appendChild(settingsBtn);
+
+if (settingsActionsContainer) {
+    settingsActionsContainer.appendChild(removePortraitBtn);
+    settingsActionsContainer.appendChild(resetProgressionBtn);
+    settingsActionsContainer.appendChild(illustrationToggle);
+    settingsActionsContainer.appendChild(richTextToggle);
+}
+
+// 5. Add ALL event listeners inside DOMContentLoaded to ensure elements exist
+document.addEventListener('DOMContentLoaded', () => {
+    loadSettings();
+
+    const modal = document.getElementById('settings-modal');
+    const closeBtn = document.getElementById('settings-modal-close-btn');
+    const modelSelect = document.getElementById('gemini-model-select');
+    const apiKeyInput = document.getElementById('gemini-api-key-input');
+
+    // Modal visibility listeners
+    settingsBtn.addEventListener('click', () => modal.classList.toggle('hidden'));
+    closeBtn.addEventListener('click', () => modal.classList.add('hidden'));
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+            modal.classList.add('hidden');
+        }
+    });
+
+    // API settings listeners
+    modelSelect.addEventListener('change', (e) => {
+        gameSettings.model = e.target.value;
+        saveSettings();
+    });
+    apiKeyInput.addEventListener('input', (e) => {
+        gameSettings.apiKey = e.target.value;
+        saveSettings();
+    });
+
+    // --- CORRECTED Action Button Listeners ---
+    removePortraitBtn.addEventListener('click', () => {
+        removeCharacterPortrait();
+        modal.classList.add('hidden');
+    });
+
+    resetProgressionBtn.addEventListener('click', () => {
+        resetCharacterProgression();
+        modal.classList.add('hidden');
+    });
+
+    illustrationToggle.addEventListener('click', async () => {
+        isIllustrationModeActive = !isIllustrationModeActive;
+
+        if (isIllustrationModeActive) {
+            if (player && player.portraitUrl && player.portraitUrl.trim() !== '') {
+                illustrationToggle.innerHTML = '🖼️<span class="hidden sm:inline"> Illustration Mode: ON</span><span class="sm:hidden"> ON</span>';
+                illustrationToggle.className = 'btn-parchment bg-green-600 hover:bg-green-700 text-white text-xs md:text-sm py-1 px-2';
+                await generateAndDisplaySceneryImage();
+            } else {
+                displayMessage("Cannot activate Illustration Mode without a character portrait.", "error");
+                isIllustrationModeActive = false;
+                illustrationToggle.innerHTML = '🖼️<span class="hidden sm:inline"> Illustration Mode</span><span class="sm:hidden"> Illus</span>';
+                illustrationToggle.className = 'btn-parchment bg-indigo-600 hover:bg-indigo-700 text-white text-xs md:text-sm py-1 px-2';
+            }
+        } else {
+            illustrationToggle.innerHTML = '🖼️<span class="hidden sm:inline"> Illustration Mode</span><span class="sm:hidden"> Illus</span>';
+            illustrationToggle.className = 'btn-parchment bg-indigo-600 hover:bg-indigo-700 text-white text-xs md:text-sm py-1 px-2';
+            displayMessage("Illustration Mode Deactivated.", "info");
+        }
+    });.
+
+    richTextToggle.addEventListener('click', () => {
+        toggleRichText(); // Your existing function already handles this correctly.
+    });
+
+    // Initialize button text on page load
+    updateRichTextToggle();
+    illustrationToggle.innerHTML = `🖼️ Illustration Mode: ${isIllustrationModeActive ? 'ON' : 'OFF'}`;
+});
