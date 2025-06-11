@@ -143,7 +143,10 @@
                     </div>
 
                     <div id="custom-command-section" class="mb-6">
-                        <label for="custom-command-input" class="block text-lg mb-2" style="color:#F5DEB3 !important;">Enter Command:</label>
+                        <label for="custom-command-input" class="block text-lg mb-2" style="color:#F5DEB3 !important;">Enter Command: <span style="text-align: right;">
+<button id="help-btn" class="btn-parchment bg-purple-600 hover:bg-purple-700 text-xs md:text-sm py-1 px-2 text-white" title="Show help system" style="display: inline;">
+                            <i class="ra ra-quill mr-2"></i>Help
+                        </button></span></label>
                         <div class="flex gap-2">
                             <input type="text" id="custom-command-input" class="input-parchment flex-1"
                                 placeholder="Type your action here (e.g., 'examine the mysterious door', 'talk to the merchant', 'cast fireball')...">
@@ -248,7 +251,3 @@
 </body>
 
 </html>
-
-                        <button id="help-btn" class="btn-parchment bg-purple-600 hover:bg-purple-700 text-xs md:text-sm py-1 px-2" title="Show help system">
-                            <i class="ra ra-quill mr-2"></i>Help
-                        </button>
