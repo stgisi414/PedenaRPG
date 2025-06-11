@@ -473,6 +473,54 @@ function loadConversationHistory() {
     }
 }
 
+async function checkNPCMentionsAndAdd(aiResponse, playerCommand, gameContextPlayer) {
+    console.log("checkNPCMentionsAndAdd: Scanning AI response for NPC mentions...");
+
+    // Ensure the RelationshipMiddleware is available on the window object
+    if (!window.RelationshipMiddleware) {
+        console.error("RelationshipMiddleware is not available. Cannot process NPC mentions.");
+        return;
+    }
+
+    try {
+        // Use the middleware to intelligently extract potential NPC names from the AI's narrative
+        const npcNames = await RelationshipMiddleware.extractNPCNames(aiResponse, gameContextPlayer);
+
+        if (npcNames.length === 0) {
+            console.log("checkNPCMentionsAndAdd: No NPC names were identified in the AI response.");
+            return;
+        }
+
+        console.log("checkNPCMentionsAndAdd: Identified potential NPCs:", npcNames);
+
+        for (const npcName of npcNames) {
+            // Resolve the NPC's canonical identity and get a description for them
+            const identity = await RelationshipMiddleware.resolveNpcIdentity(npcName, gameContextPlayer.relationships || {}, playerCommand, aiResponse);
+
+            // If the AI determines the name is not actually an NPC, skip it
+            if (identity.description === 'Not an NPC.') {
+                console.log(`checkNPCMentionsAndAdd: Skipping relationship creation for "${npcName}" as it was identified as a non-NPC entity.`);
+                continue;
+            }
+
+            // Check if this NPC already exists in the current location's NPC list
+            const existingNPCsInLocation = getNPCsInLocation(gameContextPlayer.currentLocation);
+            const npcAlreadyInLocation = existingNPCsInLocation.some(npc => npc.name === identity.canonicalName);
+
+            // If they are not in the location, create and save them
+            if (!npcAlreadyInLocation) {
+                const newNPC = createNPC(identity.canonicalName, identity.description, gameContextPlayer.currentLocation);
+                saveNPCToLocation(newNPC, gameContextPlayer.currentLocation);
+            }
+
+            // Ensure a relationship entry exists for this NPC, creating it if it's the first time.
+            updateRelationship(identity.canonicalName, 0, 0, identity.description, true); // forceCreate = true
+        }
+    } catch (error) {
+        console.error("An error occurred in checkNPCMentionsAndAdd:", error);
+    }
+}
+
 // DOM Elements
 const startScreen = document.getElementById('start-screen');
 const newGameBtn = document.getElementById('new-game-btn');

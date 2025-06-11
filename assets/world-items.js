@@ -2578,33 +2578,27 @@ export class ItemGenerator {
         const {
             category = this.getRandomCategory(),
             rarity = this.getRandomRarityKey(),
-            subType = null // Ensure subType is extracted from context
+            subType = null
         } = context;
 
-        console.log(`[DEBUG_ITEM_GEN] Starting generateItem for: Category=<span class="math-inline">\{category\}, Rarity\=</span>{rarity}, SubType=${subType}`); // NEW LOG
+        console.log(`[DEBUG_ITEM_GEN] Starting generateItem for: Category=${category}, Rarity=${rarity}, SubType=${subType}`);
 
-        // 1. Get a base item template from your existing database
-        // Pass subType explicitly to getBaseItem
-        const baseItem = this.getBaseItem(category, rarity, subType); // Pass subType
-        console.log("[DEBUG_ITEM_GEN] baseItem after getBaseItem:", JSON.stringify(baseItem, null, 2)); // Existing Debug Log
+        // FIX: Pass the entire context object here
+        const baseItem = this.getBaseItem(category, rarity, context);
+
+        console.log("[DEBUG_ITEM_GEN] baseItem after getBaseItem:", JSON.stringify(baseItem, null, 2));
         if (!baseItem) {
             console.error("Could not find a base item for generation. Category:", category, "Rarity:", rarity, "SubType:", subType);
-            return null; // Or return a generic fallback
+            return null;
         }
 
-        // 2. Enhance the base item using the Gemini AI
-        // Pass the original context to enhanceItemWithAI
         let enhancedItem = await this.enhanceItemWithAI(baseItem, context); 
-
-        // 3. Apply base enhancements (like value and color) using enhanceItem
-        // Pass the original context to enhanceItem
         enhancedItem = this.enhanceItem(enhancedItem, context); 
-        console.log("[DEBUG_ITEM_GEN] enhancedItem before final return:", JSON.stringify(enhancedItem, null, 2)); // Existing Debug Log
+        console.log("[DEBUG_ITEM_GEN] enhancedItem before final return:", JSON.stringify(enhancedItem, null, 2));
 
-        // 4. Finalize and return the item
         return {
             id: this.generateItemId(),
-            ...enhancedItem, // The AI-enhanced properties and base calculations
+            ...enhancedItem,
             generatedAt: Date.now(),
             context: context
         };
@@ -2703,7 +2697,7 @@ export class ItemGenerator {
 
     static getBaseItem(category, rarity) { // Rarity is now a key string
         // The context.subType is passed down from generateItem
-        const subTypeHint = this.context && this.context.subType ? this.context.subType : null; // Get subType from context
+        const subTypeHint = context.subType || null;
 
         let itemsOfType;
         switch (category) {
