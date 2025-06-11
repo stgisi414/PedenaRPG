@@ -4715,7 +4715,7 @@ async function parseAndApplyStateChanges(result) {
     // 1. Time Progression
     if (result.timePassedMinutes) {
         // Assume you have a world time object
-        world.time.setMinutes(world.time.getMinutes() + result.timePassedMinutes);
+        gameWorld.time.setMinutes(world.time.getMinutes() + result.timePassedMinutes);
         // You could then update a UI element to show the new time/day.
         // displayTime(world.time); 
     }
@@ -4782,7 +4782,7 @@ async function parseAndApplyStateChanges(result) {
     // 6. World Events
     if (result.worldEvents && result.worldEvents.length > 0) {
         result.worldEvents.forEach(event => {
-            world.activeEvents.push(event);
+            gameWorld.activeEvents.push(event);
             // Announce major events to the player
             displayMessage(`[WORLD EVENT] ${event.details}`, 'world-event');
         });
