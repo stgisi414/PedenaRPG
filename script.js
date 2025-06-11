@@ -1101,25 +1101,41 @@ REQUIREMENTS: Use at least 7-10 different formatting effects per response. Use *
         const data = await response.json();
         if (data.candidates && data.candidates.length > 0) {
             const candidate = data.candidates[0];
+            let responseText = "";
 
-            // Handle MAX_TOKENS case
+            if (candidate.content && candidate.content.parts && candidate.content.parts.length > 0) {
+                responseText = candidate.content.parts[0].text;
+            } else {
+                return "I'm having trouble generating a response right now.";
+            }
+
+            // --- NEW, MORE AGGRESSIVE JSON SANITIZATION ---
+            // Find the first '{' and the last '}' to isolate the JSON object
+            const firstBrace = responseText.indexOf('{');
+            const lastBrace = responseText.lastIndexOf('}');
+
+            if (firstBrace !== -1 && lastBrace > firstBrace) {
+                const jsonString = responseText.substring(firstBrace, lastBrace + 1);
+                // Check if the extracted string is likely a valid JSON object
+                if (jsonString.startsWith('{') && jsonString.endsWith('}')) {
+                    try {
+                        // Test if it's parsable before returning
+                        JSON.parse(jsonString); 
+                        return jsonString; // Return the clean, valid JSON string.
+                    } catch (e) {
+                        // It looked like JSON but wasn't, so fall through and return original text
+                        console.warn("Found what looked like JSON, but it failed to parse. Returning raw text.", e);
+                    }
+                }
+            }
+
+            // If no JSON was found or it was invalid, handle other cases
             if (candidate.finishReason === 'MAX_TOKENS') {
                 console.warn('Response truncated due to MAX_TOKENS');
-                if (candidate.content && candidate.content.parts && candidate.content.parts.length > 0) {
-                    return candidate.content.parts[0].text;
-                }
-                return "Response was cut short. Please try a simpler request.";
+                return responseText || "Response was cut short.";
             }
 
-            // Check if content exists and has parts
-            if (candidate.content && candidate.content.parts && candidate.content.parts.length > 0) {
-                return candidate.content.parts[0].text;
-            }
-            // Handle case where content exists but parts might be missing
-            else if (candidate.content && candidate.content.role) {
-                console.log('API response received but no content parts found:', data);
-                return "I'm having trouble generating a response right now. Please try again.";
-            }
+            return responseText; // Return the original text if no valid JSON was found.
         }
         console.error('Invalid API response structure:', data);
         return null;
@@ -3046,21 +3062,15 @@ Make the quest feel personal and relevant to ${player.name}'s journey. Use the c
 `;
 
     try {
-        // Updated the token limit here as you requested
-        const response = await callGeminiAPI(questPrompt, 0.7, 8192, false); 
-        if (!response) {
-            throw new Error("No response from Gemini API");
+        // The response from callGeminiAPI is now guaranteed to be a clean JSON string (if JSON was present)
+        const jsonResponse = await callGeminiAPI(questPrompt, 0.7, 8192, false);
+
+        if (!jsonResponse || !jsonResponse.startsWith('{')) {
+            throw new Error("No valid JSON was returned from the API.");
         }
 
-        // Parse the JSON response
-        const cleanResponse = response.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-        const jsonMatch = cleanResponse.match(/\{[\s\S]*\}/);
-
-        if (!jsonMatch) {
-            throw new Error("No valid JSON found in response");
-        }
-
-        const geminiQuest = JSON.parse(jsonMatch[0]);
+        // Now you can parse directly, no more complex regex needed.
+        const geminiQuest = JSON.parse(jsonResponse);
 
         // Enhance with additional data and validation
         const enhancedQuest = {
@@ -3623,7 +3633,7 @@ Example:
 }
 `;
 
-    const explorationResult = await callGeminiAPI(explorePrompt, 0.7, 400, false); // Increased tokens slightly for structured JSON
+    const explorationResult = await callGeminiAPI(explorePrompt, 0.7, 1048, false); // Increased tokens slightly for structured JSON
 
     if (explorationResult) {
         let parsedResult;
