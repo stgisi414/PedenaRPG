@@ -16,13 +16,12 @@ import { MultiCombatSystem } from './game-logic/multi-combat-system.js';
 import { RelationshipMiddleware } from './game-logic/relationship-middleware.js';
 import { HelpSystem } from './game-logic/help-system.js';
 
-//const GEMINI_API_KEY = 'AIzaSyDIFeql6HUpkZ8JJlr_kuN0WDFHUyOhijA'; // Replace with your actual Gemini API Key
 let GEMINI_API_KEY = ''; // We will load this from settings
 let GEMINI_API_URL = ``; // We will build this dynamically
 
 let gameSettings = {
     apiKey: '',
-    model: 'gemini-1.5-flash-latest' // Default model
+    model: '' // Default model
 };
 
 function saveSettings() {
@@ -5696,19 +5695,46 @@ function processRichText(text, messageType = null) {
 // Add main event listeners function
 function addMainEventListeners() {
     try {
+
+        const navigateToMainMenu = document.getElementById('header-logo');
+            navigateToMainMenu?.addEventListener('click', () => {
+            // Check if the game play screen is currently visible
+            const gamePlayScreen = document.getElementById('game-play-screen');
+            if (gamePlayScreen && !gamePlayScreen.classList.contains('hidden')) {
+                if (confirm("Are you sure you want to return to the main menu? Any unsaved progress will be lost.")) {
+                    showScreen('start-screen');
+                }
+            } else {
+                // If not in a game, return to the menu without confirmation
+                showScreen('start-screen');
+            }
+        });
+        
         // Start screen buttons
         newGameBtn?.addEventListener('click', () => {
+            // Check if API settings are configured
+            if (!gameSettings.apiKey || !gameSettings.model) {
+                alert('A Gemini API Key and Model are required. Please configure them in the Settings menu.');
+                document.getElementById('settings-modal')?.classList.remove('hidden');
+                return; // Stop the function
+            }
             console.log('New game button clicked');
             showScreen('character-creation-screen');
         });
 
         loadGameBtn?.addEventListener('click', () => {
+            // Check if API settings are configured
+            if (!gameSettings.apiKey || !gameSettings.model) {
+                alert('A Gemini API Key and Model are required. Please configure them in the Settings menu.');
+                document.getElementById('settings-modal')?.classList.remove('hidden');
+                return; // Stop the function
+            }
             console.log('Load game button clicked');
             loadGame();
 
-            console.log(`[SCRIPT.JS] After loadGame, module-scoped player HP: <span class="math-inline">${player.hp}/${player.maxHp}</span>`); // Should be 140/140
+            console.log(`[SCRIPT.JS] After loadGame, module-scoped player HP: ${player.hp}/${player.maxHp}`); // Should be 140/140
             if (window.player) {
-                console.log(`[SCRIPT.JS] After loadGame, window.player HP: <span class="math-inline">${window.player.hp}/${window.player.maxHp}</span>`); // What is this?
+                console.log(`[SCRIPT.JS] After loadGame, window.player HP: ${window.player.hp}/${window.player.maxHp}`); // What is this?
                 console.log(`[SCRIPT.JS] After loadGame, is module player === window.player? ${player === window.player}`);
             } else {
                 console.log(`[SCRIPT.JS] After loadGame, window.player is not yet defined (or not yet assigned).`);
