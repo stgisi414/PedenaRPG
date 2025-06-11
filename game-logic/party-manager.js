@@ -14,7 +14,8 @@ export class PartyManager {
             return { success: false, message: "Party is full! Maximum 4 members allowed." };
         }
 
-        if (this.party.find(member => member.id === npc.id)) {
+        // --- FIX: Check for member by name to prevent duplicates ---
+        if (this.party.find(member => member.name.toLowerCase() === npc.name.toLowerCase())) {
             return { success: false, message: `${npc.name} is already in your party.` };
         }
 
@@ -67,9 +68,9 @@ export class PartyManager {
             name: player.name,
             type: 'player',
             level: player.level,
-            health: player.health,
-            maxHealth: player.maxHealth,
-            ac: player.ac,
+            health: player.hp,         // <-- FIX: Changed from player.health
+            maxHealth: player.maxHp,   // <-- FIX: Changed from player.maxHealth
+            ac: player.ac || 12,
             damage: this.getPlayerDamage(player),
             skills: player.skills || [],
             equipment: player.equipment || {},

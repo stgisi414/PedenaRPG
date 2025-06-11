@@ -755,6 +755,48 @@ const classes = {
     }
 };
 
+// --- NEW: Data structure for NPC classes ---
+const npcClasses = {
+    warrior: { hp_base: 125, hp_per_level: 8, damage: '1d8', ac_bonus: 3, description: "A sturdy frontline fighter." },
+    mage:    { hp_base: 115, hp_per_level: 4, damage: '1d6', ac_bonus: 0, description: "A master of arcane arts." },
+    rogue:   { hp_base: 120, hp_per_level: 6, damage: '1d6', ac_bonus: 1, description: "A nimble and cunning scout." },
+    healer:  { hp_base: 118, hp_per_level: 5, damage: '1d4', ac_bonus: 0, description: "A supportive divine spellcaster.", skills: ['Minor Heal'] },
+    // Default fallback
+    commoner: { hp_base: 50, hp_per_level: 3, damage: '1d4', ac_bonus: 0, description: "A simple traveler." }
+};
+
+// --- NEW: Helper function to generate dynamic stats for an NPC ---
+async function generateNpcStats(npcName, playerLevel) {
+    const prompt = `Based on the fantasy character name "${npcName}", assign a suitable RPG class from this list: Warrior, Mage, Rogue, Healer. Respond with ONLY the class name.`;
+
+    let npcClass = 'commoner'; // Default class
+    try {
+        const response = await callGeminiAPI(prompt, 0.2, 20, false);
+        const cleanedResponse = response.trim().toLowerCase();
+        if (npcClasses[cleanedResponse]) {
+            npcClass = cleanedResponse;
+        }
+    } catch (error) {
+        console.error("AI failed to assign NPC class, using default. Error:", error);
+    }
+
+    const classData = npcClasses[npcClass];
+    const level = Math.max(1, playerLevel); // NPCs should be at least your level
+
+    const health = classData.hp_base + ((level - 1) * classData.hp_per_level);
+    const ac = 10 + classData.ac_bonus + Math.floor(level / 2);
+
+    return {
+        level: level,
+        health: health,
+        maxHealth: health,
+        ac: ac,
+        damage: classData.damage,
+        skills: classData.skills || [],
+        description: classData.description
+    };
+}
+
 // Helper Functions
 // In script.js
 function updateGold(amount, reason = '') {
@@ -2548,7 +2590,7 @@ async function recruitNPC(npcName, npcData = null) {
         return;
     }
 
-    // If no npcData provided, try to find from recent NPCs
+    // This part is the same
     let npc = npcData;
     if (!npc) {
         const existingNPCs = getNPCsInLocation(player.currentLocation);
@@ -2556,31 +2598,32 @@ async function recruitNPC(npcName, npcData = null) {
     }
 
     if (!npc) {
-        // Create a basic NPC structure for recruitment
+        displayMessage(`You haven't met ${npcName} before, but you approach them to join your cause.`, 'info');
+
+        // --- REPLACEMENT: Generate dynamic NPC stats ---
+        const npcStats = await generateNpcStats(npcName, player.level);
         npc = {
             id: `npc_${Date.now()}`,
             name: npcName,
-            level: Math.max(1, player.level - 1),
-            health: 15 + (player.level * 3),
-            maxHealth: 15 + (player.level * 3),
-            ac: 10 + Math.floor(player.level / 2),
-            damage: '1d6',
-            skills: ['Basic Combat'],
-            equipment: {},
-            abilities: ['Attack', 'Defend'],
+            level: npcStats.level,
+            health: npcStats.health,
+            maxHealth: npcStats.maxHealth,
+            ac: npcStats.ac,
+            damage: npcStats.damage,
+            skills: npcStats.skills,
             loyalty: 60
         };
+        // --- END REPLACEMENT ---
     }
 
     const result = partyManager.addMember(npc);
     displayMessage(result.message, result.success ? 'success' : 'error');
 
     if (result.success) {
-        // Update relationship
         updateRelationship(npcName, 0, 20, `${npcName} has joined your party as a trusted companion.`);
-
-        // Add party commands to UI
         updatePartyUI();
+        displayPartyStatus();
+        saveGame();
     }
 
     return result;
@@ -2644,6 +2687,31 @@ function updatePartyUI() {
         // You could add party management buttons to the UI here
         // For now, we'll just update the display when needed
     }
+}
+
+function buildPartyStatusHTML() {
+    // Check if the party manager exists and has members
+    if (!partyManager || partyManager.party.length === 0) {
+        return '<p class="text-sm text-gray-600 italic">You are currently adventuring alone.</p>';
+    }
+
+    let html = '';
+    const allMembers = partyManager.getAllMembers(player);
+
+    allMembers.forEach(member => {
+        const status = member.isPlayer ? "(You)" : `(${member.position})`;
+        const healthStatus = `${member.health}/${member.maxHealth} HP`;
+        const loyaltyInfo = !member.isPlayer && member.loyalty !== undefined ? ` - Loyalty: ${member.loyalty}%` : '';
+
+        html += `
+            <div class="p-2 mb-2 border-b border-amber-700/20">
+                <p class="font-semibold">${member.name} ${status}</p>
+                <p class="text-sm text-amber-800">Level ${member.level} - ${healthStatus}${loyaltyInfo}</p>
+            </div>
+        `;
+    });
+
+    return html;
 }
 
 // Multi-Combat Integration
@@ -3545,7 +3613,17 @@ function displayCharacterProgression() {
             ` : ''}
         </div>
     `;
+
+    // --- ADD THIS AT THE END OF THE FUNCTION ---
+    // Find the new container for the party status
+    const partyStatusContainer = document.getElementById('party-manager-display');
+    if (partyStatusContainer) {
+        // Build the party status HTML and inject it into the container
+        partyStatusContainer.innerHTML = buildPartyStatusHTML();
+    }
+    
 }
+
 
 function learnNewSpell(spellName) {
     const result = CharacterManager.learnSpell(player, spellName);
@@ -5826,13 +5904,63 @@ function addMainEventListeners() {
         }
 
         // Game play buttons
-        executeCommandBtn?.addEventListener('click', () => {
+        executeCommandBtn?.addEventListener('click', async () => {
+            const customCommandInput = document.getElementById('custom-command-input');
             const command = customCommandInput.value.trim();
-            if (command) {
-                console.log('Executing command:', command);
-                executeCustomCommand(command);
+            if (!command) return;
+
+            displayMessage(`> ${command}`, 'player-command');
+
+            const lowerCaseCommand = command.toLowerCase();
+
+            // --- COMMAND PARSING LOGIC ---
+
+            // Handle "recruit" command
+            if (lowerCaseCommand.startsWith('recruit ')) {
+                const npcNameToRecruit = command.substring(8).trim();
+                // Correctly calls the global recruitNPC function
+                await recruitNPC(npcNameToRecruit); 
                 customCommandInput.value = '';
+                return; // Stop further processing
             }
+
+            // Handle "dismiss" command
+            if (lowerCaseCommand.startsWith('dismiss ')) {
+                const memberNameToDismiss = command.substring(8).trim();
+
+                if (partyManager && partyManager.party.length > 0) {
+                    const memberToDismiss = partyManager.party.find(
+                        member => member.name.toLowerCase() === memberNameToDismiss.toLowerCase()
+                    );
+
+                    if (memberToDismiss) {
+                        dismissPartyMember(memberToDismiss.id);
+                    } else {
+                        displayMessage(`Member "${memberNameToDismiss}" not found in your party.`, 'error');
+                    }
+                } else {
+                    displayMessage("Your party is empty.", 'info');
+                }
+
+                customCommandInput.value = '';
+                return; // Stop further processing
+            }
+
+            // --- DEFAULT COMMAND HANDLING ---
+            // FIX: This now correctly calls your main AI function "executeCustomCommand"
+            if (window.isAwaitingStoryContinuation) {
+                // This assumes continueStory is a valid function for your narrative flow
+                await continueStory(command);
+
+            } else {
+                // All other commands are processed here
+                await executeCustomCommand(command);
+            }
+
+            // --- END OF FIX ---
+
+            customCommandInput.value = '';
+            customCommandInput.focus();
         });
 
         customCommandInput?.addEventListener('keypress', (e) => {
