@@ -1284,72 +1284,151 @@ Respond with 2-3 sentences describing what they find and what they can do about 
     }
 }
 
-async function generateNPCEncounter() {
-    displayMessage("You encounter someone on the road...", 'info');
+async function generateNPCEncounter(suggestion = null) {
+    if (!suggestion) {
+        displayMessage("You encounter someone on the road...", 'info');
+    }
+    // Pass the AI's suggestion down to the function that creates the NPC.
+    await startConversation(suggestion);
+}
 
-    // Use existing NPC generation system
-    await startConversation();
+async function startConversation(suggestion = null) {
+    if (!suggestion) {
+        displayMessage("Looking for someone to talk to...", 'info');
+    }
+
+    const existingNPCs = getNPCsInLocation(player.currentLocation);
+    // If no suggestion, there's still a chance to meet an existing NPC.
+    if (!suggestion && existingNPCs.length > 0 && Math.random() > 0.3) {
+        const npc = existingNPCs[Math.floor(Math.random() * existingNPCs.length)];
+        const npcMessage = `You see ${npc.name} again. ${npc.description}`;
+        displayMessage(npcMessage);
+        addToConversationHistory('assistant', npcMessage);
+        gameWorld.lastNPCInteraction = npc.id;
+        updateRelationship(npc.name, 0, 2, npc.description);
+        return; // Exit after interacting with existing NPC
+    }
+
+    // Create a new NPC, using the suggestion from the random encounter if it exists.
+    const npcName = QuestCharacterGenerator.generateRandomCharacter();
+
+    const prompt = `
+        You are a Dungeon Master creating an NPC. The player, ${player.name}, has just encountered them.
+        The NPC's name is **${npcName}**. You must use this exact name.
+        ${suggestion ? `The situation is: "${suggestion}".` : "Create a simple, interesting reason for them to be here."}
+        Write a short, engaging description of the NPC's appearance and their first line of dialogue.
+        Format: "You see ${npcName}. Appearance: [brief description]. ${npcName} says: [one line of dialogue]"
+    `;
+
+    const npcInfo = await callGeminiAPI(prompt, 0.8, 200, true);
+    if (npcInfo) {
+        const newNPC = createNPC(npcName, npcInfo, player.currentLocation);
+        saveNPCToLocation(newNPC, player.currentLocation);
+        gameWorld.lastNPCInteraction = newNPC.id;
+
+        displayMessage(npcInfo);
+        addToConversationHistory('assistant', npcInfo);
+        updateRelationship(npcName, 0, 5, npcInfo, true);
+    } else {
+        const fallbackMessage = "You don't see anyone interesting to talk to right now.";
+        displayMessage(fallbackMessage);
+        addToConversationHistory('assistant', fallbackMessage);
+    }
+
+    saveConversationHistory();
 }
 
 async function generateRandomEncounter() {
     displayMessage("You encounter something on your journey...", 'info');
 
-    // Weighted encounter types based on location and level
-    const encounterWeights = {
-        combat: 0.4,
-        treasure: 0.2,
-        npc: 0.25,
-        event: 0.15
-    };
+    const prompt = `
+    You are a Dungeon Master creating a random encounter for a fantasy RPG.
+    Based on the player's context, decide on a plausible and interesting random encounter.
 
-    // Adjust weights based on player level and location
-    if (player.level < 3) {
-        encounterWeights.combat = 0.3; // Less combat for low level
-        encounterWeights.treasure = 0.3; // More treasure
+    PLAYER CONTEXT:
+    - Name: ${player.name}
+    - Class: ${player.class}
+    - Level: ${player.level}
+    - Current Location: ${player.currentLocation}
+    - Player Health: ${player.hp}/${player.maxHp}
+    - Recent Events: ${getConversationContext().slice(-300)}
+
+    ENCOUNTER OPTIONS:
+    - "combat": A fight with a creature or person.
+    - "treasure": Finding something valuable (gold, an item).
+    - "npc": Meeting a non-player character.
+    - "event": A small, narrative event (e.g., weather change, strange discovery).
+    - "none": Nothing happens, the path is quiet.
+
+    INSTRUCTIONS:
+    1.  Choose the most fitting "encounterType" from the options above.
+    2.  Write a brief, engaging "narrative" (1-3 sentences) describing the start of the encounter.
+    3.  If the type is "combat", provide a "suggestion" for the enemy (e.g., "a hungry wolf", "a pair of goblins").
+    4.  If the type is "npc", provide a "suggestion" for the NPC's description (e.g., "a cheerful merchant with a broken cart wheel").
+
+    Respond with ONLY valid JSON in this exact format. Example:
+    {
+        "encounterType": "combat",
+        "narrative": "As you round a bend, a snarling wolf with matted fur blocks your path, its eyes fixed on you.",
+        "suggestion": "a snarling wolf with matted fur"
     }
+    `;
 
-    if (player.currentLocation.toLowerCase().includes('city') || player.currentLocation.toLowerCase().includes('town')) {
-        encounterWeights.combat = 0.2; // Less combat in cities
-        encounterWeights.npc = 0.5; // More NPCs in populated areas
-    }
+    try {
+        const response = await callGeminiAPI(prompt, 0.8, 400, false);
+        const cleanResponse = response.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+        const jsonMatch = cleanResponse.match(/\{[\s\S]*\}/);
 
-    // Generate random encounter
-    const random = Math.random();
-    let cumulative = 0;
-    let encounterType = 'event';
-
-    for (const [type, weight] of Object.entries(encounterWeights)) {
-        cumulative += weight;
-        if (random <= cumulative) {
-            encounterType = type;
-            break;
+        if (!jsonMatch) {
+            throw new Error("AI response for random encounter did not contain valid JSON.");
         }
-    }
 
-    switch (encounterType) {
-        case 'combat':
-            await generateCombatEncounter();
-            break;
-        case 'treasure':
-            await generateTreasureEncounter();
-            break;
-        case 'npc':
-            await generateNPCEncounter();
-            break;
-        case 'event':
-            await generateEventEncounter();
-            break;
-        default:
-            displayMessage("The path ahead is quiet and peaceful.", 'info');
-            break;
+        const encounter = JSON.parse(jsonMatch[0]);
+
+        // Display the narrative from the AI, making the world feel more responsive.
+        if (encounter.narrative) {
+            displayMessage(encounter.narrative, 'exploration');
+            addToConversationHistory('assistant', encounter.narrative);
+        }
+
+        // Handle the encounter based on the type the AI returned.
+        switch (encounter.encounterType) {
+            case 'combat':
+                // The suggestion from the AI will be passed to our intelligent combat generator.
+                await generateAndInitiateCombatEncounter(encounter.suggestion);
+                break;
+            case 'treasure':
+                // This function is simple and can remain as is.
+                await generateTreasureEncounter();
+                break;
+            case 'npc':
+                // Pass the AI's suggestion to create a more contextual NPC.
+                await generateNPCEncounter(encounter.suggestion);
+                break;
+            case 'event':
+                 // This function is also fine as is for now.
+                await generateEventEncounter();
+                break;
+            case 'none':
+            default:
+                // If the AI decides nothing happens, we honor that.
+                // The narrative for this is already displayed above.
+                break;
+        }
+
+    } catch (error) {
+        console.error("Error during AI-powered random encounter generation:", error);
+        displayMessage("The path ahead is quiet, the world holding its breath for a moment.", 'info'); // Graceful fallback.
     }
 }
 
-async function generateCombatEncounter() {
-    displayMessage("⚔️ A hostile creature blocks your path! (AI-generated)", 'combat');
+async function generateAndInitiateCombatEncounter(enemySuggestion = null) {
+    displayMessage("⚔️ A hostile presence emerges!", 'combat');
+
+    const suggestionText = enemySuggestion ? `The player's action suggested an encounter with: "${enemySuggestion}". Use this as creative inspiration.` : "The encounter is random, based on the location.";
 
     const prompt = `
-    GENERATE COMBAT ENEMY
+    You are a creative Dungeon Master. Generate a single, plausible hostile enemy for a fantasy RPG.
 
     PLAYER CONTEXT:
     - Name: ${player.name}
@@ -1357,104 +1436,80 @@ async function generateCombatEncounter() {
     - Level: ${player.level}
     - Current Location: ${player.currentLocation}
 
+    ENCOUNTER CONTEXT:
+    ${suggestionText}
+
     INSTRUCTIONS:
-    Generate a plausible hostile enemy for the player's current location and level.
-    If the location is typically peaceful (e.g., town square, inside a building), consider generating a less overt threat (e.g., a rogue, a single rat, a pickpocket) or stating that no enemy is present, unless a specific narrative event implies otherwise.
+    Generate a complete enemy profile in JSON format. The enemy should be appropriate for the player's location and level.
+    If an "enemySuggestion" is provided, create a specific enemy that fits that theme. For example, if the suggestion is "ambush", you could create a "Roadside Bandit", a "Hidden Archer", or a "Rabid Wolf".
+    **IMPORTANT**: Do NOT name the enemy "ambush" or use the raw suggestion as the name. The name must be a creative, specific creature or person.
 
     Respond with ONLY valid JSON in this exact format:
     {
-        "enemyFound": true/false,
-        "enemyName": "specific enemy name (e.g., Goblin Scout, Rabid Wolf, Thieving Rogue)",
-        "enemyType": "Beast/Humanoid/Undead/Elemental/Giant/Dragon/Fey/Construct",
-        "baseHp": 20,
-        "baseAttack": 10,
-        "baseDefense": 2,
-        "level": 2,
-        "description": "brief description of why this enemy is present here",
-        "narrative": "1-2 sentence description of the encounter setup"
+        "enemyName": "Specific and Creative Enemy Name",
+        "enemyType": "Beast/Humanoid/Undead/Elemental/Construct",
+        "baseHp": 25,
+        "baseAttack": "1d8+2",
+        "baseDefense": 3,
+        "level": ${player.level},
+        "description": "A brief, evocative description of the enemy.",
+        "narrative": "A 1-2 sentence narrative describing how the encounter begins."
     }
 
     ENEMY GUIDELINES:
-    - HP: Scale base HP (e.g., 15-80) based on level and type.
-    - Attack: Scale base Attack (e.g., 8-30) based on level and type.
-    - Defense: Scale base Defense (e.g., 1-8) based on level and type.
-    - Level should be within ±2 of player level.
-    - Enemy name should be specific and fit the context.
-
-    LOCATION-APPROPRIATE ENEMIES (Examples):
-    - Town/City: Thieving Rogue, Corrupt Guard, Rabid Dog, Disgruntled Citizen, Sewer Rat.
-    - Wilderness: Wolf Pack, Giant Spider, Goblin Patrol, Bandit Ambush, Bear.
-    - Dungeon/Cave: Skeleton, Zombie, Giant Rat, Ooze, Goblin.
-    - Forest: Giant Spider, Dire Wolf, Bandit, Corrupted Fey.
-    - Tavern: Drunken Brawler, Pickpocket, Annoying Bard (non-combat), or no encounter.
-    - Shrine/Temple: Zealot, Possessed Acolyte, Skeletal Guardian.
-
-    If no plausible hostile enemy should be generated for this location/context, set "enemyFound" to false.
+    - enemyName: Be specific and creative. (e.g., "Grizzled Bandit Captain", "Shadow-Tusk Boar").
+    - baseHp: Scale based on concept and player level (e.g., 20-100).
+    - baseAttack: Use dice notation (e.g., "1d6", "2d4+1").
+    - baseDefense: Scale based on the enemy concept (e.g., 1-10).
+    - level: Keep the enemy level within ±2 of the player's level.
     `;
 
     try {
-        const response = await callGeminiAPI(prompt, 0.7, 400, false); // Increased maxOutputTokens for detailed enemy
+        const response = await callGeminiAPI(prompt, 0.75, 500, false);
         const cleanResponse = response.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
         const jsonMatch = cleanResponse.match(/\{[\s\S]*\}/);
 
-        let enemyData;
-        if (jsonMatch) {
-            enemyData = JSON.parse(jsonMatch[0]);
-        } else {
-            throw new Error("No valid JSON structure found in AI response for enemy generation.");
+        if (!jsonMatch) {
+            throw new Error("AI response for enemy generation did not contain valid JSON.");
         }
 
-        if (enemyData.enemyFound) {
-            // Scale enemy based on player level
-            const levelDifference = Math.max(0, player.level - enemyData.level);
-            const scaledEnemy = {
-                name: levelDifference > 0 ? `Veteran ${enemyData.enemyName}` : enemyData.enemyName,
-                hp: enemyData.baseHp + (levelDifference * 5),
-                maxHp: enemyData.baseHp + (levelDifference * 5),
-                currentHp: enemyData.baseHp + (levelDifference * 5),
-                attack: enemyData.baseAttack + (levelDifference * 2),
-                defense: enemyData.baseDefense + levelDifference,
-                level: Math.max(enemyData.level, player.level - 1), // Ensure enemy level is not too low
-                type: enemyData.enemyType,
-                description: enemyData.description
-            };
+        const enemyData = JSON.parse(jsonMatch[0]);
 
-            displayMessage(scaledEnemy.narrative, 'combat'); // Display encounter setup
-            await CombatSystem.initiateCombat(player, scaledEnemy, player.currentLocation);
-        } else {
-            // If enemyFound is false, no combat encounter
-            displayMessage(enemyData.narrative || "The area seems quiet. You don't encounter any hostile creatures.", 'info');
+        if (!enemyData.enemyName || !enemyData.baseHp || !enemyData.baseAttack) {
+             throw new Error("AI response for enemy was missing required fields (name, hp, attack).");
         }
+
+        const enemy = {
+            name: enemyData.enemyName,
+            hp: enemyData.baseHp,
+            maxHp: enemyData.baseHp,
+            currentHp: enemyData.baseHp,
+            attack: enemyData.baseAttack,
+            defense: enemyData.baseDefense,
+            level: enemyData.level,
+            type: enemyData.enemyType,
+            description: enemyData.description
+        };
+
+        displayMessage(enemyData.narrative, 'combat');
+        await CombatSystem.initiateCombat(player, enemy, player.currentLocation);
+
     } catch (error) {
-        console.error('Error generating combat encounter:', error);
-        displayMessage("An unexpected disturbance prevents a clear encounter. You remain undisturbed for now.", 'info');
-    }
-}
+        console.error('Error in generateAndInitiateCombatEncounter:', error);
+        displayMessage("An unknown terror emerges from the shadows!", 'combat');
 
-async function generateCombatEncounterFromAI(suggestedEnemyType) {
-    displayMessage("⚔️ A hostile creature blocks your path!", 'combat');
-
-    // Use Gemini to generate a specific enemy based on the suggested type
-    const enemyEncounter = await CombatSystem.generateSpecificEnemyEncounter(suggestedEnemyType || "hostile creature", player);
-
-    if (enemyEncounter) {
-        displayMessage(enemyEncounter.narrative, 'combat');
-        console.log(`[SCRIPT.JS] Before calling initiateCombat with AI-suggested enemy: HP=${player.hp}/${player.maxHp}`);
-        await CombatSystem.initiateCombat(player, enemyEncounter.enemy, player.currentLocation);
-    } else {
-        // Fallback to basic encounter if AI fails to generate a specific enemy
-        console.log("Fallback: AI failed to generate specific enemy based on suggestion. Using generic hostile creature.");
-        const basicEnemy = {
-            name: suggestedEnemyType || 'Hostile Creature', // Use suggested name if it's generic enough
+        // Fallback to a very basic enemy if the AI fails
+        const fallbackEnemy = {
+            name: 'Mysterious Aggressor',
             hp: 20 + (player.level * 3),
             maxHp: 20 + (player.level * 3),
             currentHp: 20 + (player.level * 3),
-            attack: 8 + (player.level * 1.333),
-            defense: 1 + (player.level * 0.75),
-            level: Math.max(1, player.level - Math.floor(Math.random() * 3) - 1),
-            type: 'Beast'
+            attack: '1d6',
+            defense: 2,
+            level: player.level,
+            type: 'Humanoid'
         };
-        await CombatSystem.initiateCombat(player, basicEnemy, player.currentLocation);
+        await CombatSystem.initiateCombat(player, fallbackEnemy, player.currentLocation);
     }
 }
 
@@ -4636,7 +4691,8 @@ Respond with ONLY valid JSON in this exact format:
         if (combatAnalysis.initiateCombat) {
             displayMessage("Player's command suggests combat. Initiating encounter...", 'combat');
             const enemyType = combatAnalysis.enemyType || "hostile creature";
-            await generateCombatEncounterFromAI(enemyType);
+            await generateAndInitiateCombatEncounter(enemyType);
+
             return; // Exit here if combat initiated successfully
         }
     } catch (error) {
