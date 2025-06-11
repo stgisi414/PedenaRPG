@@ -17,7 +17,7 @@ import { RelationshipMiddleware } from './game-logic/relationship-middleware.js'
 import { HelpSystem } from './game-logic/help-system.js';
 
 const GEMINI_API_KEY = 'AIzaSyDIFeql6HUpkZ8JJlr_kuN0WDFHUyOhijA'; // Replace with your actual Gemini API Key
-const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key=${GEMINI_API_KEY}`;
+const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-thinking-exp-01-21:generateContent?key=${GEMINI_API_KEY}`;
 
 //Global delay function
 function delay(ms) {
@@ -4599,303 +4599,194 @@ function createPlaceholderPortrait(name, charClass, level = 1) { // Accept param
     `;
 }
 
-// Execute custom commands
-// In script.js, replace your entire executeCustomCommand function with this one.
-// In script.js, inside the executeCustomCommand function:
+function createMasterPrompt(command) {
+    // This function gathers all context needed for the AI to make a comprehensive decision.
+    const playerState = {
+        name: player.name,
+        class: player.class,
+        alignment: player.alignment,
+        level: player.level,
+        hp: player.hp,
+        maxHp: player.maxHp,
+        location: player.currentLocation,
+        inventory: player.inventory.slice(-10).map(i => i.name), // Last 10 items
+        equipment: player.equipment,
+        activeQuests: player.quests.filter(q => !q.completed).map(q => q.title)
+    };
 
-// script.js
+    const worldState = {
+        nearbyNPCs: getNPCsInLocation(player.currentLocation).map(npc => npc.name),
+        locationDescription: gameWorld.locationMemory.get(player.currentLocation) || `A place known as ${player.currentLocation}.`,
+        recentConversation: getConversationContext().slice(-1000) // Last 1000 chars of conversation
+    };
 
-// ... (other functions before executeCustomCommand) ...
+    const prompt = `
+        You are the Dungeon Master for the RPG "The Chronicles of Pedena".
+        Process the player's command within the given game context and respond with a single, valid JSON object that describes all outcomes.
+
+        PLAYER STATE:
+        ${JSON.stringify(playerState, null, 2)}
+
+        WORLD STATE:
+        ${JSON.stringify(worldState, null, 2)}
+
+        PLAYER COMMAND: "${command}"
+
+        YOUR TASK:
+        Based on the command and context, determine the narrative outcome and all resulting game state changes.
+
+        JSON RESPONSE FORMAT:
+        {
+          "narrative": "A rich, descriptive paragraph of what happens.",
+          "locationChange": "New Location Name or null",
+          "playerStateChanges": { "hp": -10, "exp": 25, "gold": 0 } or null,
+          "itemChanges": {
+            "add": [ { "name": "Item Name", "type": "weapon", ... } ],
+            "remove": [ { "name": "Item Name" } ]
+          } or null,
+          "alignmentChange": { "changeGood": -10, "changeChaos": 5, "reason": "Stole from a beggar." } or null, // <-- ADD THIS
+          "relationshipChanges": [
+            { "npcName": "NPC Name", "trustChange": 10, ... }
+          ] or null,
+          "questProgress": { "questTitle": "The Lost Amulet", "update": "...", "isComplete": false } or null,
+          "combatState": { "initiate": true, "enemy": { ... } } or null
+        }
+
+        RULES:
+        - The "narrative" is mandatory and should describe the events.
+        - Only include other keys if a change occurs (e.g., if no items are added/removed, "itemChanges" should be null).
+        - Be creative and ensure the response is consistent with the provided context.
+    `;
+    return prompt;
+}
+
+// In script.js - A new, improved executeCustomCommand
 
 async function executeCustomCommand(command) {
-    if (player.hp <= 0) {
-        displayMessage("You are too wounded to act. You need to rest.", 'error');
-        return;
-    }
-    
     if (!command.trim()) return;
 
-    userInputCounterForImage++;
     displayMessage(`> ${command}`, 'info');
     addToConversationHistory('user', command);
 
-    const lowerCommand = command.toLowerCase().trim();
-
-    // If combat is active, prioritize routing combat commands to CombatSystem
-    if (CombatSystem.combatState.isActive) {
-        const combatRelevance = await CombatSystem.determineCommandCombatRelevance(lowerCommand, player, CombatSystem.combatState.currentEnemy);
-
-        if (combatRelevance === 'NON_COMBAT_ACTION') {
-            displayMessage("You are currently in combat! You can only use combat commands like 'attack', 'defend', 'cast spell', 'use item', or 'flee'.", 'error');
-            return; // Block non-combat commands
-        } else { // combatRelevance === 'COMBAT_ACTION'
-            if (await CombatSystem.handleCombatCommand(command)) {
-                return; // Command handled by CombatSystem
-            }
-        }
-    }
-
-    // NEW GEMINI-POWERED COMBAT INITIATION LOGIC
-    const commandAnalysisPrompt = `
-Analyze the player's command to determine if it should initiate a combat encounter.
-
-PLAYER CONTEXT:
-- Name: ${player.name}
-- Class: ${player.class}
-- Level: ${player.level}
-- Current Location: ${player.currentLocation}
-
-PLAYER COMMAND: "${command}"
-
-RULES:
-- If the command explicitly or implicitly indicates an attack, fight, or direct hostile action (e.g., "attack bandits", "fight the wolf", "kill the monster", "strike at enemy", "hit goblin"), set "initiateCombat" to true.
-- If "initiateCombat" is true, suggest a plausible "enemyType" for the encounter (e.g., "bandit", "wolf", "goblin"). Leave "enemyType" empty if no specific enemy is implied by the command.
-- If the command is a social action, movement, or general exploration that does NOT directly lead to combat, set "initiateCombat" to false.
-
-Respond with ONLY valid JSON in this exact format:
-{
-    "initiateCombat": true/false,
-    "enemyType": "Optional: Suggested enemy type (e.g., 'bandit', 'wolf', 'goblin') if combat is initiated. Leave empty if no specific enemy is implied."
-}
-`;
+    // 1. Create the master prompt
+    const masterPrompt = createMasterPrompt(command);
 
     try {
-        const combatAnalysisResponse = await window.callGeminiAPI(commandAnalysisPrompt, 0.2, 100, false);
-        const cleanResponse = combatAnalysisResponse.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+        // 2. Make a SINGLE API call
+        const aiResponse = await callGeminiAPI(masterPrompt, 0.7, 1500, false); // No extra context needed
+        if (!aiResponse) throw new Error("AI response was empty.");
+
+        // 3. Parse and Apply the Structured Response
+        const cleanResponse = aiResponse.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
         const jsonMatch = cleanResponse.match(/\{[\s\S]*\}/);
+        if (!jsonMatch) throw new Error("AI did not return valid JSON.");
 
-        let combatAnalysis;
-        if (jsonMatch) {
-            combatAnalysis = JSON.parse(jsonMatch[0]);
-        } else {
-            throw new Error("No valid JSON structure found in AI response for combat analysis.");
-        }
+        const result = JSON.parse(jsonMatch[0]);
+        await parseAndApplyStateChanges(result);
 
-
-        if (combatAnalysis.initiateCombat) {
-            displayMessage("Player's command suggests combat. Initiating encounter...", 'combat');
-            const enemyType = combatAnalysis.enemyType || "hostile creature";
-            await generateAndInitiateCombatEncounter(enemyType);
-
-            return; // Exit here if combat initiated successfully
-        }
-    } catch (error) {
-        console.error("Error during Gemini combat analysis:", error);
-        // Fallback: If AI analysis fails, still check for direct combat keywords
-        if (lowerCommand.includes('attack') || lowerCommand.includes('fight') || lowerCommand.includes('strike') || lowerCommand.includes('hit')) {
-            console.log("Fallback: Direct combat keywords detected. Initiating generic combat encounter.");
-            await generateCombatEncounter();
-            return; // **ADD THIS LINE** - Exit here if fallback combat initiated
-        }
-    }
-    // END NEW GEMINI-POWERED COMBAT INITIATION LOGIC
-
-
-    // Handle help commands
-    const helpMatch = lowerCommand.match(/^help(?:\s+(.+))?$/);
-    if (helpMatch) {
-        const helpTopic = helpMatch[1] ? helpMatch[1].trim() : null;
-        const helpText = HelpSystem.getHelp(helpTopic);
-        displayMessage(helpText, 'info');
-        addToConversationHistory('assistant', helpText);
-        return;
-    }
-
-    // Handle modules command
-    if (lowerCommand === 'modules' || lowerCommand === 'module list' || lowerCommand === 'show modules') {
-        const modulesText = HelpSystem.getModulesHelp();
-        displayMessage(modulesText, 'info');
-        addToConversationHistory('assistant', modulesText);
-        return;
-    }
-
-    // Handle quick reference command
-    if (lowerCommand === 'quickref' || lowerCommand === 'quick reference' || lowerCommand === 'commands') {
-        const quickRef = HelpSystem.getQuickReference();
-        displayMessage(quickRef, 'info');
-        addToConversationHistory('assistant', quickRef);
-        return;
-    }
-
-    // Check for movement commands (existing logic, keep this as is)
-    const movementPatterns = [
-        /(?:go|travel|move|head|walk|run)\s+(?:to\s+)?(.+)/i,
-        /(?:visit|enter)\s+(?:the\s+)?(.+)/i,
-        /(?:leave|exit)\s+(?:the\s+)?(.+?)(?:\s+(?:and|then)\s+(?:go|head)\s+(?:to\s+)?(.+))?/i
-    ];
-
-    let basicMovementMatch = false;
-    let destination = null;
-
-    for (const pattern of movementPatterns) {
-        const match = command.match(pattern);
-        if (match) {
-            basicMovementMatch = true;
-            destination = match[2] || match[1]; // Use second capture group if available, otherwise first
-            break;
-        }
-    }
-
-    if (basicMovementMatch && destination) {
-        destination = destination.replace(/^(the|a|an)\s+/i, '').trim();
-        destination = destination.replace(/\s+(and|then|,).*$/i, '').trim();
-        await handleStructuredMovement(command, destination);
-        return;
-    }
-
-    // Handle "pay X gold" command directly (existing logic, keep this as is)
-    const payMatch = command.match(/^(?:pay|give)\s+(\d+)\s+gold(?:\s+to\s+(.+))?/i);
-    if (payMatch) {
-        const amount = parseInt(payMatch[1], 10);
-        const recipient = payMatch[2] ? payMatch[2].trim() : null;
-
-        if (isNaN(amount) || amount <= 0) {
-            displayMessage("Please specify a valid amount of gold to pay.", "error");
-            return;
-        }
-
-        if (player.gold < amount) {
-            displayMessage(`You only have ${player.gold} gold, which is not enough to pay ${amount} gold.`, "error");
-            return;
-        }
-
-        updateGold(-amount, recipient ? `payment to ${recipient}` : 'payment');
-        displayMessage(`You paid ${amount} gold${recipient ? ` to ${recipient}` : ''}. Your remaining gold is ${player.gold}.`, "success");
-
-        if (recipient) {
-            await handleSpecificNPCInteraction(recipient);
-        } else {
-            const paymentResponsePrompt = `The player, ${player.name}, just paid ${amount} gold without a specific recipient. What general effect does this have on the immediate environment or situation? (1-2 sentences)`;
-            const aiResponse = await window.callGeminiAPI(paymentResponsePrompt, 0.7, 100, true);
-            if (aiResponse) {
-                displayMessage(aiResponse, 'info');
-                addToConversationHistory('assistant', aiResponse);
-                await checkNPCMentionsAndAdd(aiResponse, command, player);
-            }
-        }
-        debouncedSave();
-        return;
-    }
-
-    // Handle 'cast spell' commands (existing logic, keep this as is)
-    if (lowerCommand.startsWith('cast ') || lowerCommand.startsWith('spell ')) {
-        const spellNameExtracted = lowerCommand.replace(/^(cast|spell)\s+/i, '').trim();
-
-        const knownSpells = player.classProgression?.knownSpells || [];
-        const knownCantrips = player.classProgression?.knownCantrips || [];
-        const allKnownSpells = [...new Set([...knownSpells, ...knownCantrips])];
-
-        const matchedSpell = allKnownSpells.find(s => s.toLowerCase() === spellNameExtracted.toLowerCase());
-
-        if (!player.classProgression || (!knownSpells.length && !knownCantrips.length)) {
-             displayMessage("You are not a spellcaster or don't know any spells.", 'error');
-             return;
-        }
-
-        if (!matchedSpell) {
-            displayMessage(`You do not know the spell "${spellNameExtracted}". Class: ${player.classProgression.class}, Level: ${player.level}`, 'error');
-            displayMessage("If this seems wrong, try using the Reset Progression button.", 'info');
-            return;
-        }
-
-        displayMessage(`You focus your magical energy and cast ${matchedSpell}...`, 'info');
-        const spellDef = spellDefinitions[matchedSpell];
-
-        if (spellDef) {
-            displayMessage(`${spellDef.description}`, 'success');
-            await applySpellEffects(matchedSpell, spellDef);
-        } else {
-            displayMessage(`The spell ${matchedSpell} fizzles due to an unknown effect.`, 'error');
-        }
-        addToConversationHistory('user', `cast ${matchedSpell}`);
-        saveConversationHistory();
-        debouncedSave();
-        return;
-    }
-
-    // For all other commands, use general AI processing (existing logic, keep this as is)
-    const explorationContext = getExplorationContextString();
-
-    const contextPrompt = `
-${player.name} (${player.class}, Level ${player.level}) in ${player.currentLocation} says: "${command}"
-
-Current status: HP ${player.hp}/${player.maxHp}, Gold ${player.gold}${explorationContext}
-
-Respond as a Dungeon Master. Describe what happens in 1-3 sentences. Be engaging and appropriate for a fantasy RPG.
-
-IMPORTANT: If the player is trying to interact with something from recent exploration (box, altar, runes, etc.), acknowledge and respond to that interaction based on the exploration context above.
-`;
-
-    try {
-        const response = await window.callGeminiAPI(contextPrompt, 0.7, 300, true);
-        if (response) {
-            displayMessage(response, 'info');
-            addToConversationHistory('assistant', response);
-            saveConversationHistory();
-            debouncedSave();
-            await checkNPCMentionsAndAdd(response, command, player);
-
-            // ADD THIS LINE
-            await checkAndAddItemsFromResponse(response); 
-
-        } else {
-            displayMessage("Nothing interesting happens.", 'info');
-        }
     } catch (error) {
         console.error("Error processing command:", error);
-        displayMessage("You attempt your action, but nothing notable occurs.", 'info');
+        displayMessage("You attempt your action, but something goes wrong. The world seems to resist your will.", 'error');
     }
 
-    // Automatic scenery image generation after N inputs if mode is active (existing logic, keep this as is)
-    if (isIllustrationModeActive && player.portraitUrl && player.portraitUrl.trim() !== '' && userInputCounterForImage > 0 && userInputCounterForImage % 7 === 0) {
-        displayMessage("7 user inputs reached. Auto-generating new scenery image...", "info");
-        await generateAndDisplaySceneryImage();
-    }
+    // Save game state after the action is fully resolved
+    saveGame();
 }
 
-// Add this function. Make sure it's not defined inside any other function.
-// This function will now be the one called by executeCustomCommand after every AI response.
 // In script.js
 
-async function checkAndAddItemsFromResponse(aiResponse) {
-    console.log("Parsing AI response for items:", aiResponse);
-    const itemsToCreate = [];
-
-    // This regex is designed to find items mentioned in common narrative patterns.
-    const itemRegex = /(?:you find|discover|receive|obtain|get|is a|contains a|lies a|reveals a)\s+(?:a|an|the|some)\s+([^.,\n]+)/gi;
-    let match;
-    while ((match = itemRegex.exec(aiResponse)) !== null) {
-        // match[1] will be the item description, e.g., "gleaming silver rapier"
-        itemsToCreate.push(match[1].trim());
+async function parseAndApplyStateChanges(result) {
+    // 1. Narrative (Always present)
+    if (result.narrative) {
+        displayMessage(result.narrative, 'info');
+        addToConversationHistory('assistant', result.narrative);
     }
 
-    if (itemsToCreate.length === 0) {
-        console.log("No items found in AI response.");
-        return;
-    }
-
-    console.log("Found potential items:", itemsToCreate);
-
-    for (const itemName of itemsToCreate) {
-        // Use an existing helper function to guess the item's category and rarity from its name
-        const itemData = categorizeItemFromName(itemName);
-
-        // Generate the item with context using the ItemGenerator
-        const newItem = await ItemGenerator.generateItem({
-            category: itemData.category,
-            rarity: itemData.rarity || 'COMMON', // Default to common if not specified
-            subType: itemData.subType,
-            locationContext: player.currentLocation,
-            playerLevel: player.level,
-            playerClass: player.class,
-        });
-
-        // Override the generated name with the one from the narrative for consistency
-        if (newItem) {
-            newItem.name = itemName.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
-            ItemManager.addItemToInventory(player, newItem);
-            displayMessage(`You obtained: ${newItem.name}!`, 'success');
+    // 2. Player State Changes (HP, EXP, Gold)
+    if (result.playerStateChanges) {
+        const changes = result.playerStateChanges;
+        if (changes.hp) {
+            const oldHp = player.hp;
+            player.hp = Math.max(0, Math.min(player.maxHp, player.hp + changes.hp));
+            displayMessage(`Your health changes by ${player.hp - oldHp}.`, 'info');
         }
+        if (changes.exp) {
+            gainExperience(changes.exp); // Use existing XP function which handles level ups
+        }
+        if (changes.gold) {
+            updateGold(changes.gold, 'game event'); // Use existing gold function
+        }
+        updatePlayerStatsDisplay();
+    }
+
+    // 3. Alignment Change  <-- NEW SECTION
+    if (result.alignmentChange) {
+        const align = result.alignmentChange;
+        // This assumes you have an updateAlignment function like the one in alignment-system.js
+        if (typeof updateAlignment === 'function') {
+            updateAlignment(align.changeGood || 0, align.changeChaos || 0, align.reason || 'An action shifted your alignment.');
+        } else {
+            // Fallback if the function isn't available
+            player.alignment.good += align.changeGood || 0;
+            player.alignment.chaos += align.changeChaos || 0;
+        }
+        displayMessage(`Your alignment shifts. [Reason: ${align.reason}]`, 'info');
+        updatePlayerStatsDisplay(); // Refresh to show new alignment
+    }
+
+    // 4. Item Changes (Add/Remove)
+    if (result.itemChanges) {
+        // Handle removals first
+        if (result.itemChanges.remove && result.itemChanges.remove.length > 0) {
+            result.itemChanges.remove.forEach(itemToRemove => {
+                const itemIndex = player.inventory.findIndex(i => i.name === itemToRemove.name);
+                if (itemIndex > -1) {
+                    player.inventory.splice(itemIndex, 1);
+                    displayMessage(`${itemToRemove.name} removed from inventory.`, 'info');
+                }
+            });
+        }
+        // Handle additions
+        if (result.itemChanges.add && result.itemChanges.add.length > 0) {
+            result.itemChanges.add.forEach(itemToAdd => {
+                // The AI provides the full item object, so we can just add it directly.
+                const newItem = ItemGenerator.enhanceItem(itemToAdd, { playerLevel: player.level });
+                ItemManager.addItemToInventory(player, newItem);
+                displayMessage(`You obtained: ${newItem.name}!`, 'success');
+            });
+        }
+        displayInventory(); // Refresh if open
+    }
+
+    // 5. Location Change
+    if (result.locationChange) {
+        player.currentLocation = result.locationChange;
+        updatePlayerStatsDisplay();
+        // Optional: Call generateWorldDescription if you want a fresh description
+        // await generateWorldDescription(player.currentLocation);
+    }
+
+    // 6. Relationship Changes
+    if (result.relationshipChanges && result.relationshipChanges.length > 0) {
+        result.relationshipChanges.forEach(change => {
+            updateRelationship(change.npcName, 0, change.trustChange, `Your interaction was ${change.emotionalImpact}.`);
+        });
+    }
+
+    // 7. Quest Progress
+    if (result.questProgress) {
+        const quest = player.quests.find(q => q.title === result.questProgress.questTitle && !q.completed);
+        if (quest) {
+            displayMessage(`Quest Update: ${result.questProgress.update}`, 'success');
+            if (result.questProgress.isComplete) {
+                checkQuestCompletion(quest.title); // Use existing completion logic
+            }
+        }
+    }
+
+    // 8. Combat State
+    if (result.combatState && result.combatState.initiate) {
+        await generateAndInitiateCombatEncounter(result.combatState.enemy);
     }
 }
 
