@@ -1346,32 +1346,88 @@ async function generateRandomEncounter() {
 }
 
 async function generateCombatEncounter() {
-    // Use intelligent enemy generation for random encounters too
-    const randomEncounterCommand = "encounter a hostile creature";
-    const enemyEncounter = await CombatSystem.generateSpecificEnemyEncounter(randomEncounterCommand, player);
+    displayMessage("⚔️ A hostile creature blocks your path! (AI-generated)", 'combat');
 
-    if (enemyEncounter) {
-        displayMessage("⚔️ A hostile creature blocks your path!", 'combat');
-        displayMessage(enemyEncounter.narrative, 'combat');
-        console.log(`[SCRIPT.JS] Before calling initiateCombat: HP=<span class="math-inline">${player.hp}/${player.maxHp}</span>`);
-        await CombatSystem.initiateCombat(player, enemyEncounter.enemy, player.currentLocation);
-    } else {
-        // Fallback to basic encounter if AI fails
-        displayMessage("⚔️ A hostile creature blocks your path!", 'combat');
+    const prompt = `
+    GENERATE COMBAT ENEMY
 
-        const basicEnemy = {
-            name: 'Hostile Creature',
-            hp: 20 + (player.level * 3),
-            maxHp: 20 + (player.level * 3),
-            currentHp: 20 + (player.level * 3),
-            attack: 8 + (player.level * 1.333),
-            defense: 1 + (player.level * 0.75),
-            level: Math.max(1, player.level - Math.floor(Math.random() * 3) - 1),
-            type: 'Beast'
-        };
+    PLAYER CONTEXT:
+    - Name: ${player.name}
+    - Class: ${player.class}
+    - Level: ${player.level}
+    - Current Location: ${player.currentLocation}
 
-        await CombatSystem.initiateCombat(player, basicEnemy, player.currentLocation);
+    INSTRUCTIONS:
+    Generate a plausible hostile enemy for the player's current location and level.
+    If the location is typically peaceful (e.g., town square, inside a building), consider generating a less overt threat (e.g., a rogue, a single rat, a pickpocket) or stating that no enemy is present, unless a specific narrative event implies otherwise.
 
+    Respond with ONLY valid JSON in this exact format:
+    {
+        "enemyFound": true/false,
+        "enemyName": "specific enemy name (e.g., Goblin Scout, Rabid Wolf, Thieving Rogue)",
+        "enemyType": "Beast/Humanoid/Undead/Elemental/Giant/Dragon/Fey/Construct",
+        "baseHp": 20,
+        "baseAttack": 10,
+        "baseDefense": 2,
+        "level": 2,
+        "description": "brief description of why this enemy is present here",
+        "narrative": "1-2 sentence description of the encounter setup"
+    }
+
+    ENEMY GUIDELINES:
+    - HP: Scale base HP (e.g., 15-80) based on level and type.
+    - Attack: Scale base Attack (e.g., 8-30) based on level and type.
+    - Defense: Scale base Defense (e.g., 1-8) based on level and type.
+    - Level should be within ±2 of player level.
+    - Enemy name should be specific and fit the context.
+
+    LOCATION-APPROPRIATE ENEMIES (Examples):
+    - Town/City: Thieving Rogue, Corrupt Guard, Rabid Dog, Disgruntled Citizen, Sewer Rat.
+    - Wilderness: Wolf Pack, Giant Spider, Goblin Patrol, Bandit Ambush, Bear.
+    - Dungeon/Cave: Skeleton, Zombie, Giant Rat, Ooze, Goblin.
+    - Forest: Giant Spider, Dire Wolf, Bandit, Corrupted Fey.
+    - Tavern: Drunken Brawler, Pickpocket, Annoying Bard (non-combat), or no encounter.
+    - Shrine/Temple: Zealot, Possessed Acolyte, Skeletal Guardian.
+
+    If no plausible hostile enemy should be generated for this location/context, set "enemyFound" to false.
+    `;
+
+    try {
+        const response = await callGeminiAPI(prompt, 0.7, 400, false); // Increased maxOutputTokens for detailed enemy
+        const cleanResponse = response.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+        const jsonMatch = cleanResponse.match(/\{[\s\S]*\}/);
+
+        let enemyData;
+        if (jsonMatch) {
+            enemyData = JSON.parse(jsonMatch[0]);
+        } else {
+            throw new Error("No valid JSON structure found in AI response for enemy generation.");
+        }
+
+        if (enemyData.enemyFound) {
+            // Scale enemy based on player level
+            const levelDifference = Math.max(0, player.level - enemyData.level);
+            const scaledEnemy = {
+                name: levelDifference > 0 ? `Veteran ${enemyData.enemyName}` : enemyData.enemyName,
+                hp: enemyData.baseHp + (levelDifference * 5),
+                maxHp: enemyData.baseHp + (levelDifference * 5),
+                currentHp: enemyData.baseHp + (levelDifference * 5),
+                attack: enemyData.baseAttack + (levelDifference * 2),
+                defense: enemyData.baseDefense + levelDifference,
+                level: Math.max(enemyData.level, player.level - 1), // Ensure enemy level is not too low
+                type: enemyData.enemyType,
+                description: enemyData.description
+            };
+
+            displayMessage(scaledEnemy.narrative, 'combat'); // Display encounter setup
+            await CombatSystem.initiateCombat(player, scaledEnemy, player.currentLocation);
+        } else {
+            // If enemyFound is false, no combat encounter
+            displayMessage(enemyData.narrative || "The area seems quiet. You don't encounter any hostile creatures.", 'info');
+        }
+    } catch (error) {
+        console.error('Error generating combat encounter:', error);
+        displayMessage("An unexpected disturbance prevents a clear encounter. You remain undisturbed for now.", 'info');
     }
 }
 
@@ -4959,111 +5015,200 @@ document.addEventListener('DOMContentLoaded', () => {
     // script.js
 
     document.getElementById('cast-spell-btn')?.addEventListener('click', async () => {
-        // Check if player has class progression and is a spellcaster (expanded for all relevant classes)
-        if (player.classProgression && (
-            player.classProgression.class === 'mage' ||
-            player.classProgression.class === 'ranger' ||
-            player.classProgression.class === 'necromancer' ||
-            player.classProgression.class === 'cleric' ||
-            player.classProgression.class === 'druid' ||
-            player.classProgression.class === 'sorcerer' ||
-            player.classProgression.class === 'warlock' ||
-            player.classProgression.class === 'paladin' || // Paladins cast spells
-            player.classProgression.class === 'bard' ||    // Bards cast spells
-            player.classProgression.class === 'shaman' ||
-            player.classProgression.class === 'summoner' ||
-            player.classProgression.class === 'illusionist' ||
-            player.classProgression.class === 'psychic' ||
-            // While Alchemist, Engineer, Scholar, Gladiator, Ninja, Hunter don't use 'spells' in the same way,
-            // their 'Cast Spell' button could be repurposed for 'Use Ability' as in a prior fix.
-            // For now, only include true spellcasters here.
-            // If they need to use the 'Cast Spell' button for abilities, this needs to be handled in CharacterManager.
-            // For the purpose of this spell casting bug, only include classes with 'knownSpells' or 'knownCantrips'.
-            false // Placeholder to easily add more
-        )) {
-            // Get ONLY truly known spells and cantrips for the casting pool
-            const knownSpells = player.classProgression.knownSpells || [];
-            const knownCantrips = player.classProgression.knownCantrips || [];
+        // Check if player has class progression
+        if (!player.classProgression) {
+            displayMessage("Character progression not available.", 'error');
+            return;
+        }
 
-            // Combine only known spells and cantrips. Remove 'availableSpells' from this pool.
-            const allSpells = [...new Set([...knownSpells, ...knownCantrips])]; // <-- IMPORTANT CHANGE HERE
+        const progression = CharacterManager.getCharacterProgression(player);
+        const isSpellcaster = progression.spells.known.length > 0 || progression.cantrips.length > 0;
+
+        // --- LOGIC FOR SPELLCASTERS ---
+        if (isSpellcaster) {
+            const allSpells = [...new Set([...progression.spells.known.map(s => s.name), ...progression.cantrips.map(c => c.name)])];
 
             if (allSpells.length === 0) {
-                displayMessage(`You don't know any spells or cantrips yet. Class: ${player.classProgression.class}, Level: ${player.level}`, 'info');
-                displayMessage("If this seems wrong, try using the Reset Progression button.", 'info');
+                displayMessage("You don't know any spells or cantrips yet.", 'info');
                 return;
             }
 
-            // Analyze current context to select appropriate spell
-            const selectedSpell = await analyzeContextAndSelectSpell(allSpells); // This 'allSpells' is now strictly known spells/cantrips
-
+            // Analyze context to select the most appropriate spell
+            const selectedSpell = await analyzeContextAndSelectSpell(allSpells);
             if (!selectedSpell) {
-                // analyzeContextAndSelectSpell would have already displayed an error message.
-                return; // Stop processing if no valid spell was selected.
+                displayMessage("You couldn't decide on a spell to cast.", 'info');
+                return;
             }
 
             displayMessage(`You focus your magical energy and cast ${selectedSpell}...`, 'info');
-
-            // Get spell definition for better effect description
             const spellDef = spellDefinitions[selectedSpell];
+
             if (spellDef) {
                 displayMessage(`${spellDef.description}`, 'success');
-                // Apply spell effects based on context
-                await applySpellEffects(selectedSpell, spellDef);
+                await applySpellEffects(selectedSpell, spellDef); // This function should handle the spell's effects
             } else {
-                // Fallback effects (less likely to be hit now if allSpells is accurate)
-                const effects = [
-                    { msg: "The spell manifests with a shimmer of magical energy.", type: 'success' },
-                    { msg: "You feel the magical weave responding to your will.", type: 'success' },
-                    { msg: "Arcane power flows through you as the spell takes effect.", type: 'success' }
-                ];
-                const effect = effects[Math.floor(Math.random() * effects.length)];
-                setTimeout(() => displayMessage(effect.msg, effect.type), 500);
+                displayMessage(`The spell ${selectedSpell} fizzles with an unknown effect.`, 'error');
             }
-
-            // Add to conversation history for future context
             addToConversationHistory('user', `cast ${selectedSpell}`);
-            saveConversationHistory();
+
+        // --- NEW LOGIC FOR ABILITY-BASED CLASSES ---
+        } else if (progression.abilities.length > 0) {
+            const allAbilities = progression.abilities;
+
+            // Create a prompt for the AI to choose the best ability for the situation
+            const abilitySelectionPrompt = `
+                ${player.name} the ${player.class} needs to use an ability.
+                Current Context: ${getConversationContext().slice(-500)}
+                Enemy: ${player.currentEnemy ? player.currentEnemy.name : 'None'}
+                Health: ${player.hp}/${player.maxHp}
+
+                Available Abilities:
+                ${allAbilities.map(a => `- ${a.name}: ${a.definition.description}`).join('\n')}
+
+                Based on the context, which ability is the most tactical choice right now? Respond with ONLY the ability name.`;
+
+            const selectedAbilityName = await callGeminiAPI(abilitySelectionPrompt, 0.5, 50, false);
+
+            if (selectedAbilityName && allAbilities.some(a => a.name.toLowerCase() === selectedAbilityName.trim().toLowerCase())) {
+                const chosenAbility = allAbilities.find(a => a.name.toLowerCase() === selectedAbilityName.trim().toLowerCase());
+                displayMessage(`You ready yourself to use ${chosenAbility.name}!`, 'info');
+                await applyAbilityEffects(chosenAbility.name, chosenAbility.definition);
+            } else {
+                // Fallback if AI fails: Use the first available ability
+                const fallbackAbility = allAbilities[0];
+                displayMessage(`You couldn't decide, so you prepare to use your signature move: ${fallbackAbility.name}!`, 'info');
+                await applyAbilityEffects(fallbackAbility.name, fallbackAbility.definition);
+            }
+             addToConversationHistory('user', `used ability: ${selectedAbilityName}`);
 
         } else {
-            displayMessage("You are not a spellcaster.", 'info');
+            displayMessage("You have no special spells or abilities to use.", 'info');
         }
     });
 
-    async function analyzeContextAndSelectSpell(availableSpells) {
-        // ... (existing contextInfo and spellSelectionPrompt setup) ...
-
-        const aiResponse = await callGeminiAPI(spellSelectionPrompt, 0.3, 50, false);
-        if (aiResponse) {
-            const cleanedSpell = aiResponse.trim().replace(/['"]/g, '');
-            // CHANGE THIS LINE to require an exact match
-            const matchedSpell = availableSpells.find(spell =>
-                spell.toLowerCase() === cleanedSpell.toLowerCase() // Require exact match
-            );
-
-            if (matchedSpell) {
-                console.log(`AI selected exact spell: ${matchedSpell} from context analysis`);
-                return matchedSpell;
-            } else {
-                console.warn(`AI suggested spell "${cleanedSpell}" not found in available spells. Falling back.`);
-                // Fallback logic if AI's spell name isn't an exact match
-                const playerKnownSpells = window.player.classProgression.knownSpells || [];
-                const playerKnownCantrips = window.player.classProgression.knownCantrips || [];
-                const fallbackSpells = [...new Set([...playerKnownSpells, ...playerKnownCantrips])]; // This is now strictly known spells/cantrips
-
-                if (fallbackSpells.length > 0) {
-                    const randomFallbackSpell = fallbackSpells[Math.floor(Math.random() * fallbackSpells.length)];
-                    displayMessage(`The magic of "${cleanedSpell}" is unclear. You instead focus on a familiar spell: ${randomFallbackSpell}.`, 'info');
-                    return randomFallbackSpell;
-                } else {
-                    displayMessage(`You attempted to cast "${cleanedSpell}", but the magic fizzled. You have no other known spells to cast.`, 'error');
-                    return null; // Cannot cast anything
-                }
-            }
+    // --- NEW HELPER FUNCTION TO ADD TO SCRIPT.JS ---
+    // This function will handle the effects of non-spell abilities.
+    async function applyAbilityEffects(abilityName, abilityDef) {
+        if (!abilityDef) {
+            displayMessage(`The ability "${abilityName}" is not defined correctly.`, 'error');
+            return;
         }
 
-        // Fallback: Context-based selection without AI (this will now also use actual known spells)
-        return selectSpellByContext(availableSpells, contextInfo);
+        displayMessage(`${abilityDef.description}`, 'success');
+
+        // Here, you would add the specific mechanics for each ability
+        // For now, we will create a generic AI prompt to describe the outcome.
+        const effectPrompt = `
+            The player ${player.name} uses the ability: "${abilityName}".
+            Ability Description: "${abilityDef.description}".
+            Current situation: ${getConversationContext().slice(-500)}
+
+            Describe the outcome of this action in a dramatic and engaging way (1-2 sentences).`;
+
+        const outcome = await callGeminiAPI(effectPrompt);
+        if (outcome) {
+            displayMessage(outcome, 'success');
+            addToConversationHistory('assistant', outcome);
+        }
+
+        // Example of how you could hard-code specific mechanics:
+        if (abilityDef.effect?.damage) {
+            if(player.currentEnemy) {
+                const damage = rollDice(abilityDef.effect.damage);
+                player.currentEnemy.hp -= damage;
+                displayMessage(`Your ${abilityName} deals an extra ${damage} damage to ${player.currentEnemy.name}!`, 'combat');
+            }
+        }
+        if (abilityDef.effect?.condition) {
+             if(player.currentEnemy) {
+                displayMessage(`${player.currentEnemy.name} is now ${abilityDef.effect.condition}!`, 'combat');
+             }
+        }
+
+        updatePlayerStatsDisplay();
+    }
+    
+
+    async function analyzeContextAndSelectSpell(availableSpells) {
+        try {
+            // --- START OF MISSING CODE TO ADD ---
+
+            // Get current context for the AI
+            const contextInfo = {
+                inCombat: !!player.currentEnemy,
+                currentLocation: player.currentLocation,
+                playerHealth: `${player.hp}/${player.maxHp}`,
+                recentMessages: conversationHistory.messages.slice(-5).map(msg => msg.content).join(' '),
+                explorationContext: getExplorationContextString(),
+                enemyInfo: player.currentEnemy ? `Fighting ${player.currentEnemy.name} (HP: ${player.currentEnemy.hp})` : 'Not in combat'
+            };
+
+            // Create spell categories for better AI selection
+            const spellCategories = categorizeSpells(availableSpells);
+
+            // Build the context-aware prompt for the AI
+            const spellSelectionPrompt = `
+                ${player.name} (Level ${player.level} ${player.classProgression.class}) wants to cast a spell.
+                CURRENT CONTEXT:
+                - Location: ${contextInfo.currentLocation}
+                - Combat Status: ${contextInfo.enemyInfo}
+                - Health: ${contextInfo.playerHealth}
+                - Recent Events: ${contextInfo.recentMessages}
+                ${contextInfo.explorationContext}
+
+                AVAILABLE SPELLS BY CATEGORY:
+                ${formatSpellsForAI(spellCategories)}
+
+                Based on the current situation, choose the MOST APPROPRIATE spell from the available list.
+                Consider:
+                1. If in combat, prioritize offensive spells or defensive ones if health is low.
+                2. If exploring, choose utility or divination spells.
+                3. If interacting socially, choose charm or illusion spells.
+
+                IMPORTANT: Respond with ONLY the spell name from the available list. Do not add quotes or explanation.
+            `;
+
+            // --- END OF MISSING CODE TO ADD ---
+
+            const aiResponse = await callGeminiAPI(spellSelectionPrompt, 0.3, 50, false);
+            if (aiResponse) {
+                const cleanedSpell = aiResponse.trim().replace(/['"]/g, '');
+                const matchedSpell = availableSpells.find(spell =>
+                    spell.toLowerCase() === cleanedSpell.toLowerCase()
+                );
+
+                if (matchedSpell) {
+                    console.log(`AI selected exact spell: ${matchedSpell} from context analysis`);
+                    return matchedSpell;
+                } else {
+                    console.warn(`AI suggested spell "${cleanedSpell}" not found in available spells. Falling back.`);
+                    const playerKnownSpells = window.player.classProgression.knownSpells || [];
+                    const playerKnownCantrips = window.player.classProgression.knownCantrips || [];
+                    const fallbackSpells = [...new Set([...playerKnownSpells, ...playerKnownCantrips])];
+
+                    if (fallbackSpells.length > 0) {
+                        const randomFallbackSpell = fallbackSpells[Math.floor(Math.random() * fallbackSpells.length)];
+                        displayMessage(`The magic of "${cleanedSpell}" is unclear. You instead focus on a familiar spell: ${randomFallbackSpell}.`, 'info');
+                        return randomFallbackSpell;
+                    } else {
+                        displayMessage(`You attempted to cast "${cleanedSpell}", but the magic fizzled. You have no other known spells to cast.`, 'error');
+                        return null;
+                    }
+                }
+            }
+
+            // Fallback: Context-based selection without AI
+            return selectSpellByContext(availableSpells, contextInfo);
+
+        } catch (error) {
+            console.error('Error in spell selection:', error);
+            // Fallback to a random known spell if AI or context analysis fails
+            const knownSpells = (player.classProgression?.knownSpells || []).concat(player.classProgression?.knownCantrips || []);
+            if (knownSpells.length > 0) {
+                return knownSpells[Math.floor(Math.random() * knownSpells.length)];
+            }
+            return null;
+        }
     }
 
     // Context-based spell selection fallback

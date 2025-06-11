@@ -229,13 +229,14 @@ export class CharacterManager {
             }
         });
         
-        // Add spells
         levelData.spells.forEach(spellName => {
             if (!player.classProgression.availableSpells.includes(spellName)) {
                 player.classProgression.availableSpells.push(spellName);
             }
-            // For mages, automatically learn all available spells
-            if (player.classProgression.class === 'mage' && !player.classProgression.knownSpells.includes(spellName)) {
+            // For all spellcasting classes, automatically learn spells they gain
+            // (Assuming no "prepare spells" mechanic is in place that would require separate "available" vs "known" lists
+            // or explicit player action to "learn" from "available" for non-mages)
+            if (!player.classProgression.knownSpells.includes(spellName)) {
                 player.classProgression.knownSpells.push(spellName);
             }
         });
@@ -295,23 +296,35 @@ export class CharacterManager {
     }
     
     static calculateSpellSlots(charClass, level) {
-        // Only mages and rangers get spell slots
-        if (charClass === 'mage') {
-            return {
-                1: Math.max(1, level),
-                2: Math.max(0, level - 2),
-                3: Math.max(0, level - 4),
-                4: Math.max(0, level - 6),
-                5: Math.max(0, level - 8)
-            };
-        } else if (charClass === 'ranger' && level >= 2) {
-            return {
-                1: Math.max(0, Math.floor((level - 1) / 2)),
-                2: Math.max(0, Math.floor((level - 3) / 2)),
-                3: Math.max(0, Math.floor((level - 7) / 2))
-            };
+        const slots = {
+            1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0, 8: 0, 9: 0
+        };
+
+        const fullCasters = ['mage', 'sorcerer', 'warlock', 'cleric', 'druid', 'bard', 'psychic', 'shaman', 'summoner', 'necromancer', 'illusionist'];
+        const halfCasters = ['paladin', 'ranger'];
+
+        if (fullCasters.includes(charClass)) {
+            // Simplified full caster progression (e.g., based on D&D 5e Wizard/Cleric)
+            if (level >= 1) slots[1] = Math.min(4, level + 1); // Up to 4 1st-level slots
+            if (level >= 3) slots[2] = Math.min(3, Math.floor(level / 2)); // Up to 3 2nd-level slots
+            if (level >= 5) slots[3] = Math.min(3, Math.floor((level - 2) / 2)); // Up to 3 3rd-level slots
+            if (level >= 7) slots[4] = Math.min(1, Math.floor((level - 4) / 2)); // Up to 1 4th-level slot at level 7
+            if (level >= 9) slots[5] = 1; // 1 5th-level slot at level 9
+            if (level >= 11) slots[6] = 1; // 1 6th-level slot at level 11
+            if (level >= 13) slots[7] = 1; // 1 7th-level slot at level 13
+            if (level >= 15) slots[8] = 1; // 1 8th-level slot at level 15
+            if (level >= 17) slots[9] = 1; // 1 9th-level slot at level 17
+
+        } else if (halfCasters.includes(charClass)) {
+            // Simplified half caster progression (e.g., based on D&D 5e Paladin/Ranger)
+            if (level >= 2) slots[1] = Math.min(4, Math.floor(level / 2)); // 1st-level slots from level 2
+            if (level >= 5) slots[2] = Math.min(3, Math.floor((level - 2) / 2)); // 2nd-level slots from level 5
+            if (level >= 9) slots[3] = Math.min(3, Math.floor((level - 4) / 2)); // 3rd-level slots from level 9
+            if (level >= 13) slots[4] = Math.min(1, Math.floor((level - 6) / 2)); // 4th-level slots from level 13
+            if (level >= 17) slots[5] = 1; // 5th-level spells at 17th level for half-casters
+
         }
-        return {};
+        return slots;
     }
     
     static applyFeatEffects(player, featName) {
