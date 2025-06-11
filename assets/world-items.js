@@ -2579,7 +2579,19 @@ export class ItemGenerator {
 
         const categoryMap = {
             'weapon': 'weapons',
-            'armor': 'armor'
+            'armor': 'armor',
+            'magical': 'magical',
+            'consumable': 'magical',      // Potions are in itemTemplates.magical
+            'scroll': 'magical',          // Scrolls are in itemTemplates.magical
+            'book': 'questItems',         // Books are in itemTemplates.questItems
+            'artifact': 'questItems',     // Artifacts are in itemTemplates.questItems
+            'tool': 'tools',
+            'jewelry': 'jewelry',
+            'crafting': 'crafting',
+            'glyph': 'glyphs',
+            'ingredient': 'ingredients',
+            'trinket': 'trinkets',
+            'quest': 'questItems'
         };
         const categoryKey = categoryMap[category.toLowerCase()];
         const subTypeKey = context.subType ? context.subType.toLowerCase() : null;

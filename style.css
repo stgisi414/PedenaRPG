@@ -756,3 +756,38 @@ h1, h2, h3, h4 {
     align-items: center;
     justify-content: center;
 }
+
+.equipment-slot-icon-container {
+  width: 48px;  /* 3rem, adjust to match your layout */
+  height: 48px; /* 3rem, adjust to match your layout */
+  position: relative;
+  flex-shrink: 0;
+  background-size: contain;
+  background-position: center;
+  background-repeat: no-repeat;
+  border: 1px solid rgba(0,0,0,0.1); /* Optional: adds a faint border */
+  border-radius: 4px;
+}
+
+.equipped-item-icon-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain; /* Ensures the item icon fits nicely */
+  z-index: 2; /* Ensures item icon is on top of the background */
+}
+
+/* --- Base Icons for Each Slot --- */
+/* You will need to create/find these icon images and place them in the correct path */
+#mainHand-slot-icon { background-image: url('./assets/icons/equip-slot-mainhand.png'); }
+#offHand-slot-icon { background-image: url('./assets/icons/equip-slot-offhand.png'); }
+#head-slot-icon { background-image: url('./assets/icons/equip-slot-head.png'); }
+#chest-slot-icon { background-image: url('./assets/icons/equip-slot-chest.png'); }
+#hands-slot-icon { background-image: url('./assets/icons/equip-slot-hands.png'); }
+#legs-slot-icon { background-image: url('./assets/icons/equip-slot-legs.png'); }
+#feet-slot-icon { background-image: url('./assets/icons/equip-slot-feet.png'); }
+#back-slot-icon { background-image: url('./assets/icons/equip-slot-back.png'); }
+#amulet-slot-icon { background-image: url('./assets/icons/equip-slot-amulet.png'); }
+#ring1-slot-icon, #ring2-slot-icon { background-image: url('./assets/icons/equip-slot-ring.png'); }
