@@ -751,7 +751,7 @@ function updateGold(amount, reason = '') {
     saveGame();
 }
 
-function 
+function
     displayMessage(message, type = 'info') {
     const p = document.createElement('p');
     p.classList.add('mb-2', 'pb-1', 'border-b', 'border-amber-700/50');
@@ -973,7 +973,7 @@ function rollDice(diceString) {
 }
 
 // AI Interaction Functions (Gemini API Calls)
-async function callGeminiAPI(prompt, temperature = 0.10, maxOutputTokens = 44000, includeContext = true) {
+async function callGeminiAPI(prompt, temperature = 0.10, maxOutputTokens = 56000, includeContext = true) {
     try {
         let fullPrompt = prompt;
 
@@ -1409,7 +1409,7 @@ async function generateRandomEncounter() {
                 await generateNPCEncounter(encounter.suggestion);
                 break;
             case 'event':
-                 // This function is also fine as is for now.
+                // This function is also fine as is for now.
                 await generateEventEncounter();
                 break;
             case 'none':
@@ -1479,7 +1479,7 @@ async function generateAndInitiateCombatEncounter(enemySuggestion = null) {
         const enemyData = JSON.parse(jsonMatch[0]);
 
         if (!enemyData.enemyName || !enemyData.baseHp || !enemyData.baseAttack) {
-             throw new Error("AI response for enemy was missing required fields (name, hp, attack).");
+            throw new Error("AI response for enemy was missing required fields (name, hp, attack).");
         }
 
         const enemy = {
@@ -1902,9 +1902,11 @@ The quest should be appropriate for their level and current location. Include:
 4. An interesting backstory
 
 Make it engaging and appropriate for a fantasy RPG setting.
+
+The quest should not be too long keep each section concise and to the point.
 `;
 
-    const questDescription = await callGeminiAPI(questPrompt, 0.8, 400);
+    const questDescription = await callGeminiAPI(questPrompt, 0.8, 100000);
 
     if (questDescription) {
         const questId = Date.now().toString();
@@ -2955,7 +2957,23 @@ async function generateGeminiQuest() {
         recentQuests: player.quests ? player.quests.slice(-3) : []
     });
 
-    // Create structured prompt for Gemini with quest template data
+    // --- NEW LOGIC TO GET RANDOM SUBSETS ---
+    const getRandomSubset = (arr, n) => {
+        // Add a check to prevent errors if the input isn't an array
+        if (!Array.isArray(arr)) {
+            console.error("Cannot get random subset of a non-array:", arr);
+            return [];
+        }
+        const shuffled = [...arr].sort(() => 0.5 - Math.random());
+        return shuffled.slice(0, n);
+    };
+
+    const randomCategories = getRandomSubset(Object.keys(questCategories), 10);
+    const randomThemes = getRandomSubset(Object.keys(questThemes), 10);
+    // --- END OF NEW LOGIC ---
+
+
+    // Create structured prompt for Gemini with the RANDOMIZED quest template data
     const questPrompt = `
 QUEST GENERATION SYSTEM - Generate a detailed, immersive quest for an RPG
 
@@ -2976,18 +2994,19 @@ QUEST TEMPLATE DATA:
 - Suggested Location: ${questData.location}
 - Quest Giver: ${questData.questGiver}
 
-QUEST CATEGORIES REFERENCE:
-${JSON.stringify(questCategories, null, 2)}
+QUEST CATEGORIES REFERENCE (Random Sample):
+${JSON.stringify(randomCategories, null, 2)}
 
-QUEST THEMES REFERENCE:
-${JSON.stringify(questThemes, null, 2)}
+QUEST THEMES REFERENCE (Random Sample):
+${JSON.stringify(randomThemes, null, 2)}
 
 WORLD CONTEXT:
 - Current NPCs in area: ${getNPCsInLocation(player.currentLocation).map(npc => npc.name).join(', ') || 'None'}
 - Player relationships: ${Object.keys(player.relationships || {}).slice(0, 3).join(', ') || 'None established'}
 
 INSTRUCTIONS:
-Create a rich, detailed quest that fits the template data but with enhanced narrative depth. The quest should:
+Create a rich, detailed quest that fits the template data but with enhanced narrative depth.
+Respond with ONLY valid JSON in the specified format.
 
 1. Have a compelling title that fits the theme
 2. Include vivid, immersive description (2-3 sentences)
@@ -3024,7 +3043,8 @@ Make the quest feel personal and relevant to ${player.name}'s journey. Use the c
 `;
 
     try {
-        const response = await callGeminiAPI(questPrompt, 0.7, 1000, false);
+        // Updated the token limit here as you requested
+        const response = await callGeminiAPI(questPrompt, 0.7, 8192, false); 
         if (!response) {
             throw new Error("No response from Gemini API");
         }
@@ -3075,7 +3095,6 @@ Make the quest feel personal and relevant to ${player.name}'s journey. Use the c
 
     } catch (error) {
         console.error("Error generating Gemini quest:", error);
-
         // Fallback to original quest system if Gemini fails
         console.log("Falling back to template-based quest generation");
         return {
@@ -3084,83 +3103,6 @@ Make the quest feel personal and relevant to ${player.name}'s journey. Use the c
             completed: false,
             dateCreated: new Date().toLocaleDateString()
         };
-    }
-}
-
-function parseAIItemResponse(aiResponse, context) {
-    try {
-        // Extract item details from AI response
-        const nameMatch = aiResponse.match(/Item Name:\s*([^|]+)/i);
-        const descMatch = aiResponse.match(/Description:\s*([^|]+)/i);
-        const typeMatch = aiResponse.match(/Type:\s*([^|]+)/i);
-        const rarityMatch = aiResponse.match(/Rarity:\s*([^|]+)/i);
-
-        const itemName = nameMatch ? nameMatch[1].trim() : 'Mysterious Item';
-        const description = descMatch ? descMatch[1].trim() : 'A mysterious item of unknown origin.';
-        const type = typeMatch ? typeMatch[1].trim().toLowerCase() : 'magical';
-        const rarity = rarityMatch ? rarityMatch[1].trim().toUpperCase() : 'UNCOMMON';
-
-        // Detect language type from item name and context
-        const detectLanguageType = (name, desc) => {
-            const lowerName = name.toLowerCase();
-            const lowerDesc = desc.toLowerCase();
-            const fullText = lowerName + ' ' + lowerDesc;
-
-            if (fullText.includes('succubus') || fullText.includes('demon') || fullText.includes('infernal')) return 'succubus';
-            if (fullText.includes('elven') || fullText.includes('elf') || fullText.includes('elvish')) return 'elven';
-            if (fullText.includes('dragon') || fullText.includes('draconic') || fullText.includes('wyrm')) return 'draconic';
-            if (fullText.includes('demonic') || fullText.includes('fiend') || fullText.includes('abyss')) return 'demonic';
-            if (fullText.includes('celestial') || fullText.includes('angel') || fullText.includes('divine')) return 'celestial';
-            if (fullText.includes('orc') || fullText.includes('orcish') || fullText.includes('tribal')) return 'orcish';
-
-            return 'elven'; // Default
-        };
-
-        // Check if this is a language-based item
-        const isLanguageItem = itemName.toLowerCase().includes('language') ||
-            itemName.toLowerCase().includes('script') ||
-            itemName.toLowerCase().includes('tome') ||
-            itemName.toLowerCase().includes('scroll') ||
-            type.includes('scroll') ||
-            type.includes('book');
-
-        if (isLanguageItem) {
-            const languageType = detectLanguageType(itemName, description);
-            const validRarity = Object.keys(itemRarity).includes(rarity) ? rarity : 'UNCOMMON';
-
-            // Generate appropriate language item
-            if (type.includes('scroll')) {
-                return ItemGenerator.generateLanguageScroll(validRarity, languageType);
-            } else {
-                return ItemGenerator.generateLanguageBook(validRarity, languageType);
-            }
-        }
-
-        // Map type to category for non-language items
-        let category = itemCategories.MAGICAL;
-        if (type.includes('scroll')) category = itemCategories.SCROLL;
-        else if (type.includes('book') || type.includes('tome')) category = itemCategories.BOOK;
-        else if (type.includes('artifact')) category = itemCategories.ARTIFACT;
-        else if (type.includes('weapon')) category = itemCategories.WEAPON;
-
-        // Generate item using the ItemGenerator
-        const generatedItem = ItemGenerator.generateItem({
-            category: category,
-            rarity: Object.keys(itemRarity).includes(rarity) ? rarity : 'UNCOMMON',
-            questContext: context.questContext,
-            locationContext: context.locationContext
-        });
-
-        // Override with AI-generated details
-        generatedItem.name = itemName;
-        generatedItem.description = description;
-
-        return generatedItem;
-
-    } catch (error) {
-        console.error('Error parsing AI item response:', error);
-        // Fallback to basic item generation
-        return ItemGenerator.generateItem(context);
     }
 }
 
@@ -3693,7 +3635,7 @@ Example:
             }
 
             // Basic validation of parsed structure
-            if (!parsedResult.discovery || !parsedResult.interactable || 
+            if (!parsedResult.discovery || !parsedResult.interactable ||
                 !Array.isArray(parsedResult.interactable.people) || !Array.isArray(parsedResult.interactable.objects)) {
                 throw new Error("Invalid structure for 'interactable' object in AI response.");
             }
@@ -3743,8 +3685,8 @@ Example:
                 console.log(`Explore: NPC "${identity.canonicalName}" already exists in gameWorld.npcs for this location.`);
                 const existingNpcRef = existingNPCsInLocation.find(npc => npc.name === identity.canonicalName);
                 if (existingNpcRef && identity.description && existingNpcRef.description !== identity.description) {
-                     existingNpcRef.description = identity.description;
-                     console.log(`Explore: Updated description for existing NPC "${existingNpcRef.name}".`);
+                    existingNpcRef.description = identity.description;
+                    console.log(`Explore: Updated description for existing NPC "${existingNpcRef.name}".`);
                 }
             }
 
@@ -3996,10 +3938,10 @@ function getExplorationContextString() {
     const relationships = Object.values(player.relationships).map(rel => `${rel.name}: ${rel.status}`).join(', ') || 'none';
 
     let context = `Player is currently in ${playerLocation}. ` +
-                  `Player HP: <span class="math-inline">\{player\.hp\}/</span>{player.maxHp}. ` +
-                  `Player Gold: ${player.gold}. ` +
-                  `Player Inventory: ${inventoryItems}. ` +
-                  `Equipped Weapon: ${equippedWeapon}. `; // ENSURE THIS IS INCLUDED IN THE CONTEXT
+        `Player HP: <span class="math-inline">\{player\.hp\}/</span>{player.maxHp}. ` +
+        `Player Gold: ${player.gold}. ` +
+        `Player Inventory: ${inventoryItems}. ` +
+        `Equipped Weapon: ${equippedWeapon}. `; // ENSURE THIS IS INCLUDED IN THE CONTEXT
     if (equippedArmor > 0) {
         context += `Player Armor: ${equippedArmor}. `;
     }
@@ -4077,10 +4019,10 @@ async function generateCharacterBackground() {
     Make it 1-2 paragraphs (4-5 sentences per paragraph), interesting, and appropriate for a fantasy RPG character. 
     Include their motivations and how they became an adventurer.
 
-    IMPORTANT: Write in plain text only. Do NOT use any rich text formatting, markdown, or special syntax like {color:text}, **bold**, *italic*, {{effects}}, [fonts], or any other formatting codes. Output clean, readable prose without any formatting markup. Output only the summary, no other introductory text or closing statements.`;
+    **Keep the entire response under 350 words.** IMPORTANT: Write in plain text only. Do NOT use any rich text formatting...`;
 
     try {
-        const background = await callGeminiAPI(prompt, 0.8, 400, false);
+         const background = await callGeminiAPI(prompt, 0.8, 2048, false);
         if (background) {
             // Clean any potential formatting that might slip through
             const cleanBackground = background
@@ -4601,23 +4543,34 @@ function createPlaceholderPortrait(name, charClass, level = 1) { // Accept param
 
 function createMasterPrompt(command) {
     // This function gathers all context needed for the AI to make a comprehensive decision.
+    // In script.js, inside createMasterPrompt()
+
+    // Assumes your player and world objects have been updated to track these new states.
+    // let player = { ..., statusEffects: [], reputation: { "The Royal Guard": 15 } };
+    // let world = { ..., time: new Date(...), activeEvents: [] };
+
     const playerState = {
         name: player.name,
         class: player.class,
-        alignment: player.alignment,
+        alignment: player.alignment, // Good to keep this here
         level: player.level,
         hp: player.hp,
         maxHp: player.maxHp,
         location: player.currentLocation,
-        inventory: player.inventory.slice(-10).map(i => i.name), // Last 10 items
+        statusEffects: player.statusEffects.map(e => e.name), // <-- NEW: List of active status effect names
+        reputation: player.reputation, // <-- NEW: Entire reputation object
+        inventory: player.inventory.slice(-10).map(i => i.name),
         equipment: player.equipment,
         activeQuests: player.quests.filter(q => !q.completed).map(q => q.title)
     };
 
     const worldState = {
+        timeOfDay: world.time.toTimeString().split(' ')[0], // <-- NEW: e.g., "09:30:00"
+        day: world.time.toDateString(), // <-- NEW: e.g., "Tue Jun 11 2025"
         nearbyNPCs: getNPCsInLocation(player.currentLocation).map(npc => npc.name),
         locationDescription: gameWorld.locationMemory.get(player.currentLocation) || `A place known as ${player.currentLocation}.`,
-        recentConversation: getConversationContext().slice(-1000) // Last 1000 chars of conversation
+        activeWorldEvents: world.activeEvents.map(e => e.details), // <-- NEW: List of ongoing world events
+        recentConversation: getConversationContext().slice(-1000)
     };
 
     const prompt = `
@@ -4632,24 +4585,34 @@ function createMasterPrompt(command) {
 
         PLAYER COMMAND: "${command}"
 
+
         YOUR TASK:
         Based on the command and context, determine the narrative outcome and all resulting game state changes.
 
         JSON RESPONSE FORMAT:
         {
-          "narrative": "A rich, descriptive paragraph of what happens.",
-          "locationChange": "New Location Name or null",
-          "playerStateChanges": { "hp": -10, "exp": 25, "gold": 0 } or null,
-          "itemChanges": {
-            "add": [ { "name": "Item Name", "type": "weapon", ... } ],
-            "remove": [ { "name": "Item Name" } ]
+          "narrative": "...",
+          "locationChange": "...",
+          "timePassedMinutes": 30, // <-- Time Progression
+          "playerStateChanges": { 
+              "hp": 0, "exp": 0, "gold": 0,
+              "statusEffects": { // <-- Status Effects
+                  "add": [ { "name": "Drenched", "duration": 60, "description": "You are soaked, making you vulnerable to cold." } ],
+                  "remove": [ "Well-Rested" ]
+              }
           } or null,
-          "alignmentChange": { "changeGood": -10, "changeChaos": 5, "reason": "Stole from a beggar." } or null, // <-- ADD THIS
-          "relationshipChanges": [
-            { "npcName": "NPC Name", "trustChange": 10, ... }
+          "itemChanges": { ... } or null,
+          "alignmentChange": { ... } or null,
+          "factionReputationChange": [ // <-- Faction System
+              { "faction": "Theives' Guild", "change": -10, "reason": "Sided with the city guard." },
+              { "faction": "Royal Guard", "change": 5, "reason": "Helped capture a thief." }
           ] or null,
-          "questProgress": { "questTitle": "The Lost Amulet", "update": "...", "isComplete": false } or null,
-          "combatState": { "initiate": true, "enemy": { ... } } or null
+          "relationshipChanges": [ ... ] or null,
+          "questProgress": { ... } or null,
+          "worldEvents": [ // <-- World Events
+              { "event": "dragon_sighting", "location": "Dragon's Peak", "details": "Rumors spread of a red dragon seen near Dragon's Peak." }
+          ] or null,
+          "combatState": { ... } or null
         }
 
         RULES:
@@ -4696,30 +4659,45 @@ async function executeCustomCommand(command) {
 // In script.js
 
 async function parseAndApplyStateChanges(result) {
-    // 1. Narrative (Always present)
+    // 1. Time Progression
+    if (result.timePassedMinutes) {
+        // Assume you have a world time object
+        world.time.setMinutes(world.time.getMinutes() + result.timePassedMinutes);
+        // You could then update a UI element to show the new time/day.
+        // displayTime(world.time); 
+    }
+
+    // 2. Narrative (Always present)
     if (result.narrative) {
         displayMessage(result.narrative, 'info');
         addToConversationHistory('assistant', result.narrative);
     }
 
-    // 2. Player State Changes (HP, EXP, Gold)
+    // 3. Player State (HP, EXP, Gold, and now Status Effects)
     if (result.playerStateChanges) {
-        const changes = result.playerStateChanges;
-        if (changes.hp) {
-            const oldHp = player.hp;
-            player.hp = Math.max(0, Math.min(player.maxHp, player.hp + changes.hp));
-            displayMessage(`Your health changes by ${player.hp - oldHp}.`, 'info');
-        }
-        if (changes.exp) {
-            gainExperience(changes.exp); // Use existing XP function which handles level ups
-        }
-        if (changes.gold) {
-            updateGold(changes.gold, 'game event'); // Use existing gold function
+        // ... HP, EXP, Gold logic is the same ...
+        if (result.playerStateChanges.statusEffects) {
+            const effects = result.playerStateChanges.statusEffects;
+            if (effects.remove) {
+                effects.remove.forEach(effectName => {
+                    const index = player.statusEffects.findIndex(e => e.name === effectName);
+                    if (index > -1) {
+                        displayMessage(`The effect '${player.statusEffects[index].name}' fades.`, 'info');
+                        player.statusEffects.splice(index, 1);
+                    }
+                });
+            }
+            if (effects.add) {
+                effects.add.forEach(effectToAdd => {
+                    player.statusEffects.push(effectToAdd);
+                    displayMessage(`You are now affected by: ${effectToAdd.name}.`, 'warning');
+                });
+            }
         }
         updatePlayerStatsDisplay();
     }
 
-    // 3. Alignment Change  <-- NEW SECTION
+    // 4. Alignment Change  <-- NEW SECTION
     if (result.alignmentChange) {
         const align = result.alignmentChange;
         // This assumes you have an updateAlignment function like the one in alignment-system.js
@@ -4734,7 +4712,30 @@ async function parseAndApplyStateChanges(result) {
         updatePlayerStatsDisplay(); // Refresh to show new alignment
     }
 
-    // 4. Item Changes (Add/Remove)
+    // 5. Faction Reputation Change
+    if (result.factionReputationChange && result.factionReputationChange.length > 0) {
+        result.factionReputationChange.forEach(change => {
+            if (!player.reputation[change.faction]) {
+                player.reputation[change.faction] = 0;
+            }
+            player.reputation[change.faction] += change.change;
+            const trend = change.change > 0 ? "increased" : "decreased";
+            displayMessage(`Your reputation with ${change.faction} has ${trend}.`, 'info');
+        });
+        // You could have a function to display reputation in the UI
+        // displayReputation();
+    }
+
+    // 6. World Events
+    if (result.worldEvents && result.worldEvents.length > 0) {
+        result.worldEvents.forEach(event => {
+            world.activeEvents.push(event);
+            // Announce major events to the player
+            displayMessage(`[WORLD EVENT] ${event.details}`, 'world-event');
+        });
+    }
+
+    // 7. Item Changes (Add/Remove)
     if (result.itemChanges) {
         // Handle removals first
         if (result.itemChanges.remove && result.itemChanges.remove.length > 0) {
@@ -4758,7 +4759,7 @@ async function parseAndApplyStateChanges(result) {
         displayInventory(); // Refresh if open
     }
 
-    // 5. Location Change
+    // 8. Location Change
     if (result.locationChange) {
         player.currentLocation = result.locationChange;
         updatePlayerStatsDisplay();
@@ -4766,14 +4767,14 @@ async function parseAndApplyStateChanges(result) {
         // await generateWorldDescription(player.currentLocation);
     }
 
-    // 6. Relationship Changes
+    // 9. Relationship Changes
     if (result.relationshipChanges && result.relationshipChanges.length > 0) {
         result.relationshipChanges.forEach(change => {
             updateRelationship(change.npcName, 0, change.trustChange, `Your interaction was ${change.emotionalImpact}.`);
         });
     }
 
-    // 7. Quest Progress
+    // 10. Quest Progress
     if (result.questProgress) {
         const quest = player.quests.find(q => q.title === result.questProgress.questTitle && !q.completed);
         if (quest) {
@@ -4784,7 +4785,7 @@ async function parseAndApplyStateChanges(result) {
         }
     }
 
-    // 8. Combat State
+    // 11. Combat State
     if (result.combatState && result.combatState.initiate) {
         await generateAndInitiateCombatEncounter(result.combatState.enemy);
     }
@@ -4966,7 +4967,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             addToConversationHistory('user', `cast ${selectedSpell}`);
 
-        // --- NEW LOGIC FOR ABILITY-BASED CLASSES ---
+            // --- NEW LOGIC FOR ABILITY-BASED CLASSES ---
         } else if (progression.abilities.length > 0) {
             const allAbilities = progression.abilities;
 
@@ -4994,7 +4995,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 displayMessage(`You couldn't decide, so you prepare to use your signature move: ${fallbackAbility.name}!`, 'info');
                 await applyAbilityEffects(fallbackAbility.name, fallbackAbility.definition);
             }
-             addToConversationHistory('user', `used ability: ${selectedAbilityName}`);
+            addToConversationHistory('user', `used ability: ${selectedAbilityName}`);
 
         } else {
             displayMessage("You have no special spells or abilities to use.", 'info');
@@ -5028,21 +5029,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Example of how you could hard-code specific mechanics:
         if (abilityDef.effect?.damage) {
-            if(player.currentEnemy) {
+            if (player.currentEnemy) {
                 const damage = rollDice(abilityDef.effect.damage);
                 player.currentEnemy.hp -= damage;
                 displayMessage(`Your ${abilityName} deals an extra ${damage} damage to ${player.currentEnemy.name}!`, 'combat');
             }
         }
         if (abilityDef.effect?.condition) {
-             if(player.currentEnemy) {
+            if (player.currentEnemy) {
                 displayMessage(`${player.currentEnemy.name} is now ${abilityDef.effect.condition}!`, 'combat');
-             }
+            }
         }
 
         updatePlayerStatsDisplay();
     }
-    
+
 
     async function analyzeContextAndSelectSpell(availableSpells) {
         try {
@@ -5147,7 +5148,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Final fallback: random known spell from actualKnownSpells
         return actualKnownSpells[Math.floor(Math.random() * actualKnownSpells.length)];
     }
-    
+
     document.getElementById('pray-btn')?.addEventListener('click', () => {
         pray();
     });
@@ -6197,19 +6198,19 @@ function buildEquipmentDisplay() {
                 <div class="parchment-box p-2 flex items-center gap-3 w-full">
                     <div class="flex-shrink-0">
                         ${isEmoji ?
-                            `<span class="text-xl text-green-600">${iconClass}</span>` :
-                            `<i class="ra ${iconClass} text-xl text-green-600"></i>`
-                        }
+                    `<span class="text-xl text-green-600">${iconClass}</span>` :
+                    `<i class="ra ${iconClass} text-xl text-green-600"></i>`
+                }
                     </div>
                     <div class="flex-grow">
                         <h6 class="font-bold text-sm">${slotData.name}</h6>
                         <p class="text-xs text-green-700 font-semibold">${item.name}</p>
                         ${combatStats.length > 0 ?
-                            `<div class="text-xs text-blue-600 mt-1">
+                    `<div class="text-xs text-blue-600 mt-1">
                                 ${combatStats.map(stat => `<span class="block">${stat}</span>`).join('')}
                             </div>` :
-                            '<p class="text-xs text-gray-500 italic">No combat bonuses</p>'
-                        }
+                    '<p class="text-xs text-gray-500 italic">No combat bonuses</p>'
+                }
                     </div>
                     <button class="btn-parchment inventory-action-btn text-xs py-1 px-2 flex-shrink-0" data-action="unequip" data-slot="${slotData.slot}" style="color: #8B4513 !important;">
                         Unequip
@@ -6221,9 +6222,9 @@ function buildEquipmentDisplay() {
                 <div class="parchment-box p-2 flex items-center gap-3 w-full border-dashed border-gray-400">
                     <div class="flex-shrink-0">
                         ${isEmoji ?
-                            `<span class="text-xl text-gray-400">${iconClass}</span>` :
-                            `<i class="ra ${iconClass} text-xl text-gray-400"></i>`
-                        }
+                    `<span class="text-xl text-gray-400">${iconClass}</span>` :
+                    `<i class="ra ${iconClass} text-xl text-gray-400"></i>`
+                }
                     </div>
                     <div class="flex-grow">
                         <h6 class="font-bold text-sm text-gray-500">${slotData.name}</h6>
@@ -6736,7 +6737,7 @@ async function generateCharacterPortraitOld() {
 
 function displayCharacterBackground() {
     // Hide other interfaces
-    const interfacesToHide = [ 'shop-interface', 'inventory-interface', 'skills-interface', 'quest-interface', 'progression-interface'];
+    const interfacesToHide = ['shop-interface', 'inventory-interface', 'skills-interface', 'quest-interface', 'progression-interface'];
     interfacesToHide.forEach(id => {
         const element = document.getElementById(id);
         if (element) element.classList.add('hidden');

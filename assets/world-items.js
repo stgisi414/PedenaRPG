@@ -2574,6 +2574,101 @@ export class ItemGenerator {
         }
     };
 
+    static getRandomItemKey(category, context) {
+        if (!category) return null;
+
+        const categoryMap = {
+            'weapon': 'weapons',
+            'armor': 'armor'
+        };
+        const categoryKey = categoryMap[category.toLowerCase()];
+        const subTypeKey = context.subType ? context.subType.toLowerCase() : null;
+
+        if (!categoryKey) {
+            console.error(`[ITEM_GEN_ERROR] No mapping for category "${category}".`);
+            return null;
+        }
+
+        const categoryTemplates = itemTemplates[categoryKey];
+        if (!categoryTemplates) {
+            console.error(`[ITEM_GEN_ERROR] Category key "${categoryKey}" not found in itemTemplates.`);
+            return null;
+        }
+
+        // --- NEW, SIMPLER, SAFER LOGIC ---
+
+        // 1. Get ALL possible items from the correct top-level category first.
+        let masterKeyPool = [];
+        for (const subType in categoryTemplates) {
+            if (typeof categoryTemplates[subType] === 'object' && categoryTemplates[subType] !== null) {
+                masterKeyPool.push(...Object.keys(categoryTemplates[subType]));
+            }
+        }
+
+        if (masterKeyPool.length === 0) {
+            console.error(`[ITEM_GEN_ERROR] No items found anywhere in category "${categoryKey}".`);
+            return null;
+        }
+
+        // 2. If a specific subtype was requested, try to use it.
+        let finalKeyPool = [];
+        if (subTypeKey && categoryTemplates[subTypeKey]) {
+            finalKeyPool = Object.keys(categoryTemplates[subTypeKey]);
+        }
+
+        // 3. If the specific subtype pool is empty, use the master pool for that category.
+        if (finalKeyPool.length === 0) {
+            console.warn(`[ITEM_GEN_WARN] SubType "${subTypeKey}" not found or empty. Using master pool for "${categoryKey}".`);
+            finalKeyPool = masterKeyPool;
+        }
+
+        // Return a random item from the final, correct pool.
+        return finalKeyPool[Math.floor(Math.random() * finalKeyPool.length)];
+    }
+
+    static getRandomItemTemplate(category, subType) {
+        // 1. Map the input category to the correct key in itemTemplates.
+        const categoryMap = { 'weapon': 'weapons', 'armor': 'armor' };
+        const categoryKey = categoryMap[category.toLowerCase()];
+
+        if (!categoryKey || !itemTemplates[categoryKey]) {
+            console.error(`[ItemGenerator] Invalid category provided: ${category}`);
+            return null;
+        }
+
+        const categoryTemplates = itemTemplates[categoryKey];
+        let potentialItems = [];
+
+        // 2. Try to get items from the specific subtype first (e.g., 'staves' within 'weapons').
+        if (subType && categoryTemplates[subType.toLowerCase()]) {
+            potentialItems = categoryTemplates[subType.toLowerCase()];
+        }
+
+        // 3. If no items were found in the specific subtype, create a master list of ALL items in the parent category.
+        if (potentialItems.length === 0) {
+            console.warn(`[ItemGenerator] SubType "${subType}" not found or empty for category "${categoryKey}". Expanding search.`);
+            let allItemsInCategory = [];
+            // Iterate over all subtypes in the category (e.g., 'swords', 'staves', etc.)
+            for (const sub of Object.values(categoryTemplates)) {
+                if (Array.isArray(sub)) {
+                    // Add all items from this subtype array to the master list.
+                    allItemsInCategory.push(...sub);
+                }
+            }
+            potentialItems = allItemsInCategory;
+        }
+
+        // 4. If we still have no items, log an error and return null.
+        if (potentialItems.length === 0) {
+            console.error(`[ItemGenerator] No items found for category "${categoryKey}" even after fallback.`);
+            return null;
+        }
+
+        // 5. Select and return a random item object from the final pool.
+        const randomTemplate = potentialItems[Math.floor(Math.random() * potentialItems.length)];
+        return JSON.parse(JSON.stringify(randomTemplate)); // Return a deep copy
+    }
+    
     static async generateItem(context = {}) {
         const {
             category = this.getRandomCategory(),
@@ -2583,26 +2678,29 @@ export class ItemGenerator {
 
         console.log(`[DEBUG_ITEM_GEN] Starting generateItem for: Category=${category}, Rarity=${rarity}, SubType=${subType}`);
 
-        // FIX: Pass the entire context object here
-        const baseItem = this.getBaseItem(category, rarity, context);
+        // This function now correctly gets a random item template object.
+        const baseItem = this.getRandomItemTemplate(category, subType);
 
-        console.log("[DEBUG_ITEM_GEN] baseItem after getBaseItem:", JSON.stringify(baseItem, null, 2));
         if (!baseItem) {
-            console.error("Could not find a base item for generation. Category:", category, "Rarity:", rarity, "SubType:", subType);
+            console.error("Could not find a base item for generation. Category:", category, "SubType:", subType);
             return null;
         }
 
-        let enhancedItem = await this.enhanceItemWithAI(baseItem, context); 
-        enhancedItem = this.enhanceItem(enhancedItem, context); 
-        console.log("[DEBUG_ITEM_GEN] enhancedItem before final return:", JSON.stringify(enhancedItem, null, 2));
+        // Force the rarity from the context onto the chosen template.
+        baseItem.rarity = rarity; 
+
+        // The rest of the enhancement process remains the same.
+        // NOTE: The AI enhancement part is currently non-functional in your code.
+        // let enhancedItem = await this.enhanceItemWithAI(baseItem, context); 
+        let enhancedItem = this.enhanceItem(baseItem, context); 
 
         return {
-            id: this.generateItemId(),
+            id: `item_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
             ...enhancedItem,
-            generatedAt: Date.now(),
-            context: context
+            generatedAt: Date.now()
         };
     }
+
 
     static generateItemId() {
         return `item_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
@@ -2695,51 +2793,30 @@ export class ItemGenerator {
         return 'COMMON'; // Fallback
     }
 
-    static getBaseItem(category, rarity) { // Rarity is now a key string
-        // The context.subType is passed down from generateItem
-        const subTypeHint = context.subType || null;
+    static getBaseItem(itemKey, rarity, subType) { // <-- FIX: Changed signature to not expect a 'context' object
+        if (!itemKey) return null; // <-- FIX: Exit if itemKey is null
 
-        let itemsOfType;
-        switch (category) {
-            case itemCategories.WEAPON:
-                return this.generateWeapon(rarity, subTypeHint); // Pass subTypeHint
-            case itemCategories.ARMOR:
-                return this.generateArmor(rarity, subTypeHint); // Pass subTypeHint
-            case itemCategories.MAGICAL: // This can include potions, wands etc.
-                return this.generateMagicalItem(rarity, subTypeHint); // Pass subTypeHint
-            case itemCategories.SCROLL:
-                itemsOfType = itemTemplates.magical.scrolls;
-                return this.selectFromTemplates(itemsOfType, rarity, category, subTypeHint) || this.generateCustomScroll(rarity);
-            case itemCategories.BOOK:
-                 if (Math.random() < 0.3) {
-                    const languages = Object.keys(this.languageTemplates);
-                    const langType = languages[Math.floor(Math.random() * languages.length)];
-                    return this.generateLanguageBook(rarity, langType);
+        let template;
+        // Search through all categories and subtypes to find the itemKey
+        for (const cat of Object.values(itemTemplates)) {
+            if (cat[itemKey]) {
+                template = cat[itemKey];
+                break;
+            }
+            for (const subCat of Object.values(cat)) {
+                if (subCat[itemKey]) {
+                    template = subCat[itemKey];
+                    break;
                 }
-                itemsOfType = itemTemplates.questItems.books;
-                return this.selectFromTemplates(itemsOfType, rarity, category, subTypeHint) || this.generateCustomBook(rarity);
-            case itemCategories.CONSUMABLE:
-                itemsOfType = itemTemplates.magical.potions;
-                return this.selectFromTemplates(itemsOfType, rarity, category, subTypeHint) || this.generateCustomConsumable(rarity);
-            case itemCategories.TOOL:
-                return this.generateTool(rarity, subTypeHint);
-            case itemCategories.JEWELRY:
-                return this.generateJewelry(rarity, subTypeHint);
-            case itemCategories.CRAFTING:
-                return this.generateCraftingMaterial(rarity, subTypeHint);
-            case itemCategories.GLYPH:
-                return this.generateGlyph(rarity, subTypeHint);
-            case itemCategories.INGREDIENT:
-                return this.generateIngredient(rarity, subTypeHint);
-            case itemCategories.TRINKET:
-                return this.generateTrinket(rarity, subTypeHint);
-            case itemCategories.ARTIFACT:
-                 itemsOfType = itemTemplates.questItems.artifacts;
-                 return this.selectFromTemplates(itemsOfType, rarity, category, subTypeHint) || this.generateCustomArtifact(rarity);
-
-            default:
-                return this.generateGenericItem(category, rarity);
+            }
+            if (template) break;
         }
+
+        if (!template) {
+            console.error(`[ITEM_GEN_ERROR] Template for itemKey "${itemKey}" not found.`);
+            return null;
+        }
+        return { ...template, rarity: rarity || 'COMMON' };
     }
 
     static selectFromTemplates(templateArray, rarity, itemType, subTypeHint = null) {
