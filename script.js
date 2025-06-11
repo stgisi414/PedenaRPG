@@ -4715,7 +4715,7 @@ async function parseAndApplyStateChanges(result) {
     // 1. Time Progression
     if (result.timePassedMinutes) {
         // Assume you have a world time object
-        gameWorld.time.setMinutes(world.time.getMinutes() + result.timePassedMinutes);
+        gameWorld.time.setMinutes(gameWorld.time.getMinutes() + result.timePassedMinutes);
         // You could then update a UI element to show the new time/day.
         // displayTime(world.time); 
     }
