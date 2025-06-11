@@ -861,9 +861,15 @@ function loadGame() {
 
             // Restore game world if it exists
             if (saveData.gameWorld) {
-                gameWorld.npcs = new Map(saveData.gameWorld.npcs);
-                gameWorld.locationMemory = new Map(saveData.gameWorld.locationMemory);
-                gameWorld.lastNPCInteraction = saveData.gameWorld.lastNPCInteraction;
+                // --- This is the block to REPLACE ---
+                gameWorld.npcs = new Map(saveData.gameWorld.npcs || []);
+                gameWorld.locationMemory = new Map(saveData.gameWorld.locationMemory || []);
+                gameWorld.lastNPCInteraction = saveData.gameWorld.lastNPCInteraction || null;
+
+                // FIX: Check for the new properties and initialize them if they don't exist in the save file.
+                gameWorld.time = saveData.gameWorld.time ? new Date(saveData.gameWorld.time) : new Date(864, 5, 12, 8, 0, 0);
+                gameWorld.activeEvents = saveData.gameWorld.activeEvents || [];
+                // --- End of replacement block ---
             }
             // Restore conversation history if it exists
             if (saveData.conversationHistory) {
