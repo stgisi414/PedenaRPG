@@ -1292,52 +1292,6 @@ async function generateNPCEncounter(suggestion = null) {
     await startConversation(suggestion);
 }
 
-async function startConversation(suggestion = null) {
-    if (!suggestion) {
-        displayMessage("Looking for someone to talk to...", 'info');
-    }
-
-    const existingNPCs = getNPCsInLocation(player.currentLocation);
-    // If no suggestion, there's still a chance to meet an existing NPC.
-    if (!suggestion && existingNPCs.length > 0 && Math.random() > 0.3) {
-        const npc = existingNPCs[Math.floor(Math.random() * existingNPCs.length)];
-        const npcMessage = `You see ${npc.name} again. ${npc.description}`;
-        displayMessage(npcMessage);
-        addToConversationHistory('assistant', npcMessage);
-        gameWorld.lastNPCInteraction = npc.id;
-        updateRelationship(npc.name, 0, 2, npc.description);
-        return; // Exit after interacting with existing NPC
-    }
-
-    // Create a new NPC, using the suggestion from the random encounter if it exists.
-    const npcName = QuestCharacterGenerator.generateRandomCharacter();
-
-    const prompt = `
-        You are a Dungeon Master creating an NPC. The player, ${player.name}, has just encountered them.
-        The NPC's name is **${npcName}**. You must use this exact name.
-        ${suggestion ? `The situation is: "${suggestion}".` : "Create a simple, interesting reason for them to be here."}
-        Write a short, engaging description of the NPC's appearance and their first line of dialogue.
-        Format: "You see ${npcName}. Appearance: [brief description]. ${npcName} says: [one line of dialogue]"
-    `;
-
-    const npcInfo = await callGeminiAPI(prompt, 0.8, 200, true);
-    if (npcInfo) {
-        const newNPC = createNPC(npcName, npcInfo, player.currentLocation);
-        saveNPCToLocation(newNPC, player.currentLocation);
-        gameWorld.lastNPCInteraction = newNPC.id;
-
-        displayMessage(npcInfo);
-        addToConversationHistory('assistant', npcInfo);
-        updateRelationship(npcName, 0, 5, npcInfo, true);
-    } else {
-        const fallbackMessage = "You don't see anyone interesting to talk to right now.";
-        displayMessage(fallbackMessage);
-        addToConversationHistory('assistant', fallbackMessage);
-    }
-
-    saveConversationHistory();
-}
-
 async function generateRandomEncounter() {
     displayMessage("You encounter something on your journey...", 'info');
 
@@ -4010,68 +3964,49 @@ function getExplorationContextString() {
 }
 
 // Auto-generate world event
-async function startConversation() {
-    displayMessage("Looking for someone to talk to...", 'info');
+async function startConversation(suggestion = null) {
+    if (!suggestion) {
+        displayMessage("Looking for someone to talk to...", 'info');
+    }
 
-    // Check for existing NPCs in this location first
     const existingNPCs = getNPCsInLocation(player.currentLocation);
-
-    if (existingNPCs.length > 0 && Math.random() > 0.3) {
-        // 70% chance to interact with existing NPC
+    // If no suggestion, there's still a chance to meet an existing NPC.
+    if (!suggestion && existingNPCs.length > 0 && Math.random() > 0.3) {
         const npc = existingNPCs[Math.floor(Math.random() * existingNPCs.length)];
         const npcMessage = `You see ${npc.name} again. ${npc.description}`;
         displayMessage(npcMessage);
         addToConversationHistory('assistant', npcMessage);
         gameWorld.lastNPCInteraction = npc.id;
-
-        // Update relationship - small positive interaction for talking
         updateRelationship(npc.name, 0, 2, npc.description);
-        displayMessage(`Your relationship with ${npc.name} has slightly improved.`, 'info');
-    } else {
-        // Create new NPC
-        const context = GameDataManager.generateLocationContext(player.currentLocation);
-        const randomFaction = GameDataManager.getRandomFrom(gameData.organizations.factions);
-
-        // Use QuestCharacterGenerator to get a name
-        const npcName = QuestCharacterGenerator.generateRandomCharacter();
-
-        // Get some example names to provide to the AI
-        const exampleNames = [
-            QuestCharacterGenerator.generateRandomCharacter(),
-            QuestCharacterGenerator.generateRandomCharacter(),
-            QuestCharacterGenerator.generateMerchant(),
-            QuestCharacterGenerator.generateInnkeeper()
-        ];
-
-        const prompt = `Create an NPC encounter in ${player.currentLocation}. 
-
-IMPORTANT: The NPC is named "${npcName}" - use this EXACT name, do NOT use generic names like "Elara" or "the villager".
-
-Character name examples from this world: ${exampleNames.join(', ')}
-
-Format: "You see ${npcName}. Appearance: [brief description]. ${npcName} says: [one line of dialogue]"
-
-Use the name "${npcName}" throughout the description.`;
-
-        const npcInfo = await callGeminiAPI(prompt, 0.8, 200, true);
-        if (npcInfo) {
-            const newNPC = createNPC(npcName, npcInfo, player.currentLocation);
-            saveNPCToLocation(newNPC, player.currentLocation);
-            gameWorld.lastNPCInteraction = newNPC.id;
-
-            const encounterMessage = npcInfo;
-            displayMessage(encounterMessage);
-            addToConversationHistory('assistant', encounterMessage);
-
-            // Initialize relationship for new NPC with description
-            updateRelationship(npcName, 0, 5, npcInfo);
-            displayMessage(`You've established a new relationship with ${npcName}.`, 'info');
-        } else {
-            const fallbackMessage = "You don't see anyone interesting to talk to right now.";
-            displayMessage(fallbackMessage);
-            addToConversationHistory('assistant', fallbackMessage);
-        }
+        return; // Exit after interacting with existing NPC
     }
+
+    // Create a new NPC, using the suggestion from the random encounter if it exists.
+    const npcName = QuestCharacterGenerator.generateRandomCharacter();
+
+    const prompt = `
+        You are a Dungeon Master creating an NPC. The player, ${player.name}, has just encountered them.
+        The NPC's name is **${npcName}**. You must use this exact name.
+        ${suggestion ? `The situation is: "${suggestion}".` : "Create a simple, interesting reason for them to be here."}
+        Write a short, engaging description of the NPC's appearance and their first line of dialogue.
+        Format: "You see ${npcName}. Appearance: [brief description]. ${npcName} says: [one line of dialogue]"
+    `;
+
+    const npcInfo = await callGeminiAPI(prompt, 0.8, 200, true);
+    if (npcInfo) {
+        const newNPC = createNPC(npcName, npcInfo, player.currentLocation);
+        saveNPCToLocation(newNPC, player.currentLocation);
+        gameWorld.lastNPCInteraction = newNPC.id;
+
+        displayMessage(npcInfo);
+        addToConversationHistory('assistant', npcInfo);
+        updateRelationship(npcName, 0, 5, npcInfo, true);
+    } else {
+        const fallbackMessage = "You don't see anyone interesting to talk to right now.";
+        displayMessage(fallbackMessage);
+        addToConversationHistory('assistant', fallbackMessage);
+    }
+
     saveConversationHistory();
 }
 
