@@ -2696,7 +2696,7 @@ async function handleItemPickup(command, storyContext = '') {
     let itemsAdded = 0;
 
     for (const itemName of pickupItems) {
-        const generatedItem = generateItemFromDescription(itemName, {
+        const generatedItem = await generateItemFromDescription(itemName, {
             locationContext: player.currentLocation,
             playerLevel: player.level,
             playerClass: player.class,
@@ -2765,164 +2765,123 @@ function extractItemsFromText(command, storyContext = '') {
 }
 
 // Generate item using world-items system based on description
-function generateItemFromDescription(itemName, context) {
+async function generateItemFromDescription(itemName, context) {
     try {
         // Clean up item name
         const cleanName = itemName.replace(/^(the|a|an)\s+/i, '').trim();
 
-        // Determine item category and properties from name
-        const itemData = categorizeItemFromName(cleanName);
+        // This call now needs to be awaited
+        const itemData = await categorizeItemFromName(cleanName);
 
-        // Use ItemGenerator to create the item
-        const generatedItem = ItemGenerator.generateItem({
+        // The ItemGenerator.generateItem function is also async
+        const generatedItem = await ItemGenerator.generateItem({
             category: itemData.category,
             rarity: itemData.rarity,
+            subType: itemData.subType, // Pass the subType from the AI
             locationContext: context.locationContext,
-            playerLevel: context.playerLevel
+            playerLevel: context.playerLevel,
+            playerClass: context.playerClass,
         });
 
-        // Override with specific name and properties if detected
-        if (itemData.specificName) {
-            generatedItem.name = itemData.specificName;
+        if (generatedItem) {
+            // Override the generic generated name with the more descriptive one from the narrative
+            generatedItem.name = cleanName.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+
+            if (itemData.description) {
+                generatedItem.description = itemData.description;
+            }
+            return generatedItem;
         }
 
-        if (itemData.description) {
-            generatedItem.description = itemData.description;
-        }
-
-        return generatedItem;
+        return null;
 
     } catch (error) {
-        console.error('Error generating item:', error);
+        console.error('Error generating item from description:', error);
         return null;
     }
 }
 
 // Categorize item based on name/description
-function categorizeItemFromName(itemName) {
-    const name = itemName.toLowerCase();
+async function categorizeItemFromName(itemName) {
+    console.log(`AI is categorizing: "${itemName}"`);
 
-    // Specific item mappings
-    const specificItems = {
-        'bronze helmet': {
-            category: itemCategories.ARMOR,
-            rarity: 'COMMON',
-            specificName: 'Dented Bronze Helmet',
-            description: 'A weathered gladiatorial helmet with scratches and dents from countless battles.'
-        },
-        'dented bronze helmet': {
-            category: itemCategories.ARMOR,
-            rarity: 'COMMON',
-            specificName: 'Dented Bronze Helmet',
-            description: 'A weathered gladiatorial helmet with scratches and dents from countless battles.'
-        },
-        'short sword': {
-            category: itemCategories.WEAPON,
-            rarity: 'COMMON',
-            specificName: 'Rusty Gladiatorial Short Sword',
-            description: 'A sturdy short sword used in arena combat, showing signs of age but still serviceable.'
-        },
-        'rusty short sword': {
-            category: itemCategories.WEAPON,
-            rarity: 'COMMON',
-            specificName: 'Rusty Gladiatorial Short Sword',
-            description: 'A sturdy short sword used in arena combat, showing signs of age but still serviceable.'
-        },
-        'leather jerkin': {
-            category: itemCategories.ARMOR,
-            rarity: 'COMMON',
-            specificName: 'Patched Leather Jerkin',
-            description: 'A leather vest with numerous patches and repairs, worn by gladiators for basic protection.'
-        },
-        'parchment': {
-            category: itemCategories.SCROLL,
-            rarity: 'UNCOMMON',
-            specificName: 'Mysterious Parchment',
-            description: 'A rolled-up piece of parchment with faded writing, possibly containing important information.'
-        },
-        'bronze coin': {
-            category: itemCategories.CURRENCY,
-            rarity: 'COMMON',
-            specificName: 'Ancient Bronze Coin',
-            description: 'A weathered bronze coin with worn markings, possibly from an old civilization.'
-        },
-        'iron key': {
-            category: itemCategories.TOOL,
-            rarity: 'COMMON',
-            specificName: 'Rusted Iron Key',
-            description: 'A heavy iron key, rusted with age but still functional.'
-        },
-        'healing potion': {
-            category: itemCategories.CONSUMABLE,
-            rarity: 'COMMON',
-            specificName: 'Minor Healing Potion',
-            description: 'A small vial containing a red liquid that glows faintly with restorative magic.'
-        },
-        'mana potion': {
-            category: itemCategories.CONSUMABLE,
-            rarity: 'COMMON',
-            specificName: 'Lesser Mana Potion',
-            description: 'A blue crystalline bottle filled with magical energy.'
+    // Provide context to the AI about what valid categories and rarities exist.
+    const categories = Object.values(window.itemCategories || {});
+    const rarities = Object.keys(window.itemRarity || {});
+    const weaponSubTypes = Object.keys(window.itemTemplates?.weapons || {});
+    const armorSubTypes = Object.keys(window.itemTemplates?.armor || {});
+
+    // This prompt asks the AI to act as a categorizer and return a clean JSON object.
+    const prompt = `
+        You are an expert RPG item categorizer. Analyze the following item name and return its category, rarity, and a specific sub-type in a JSON format.
+
+        Item Name: "${itemName}"
+
+        Here are the valid options for each field:
+        - "category": [${categories.map(c => `"${c}"`).join(', ')}]
+        - "rarity": [${rarities.map(r => `"${r}"`).join(', ')}]
+        - "subType": If the category is 'weapon', choose from [${weaponSubTypes.map(s => `"${s}"`).join(', ')}]. If 'armor', choose from [${armorSubTypes.map(s => `"${s}"`).join(', ')}]. Otherwise, set to null.
+
+        Analyze the item name for keywords (e.g., "Rusty", "Gleaming", "of the Vampire") to determine rarity.
+        - Common words like 'Rusty', 'Bent', 'Crude' suggest COMMON.
+        - Quality words like 'Steel', 'Balanced' suggest UNCOMMON.
+        - Magical or high-quality material words like 'Elven', 'Dwarven', 'of Flame' suggest RARE.
+        - Epic or powerful words like 'of the Dragon', 'Soul Reaver' suggest EPIC or LEGENDARY.
+        - Unique, world-changing names suggest ARTIFACT or MYTHIC.
+
+        Example 1:
+        Item Name: "Gleaming Silver Rapier"
+        {
+            "category": "weapon",
+            "rarity": "UNCOMMON",
+            "subType": "swords"
         }
-    };
 
-    // Check for specific items first
-    if (specificItems[name]) {
-        return specificItems[name];
-    }
+        Example 2:
+        Item Name: "Potion of Minor Healing"
+        {
+            "category": "consumable",
+            "rarity": "COMMON",
+            "subType": null
+        }
 
-    // General categorization patterns
-    if (name.includes('helmet') || name.includes('helm') || name.includes('hat') || name.includes('cap')) {
-        return { category: itemCategories.ARMOR, rarity: 'COMMON' };
-    }
-    if (name.includes('sword') || name.includes('blade') || name.includes('dagger') || name.includes('knife')) {
-        return { category: itemCategories.WEAPON, rarity: 'COMMON' };
-    }
-    if (name.includes('axe') || name.includes('hammer') || name.includes('mace') || name.includes('staff')) {
-        return { category: itemCategories.WEAPON, rarity: 'COMMON' };
-    }
-    if (name.includes('bow') || name.includes('crossbow') || name.includes('spear') || name.includes('javelin')) {
-        return { category: itemCategories.WEAPON, rarity: 'COMMON' };
-    }
-    if (name.includes('armor') || name.includes('jerkin') || name.includes('vest') || name.includes('mail') || name.includes('plate')) {
-        return { category: itemCategories.ARMOR, rarity: 'COMMON' };
-    }
-    if (name.includes('shield') || name.includes('buckler')) {
-        return { category: itemCategories.ARMOR, rarity: 'COMMON' };
-    }
-    if (name.includes('gauntlets') || name.includes('gloves') || name.includes('boots') || name.includes('greaves')) {
-        return { category: itemCategories.ARMOR, rarity: 'COMMON' };
-    }
-    if (name.includes('potion') || name.includes('elixir') || name.includes('draught')) {
-        return { category: itemCategories.CONSUMABLE, rarity: 'COMMON' };
-    }
-    if (name.includes('scroll') || name.includes('parchment') || name.includes('tome')) {
-        return { category: itemCategories.SCROLL, rarity: 'UNCOMMON' };
-    }
-    if (name.includes('book') || name.includes('grimoire') || name.includes('codex')) {
-        return { category: itemCategories.BOOK, rarity: 'UNCOMMON' };
-    }
-    if (name.includes('ring') || name.includes('amulet') || name.includes('necklace') || name.includes('pendant')) {
-        return { category: itemCategories.JEWELRY, rarity: 'UNCOMMON' };
-    }
-    if (name.includes('gem') || name.includes('crystal') || name.includes('stone') || name.includes('orb')) {
-        return { category: itemCategories.MAGICAL, rarity: 'RARE' };
-    }
-    if (name.includes('coin') || name.includes('gold') || name.includes('silver') || name.includes('copper')) {
-        return { category: itemCategories.CURRENCY, rarity: 'COMMON' };
-    }
-    if (name.includes('key') || name.includes('lockpick') || name.includes('tool') || name.includes('kit')) {
-        return { category: itemCategories.TOOL, rarity: 'COMMON' };
-    }
-    if (name.includes('herb') || name.includes('ingredient') || name.includes('component') || name.includes('reagent')) {
-        return { category: itemCategories.CRAFTING, rarity: 'COMMON' };
-    }
-    if (name.includes('wand') || name.includes('rod') || name.includes('artifact') || name.includes('relic')) {
-        return { category: itemCategories.MAGICAL, rarity: 'UNCOMMON' };
-    }
+        Example 3:
+        Item Name: "Ancient Dragonscale Platemail"
+        {
+            "category": "armor",
+            "rarity": "EPIC",
+            "subType": "chestplates"
+        }
 
-    // Default to magical item if no specific category matches
-    return { category: itemCategories.MAGICAL, rarity: 'COMMON' };
+        Respond with ONLY the valid JSON object.
+    `;
+
+    try {
+        // Call the AI with a low temperature for more predictable, structured output.
+        const response = await callGeminiAPI(prompt, 0.2, 250, false);
+        const cleanResponse = response.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+        const jsonMatch = cleanResponse.match(/\{[\s\S]*\}/);
+
+        if (jsonMatch) {
+            const parsedJson = JSON.parse(jsonMatch[0]);
+            // Validate the AI's response to ensure it's usable.
+            if (categories.includes(parsedJson.category) && rarities.includes(parsedJson.rarity)) {
+                console.log(`AI categorized "${itemName}" as:`, parsedJson);
+                return parsedJson;
+            }
+        }
+        // If the AI response is malformed or invalid, throw an error to trigger the fallback.
+        throw new Error("AI response was invalid or malformed.");
+
+    } catch (error) {
+        console.error(`AI categorization failed for "${itemName}". Error:`, error);
+        // If the AI fails, we'll fall back to a default "magical" item.
+        return {
+            category: 'magical',
+            rarity: 'COMMON',
+            subType: null
+        };
+    }
 }
 
 // Enhanced Gemini-powered quest generation with structured data
@@ -4809,6 +4768,10 @@ IMPORTANT: If the player is trying to interact with something from recent explor
             saveConversationHistory();
             debouncedSave();
             await checkNPCMentionsAndAdd(response, command, player);
+
+            // ADD THIS LINE
+            await checkAndAddItemsFromResponse(response); 
+
         } else {
             displayMessage("Nothing interesting happens.", 'info');
         }
@@ -4826,52 +4789,59 @@ IMPORTANT: If the player is trying to interact with something from recent explor
 
 // Add this function. Make sure it's not defined inside any other function.
 // This function will now be the one called by executeCustomCommand after every AI response.
-async function checkNPCMentionsAndAdd(aiResponse, playerCommand, gameContext) {
-    console.log("checkNPCMentionsAndAdd: Scanning AI response for NPC mentions...");
-    // Use the robust extractNPCNames from RelationshipMiddleware
-    const npcNames = await RelationshipMiddleware.extractNPCNames(aiResponse, player);
+Of course, I can help you with that. It seems like a classic case of the game's narrative getting out of sync with the actual game state. When the AI describes finding an item like the "gleaming silver rapier," the game's code needs to understand that description and actually create the item and place it in your character's inventory.
 
-    if (npcNames.length === 0) {
-        console.log("checkNPCMentionsAndAdd: No NPC names identified in AI response.");
+Here are the fixes to resolve this issue and make your game run more smoothly. The primary fix involves updating script.js to parse the AI's responses for items. I've also included a proactive fix for game-logic/character-manager.js to prevent similar issues with initial equipment assignment.
+
+1. Primary Fix: Automatically Adding Items from Narrative
+The core of the problem is that when the game's narrative mentions you've found an item, there's no mechanism to add it to your inventory. We'll add a new function to script.js that parses the AI's response and a few new lines to call it.
+
+Step 1: Add the Item Parsing Function
+Add the following new function to your script.js file. A good place for it is right after the checkNPCMentionsAndAdd function. This function will be responsible for finding item mentions in the AI's narrative and adding them to the player's inventory.
+
+JavaScript
+
+// In script.js
+
+async function checkAndAddItemsFromResponse(aiResponse) {
+    console.log("Parsing AI response for items:", aiResponse);
+    const itemsToCreate = [];
+
+    // This regex is designed to find items mentioned in common narrative patterns.
+    const itemRegex = /(?:you find|discover|receive|obtain|get|is a|contains a|lies a|reveals a)\s+(?:a|an|the|some)\s+([^.,\n]+)/gi;
+    let match;
+    while ((match = itemRegex.exec(aiResponse)) !== null) {
+        // match[1] will be the item description, e.g., "gleaming silver rapier"
+        itemsToCreate.push(match[1].trim());
+    }
+
+    if (itemsToCreate.length === 0) {
+        console.log("No items found in AI response.");
         return;
     }
 
-    console.log("checkNPCMentionsAndAdd: Identified potential NPCs:", npcNames);
+    console.log("Found potential items:", itemsToCreate);
 
-    for (const npcName of npcNames) {
-        // Resolve NPC identity to get canonical name and description
-        const identity = await RelationshipMiddleware.resolveNpcIdentity(npcName, player.relationships || {}, playerCommand, aiResponse);
-        console.log(`checkNPCMentionsAndAdd: Resolved identity for "${npcName}": canonicalName="${identity.canonicalName}"`);
+    for (const itemName of itemsToCreate) {
+        // Use an existing helper function to guess the item's category and rarity from its name
+        const itemData = categorizeItemFromName(itemName);
 
-        // Only proceed if it's confirmed as an NPC (not a non-NPC, as determined by resolveNpcIdentity's internal filter)
-        if (identity.description === 'Not an NPC.') {
-            console.log(`checkNPCMentionsAndAdd: Skipping relationship creation for "${npcName}" as it's identified as a non-NPC.`);
-            continue;
+        // Generate the item with context using the ItemGenerator
+        const newItem = await ItemGenerator.generateItem({
+            category: itemData.category,
+            rarity: itemData.rarity || 'COMMON', // Default to common if not specified
+            subType: itemData.subType,
+            locationContext: player.currentLocation,
+            playerLevel: player.level,
+            playerClass: player.class,
+        });
+
+        // Override the generated name with the one from the narrative for consistency
+        if (newItem) {
+            newItem.name = itemName.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+            ItemManager.addItemToInventory(player, newItem);
+            displayMessage(`You obtained: ${newItem.name}!`, 'success');
         }
-
-        // Check if the NPC is already explicitly in gameWorld.npcs for the current location
-        const existingNPCsInLocation = getNPCsInLocation(player.currentLocation);
-        const npcAlreadyInLocation = existingNPCsInLocation.some(npc => npc.name === identity.canonicalName);
-
-        if (!npcAlreadyInLocation) {
-            // If it's not already in gameWorld.npcs for this location, create and save it
-            const newNPC = createNPC(identity.canonicalName, identity.description, player.currentLocation);
-            saveNPCToLocation(newNPC, player.currentLocation);
-            console.log(`checkNPCMentionsAndAdd: Added new NPC "${newNPC.name}" to gameWorld.npcs at "${newNPC.location}".`);
-        } else {
-            console.log(`checkNPCMentionsAndAdd: NPC "${identity.canonicalName}" already exists in gameWorld.npcs at "${player.currentLocation}".`);
-            // Optionally, update existing NPC's description if it's more detailed now
-            const existingNpcRef = existingNPCsInLocation.find(npc => npc.name === identity.canonicalName);
-            if (existingNpcRef && identity.description && existingNpcRef.description !== identity.description) {
-                 existingNpcRef.description = identity.description;
-                 console.log(`checkNPCMentionsAndAdd: Updated description for existing NPC "${existingNpcRef.name}".`);
-            }
-        }
-
-        // Ensure a relationship entry exists for this NPC in player.relationships
-        // Use forceCreate: true to ensure it's added if it doesn't exist yet, or updated.
-        updateRelationship(identity.canonicalName, 0, 0, identity.description, true); // No trust change, just ensure presence
-        console.log(`checkNPCMentionsAndAdd: Ensured relationship for "${identity.canonicalName}" in player.relationships.`);
     }
 }
 
