@@ -5031,306 +5031,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // Load conversation history if available
     loadConversationHistory();
 
-    // Add event listeners for quick action buttons
-    document.getElementById('rest-btn')?.addEventListener('click', () => {
-        const healAmount = Math.floor(player.maxHp * 0.25) + 10;
-        player.hp = Math.min(player.maxHp, player.hp + healAmount);
-        displayMessage(`You rest and recover ${healAmount} HP. You feel refreshed.`, 'success');
-        updatePlayerStatsDisplay();
-
-        // Shop item purchase function
-        // It's generally better to define this function outside and then assign to window if needed,
-        // rather than defining it inside another event listener.
-        // However, I'll keep your current structure for this part.
-        // Make sure window.buyShopItem is updated if you are using inline HTML onclick
-        if (typeof window !== 'undefined') {
-        }
-
-        // Small chance of random event while resting
-        if (Math.random() < 0.1) {
-            setTimeout(() => {
-                displayMessage("While resting, you notice something interesting nearby...", 'info');
-                generateDiscoveryEncounter();
-            }, 1000);
-        }
-    });
-
-    document.getElementById('explore-btn')?.addEventListener('click', () => {
-        explore();
-    });
-
-    // script.js
-
-    document.getElementById('cast-spell-btn')?.addEventListener('click', async () => {
-        // Check if player has class progression
-        if (!player.classProgression) {
-            displayMessage("Character progression not available.", 'error');
-            return;
-        }
-
-        const progression = CharacterManager.getCharacterProgression(player);
-        const isSpellcaster = progression.spells.known.length > 0 || progression.cantrips.length > 0;
-
-        // --- LOGIC FOR SPELLCASTERS ---
-        if (isSpellcaster) {
-            const allSpells = [...new Set([...progression.spells.known.map(s => s.name), ...progression.cantrips.map(c => c.name)])];
-
-            if (allSpells.length === 0) {
-                displayMessage("You don't know any spells or cantrips yet.", 'info');
-                return;
-            }
-
-            // Analyze context to select the most appropriate spell
-            const selectedSpell = await analyzeContextAndSelectSpell(allSpells);
-            if (!selectedSpell) {
-                displayMessage("You couldn't decide on a spell to cast.", 'info');
-                return;
-            }
-
-            displayMessage(`You focus your magical energy and cast ${selectedSpell}...`, 'info');
-            const spellDef = spellDefinitions[selectedSpell];
-
-            if (spellDef) {
-                displayMessage(`${spellDef.description}`, 'success');
-                await applySpellEffects(selectedSpell, spellDef); // This function should handle the spell's effects
-            } else {
-                displayMessage(`The spell ${selectedSpell} fizzles with an unknown effect.`, 'error');
-            }
-            addToConversationHistory('user', `cast ${selectedSpell}`);
-
-            // --- NEW LOGIC FOR ABILITY-BASED CLASSES ---
-        } else if (progression.abilities.length > 0) {
-            const allAbilities = progression.abilities;
-
-            // Create a prompt for the AI to choose the best ability for the situation
-            const abilitySelectionPrompt = `
-                ${player.name} the ${player.class} needs to use an ability.
-                Current Context: ${getConversationContext().slice(-500)}
-                Enemy: ${player.currentEnemy ? player.currentEnemy.name : 'None'}
-                Health: ${player.hp}/${player.maxHp}
-
-                Available Abilities:
-                ${allAbilities.map(a => `- ${a.name}: ${a.definition.description}`).join('\n')}
-
-                Based on the context, which ability is the most tactical choice right now? Respond with ONLY the ability name.`;
-
-            const selectedAbilityName = await callGeminiAPI(abilitySelectionPrompt, 0.5, 50, false);
-
-            if (selectedAbilityName && allAbilities.some(a => a.name.toLowerCase() === selectedAbilityName.trim().toLowerCase())) {
-                const chosenAbility = allAbilities.find(a => a.name.toLowerCase() === selectedAbilityName.trim().toLowerCase());
-                displayMessage(`You ready yourself to use ${chosenAbility.name}!`, 'info');
-                await applyAbilityEffects(chosenAbility.name, chosenAbility.definition);
-            } else {
-                // Fallback if AI fails: Use the first available ability
-                const fallbackAbility = allAbilities[0];
-                displayMessage(`You couldn't decide, so you prepare to use your signature move: ${fallbackAbility.name}!`, 'info');
-                await applyAbilityEffects(fallbackAbility.name, fallbackAbility.definition);
-            }
-            addToConversationHistory('user', `used ability: ${selectedAbilityName}`);
-
-        } else {
-            displayMessage("You have no special spells or abilities to use.", 'info');
-        }
-    });
-
-    // --- NEW HELPER FUNCTION TO ADD TO SCRIPT.JS ---
-    // This function will handle the effects of non-spell abilities.
-    async function applyAbilityEffects(abilityName, abilityDef) {
-        if (!abilityDef) {
-            displayMessage(`The ability "${abilityName}" is not defined correctly.`, 'error');
-            return;
-        }
-
-        displayMessage(`${abilityDef.description}`, 'success');
-
-        // Here, you would add the specific mechanics for each ability
-        // For now, we will create a generic AI prompt to describe the outcome.
-        const effectPrompt = `
-            The player ${player.name} uses the ability: "${abilityName}".
-            Ability Description: "${abilityDef.description}".
-            Current situation: ${getConversationContext().slice(-500)}
-
-            Describe the outcome of this action in a dramatic and engaging way (1-2 sentences).`;
-
-        const outcome = await callGeminiAPI(effectPrompt);
-        if (outcome) {
-            displayMessage(outcome, 'success');
-            addToConversationHistory('assistant', outcome);
-        }
-
-        // Example of how you could hard-code specific mechanics:
-        if (abilityDef.effect?.damage) {
-            if (player.currentEnemy) {
-                const damage = rollDice(abilityDef.effect.damage);
-                player.currentEnemy.hp -= damage;
-                displayMessage(`Your ${abilityName} deals an extra ${damage} damage to ${player.currentEnemy.name}!`, 'combat');
-            }
-        }
-        if (abilityDef.effect?.condition) {
-            if (player.currentEnemy) {
-                displayMessage(`${player.currentEnemy.name} is now ${abilityDef.effect.condition}!`, 'combat');
-            }
-        }
-
-        updatePlayerStatsDisplay();
-    }
-
-
-    async function analyzeContextAndSelectSpell(availableSpells) {
-        try {
-            // --- START OF MISSING CODE TO ADD ---
-
-            // Get current context for the AI
-            const contextInfo = {
-                inCombat: !!player.currentEnemy,
-                currentLocation: player.currentLocation,
-                playerHealth: `${player.hp}/${player.maxHp}`,
-                recentMessages: conversationHistory.messages.slice(-5).map(msg => msg.content).join(' '),
-                explorationContext: getExplorationContextString(),
-                enemyInfo: player.currentEnemy ? `Fighting ${player.currentEnemy.name} (HP: ${player.currentEnemy.hp})` : 'Not in combat'
-            };
-
-            // Create spell categories for better AI selection
-            const spellCategories = categorizeSpells(availableSpells);
-
-            // Build the context-aware prompt for the AI
-            const spellSelectionPrompt = `
-                ${player.name} (Level ${player.level} ${player.classProgression.class}) wants to cast a spell.
-                CURRENT CONTEXT:
-                - Location: ${contextInfo.currentLocation}
-                - Combat Status: ${contextInfo.enemyInfo}
-                - Health: ${contextInfo.playerHealth}
-                - Recent Events: ${contextInfo.recentMessages}
-                ${contextInfo.explorationContext}
-
-                AVAILABLE SPELLS BY CATEGORY:
-                ${formatSpellsForAI(spellCategories)}
-
-                Based on the current situation, choose the MOST APPROPRIATE spell from the available list.
-                Consider:
-                1. If in combat, prioritize offensive spells or defensive ones if health is low.
-                2. If exploring, choose utility or divination spells.
-                3. If interacting socially, choose charm or illusion spells.
-
-                IMPORTANT: Respond with ONLY the spell name from the available list. Do not add quotes or explanation.
-            `;
-
-            // --- END OF MISSING CODE TO ADD ---
-
-            const aiResponse = await callGeminiAPI(spellSelectionPrompt, 0.3, 50, false);
-            if (aiResponse) {
-                const cleanedSpell = aiResponse.trim().replace(/['"]/g, '');
-                const matchedSpell = availableSpells.find(spell =>
-                    spell.toLowerCase() === cleanedSpell.toLowerCase()
-                );
-
-                if (matchedSpell) {
-                    console.log(`AI selected exact spell: ${matchedSpell} from context analysis`);
-                    return matchedSpell;
-                } else {
-                    console.warn(`AI suggested spell "${cleanedSpell}" not found in available spells. Falling back.`);
-                    const playerKnownSpells = window.player.classProgression.knownSpells || [];
-                    const playerKnownCantrips = window.player.classProgression.knownCantrips || [];
-                    const fallbackSpells = [...new Set([...playerKnownSpells, ...playerKnownCantrips])];
-
-                    if (fallbackSpells.length > 0) {
-                        const randomFallbackSpell = fallbackSpells[Math.floor(Math.random() * fallbackSpells.length)];
-                        displayMessage(`The magic of "${cleanedSpell}" is unclear. You instead focus on a familiar spell: ${randomFallbackSpell}.`, 'info');
-                        return randomFallbackSpell;
-                    } else {
-                        displayMessage(`You attempted to cast "${cleanedSpell}", but the magic fizzled. You have no other known spells to cast.`, 'error');
-                        return null;
-                    }
-                }
-            }
-
-            // Fallback: Context-based selection without AI
-            return selectSpellByContext(availableSpells, contextInfo);
-
-        } catch (error) {
-            console.error('Error in spell selection:', error);
-            // Fallback to a random known spell if AI or context analysis fails
-            const knownSpells = (player.classProgression?.knownSpells || []).concat(player.classProgression?.knownCantrips || []);
-            if (knownSpells.length > 0) {
-                return knownSpells[Math.floor(Math.random() * knownSpells.length)];
-            }
-            return null;
-        }
-    }
-
-    // Context-based spell selection fallback
-    // The 'availableSpells' parameter should now ideally be the strictly filtered 'allSpells' list from the event listener.
-    // But we'll reinforce it here by checking the player's direct knownSpells/Cantrips.
-    function selectSpellByContext(availableSpells, contextInfo) {
-        // Use player's actual known spells and cantrips for robust fallback
-        const playerKnownSpells = window.player.classProgression.knownSpells || [];
-        const playerKnownCantrips = window.player.classProgression.knownCantrips || [];
-        const actualKnownSpells = [...new Set([...playerKnownSpells, ...playerKnownCantrips])]; // Create the strict pool here
-
-        if (actualKnownSpells.length === 0) {
-            return null; // No spells to select from even in fallback
-        }
-
-        const categories = categorizeSpells(actualKnownSpells); // Categorize only actual known spells
-
-        // ... (rest of the logic within this function remains the same, but it will now operate on `actualKnownSpells`
-        // and `categories` derived from them, rather than the potentially broader `availableSpells` parameter)
-
-        // Final fallback: random known spell from actualKnownSpells
-        return actualKnownSpells[Math.floor(Math.random() * actualKnownSpells.length)];
-    }
-
-    document.getElementById('pray-btn')?.addEventListener('click', () => {
-        pray();
-    });
-
-    document.getElementById('help-btn')?.addEventListener('click', () => {
-        const helpText = HelpSystem.getHelp();
-        displayMessage(helpText, 'info');
-        addToConversationHistory('assistant', helpText);
-    });
-
-    // Add event listeners for progression and quest buttons
-    document.getElementById('show-progression-btn')?.addEventListener('click', () => {
-        if (player && player.name) {
-            CharacterManager.loadProgression(player); // Load the latest progression data
-        }
-        displayCharacterProgression();
-    });
-
-    document.getElementById('new-quest-btn')?.addEventListener('click', () => {
-        // Always show quest interface first, then allow generating new ones from within
-        displayQuests();
-    });
-
-    // Add rich text toggle event listener
-    document.getElementById('rich-text-toggle')?.addEventListener('click', () => {
-        toggleRichText();
-    });
-
-    // Initialize rich text toggle state
-    updateRichTextToggle();
-
-    // Add event listeners for interface exit buttons
-    document.getElementById('exit-progression-btn')?.addEventListener('click', () => {
-        document.getElementById('progression-interface')?.classList.add('hidden');
-    });
-
-    document.getElementById('exit-quests-btn')?.addEventListener('click', () => {
-        questInterface?.classList.add('hidden');
-    });
-
-    // Define global functions if they are not already (some might be defined outside DOMContentLoaded)
-    // This ensures they are available when the event listener tries to call them.
-    // If these are already top-level functions in your script, this explicit window assignment might be redundant
-    // but doesn't hurt if the event delegation pattern is used.
-    window.updateQuestButton = typeof updateQuestButton !== 'undefined' ? updateQuestButton : function() { /* ... */ };
-    window.displayQuests = typeof displayQuests !== 'undefined' ? displayQuests : function() { /* ... */ };
-    window.displayCharacterProgression = typeof displayCharacterProgression !== 'undefined' ? displayCharacterProgression : function() { /* ... */ };
-    window.learnNewSpell = typeof learnNewSpell !== 'undefined' ? learnNewSpell : function() { /* ... */ };
-    // ... and so on for other functions like equipItem, useItem, etc., if they are not already global or part of an imported module.
-    // However, for event delegation, they just need to be in scope.
-
     // Add main event listeners (this function should also be defined or its contents integrated)
     addMainEventListeners(); // Assuming this function is defined elsewhere in your script.js
 
@@ -5809,155 +5509,154 @@ function processRichText(text, messageType = null) {
 // Add main event listeners function
 function addMainEventListeners() {
     try {
-
         const navigateToMainMenu = document.getElementById('header-logo');
-            navigateToMainMenu?.addEventListener('click', () => {
-            // Check if the game play screen is currently visible
+        navigateToMainMenu?.addEventListener('click', () => {
             const gamePlayScreen = document.getElementById('game-play-screen');
             if (gamePlayScreen && !gamePlayScreen.classList.contains('hidden')) {
                 if (confirm("Are you sure you want to return to the main menu? Any unsaved progress will be lost.")) {
                     showScreen('start-screen');
                 }
             } else {
-                // If not in a game, return to the menu without confirmation
                 showScreen('start-screen');
             }
         });
-        
+
         // Start screen buttons
         newGameBtn?.addEventListener('click', () => {
-            // Check if API settings are configured
             if (!gameSettings.apiKey || !gameSettings.model) {
                 alert('A Gemini API Key and Model are required. Please configure them in the Settings menu.');
                 document.getElementById('settings-modal')?.classList.remove('hidden');
-                return; // Stop the function
+                return;
             }
-            console.log('New game button clicked');
             showScreen('character-creation-screen');
         });
 
         loadGameBtn?.addEventListener('click', () => {
-            // Check if API settings are configured
             if (!gameSettings.apiKey || !gameSettings.model) {
                 alert('A Gemini API Key and Model are required. Please configure them in the Settings menu.');
                 document.getElementById('settings-modal')?.classList.remove('hidden');
-                return; // Stop the function
+                return;
             }
-            console.log('Load game button clicked');
             loadGame();
-
-            console.log(`[SCRIPT.JS] After loadGame, module-scoped player HP: ${player.hp}/${player.maxHp}`); // Should be 140/140
-            if (window.player) {
-                console.log(`[SCRIPT.JS] After loadGame, window.player HP: ${window.player.hp}/${window.player.maxHp}`); // What is this?
-                console.log(`[SCRIPT.JS] After loadGame, is module player === window.player? ${player === window.player}`);
-            } else {
-                console.log(`[SCRIPT.JS] After loadGame, window.player is not yet defined (or not yet assigned).`);
-            }
-
         });
 
         // Character creation
-        generateBackgroundBtn?.addEventListener('click', () => {
-            console.log('Generate background button clicked');
-            generateCharacterBackground();
-        });
-
-        // Portrait generation - use event delegation for dynamic buttons
+        generateBackgroundBtn?.addEventListener('click', generateCharacterBackground);
         document.addEventListener('click', (e) => {
             if (e.target && e.target.id === 'generate-portrait-btn') {
-                console.log('Generate portrait button clicked');
                 e.preventDefault();
                 generateCharacterPortrait();
             }
         });
-
         createCharacterBtn?.addEventListener('click', async () => {
-            console.log('Create character button clicked');
             createCharacter();
             await startNewGame(player);
         });
 
-        async function startNewGame(player) {
-            // 1. Generate Starting Narrative
-            const narrativePrompt = `Generate a short, exciting opening narrative for a new adventurer named ${player.name}, a Level 1 ${player.class}, who is just starting their journey in the city of ${player.currentLocation}.`;
-            const startingNarrative = await callGeminiAPI(narrativePrompt);
-            if (startingNarrative) {
-                displayMessage(startingNarrative, 'info');
+        // --- QUICK ACTION BUTTONS (RESTORED) ---
+        document.getElementById('rest-btn')?.addEventListener('click', () => {
+            const healAmount = Math.floor(player.maxHp * 0.25) + 10;
+            player.hp = Math.min(player.maxHp, player.hp + healAmount);
+            displayMessage(`You rest and recover ${healAmount} HP. You feel refreshed.`, 'success');
+            updatePlayerStatsDisplay();
+            saveGame();
+            if (Math.random() < 0.1) {
+                setTimeout(() => {
+                    displayMessage("While resting, you notice something interesting nearby...", 'info');
+                    generateDiscoveryEncounter();
+                }, 1000);
+            }
+        });
+
+        document.getElementById('explore-btn')?.addEventListener('click', () => {
+            explore("explore the area");
+        });
+
+        document.getElementById('cast-spell-btn')?.addEventListener('click', async () => {
+            // Check if player has class progression
+            if (!player.classProgression) {
+                displayMessage("Character progression not available.", 'error');
+                return;
             }
 
-            // 2. Generate a Tutorial Quest
-            // You can create a specific function for a tutorial quest or use the existing one with specific context
-            const tutorialQuest = await generateQuest({
-                player,
-                questContext: {
-                    title: "Your First Steps",
-                    description: "A local needs help with a simple task. This is a good opportunity to learn the ropes.",
-                    difficulty: "Easy"
+            const progression = CharacterManager.getCharacterProgression(player);
+            const isSpellcaster = progression.spells.known.length > 0 || progression.cantrips.length > 0;
+
+            // --- LOGIC FOR SPELLCASTERS ---
+            if (isSpellcaster) {
+                const allSpells = [...new Set([...progression.spells.known.map(s => s.name), ...progression.cantrips.map(c => c.name)])];
+
+                if (allSpells.length === 0) {
+                    displayMessage("You don't know any spells or cantrips yet.", 'info');
+                    return;
                 }
-            });
 
-            if (tutorialQuest) {
-                player.quests.push(tutorialQuest);
-                displayMessage(`New Quest: ${tutorialQuest.title} - ${tutorialQuest.objective}`, 'success');
-                updateQuestButton(); // Make sure this function updates the UI
+                const selectedSpell = await analyzeContextAndSelectSpell(allSpells);
+                if (!selectedSpell) {
+                    displayMessage("You couldn't decide on a spell to cast.", 'info');
+                    return;
+                }
+
+                displayMessage(`You focus your magical energy and cast ${selectedSpell}...`, 'info');
+                const spellDef = spellDefinitions[selectedSpell];
+
+                if (spellDef) {
+                    displayMessage(`${spellDef.description}`, 'success');
+                    // Note: You will need to create an applySpellEffects function for spells to have mechanical effects.
+                    // await applySpellEffects(selectedSpell, spellDef); 
+                } else {
+                    displayMessage(`The spell ${selectedSpell} fizzles with an unknown effect.`, 'error');
+                }
+                addToConversationHistory('user', `cast ${selectedSpell}`);
+
+            // --- LOGIC FOR ABILITY-BASED CLASSES ---
+            } else if (progression.abilities.length > 0) {
+                const allAbilities = progression.abilities;
+                const fallbackAbility = allAbilities[0]; // Uses the first available ability as a fallback
+
+                displayMessage(`You ready yourself to use ${fallbackAbility.name}!`, 'info');
+                await applyAbilityEffects(fallbackAbility.name, fallbackAbility.definition);
+                addToConversationHistory('user', `used ability: ${fallbackAbility.name}`);
+
+            } else {
+                displayMessage("You have no special spells or abilities to use.", 'info');
             }
-        }
+        });
 
-        // Game play buttons
+        document.getElementById('pray-btn')?.addEventListener('click', pray);
+
+        document.getElementById('help-btn')?.addEventListener('click', () => {
+            const helpText = HelpSystem.getHelp();
+            displayMessage(helpText, 'info');
+            addToConversationHistory('assistant', helpText);
+        });
+
+
+        // --- MAIN GAMEPLAY COMMAND ---
         executeCommandBtn?.addEventListener('click', async () => {
-            const customCommandInput = document.getElementById('custom-command-input');
             const command = customCommandInput.value.trim();
             if (!command) return;
 
             displayMessage(`> ${command}`, 'player-command');
-
             const lowerCaseCommand = command.toLowerCase();
 
-            // --- COMMAND PARSING LOGIC ---
-
-            // Handle "recruit" command
             if (lowerCaseCommand.startsWith('recruit ')) {
                 const npcNameToRecruit = command.substring(8).trim();
-                // Correctly calls the global recruitNPC function
-                await recruitNPC(npcNameToRecruit); 
-                customCommandInput.value = '';
-                return; // Stop further processing
-            }
-
-            // Handle "dismiss" command
-            if (lowerCaseCommand.startsWith('dismiss ')) {
+                await recruitNPC(npcNameToRecruit);
+            } else if (lowerCaseCommand.startsWith('dismiss ')) {
                 const memberNameToDismiss = command.substring(8).trim();
-
                 if (partyManager && partyManager.party.length > 0) {
-                    const memberToDismiss = partyManager.party.find(
-                        member => member.name.toLowerCase() === memberNameToDismiss.toLowerCase()
-                    );
-
-                    if (memberToDismiss) {
-                        dismissPartyMember(memberToDismiss.id);
-                    } else {
-                        displayMessage(`Member "${memberNameToDismiss}" not found in your party.`, 'error');
-                    }
+                    const memberToDismiss = partyManager.party.find(m => m.name.toLowerCase() === memberNameToDismiss.toLowerCase());
+                    if (memberToDismiss) dismissPartyMember(memberToDismiss.id);
+                    else displayMessage(`Member "${memberNameToDismiss}" not found in your party.`, 'error');
                 } else {
                     displayMessage("Your party is empty.", 'info');
                 }
-
-                customCommandInput.value = '';
-                return; // Stop further processing
-            }
-
-            // --- DEFAULT COMMAND HANDLING ---
-            // FIX: This now correctly calls your main AI function "executeCustomCommand"
-            if (window.isAwaitingStoryContinuation) {
-                // This assumes continueStory is a valid function for your narrative flow
+            } else if (window.isAwaitingStoryContinuation) {
                 await continueStory(command);
-
             } else {
-                // All other commands are processed here
                 await executeCustomCommand(command);
             }
-
-            // --- END OF FIX ---
 
             customCommandInput.value = '';
             customCommandInput.focus();
@@ -5969,55 +5668,34 @@ function addMainEventListeners() {
             }
         });
 
-        saveGameBtn?.addEventListener('click', () => {
-            console.log('Save game button clicked');
-            saveGame();
-        });
+        saveGameBtn?.addEventListener('click', saveGame);
 
-        // Interface buttons
-        showInventoryBtn?.addEventListener('click', () => {
-            console.log('Show inventory button clicked');
-            displayInventory();
-        });
-
-        showShopBtn?.addEventListener('click', () => {
-            console.log('Show shop button clicked');
-            showShop();
-        });
-
+        // --- INTERFACE BUTTONS (RESTORED) ---
+        showInventoryBtn?.addEventListener('click', displayInventory);
+        showShopBtn?.addEventListener('click', showShop);
         showBackgroundBtn?.addEventListener('click', () => {
-            console.log('Show background button clicked');
-            if (player && player.name) {
-                CharacterManager.loadProgression(player); // Load the latest progression data
-            }
+            if (player && player.name) CharacterManager.loadProgression(player);
             displayCharacterBackground();
         });
-
-        // Exit buttons
-        exitShopBtn?.addEventListener('click', () => {
-            shopInterface?.classList.add('hidden');
+        document.getElementById('show-progression-btn')?.addEventListener('click', () => {
+            if (player && player.name) CharacterManager.loadProgression(player);
+            displayCharacterProgression();
         });
+        newQuestBtn?.addEventListener('click', displayQuests);
 
-        exitInventoryBtn?.addEventListener('click', () => {
-            inventoryInterface?.classList.add('hidden');
-        });
+        // --- EXIT BUTTONS ---
+        exitShopBtn?.addEventListener('click', () => shopInterface?.classList.add('hidden'));
+        exitInventoryBtn?.addEventListener('click', () => inventoryInterface?.classList.add('hidden'));
+        exitSkillsBtn?.addEventListener('click', () => skillsInterface?.classList.add('hidden'));
+        exitBackgroundBtn?.addEventListener('click', () => backgroundInterface?.classList.add('hidden'));
+        document.getElementById('exit-progression-btn')?.addEventListener('click', () => document.getElementById('progression-interface')?.classList.add('hidden'));
+        exitQuestsBtn?.addEventListener('click', () => questInterface?.classList.add('hidden'));
 
-        exitSkillsBtn?.addEventListener('click', () => {
-            skillsInterface?.classList.add('hidden');
-        });
+        // Settings modal buttons
+        document.getElementById('reset-progression-btn')?.addEventListener('click', resetCharacterProgression);
+        document.getElementById('rich-text-toggle')?.addEventListener('click', toggleRichText);
 
-        exitBackgroundBtn?.addEventListener('click', () => {
-            backgroundInterface?.classList.add('hidden');
-        });
-
-        // Reset progression button
-        const resetProgressionBtn = document.getElementById('reset-progression-btn');
-        resetProgressionBtn?.addEventListener('click', () => {
-            console.log('Reset progression button clicked');
-            resetCharacterProgression();
-        });
-
-        console.log('✓ Main event listeners added');
+        console.log('✓ All main event listeners added');
     } catch (error) {
         console.error('❌ Error adding main event listeners:', error);
     }
@@ -6882,6 +6560,41 @@ function dropItem(itemIndex) {
         displayMessage(`Dropped ${item.name}.`, 'info');
         displayInventory(); // Refresh display
     }
+}
+
+async function applyAbilityEffects(abilityName, abilityDef) {
+    if (!abilityDef) {
+        displayMessage(`The ability "${abilityName}" is not defined correctly.`, 'error');
+        return;
+    }
+
+    displayMessage(`${abilityDef.description}`, 'success');
+
+    // Creates a generic AI prompt to describe the outcome of the ability.
+    const effectPrompt = `
+        The player ${player.name} uses the ability: "${abilityName}".
+        Ability Description: "${abilityDef.description}".
+        Current situation: ${getConversationContext().slice(-500)}
+
+        Describe the outcome of this action in a dramatic and engaging way (1-2 sentences).`;
+
+    const outcome = await callGeminiAPI(effectPrompt);
+    if (outcome) {
+        displayMessage(outcome, 'success');
+        addToConversationHistory('assistant', outcome);
+    }
+
+    // Example of specific mechanics for abilities
+    if (abilityDef.effect?.damage && player.currentEnemy) {
+        const damage = rollDice(abilityDef.effect.damage);
+        player.currentEnemy.hp -= damage;
+        displayMessage(`Your ${abilityName} deals an extra ${damage} damage to ${player.currentEnemy.name}!`, 'combat');
+    }
+    if (abilityDef.effect?.condition && player.currentEnemy) {
+        displayMessage(`${player.currentEnemy.name} is now ${abilityDef.effect.condition}!`, 'combat');
+    }
+
+    updatePlayerStatsDisplay();
 }
 
 //async function generateCharacterPortrait() {
