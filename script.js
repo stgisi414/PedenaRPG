@@ -1302,6 +1302,7 @@ async function handleStructuredMovement(command, destination) {
 Player ${player.name} (Level ${player.level} ${player.class}) wants to: "${command}"
 Current location: ${player.currentLocation}
 Destination: ${destination}
+Current Party: ${partyManager ? partyManager.getPartyNames().join(', ') : 'None'}
 
 Respond with ONLY valid JSON in this exact format:
 {
@@ -1454,7 +1455,7 @@ async function generateDiscoveryEncounter() {
     displayMessage("You discover something interesting...", 'info');
 
     const discoveryPrompt = `
-Generate a brief discovery encounter for ${player.name} (Level ${player.level} ${player.class}) at ${player.currentLocation}.
+Generate a brief discovery encounter for ${player.name} (Level ${player.level} ${player.class}) at ${player.currentLocation}. Current Party: ${partyManager ? partyManager.getPartyNames().join(', ') : 'None'}.
 
 Examples: finding a hidden cache, discovering ancient ruins, spotting a rare herb, finding a shortcut, etc.
 
@@ -1488,6 +1489,7 @@ async function generateRandomEncounter() {
     - Level: ${player.level}
     - Current Location: ${player.currentLocation}
     - Player Health: ${player.hp}/${player.maxHp}
+    - Current Party: ${partyManager ? partyManager.getPartyNames().join(', ') : 'None'}
     - Recent Events: ${getConversationContext().slice(-300)}
 
     ENCOUNTER OPTIONS:
@@ -1572,6 +1574,7 @@ async function generateAndInitiateCombatEncounter(enemySuggestion = null) {
     - Class: ${player.class}
     - Level: ${player.level}
     - Current Location: ${player.currentLocation}
+    - Current Party: ${partyManager ? partyManager.getPartyNames().join(', ') : 'None'}
 
     ENCOUNTER CONTEXT:
     ${suggestionText}
@@ -2027,7 +2030,7 @@ async function generateQuest() {
 // Fallback quest generation for compatibility
 async function generateQuestFallback() {
     const questPrompt = `
-Generate a quest for ${player.name}, a level ${player.level} ${player.class} in ${player.currentLocation}.
+Generate a quest for ${player.name}, a level ${player.level} ${player.class} in ${player.currentLocation}. Player's party: ${partyManager ? partyManager.getPartyNames().join(', ') : 'None'}.
 
 The quest should be appropriate for their level and current location. Include:
 1. A clear objective
@@ -3183,6 +3186,7 @@ PLAYER CONTEXT:
 - Level: ${player.level}
 - Current Location: ${player.currentLocation}
 - Gold: ${player.gold}
+- Player Party: ${partyManager ? partyManager.getPartyNames().join(', ') : 'None'}
 - Recent Activities: ${conversationContext.slice(-500)}
 
 QUEST TEMPLATE DATA:
@@ -3789,7 +3793,7 @@ async function explore(command) { // 'command' parameter is already being passed
 
     const explorePrompt = `
 ${player.name} (${player.class}, Level ${player.level}) explores ${player.currentLocation}.
-Current status: HP ${player.hp}/${player.maxHp}, Gold ${player.gold}
+Current status: HP ${player.hp}/${player.maxHp}, Gold ${player.gold} Player Party: ${partyManager ? partyManager.getPartyNames().join(', ') : 'None'}
 
 Potential characters in the area (for AI to choose from, or create new ones):
 - ${potentialNPCName1}
