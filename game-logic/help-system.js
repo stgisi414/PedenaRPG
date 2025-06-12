@@ -276,60 +276,74 @@ export class HelpSystem {
             categoryCommands[data.category].push(cmd);
         });
 
-        let helpText = `
-🎮 **PEDENA RPG HELP SYSTEM** 🎮
+        // Create bite-sized help messages
+        const helpMessages = [];
+        
+        helpMessages.push(`🎮 **PEDENA RPG HELP SYSTEM** 🎮`);
+        helpMessages.push(`Welcome to Pedena! This help system will guide you through your adventure.`);
+        helpMessages.push(`---`);
+        
+        helpMessages.push(`📚 **HOW TO USE HELP:**`);
+        helpMessages.push(`• Type 'help [command]' for specific command help`);
+        helpMessages.push(`• Type 'help modules' to see all game systems`);
+        helpMessages.push(`• Commands are flexible - describe what you want naturally!`);
+        helpMessages.push(`---`);
 
-**Basic Usage:**
-- Type 'help [command]' for specific command help
-- Type 'help modules' to see all game modules
-- Type commands naturally - the AI understands context!
+        helpMessages.push(`🎯 **GETTING STARTED:**`);
+        helpMessages.push(`1. **Create** a character if you haven't already`);
+        helpMessages.push(`2. **Explore** to discover your surroundings`);
+        helpMessages.push(`3. **Check inventory** to see your starting equipment`);
+        helpMessages.push(`4. **Talk to NPCs** to learn about the world`);
+        helpMessages.push(`5. **Generate quests** for adventure and rewards`);
+        helpMessages.push(`---`);
 
-**Available Commands by Category:**
-
-`;
-
+        // Show commands by category in bite-sized chunks
         Object.entries(categoryCommands).forEach(([category, commands]) => {
             const categoryName = category.charAt(0).toUpperCase() + category.slice(1);
-            helpText += `**${categoryName}:** ${commands.join(', ')}\n`;
+            helpMessages.push(`⚡ **${categoryName.toUpperCase()} COMMANDS:**`);
+            helpMessages.push(`${commands.join(' • ')}`);
+            helpMessages.push(`---`);
         });
 
-        helpText += `
-**Getting Started:**
-1. Create a character if you haven't already
-2. Try 'explore' to discover your surroundings
-3. Use 'inventory' to check your starting equipment
-4. Talk to NPCs with 'talk to [name]'
-5. Generate quests with 'quests' button
+        helpMessages.push(`💡 **PRO TIPS:**`);
+        helpMessages.push(`• Be descriptive: "attack goblin" and "fight the goblin" both work`);
+        helpMessages.push(`• NPCs remember your interactions and build relationships`);
+        helpMessages.push(`• Your moral choices affect alignment and available options`);
+        helpMessages.push(`• Equipment and levels significantly impact combat effectiveness`);
+        helpMessages.push(`• Save regularly to preserve your progress`);
+        helpMessages.push(`---`);
 
-**Tips:**
-- Commands are flexible - "attack goblin" and "fight the goblin" both work
-- NPCs remember your interactions and build relationships
-- Your moral choices affect your alignment and available options
-- Equipment and level progression significantly impact combat
-- Save regularly to preserve your progress
+        helpMessages.push(`🔍 **NEED MORE HELP?**`);
+        helpMessages.push(`Type 'help [command]' for detailed information about any command!`);
 
-Type 'help [command]' for detailed information about any command!
-`;
-
-        return helpText;
+        return helpMessages.join('\n\n');
     }
 
     static getCommandHelp(command) {
         const cmd = this.commandHelp[command];
         if (!cmd) return this.getCommandNotFound(command);
 
-        let helpText = `
-🔍 **HELP: ${command.toUpperCase()}**
+        const helpMessages = [];
+        
+        helpMessages.push(`🔍 **HELP: ${command.toUpperCase()}**`);
+        helpMessages.push(`---`);
+        
+        helpMessages.push(`📖 **DESCRIPTION:**`);
+        helpMessages.push(`${cmd.description}`);
+        helpMessages.push(`---`);
+        
+        helpMessages.push(`⌨️ **HOW TO USE:**`);
+        helpMessages.push(`${cmd.usage}`);
+        helpMessages.push(`---`);
 
-**Usage:** ${cmd.usage}
-**Description:** ${cmd.description}
-
-**Examples:**
-${cmd.examples.map(ex => `  • ${ex}`).join('\n')}
-`;
+        helpMessages.push(`💡 **EXAMPLES:**`);
+        cmd.examples.forEach(ex => helpMessages.push(`• ${ex}`));
+        helpMessages.push(`---`);
 
         if (cmd.tips) {
-            helpText += `\n**Tips:** ${cmd.tips}`;
+            helpMessages.push(`🎯 **HELPFUL TIPS:**`);
+            helpMessages.push(`${cmd.tips}`);
+            helpMessages.push(`---`);
         }
 
         // Add related commands
@@ -339,46 +353,46 @@ ${cmd.examples.map(ex => `  • ${ex}`).join('\n')}
             .slice(0, 5);
 
         if (relatedCommands.length > 0) {
-            helpText += `\n\n**Related Commands:** ${relatedCommands.join(', ')}`;
+            helpMessages.push(`🔗 **RELATED COMMANDS:**`);
+            helpMessages.push(`${relatedCommands.join(' • ')}`);
         }
 
-        return helpText;
+        return helpMessages.join('\n\n');
     }
 
     static getModulesHelp() {
-        let helpText = `
-🔧 **PEDENA RPG GAME MODULES** 🔧
-
-The game is built with modular systems that handle different aspects:
-
-`;
+        const helpMessages = [];
+        
+        helpMessages.push(`🔧 **PEDENA RPG GAME MODULES** 🔧`);
+        helpMessages.push(`The game is built with modular systems that handle different aspects of gameplay.`);
+        helpMessages.push(`---`);
 
         Object.entries(this.gameModules).forEach(([key, module]) => {
-            helpText += `**${module.name}**
-Description: ${module.description}
-Key Functions: ${module.functions.join(', ')}
-Category: ${module.category}
-
-`;
+            helpMessages.push(`⚙️ **${module.name.toUpperCase()}**`);
+            helpMessages.push(`**Purpose:** ${module.description}`);
+            helpMessages.push(`**Key Functions:** ${module.functions.join(', ')}`);
+            helpMessages.push(`**Category:** ${module.category}`);
+            helpMessages.push(`---`);
         });
 
-        helpText += `
-**How Modules Work:**
-- Each module handles a specific aspect of the game
-- Modules communicate through defined interfaces
-- Your commands are analyzed and routed to appropriate modules
-- The AI system coordinates between modules for complex actions
+        helpMessages.push(`🔄 **HOW MODULES WORK:**`);
+        helpMessages.push(`• Each module handles a specific aspect of the game`);
+        helpMessages.push(`• Modules communicate through defined interfaces`);
+        helpMessages.push(`• Your commands are analyzed and routed to appropriate modules`);
+        helpMessages.push(`• The AI system coordinates between modules for complex actions`);
+        helpMessages.push(`---`);
 
-**Module Integration:**
-- Character Manager ↔ Combat System (stats, abilities)
-- Location Manager ↔ Quest System (location-based quests)
-- Item Manager ↔ Combat System (equipment bonuses)
-- Alignment System ↔ Relationship System (moral choices affect NPCs)
+        helpMessages.push(`🔗 **MODULE INTEGRATION:**`);
+        helpMessages.push(`• **Character ↔ Combat:** Stats and abilities affect battle performance`);
+        helpMessages.push(`• **Location ↔ Quest:** Quests are generated based on your location`);
+        helpMessages.push(`• **Item ↔ Combat:** Equipment provides bonuses and special abilities`);
+        helpMessages.push(`• **Alignment ↔ Relationship:** Moral choices affect how NPCs react to you`);
+        helpMessages.push(`---`);
 
-Type 'help [category]' to see commands for specific categories!
-`;
+        helpMessages.push(`🎮 **WANT TO SEE COMMANDS?**`);
+        helpMessages.push(`Type 'help [category]' to see commands for specific categories!`);
 
-        return helpText;
+        return helpMessages.join('\n\n');
     }
 
     static getCommandNotFound(command) {
@@ -388,23 +402,27 @@ Type 'help [category]' to see commands for specific categories!
             return distance <= 2;
         }).slice(0, 3);
 
-        let helpText = `
-❓ **Command '${command}' not found**
-
-`;
+        const helpMessages = [];
+        
+        helpMessages.push(`❓ **COMMAND NOT FOUND**`);
+        helpMessages.push(`Sorry, I couldn't find help for '${command}'.`);
+        helpMessages.push(`---`);
 
         if (suggestions.length > 0) {
-            helpText += `**Did you mean:** ${suggestions.join(', ')}
-
-`;
+            helpMessages.push(`🤔 **DID YOU MEAN:**`);
+            helpMessages.push(`${suggestions.join(' • ')}`);
+            helpMessages.push(`---`);
         }
 
-        helpText += `**Available commands:** ${allCommands.slice(0, 10).join(', ')}${allCommands.length > 10 ? '...' : ''}
+        helpMessages.push(`📋 **AVAILABLE COMMANDS:**`);
+        helpMessages.push(`${allCommands.slice(0, 10).join(' • ')}${allCommands.length > 10 ? ' • ...' : ''}`);
+        helpMessages.push(`---`);
 
-Type 'help' for the full command list or 'help modules' for system information.
-`;
+        helpMessages.push(`💭 **NEED HELP?**`);
+        helpMessages.push(`• Type 'help' for the full command list`);
+        helpMessages.push(`• Type 'help modules' for system information`);
 
-        return helpText;
+        return helpMessages.join('\n\n');
     }
 
     static levenshteinDistance(str1, str2) {
@@ -467,29 +485,47 @@ Type 'help' for the full command list or 'help modules' for system information.
     }
 
     static getQuickReference() {
-        return `
-📋 **QUICK REFERENCE**
+        const helpMessages = [];
+        
+        helpMessages.push(`📋 **QUICK REFERENCE**`);
+        helpMessages.push(`---`);
+        
+        helpMessages.push(`⚡ **ESSENTIAL COMMANDS:**`);
+        helpMessages.push(`• **help** - Show help system`);
+        helpMessages.push(`• **explore** - Discover surroundings`);
+        helpMessages.push(`• **inventory** - Check items`);
+        helpMessages.push(`• **quests** - View quest log`);
+        helpMessages.push(`• **stats** - Character info`);
+        helpMessages.push(`---`);
 
-**Essential Commands:**
-• help - Show help system
-• explore - Discover surroundings
-• inventory - Check items
-• quests - View quest log
-• stats - Character info
+        helpMessages.push(`🗺️ **MOVEMENT:**`);
+        helpMessages.push(`go to [place] • explore [area]`);
+        helpMessages.push(`---`);
 
-**Movement:** go to [place], explore [area]
-**Combat:** attack [enemy], defend, flee
-**Social:** talk to [NPC], persuade [NPC]
-**Magic:** cast [spell] (spellcasters only)
-**Items:** use [item], equip [item]
+        helpMessages.push(`⚔️ **COMBAT:**`);
+        helpMessages.push(`attack [enemy] • defend • flee`);
+        helpMessages.push(`---`);
 
-**Pro Tips:**
-- Be descriptive in commands
-- NPCs remember interactions
-- Equipment affects combat
-- Alignment affects options
-- Save frequently
-`;
+        helpMessages.push(`👥 **SOCIAL:**`);
+        helpMessages.push(`talk to [NPC] • persuade [NPC]`);
+        helpMessages.push(`---`);
+
+        helpMessages.push(`🔮 **MAGIC:**`);
+        helpMessages.push(`cast [spell] (spellcasters only)`);
+        helpMessages.push(`---`);
+
+        helpMessages.push(`🎒 **ITEMS:**`);
+        helpMessages.push(`use [item] • equip [item]`);
+        helpMessages.push(`---`);
+
+        helpMessages.push(`💡 **PRO TIPS:**`);
+        helpMessages.push(`• Be descriptive in commands`);
+        helpMessages.push(`• NPCs remember interactions`);
+        helpMessages.push(`• Equipment affects combat`);
+        helpMessages.push(`• Alignment affects options`);
+        helpMessages.push(`• Save frequently`);
+
+        return helpMessages.join('\n\n');
     }
 }
 
