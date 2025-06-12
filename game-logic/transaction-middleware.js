@@ -2,39 +2,47 @@
 export class TransactionMiddleware {
 
     static async detectTransaction(aiResponse, player, gameContext) {
-        // --- NEW CODE START ---
-        // Direct command detection to bypass narrative analysis for simple cases.
-        const giveGoldRegex = /^(?:give|pay)\s+(.+?)\s+(\d+)\s+gold/i; // Matches "give [recipient] [amount] gold"
-        const giveMatch = command.match(giveGoldRegex);
+        
+        // --- NEW AND IMPROVED DIRECT COMMAND DETECTION ---
+        const giveRegex = /^(?:give|pay)\s+(.+?)\s+(\d+)\s+gold/i; // Handles "give [recipient] [amount] gold"
+        const donateRegex = /^donate\s+(\d+)\s+gold(?:\s+to\s+(.+))?/i; // Handles "donate [amount] gold to [recipient]"
+
+        const giveMatch = command.match(giveRegex);
+        const donateMatch = command.match(donateRegex);
+
+        let match, amount, recipientName;
 
         if (giveMatch) {
-            const recipientName = giveMatch[1];
-            const amount = parseInt(giveMatch[2], 10);
+            match = giveMatch;
+            recipientName = match[1] || "someone";
+            amount = parseInt(match[2], 10);
+        } else if (donateMatch) {
+            match = donateMatch;
+            recipientName = match[2] || "a worthy cause";
+            amount = parseInt(match[1], 10);
+        }
 
-            console.log(`TransactionMiddleware: Direct command detected to give ${amount} gold to ${recipientName}.`);
+        if (match) {
+            console.log(`TransactionMiddleware: Direct command detected: ${command}`);
 
-            // Check if player has enough gold
             if (player.gold >= amount) {
-                // Manually construct the transaction data.
+                // Manually construct the transaction data, bypassing AI analysis.
                 return {
                     hasTransaction: true,
-                    confidence: 1.0, // We are 100% confident.
-                    transactionType: "gift",
+                    confidence: 1.0,
+                    transactionType: "gift", // Giving/donating is a type of gift
                     items: [],
-                    goldChange: -amount, // Negative because the player is giving it away.
+                    goldChange: -amount, // Negative, as player loses gold
                     vendor: recipientName
                 };
             } else {
-                // Player doesn't have enough gold, return a failure message.
-                // You can customize this response.
+                // Player doesn't have enough gold.
                 if (typeof window.displayMessage === 'function') {
                     window.displayMessage(`You check your pouch, but you don't have ${amount} gold to give.`, "error");
                 }
                 return { hasTransaction: false };
             }
         }
-        // --- NEW CODE END ---
-
 
         // This is the original code, which will now only run if the direct command regex doesn't match.
         const transactionKeywords = [

@@ -29,8 +29,9 @@ export class AlignmentSystem {
     static initializeAlignment(player) {
         if (!player.alignment) {
             player.alignment = {
-                score: 0,
-                type: this.alignmentTypes.NEUTRAL,
+                goodScore: 0,
+                lawScore: 0,
+                type: this.alignmentTypes.TRUE_NEUTRAL,
                 history: [],
                 lastAssessment: Date.now(),
                 totalAssessments: 0,
@@ -62,33 +63,41 @@ export class AlignmentSystem {
 
         const messagesToAssess = this.messageQueue.slice(-this.assessmentInterval);
 
+        // --- NEW, SIMPLIFIED PROMPT ---
         const assessmentPrompt = `
-        ALIGNMENT ASSESSMENT SYSTEM
+        MORALITY & ETHICS ANALYSIS (TWO-AXIS)
 
-        Analyze the player's actions for their moral alignment.
+        Analyze the player's recent actions based on two axes:
+        1.  Good (+1) vs. Evil (-1)
+        2.  Lawful (+1) vs. Chaotic (-1)
 
         CONVERSATION HISTORY:
         ${messagesToAssess.map((msg, index) =>
             `${index + 1}. Player: "${msg.player}"\n   Game Response: "${msg.ai}"`
         ).join('\n\n')}
 
-        ALIGNMENT SCALE & GUIDELINES:
+        DEFINITIONS:
+        - GOOD: Altruism, compassion, helping others, sacrifice.
+        - EVIL: Harming others, cruelty, selfishness at others' expense.
+        - LAWFUL: Adherence to rules, tradition, order, personal code, or promises.
+        - CHAOTIC: Prioritizing freedom, defying authority, acting on whims, breaking rules.
+        - NEUTRAL: Actions not strongly aligned with either extreme.
 
-        +1 (Good): Actions focused on altruism, compassion, and the well-being of others.
-        
-        Lawful Good: Characterized by honor, duty, and principled compassion. This includes keeping promises, upholding just laws, formal declarations of love and protection, and self-sacrifice driven by a code of conduct. Protecting innocents because it is the right thing to do.
-        Chaotic Good: Characterized by a free spirit and a strong personal conscience. This includes breaking unjust rules to help others, protecting innocents through unconventional means (trickery, rebellion), and grand, impulsive gestures of affection or sacrifice that defy tradition or orders.
-        0 (Neutral): Actions that are not driven by a commitment to good or evil, but by other principles or a lack thereof.
-        
-        Lawful Neutral: Adherence to a law, code, or tradition is paramount. This includes enforcing a contract to the letter regardless of the outcome, following orders without moral judgment, and prioritizing procedure over a "good" or "evil" result.
-        True Neutral: Actions motivated by pragmatism, balance, or pure self-interest without malice. This includes gathering information dispassionately, making deals with any party, and decisions aimed at maintaining the status quo.
-        Chaotic Neutral: Prioritizes absolute personal freedom and impulse. This includes actions taken on a whim, switching allegiances when it's convenient, and a general disregard for laws and traditions. The character is unpredictable and serves their own freedom first.
-        -1 (Evil): Actions focused on harming others, benefiting the self at the expense of others, and exercising cruelty.
-        
-        Lawful Evil: Methodical, organized, and strategic evil. This includes creating and exploiting oppressive rules, using contracts to trap others, betrayal for calculated advancement, and imposing a tyrannical order. Harm is a tool for achieving a greater, selfish goal.
-        Chaotic Evil: Impulsive, destructive, and unpredictable evil. This includes harming others for pleasure, random acts of violence, lying and betraying others for immediate gain, and reveling in suffering and destruction. Harm is the goal itself.
-        IMPORTANT CONTEXT: If the player is in a romantic relationship, he is probably assertive, protective, or will assert intense romantic actions ("your wish is my command", "I will do anything for you", "I will protect you no matter the cost") should be interpreted as Lawful Good (+1) in this context, as they represent a sworn vow and an honorable commitment to the relationship's code.
+        INSTRUCTIONS:
+        Respond with ONLY a valid JSON object in this exact format:
+        {
+          "goodChange": 0,
+          "lawChange": 0,
+          "reason": "A brief explanation for your scoring."
+        }
+
+        EXAMPLE SCORING:
+        - Donating to the poor: { "goodChange": 1, "lawChange": 0, "reason": "A selfless and good act." }
+        - Lying to a guard to help a refugee escape: { "goodChange": 1, "lawChange": -1, "reason": "Broke the law for a good cause." }
+        - Attacking a merchant for profit: { "goodChange": -1, "lawChange": -1, "reason": "A cruel and chaotic act for personal gain." }
+        - Fulfilling a contract precisely as written: { "goodChange": 0, "lawChange": 1, "reason": "Adhered to a formal agreement." }
         `;
+        // --- END OF NEW PROMPT ---
 
         try {
             // Use the game API's AI function instead of making direct calls
@@ -118,60 +127,73 @@ export class AlignmentSystem {
     }
 
     static parseAlignmentResponse(response) {
-        const cleanResponse = response.trim();
-
-        if (cleanResponse.includes('+1') || cleanResponse === '1') {
-            return 1;
-        } else if (cleanResponse.includes('-1') || cleanResponse === '-1') {
-            return -1;
-        } else {
-            return 0;
+        try {
+            const cleanResponse = response.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+            const jsonMatch = cleanResponse.match(/\{[\s\S]*\}/);
+            if (jsonMatch) {
+                const data = JSON.parse(jsonMatch[0]);
+                // Return an object with the changes, defaulting to 0 if missing.
+                return {
+                    good: data.goodChange || 0,
+                    law: data.lawChange || 0
+                };
+            }
+            // If no JSON is found, return zero change.
+            return { good: 0, law: 0 };
+        } catch (error) {
+            console.error("Failed to parse alignment JSON:", error);
+            return { good: 0, law: 0 }; // Return zero change on error
         }
     }
 
     static updateAlignment(player, change) {
         const alignment = this.initializeAlignment(player);
 
-        const oldScore = alignment.score;
         const oldType = alignment.type;
 
-        // Update alignment score (capped between -10 and +10)
-        alignment.score = Math.max(-10, Math.min(10, alignment.score + change));
+        // Update scores, capped between -10 (max evil/chaos) and +10 (max good/law)
+        alignment.goodScore = Math.max(-10, Math.min(10, alignment.goodScore + change.good));
+        alignment.lawScore = Math.max(-10, Math.min(10, alignment.lawScore + change.law));
 
-        // Update alignment type based on score
-        alignment.type = this.getAlignmentType(alignment.score);
+        // Determine new alignment type from the two scores
+        alignment.type = this.getAlignmentType(alignment.goodScore, alignment.lawScore);
 
-        // Record this assessment
+        // Record this assessment in history
         alignment.history.push({
             change: change,
-            oldScore: oldScore,
-            newScore: alignment.score,
-            oldType: oldType,
+            newGoodScore: alignment.goodScore,
+            newLawScore: alignment.lawScore,
             newType: alignment.type,
             timestamp: Date.now()
         });
-
-        alignment.lastAssessment = Date.now();
-        alignment.totalAssessments++;
-        alignment.messagesSinceLastAssessment = 0;
 
         return {
             changed: oldType !== alignment.type,
             oldType: oldType,
             newType: alignment.type,
             change: change,
-            score: alignment.score
+            goodScore: alignment.goodScore,
+            lawScore: alignment.lawScore
         };
     }
 
-    static getAlignmentType(score) {
-        if (score <= -6) return this.alignmentTypes.MALEVOLENT;
-        if (score <= -3) return this.alignmentTypes.EVIL;
-        if (score <= -1) return this.alignmentTypes.NEUTRAL_EVIL;
-        if (score === 0) return this.alignmentTypes.NEUTRAL;
-        if (score <= 2) return this.alignmentTypes.NEUTRAL_GOOD;
-        if (score <= 5) return this.alignmentTypes.GOOD;
-        return this.alignmentTypes.DEVOUT;
+    static getAlignmentType(goodScore, lawScore) {
+        let verticalAxis = 'Neutral';
+        if (goodScore >= 3) verticalAxis = 'Good';
+        else if (goodScore <= -3) verticalAxis = 'Evil';
+
+        let horizontalAxis = 'Neutral';
+        if (lawScore >= 3) horizontalAxis = 'Lawful';
+        else if (lawScore <= -3) horizontalAxis = 'Chaotic';
+
+        // Combine the axes to get the final alignment
+        if (verticalAxis === 'Neutral' && horizontalAxis === 'Neutral') {
+            return 'True Neutral';
+        }
+        if (verticalAxis === 'Neutral') return horizontalAxis; // Lawful Neutral, Chaotic Neutral
+        if (horizontalAxis === 'Neutral') return verticalAxis; // Neutral Good, Neutral Evil
+
+        return `${horizontalAxis} ${verticalAxis}`; // Lawful Good, Chaotic Evil, etc.
     }
 
     static getAlignmentModifier(player) {
