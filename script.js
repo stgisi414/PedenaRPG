@@ -6783,7 +6783,7 @@ function displaySkillsAndAbilities() {
         return sectionHTML;
     };
 
-    skillsHTML += createSection('Spells', progression.spells.known, 'spell');F
+    skillsHTML += createSection('Spells', progression.spells.known, 'spell');
     skillsHTML += createSection('Cantrips', progression.cantrips, 'cantrip');
     skillsHTML += createSection('Abilities', progression.abilities, 'ability');
     skillsHTML += createSection('Feats', progression.feats, 'feat');
