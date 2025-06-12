@@ -4,7 +4,7 @@ import { QuestTaskGenerator, questCategories, questThemes } from './assets/quest
 import { CharacterManager } from './game-logic/character-manager.js';
 import { GameActions } from './game-logic/game-actions.js';
 import { LocationManager } from './game-logic/location-manager.js';
-import { classProgression } from './game-logic/class-progression.js';
+import { classProgression, spellDefinitions, abilityDefinitions, featDefinitions } from './game-logic/class-progression.js';
 import { ItemGenerator, ItemManager, itemCategories, itemRarity, statusEffects } from './assets/world-items.js';
 import { TransactionMiddleware } from './game-logic/transaction-middleware.js';
 import { ItemExchangeMiddleware } from './game-logic/item-exchange-middleware.js';
@@ -1261,8 +1261,9 @@ REQUIREMENTS: Use at least 7-10 different formatting effects per response. Use *
 function createNPC(name, description, location) {
     console.log(`createNPC: Creating NPC with name "${name}"`);
     return {
-        id: Date.now() + Math.random(),
-        name: name, // Use the provided name directly
+        // Generate a unique STRING ID to prevent type mismatch issues in the future.
+        id: `npc_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
+        name: name,
         description: description,
         location: location,
         dialogueHistory: [],
@@ -1270,6 +1271,8 @@ function createNPC(name, description, location) {
         relationship: 'neutral'
     };
 }
+
+
 
 // Ensure saveNPCToLocation stores NPCs by their actual canonical name
 function saveNPCToLocation(npc, location) {
@@ -2620,30 +2623,34 @@ async function recruitNPC(npcName, npcData = null) {
         return;
     }
 
-    // This part is the same
     let npc = npcData;
+    // Try to find an existing NPC in the current location.
     if (!npc) {
         const existingNPCs = getNPCsInLocation(player.currentLocation);
         npc = existingNPCs.find(n => n.name.toLowerCase().includes(npcName.toLowerCase()));
     }
 
+    // If no NPC is found at all, create a new one from scratch.
     if (!npc) {
         displayMessage(`You haven't met ${npcName} before, but you approach them to join your cause.`, 'info');
-
-        // --- REPLACEMENT: Generate dynamic NPC stats ---
         const npcStats = await generateNpcStats(npcName, player.level);
         npc = {
             id: `npc_${Date.now()}`,
             name: npcName,
-            level: npcStats.level,
-            health: npcStats.health,
-            maxHealth: npcStats.maxHealth,
-            ac: npcStats.ac,
-            damage: npcStats.damage,
-            skills: npcStats.skills,
-            loyalty: 60
+            ...npcStats, // Spread the stats into the new npc object
+            loyalty: 60 
         };
-        // --- END REPLACEMENT ---
+    } 
+    // If we found an existing NPC, check if they are missing stats.
+    else if (!npc.health || !npc.maxHealth) {
+        console.log(`Existing NPC ${npc.name} found, but is missing stats. Generating now.`);
+        const npcStats = await generateNpcStats(npc.name, player.level);
+        // Combine existing npc data (like ID and description) with the new stats.
+        npc = {
+            ...npc, 
+            ...npcStats 
+        };
+        console.log(`Stats generated for ${npc.name}: HP ${npc.health}`);
     }
 
     const result = partyManager.addMember(npc);
@@ -2651,9 +2658,14 @@ async function recruitNPC(npcName, npcData = null) {
 
     if (result.success) {
         updateRelationship(npcName, 0, 20, `${npcName} has joined your party as a trusted companion.`);
-        updatePartyUI();
-        displayPartyStatus();
+        displayPartyStatus(); // This shows the "=== Party Status ===" message
         saveGame();
+
+        // Refresh the progression screen if it's open
+        const progressionInterface = document.getElementById('progression-interface');
+        if (progressionInterface && !progressionInterface.classList.contains('hidden')) {
+            displayCharacterProgression();
+        }
     }
 
     return result;
@@ -2665,11 +2677,30 @@ function dismissPartyMember(memberId) {
         return;
     }
 
+    // Use loose equality (==) to find the member, which ignores the difference
+    // between a number and a string (e.g., 123 == "123" is true).
+    const member = partyManager.party.find(m => m.id == memberId); 
+
+    if (!member) {
+        // This is the error message you were seeing.
+        displayMessage("Could not find that party member to dismiss.", 'error');
+        return;
+    }
+
+    if (!confirm(`Are you sure you want to dismiss ${member.name} from your party?`)) {
+        return;
+    }
+
+    // This calls the core logic in party-manager.js to remove the member.
     const result = partyManager.removeMember(memberId);
     displayMessage(result.message, result.success ? 'success' : 'error');
 
     if (result.success) {
-        updatePartyUI();
+        const progressionInterface = document.getElementById('progression-interface');
+        if (progressionInterface && !progressionInterface.classList.contains('hidden')) {
+            displayCharacterProgression();
+        }
+        saveGame();
     }
 
     return result;
@@ -2729,16 +2760,28 @@ function buildPartyStatusHTML() {
     const allMembers = partyManager.getAllMembers(player);
 
     allMembers.forEach(member => {
-        const status = member.isPlayer ? "(You)" : `(${member.position})`;
-        const healthStatus = `${member.health}/${member.maxHealth} HP`;
-        const loyaltyInfo = !member.isPlayer && member.loyalty !== undefined ? ` - Loyalty: ${member.loyalty}%` : '';
-
-        html += `
-            <div class="p-2 mb-2 border-b border-amber-700/20">
-                <p class="font-semibold">${member.name} ${status}</p>
-                <p class="text-sm text-amber-800">Level ${member.level} - ${healthStatus}${loyaltyInfo}</p>
-            </div>
-        `;
+        // The member object for the player has `isPlayer: true`
+        if (member.isPlayer) {
+            html += `
+                <div class="p-2 mb-2 border-b border-amber-700/20">
+                    <p class="font-semibold">${member.name} (You)</p>
+                    <p class="text-sm text-amber-800">Level ${member.level} - ${member.health}/${member.maxHealth} HP</p>
+                </div>
+            `;
+        } else {
+            // This is a party member, so we add a dismiss button
+            html += `
+                <div class="p-2 mb-2 border-b border-amber-700/20 flex justify-between items-center">
+                    <div>
+                        <p class="font-semibold">${member.name} ${member.position ? `(${member.position})` : ''}</p>
+                        <p class="text-sm text-amber-800">Level ${member.level} - ${member.health}/${member.maxHealth} HP ${member.loyalty !== undefined ? `- Loyalty: ${member.loyalty}%` : ''}</p>
+                    </div>
+                    <button onclick="dismissPartyMember('${member.id}')" class="btn-parchment bg-red-600 hover:bg-red-700 text-white text-xs py-1 px-2">
+                        Dismiss
+                    </button>
+                </div>
+            `;
+        }
     });
 
     return html;
@@ -4791,6 +4834,36 @@ async function executeCustomCommand(command) {
 
     addToConversationHistory('user', command);
 
+    // --- NEW: Command pre-processing for specific actions ---
+    const lowerCommand = command.toLowerCase().trim();
+    const recruitKeywords = ['recruit', 'hire', 'ask to join', 'bring along'];
+
+    // Check for recruitment command
+    for (const keyword of recruitKeywords) {
+        if (lowerCommand.startsWith(keyword + ' ')) {
+            const npcName = command.substring(keyword.length + 1).trim();
+            if (npcName) {
+                console.log(`Intercepted recruitment command for: ${npcName}`);
+                // Use the dedicated recruit function which handles party state.
+                // This function will display its own system messages like "Jasper has joined your party!"
+                await recruitNPC(npcName); 
+
+                // The narrative from your screenshot will now be generated here, based on the successful action.
+                const narrativePrompt = `The player, ${player.name}, just tried to recruit an NPC named ${npcName}. The recruitment was successful. Write a short, engaging narrative describing how ${npcName} agrees to join the party.`;
+                const narrative = await callGeminiAPI(narrativePrompt, 0.7, 300, true);
+                if (narrative) {
+                    displayMessage(narrative);
+                    addToConversationHistory('assistant', narrative);
+                }
+
+                // We've handled the command, so we exit here to avoid the generic master prompt.
+                return; 
+            }
+        }
+    }
+    // --- End of command pre-processing ---
+
+    // If the command wasn't a recruitment, proceed with the master prompt as before.
     const masterPrompt = createMasterPrompt(command);
 
     try {
@@ -4801,23 +4874,19 @@ async function executeCustomCommand(command) {
 
         let parsedResult = null;
         try {
-            // We'll try to find and parse JSON in the response
             const jsonMatch = aiResponse.match(/\{[\s\S]*\}/);
             if (jsonMatch) {
                 parsedResult = JSON.parse(jsonMatch[0]);
             }
         } catch (e) {
-            // This is the important part! We catch the JSON error here.
             console.warn("AI response contained malformed JSON. Treating as narrative.", e);
-            parsedResult = null; // Ensure we fallback to narrative
+            parsedResult = null; 
         }
 
         if (parsedResult) {
-            // If we successfully got structured JSON, process all the game state changes.
             console.log("Processing structured AI response:", parsedResult);
             await parseAndApplyStateChanges(parsedResult);
         } else {
-            // If there was no JSON or it was invalid, just display the text as a story update.
             console.log("Processing AI response as simple narrative.");
             displayMessage(aiResponse, 'info');
             addToConversationHistory('assistant', aiResponse);
@@ -4831,15 +4900,55 @@ async function executeCustomCommand(command) {
     saveGame();
 }
 
+// I'll add this new helper function to handle moving the party.
+function movePartyWithPlayer(oldLocation, newLocation) {
+    if (partyManager && partyManager.party.length > 0) {
+        console.log(`Moving party from ${oldLocation} to ${newLocation}`);
+
+        const oldLocationNPCs = gameWorld.npcs.get(oldLocation) || [];
+
+        if (!gameWorld.npcs.has(newLocation)) {
+            gameWorld.npcs.set(newLocation, []);
+        }
+        const newLocationNPCs = gameWorld.npcs.get(newLocation);
+
+        let updatedOldLocationNPCs = [...oldLocationNPCs];
+
+        partyManager.party.forEach(partyMember => {
+            const indexInOldLocation = updatedOldLocationNPCs.findIndex(npc => npc.id === partyMember.id);
+            let movedNpc;
+
+            if (indexInOldLocation > -1) {
+                // If the party member was registered as an NPC in the old location, move them.
+                movedNpc = updatedOldLocationNPCs[indexInOldLocation];
+                updatedOldLocationNPCs = updatedOldLocationNPCs.filter(npc => npc.id !== partyMember.id);
+            } else {
+                // Otherwise, use the party member object directly.
+                movedNpc = partyMember;
+            }
+
+            // Update the NPC's internal location property.
+            movedNpc.location = newLocation;
+
+            // Add the NPC to the new location's list if they aren't already there.
+            if (!newLocationNPCs.some(npc => npc.id === movedNpc.id)) {
+                newLocationNPCs.push(movedNpc);
+            }
+        });
+
+        // Update the game world's data for the old location.
+        gameWorld.npcs.set(oldLocation, updatedOldLocationNPCs);
+    }
+}
+
 // In script.js
 
+// Now, I'll modify the parseAndApplyStateChanges function to use this new helper.
+// I will replace the existing function with this updated version.
 async function parseAndApplyStateChanges(result) {
     // 1. Time Progression
     if (result.timePassedMinutes) {
-        // Assume you have a world time object
         gameWorld.time.setMinutes(gameWorld.time.getMinutes() + result.timePassedMinutes);
-        // You could then update a UI element to show the new time/day.
-        // displayTime(world.time); 
     }
 
     // 2. Narrative (Always present)
@@ -4848,9 +4957,8 @@ async function parseAndApplyStateChanges(result) {
         addToConversationHistory('assistant', result.narrative);
     }
 
-    // 3. Player State (HP, EXP, Gold, and now Status Effects)
+    // 3. Player State (HP, EXP, Gold, and Status Effects)
     if (result.playerStateChanges) {
-        // ... HP, EXP, Gold logic is the same ...
         if (result.playerStateChanges.statusEffects) {
             const effects = result.playerStateChanges.statusEffects;
             if (effects.remove) {
@@ -4872,31 +4980,20 @@ async function parseAndApplyStateChanges(result) {
         updatePlayerStatsDisplay();
     }
 
-    // 4. Alignment Change  <-- NEW SECTION
+    // 4. Alignment Change
     if (result.alignmentChange) {
         const align = result.alignmentChange;
-
-        // Ensure the alignment object on the player exists
         if (!player.alignment) {
             AlignmentSystem.initializeAlignment(player);
         }
-
-        // Update the player's alignment scores
         player.alignment.good = (player.alignment.good || 0) + (align.changeGood || 0);
         player.alignment.chaos = (player.alignment.chaos || 0) + (align.changeChaos || 0);
         player.alignment.totalAssessments = (player.alignment.totalAssessments || 0) + 1;
-
-
-        // --- THIS IS THE FIX ---
-        // We provide a default reason if the AI doesn't, preventing 'undefined'.
         const reason = align.reason || "Your actions have shifted your moral compass.";
         displayMessage(`Your alignment has shifted. ${reason}`, 'info');
-
-        // We will also add a follow-up message to show the result of the shift.
         const newAlignmentInfo = AlignmentSystem.getAlignmentDisplayInfo(player);
         displayMessage(`You are now considered ${newAlignmentInfo.type.replace(/_/g, ' ')}.`, 'info');
-
-        updatePlayerStatsDisplay(); // Refresh UI if needed
+        updatePlayerStatsDisplay();
     }
 
     // 5. Faction Reputation Change
@@ -4909,22 +5006,18 @@ async function parseAndApplyStateChanges(result) {
             const trend = change.change > 0 ? "increased" : "decreased";
             displayMessage(`Your reputation with ${change.faction} has ${trend}.`, 'info');
         });
-        // You could have a function to display reputation in the UI
-        // displayReputation();
     }
 
     // 6. World Events
     if (result.worldEvents && result.worldEvents.length > 0) {
         result.worldEvents.forEach(event => {
             gameWorld.activeEvents.push(event);
-            // Announce major events to the player
             displayMessage(`[WORLD EVENT] ${event.details}`, 'world-event');
         });
     }
 
     // 7. Item Changes (Add/Remove)
     if (result.itemChanges) {
-        // Handle removals first
         if (result.itemChanges.remove && result.itemChanges.remove.length > 0) {
             result.itemChanges.remove.forEach(itemToRemove => {
                 const itemIndex = player.inventory.findIndex(i => i.name === itemToRemove.name);
@@ -4934,24 +5027,28 @@ async function parseAndApplyStateChanges(result) {
                 }
             });
         }
-        // Handle additions
         if (result.itemChanges.add && result.itemChanges.add.length > 0) {
             result.itemChanges.add.forEach(itemToAdd => {
-                // The AI provides the full item object, so we can just add it directly.
                 const newItem = ItemGenerator.enhanceItem(itemToAdd, { playerLevel: player.level });
                 ItemManager.addItemToInventory(player, newItem);
                 displayMessage(`You obtained: ${newItem.name}!`, 'success');
             });
         }
-        displayInventory(); // Refresh if open
+        if (!document.getElementById('inventory-interface').classList.contains('hidden')) {
+            displayInventory();
+        }
     }
 
-    // 8. Location Change
-    if (result.locationChange) {
+    // 8. Location Change (MODIFIED)
+    if (result.locationChange && result.locationChange !== player.currentLocation) {
+        const oldLocation = player.currentLocation;
         player.currentLocation = result.locationChange;
+
+        // --- THIS IS THE FIX ---
+        // Move party members to the new location in the game world state.
+        movePartyWithPlayer(oldLocation, player.currentLocation);
+
         updatePlayerStatsDisplay();
-        // Optional: Call generateWorldDescription if you want a fresh description
-        // await generateWorldDescription(player.currentLocation);
     }
 
     // 9. Relationship Changes
@@ -4967,7 +5064,7 @@ async function parseAndApplyStateChanges(result) {
         if (quest) {
             displayMessage(`Quest Update: ${result.questProgress.update}`, 'success');
             if (result.questProgress.isComplete) {
-                checkQuestCompletion(quest.title); // Use existing completion logic
+                checkQuestCompletion(quest.title);
             }
         }
     }
@@ -5598,7 +5695,7 @@ function addMainEventListeners() {
         });
 
         document.getElementById('explore-btn')?.addEventListener('click', () => explore("explore the area"));
-        document.getElementById('cast-spell-btn')?.addEventListener('click', () => { /* Logic is in the file */ });
+        document.getElementById('cast-spell-btn')?.addEventListener('click', () => displaySkillsAndAbilities());
         document.getElementById('pray-btn')?.addEventListener('click', pray);
         document.getElementById('help-btn')?.addEventListener('click', () => displayMessage(HelpSystem.getHelp(), 'info'));
 
@@ -6520,6 +6617,115 @@ async function applyAbilityEffects(abilityName, abilityDef) {
     updatePlayerStatsDisplay();
 }
 
+// Add this new function to handle using a spell or ability
+async function useAbilityOrSpell(type, name) {
+    console.log(`Attempting to use ${type}: ${name}`);
+    const skillsInterface = document.getElementById('skills-interface');
+    skillsInterface.classList.add('hidden'); // Close the interface after selection
+
+    let effectResult;
+    let definition;
+
+    if (type === 'spell' || type === 'cantrip') {
+        definition = spellDefinitions[name];
+        if (!definition) {
+            displayMessage(`Definition for spell "${name}" not found.`, 'error');
+            return;
+        }
+
+        // Basic spell casting logic
+        const spellPrompt = `The player ${player.name} casts the ${type} "${name}".
+        Spell Description: "${definition.description}".
+        Current situation: ${getConversationContext().slice(-500)}
+        Describe the outcome of casting this spell in a dramatic and engaging way (2-3 sentences).`;
+
+        const outcome = await callGeminiAPI(spellPrompt);
+        if (outcome) {
+            displayMessage(outcome, 'success');
+            addToConversationHistory('assistant', outcome);
+        } else {
+            displayMessage(`You cast ${name}, and arcane energy fills the air.`, 'info');
+        }
+
+    } else if (type === 'ability') {
+        definition = abilityDefinitions[name];
+        effectResult = CharacterManager.useAbility(player, name);
+        if (effectResult.success) {
+            await applyAbilityEffects(name, definition);
+        } else {
+            displayMessage(effectResult.message, 'error');
+        }
+
+    } else if (type === 'feat') {
+        definition = featDefinitions[name];
+        displayMessage(`You focus on your training in "${name}". (${definition.description})`, 'info');
+        // Feats are often passive, but could have an active component in the future.
+    } else {
+        displayMessage(`Unknown action type: ${type}`, 'error');
+        return;
+    }
+
+    saveGame();
+}
+
+// Add this new function to display the skills/abilities interface
+function displaySkillsAndAbilities() {
+    const skillsInterface = document.getElementById('skills-interface');
+    const skillsListDisplay = document.getElementById('skills-list');
+    if (!skillsInterface || !skillsListDisplay) {
+        displayMessage("UI elements for skills are missing.", "error");
+        return;
+    }
+
+    // Hide other interfaces
+    const interfacesToHide = ['shop-interface', 'inventory-interface', 'quest-interface', 'background-interface', 'progression-interface'];
+    interfacesToHide.forEach(id => {
+        const element = document.getElementById(id);
+        if (element) element.classList.add('hidden');
+    });
+
+    const progression = CharacterManager.getCharacterProgression(player);
+    if (!progression) {
+        displayMessage("Could not retrieve character progression.", "error");
+        return;
+    }
+
+    let skillsHTML = '';
+
+    // Helper to create a list section with robust onclick handlers
+    const createSection = (title, items, type) => {
+        if (!items || items.length === 0) return '';
+        let sectionHTML = `<h5 class="font-bold mb-2 text-amber-700 text-lg">${title}</h5><div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">`;
+        items.forEach(item => {
+            const definition = item.definition || {};
+            // Safely escape the parameters for the onclick attribute using JSON.stringify
+            const typeParam = JSON.stringify(type);
+            const nameParam = JSON.stringify(item.name);
+            sectionHTML += `
+                <button onclick='useAbilityOrSpell(${typeParam}, ${nameParam})' class="btn-parchment text-left p-3">
+                    <p class="font-bold">${item.name}</p>
+                    <p class="text-xs text-amber-800">${definition.description || 'No description available.'}</p>
+                </button>
+            `;
+        });
+        sectionHTML += `</div>`;
+        return sectionHTML;
+    };
+
+    skillsHTML += createSection('Spells', progression.spells.known, 'spell');
+    skillsHTML += createSection('Cantrips', progression.cantrips, 'cantrip');
+    skillsHTML += createSection('Abilities', progression.abilities, 'ability');
+    skillsHTML += createSection('Feats', progression.feats, 'feat');
+
+    if (skillsHTML.trim() === '') {
+        skillsHTML = '<p class="text-center text-gray-600">You have no special skills or abilities to use at this time.</p>';
+    }
+
+    skillsListDisplay.innerHTML = skillsHTML;
+    skillsInterface.classList.remove('hidden');
+}
+
+
 //async function generateCharacterPortrait() {
 //This function was modified above to accept charName, charGender, charClass, charBackground
 //No further changes needed here, but the old version is presented for context of the diff.
@@ -6847,6 +7053,8 @@ if (typeof window !== 'undefined') {
     window.useItem = useItem;
     window.sellItem = sellItem;
     window.dropItem = dropItem;
+    window.useAbilityOrSpell = useAbilityOrSpell;
+    window.displaySkillsAndAbilities = displaySkillsAndAbilities;
     // ... and any other functions called by inline HTML event handlers
     /* window.displayCharacterBackground = displayCharacterBackground;
     window.displayInventory = displayInventory;

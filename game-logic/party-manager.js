@@ -9,77 +9,74 @@ export class PartyManager {
     }
 
     // Add NPC to partyconst enhancedItem = await this.enhanc
-    addMember(npc) {
+    addMember(memberData) {
         if (this.party.length >= this.maxPartySize) {
-            return { success: false, message: "Party is full! Maximum 4 members allowed." };
+            return { success: false, message: 'Your party is full.' };
         }
 
-        // --- FIX: Check for member by name to prevent duplicates ---
-        if (this.party.find(member => member.name.toLowerCase() === npc.name.toLowerCase())) {
-            return { success: false, message: `${npc.name} is already in your party.` };
+        if (this.party.some(member => member.name === memberData.name)) {
+            return { success: false, message: `${memberData.name} is already in your party.` };
         }
 
-        // Convert NPC to party member format
-        const partyMember = {
-            id: npc.id || `npc_${Date.now()}`,
-            name: npc.name,
-            type: 'npc',
-            level: npc.level || 1,
-            health: npc.health || 20,
-            maxHealth: npc.maxHealth || 20,
-            ac: npc.ac || 12,
-            damage: npc.damage || '1d6',
-            skills: npc.skills || [],
-            equipment: npc.equipment || {},
-            abilities: npc.abilities || [],
-            loyalty: npc.loyalty || 50,
-            isPlayer: false,
-            position: this.getNextPosition()
+        // Create a new member object from the provided data
+        const newMember = {
+            id: memberData.id || `member_${Date.now()}`,
+            name: memberData.name,
+            level: memberData.level || 1,
+            health: memberData.health,
+            maxHealth: memberData.maxHealth,
+            ac: memberData.ac || 10,
+            damage: memberData.damage || '1d4',
+            skills: memberData.skills || [],
+            loyalty: memberData.loyalty || 50,
+            description: memberData.description || 'A trusty companion.'
         };
 
-        this.party.push(partyMember);
-        this.updateFormation();
-        return { 
-            success: true, 
-            message: `${npc.name} joins your party! (${this.party.length}/${this.maxPartySize})` 
-        };
+        // Add a check to ensure health stats are valid before adding the member
+        if (typeof newMember.health !== 'number' || typeof newMember.maxHealth !== 'number') {
+            console.error("Attempted to add a party member without valid health stats:", memberData);
+            return { success: false, message: `Error: Could not determine health for ${memberData.name}.` };
+        }
+
+        this.party.push(newMember);
+        return { success: true, message: `${newMember.name} joins your party! (${this.party.length}/${this.maxPartySize})` };
     }
 
     // Remove member from party
     removeMember(memberId) {
-        const memberIndex = this.party.findIndex(member => member.id === memberId);
+        // Use loose equality (==) here as well to find the member in the party array.
+        const memberIndex = this.party.findIndex(member => member.id == memberId);
+
         if (memberIndex === -1) {
-            return { success: false, message: "Member not found in party." };
+            return { success: false, message: 'Member not found in party.' };
         }
 
-        const member = this.party[memberIndex];
-        this.party.splice(memberIndex, 1);
-        this.updateFormation();
-        return { 
-            success: true, 
-            message: `${member.name} leaves the party.` 
-        };
+        const removedMember = this.party.splice(memberIndex, 1);
+        return { success: true, message: `${removedMember[0].name} has left the party.` };
     }
 
     // Get all party members including player
     getAllMembers(player) {
-        const playerMember = {
+        // The player object is correctly created with the 'Leader' position.
+        const playerAsMember = {
             id: 'player',
-            name: player.name,
-            type: 'player',
-            level: player.level,
-            health: player.hp,         // <-- FIX: Changed from player.health
-            maxHealth: player.maxHp,   // <-- FIX: Changed from player.maxHealth
-            ac: player.ac || 12,
-            damage: this.getPlayerDamage(player),
-            skills: player.skills || [],
-            equipment: player.equipment || {},
-            abilities: player.abilities || [],
             isPlayer: true,
-            position: 'front'
+            name: player.name,
+            level: player.level,
+            health: player.hp,
+            maxHealth: player.maxHp,
+            position: 'Leader'
         };
 
-        return [playerMember, ...this.party];
+        // The fix is to ensure we map over the party array and create
+        // new objects that include the calculated "position" property.
+        const partyWithPositions = this.party.map((member, index) => ({
+            ...member,
+            position: `Companion ${index + 1}`
+        }));
+
+        // Return the player along with the party members who now have positions.
+        return [playerAsMember, ...partyWithPositions];
     }
 
     // Get living party members
