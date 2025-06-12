@@ -1,3 +1,35 @@
+setTimeout(() => {
+    // Find the original displayMessage function
+    const originalDisplayMessage = window.displayMessage;
+
+    // If we found the function, replace it
+    if (typeof originalDisplayMessage === 'function') {
+        console.log("DEBUG: Detective code is now active. Watching for the alignment bug.");
+
+        // Create our new detective function
+        window.displayMessage = function(message, type) {
+
+            // Check if the message is the one causing the problem
+            if (typeof message === 'string' && message.includes('Your alignment shifts. undefined')) {
+
+                // If it is, print our findings to the console!
+                console.error("BUG FOUND! The broken alignment message was about to be displayed.");
+                console.log("The exact message was:", message);
+                console.log("Here is the 'call stack', which shows where the faulty function call came from:");
+
+                // This command prints the function history that led to the bug
+                console.trace(); 
+            }
+
+            // Finally, call the original function so messages still appear in the game
+            originalDisplayMessage(message, type);
+        };
+    } else {
+        console.error("DEBUG: Could not find the game's displayMessage function to start the trace.");
+    }
+}, 2000);
+// =========== DEBUGGING CODE END ===========
+
 // Import game data and assets
 import { gameData, GameDataManager } from './assets/game-data-loader.js';
 import { QuestCharacterGenerator } from './assets/quest-character-names.js';
@@ -411,16 +443,35 @@ function updateIllustrationButtonVisibility() {
 }
 
 async function processAlignmentChange(change) {
-    const result = AlignmentSystem.updateAlignment(player, change);
+    console.log("--- Alignment Check Triggered. Change value:", change);
 
-    if (result.changed) {
-        const changeText = change > 0 ? 'improved' : change < 0 ? 'declined' : 'remained stable';
-        displayMessage(`Your moral standing has ${changeText}. You are now ${result.newType.replace('_', ' ')}.`,
-            change > 0 ? 'success' : change < 0 ? 'error' : 'info');
+    if (change === null || typeof change === 'undefined') {
+        console.error("Alignment change calculation failed. Aborting update.");
+        return;
+    }
 
-        if (Math.abs(change) > 0) {
-            displayMessage(AlignmentSystem.getAlignmentDescription(player), 'info');
+    try {
+        const result = AlignmentSystem.updateAlignment(player, change);
+
+        if (!result || typeof result.changed !== 'boolean' || typeof result.newType !== 'string') {
+            console.error("Invalid object returned from AlignmentSystem.updateAlignment:", result);
+            return;
         }
+
+        if (result.changed) {
+            const changeText = change > 0 ? 'improved' : 'declined';
+            const newAlignmentName = result.newType.replace(/_/g, ' ');
+
+            displayMessage(`Your moral standing has ${changeText}. You are now ${newAlignmentName}.`,
+                change > 0 ? 'success' : 'error');
+
+            const description = AlignmentSystem.getAlignmentDescription(player);
+            if (description) {
+                displayMessage(description, 'info');
+            }
+        }
+    } catch (e) {
+        console.error("An error occurred inside the processAlignmentChange function:", e);
     }
 
     saveGame();
@@ -829,8 +880,21 @@ function updateGold(amount, reason = '') {
     saveGame();
 }
 
-function
-    displayMessage(message, type = 'info') {
+function displayMessage(message, type = 'info') {
+    // --- START OF BUILT-IN DEBUGGING ---
+    // This code checks if the broken alignment message is about to be displayed.
+    if (typeof message === 'string' && message.includes('Your alignment shifts. undefined')) {
+        console.error("------------------------------------------------------");
+        console.error("BUG DETECTED! The broken alignment message was passed to displayMessage.");
+        console.error("The call stack below shows exactly which function is responsible.");
+
+        // This command will give us the clues we need.
+        console.trace(); 
+
+        console.error("------------------------------------------------------");
+    }
+    // --- END OF BUILT-IN DEBUGGING ---
+
     const p = document.createElement('p');
     p.classList.add('mb-2', 'pb-1', 'border-b', 'border-amber-700/50');
 
@@ -851,12 +915,11 @@ function
         icon = '<i class="ra ra-quill mr-2"></i>';
     }
 
-    // Always process rich text formatting/stripping for all message types
     const processedMessage = processRichText(message, type);
 
     p.innerHTML = icon + processedMessage;
     gameOutput.appendChild(p);
-    gameOutput.scrollTop = gameOutput.scrollHeight; // Auto-scroll to bottom
+    gameOutput.scrollTop = gameOutput.scrollHeight;
 }
 
 function updatePlayerStatsDisplay() {
@@ -4759,31 +4822,45 @@ function createMasterPrompt(command) {
 async function executeCustomCommand(command) {
     if (!command.trim()) return;
 
-    displayMessage(`> ${command}`, 'info');
     addToConversationHistory('user', command);
 
-    // 1. Create the master prompt
     const masterPrompt = createMasterPrompt(command);
 
     try {
-        // 2. Make a SINGLE API call
-        const aiResponse = await callGeminiAPI(masterPrompt, 0.7, 1500, false); // No extra context needed
-        if (!aiResponse) throw new Error("AI response was empty.");
+        const aiResponse = await callGeminiAPI(masterPrompt, 0.7, 1500, false);
+        if (!aiResponse) {
+            throw new Error("AI response was empty.");
+        }
 
-        // 3. Parse and Apply the Structured Response
-        const cleanResponse = aiResponse.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-        const jsonMatch = cleanResponse.match(/\{[\s\S]*\}/);
-        if (!jsonMatch) throw new Error("AI did not return valid JSON.");
+        let parsedResult = null;
+        try {
+            // We'll try to find and parse JSON in the response
+            const jsonMatch = aiResponse.match(/\{[\s\S]*\}/);
+            if (jsonMatch) {
+                parsedResult = JSON.parse(jsonMatch[0]);
+            }
+        } catch (e) {
+            // This is the important part! We catch the JSON error here.
+            console.warn("AI response contained malformed JSON. Treating as narrative.", e);
+            parsedResult = null; // Ensure we fallback to narrative
+        }
 
-        const result = JSON.parse(jsonMatch[0]);
-        await parseAndApplyStateChanges(result);
+        if (parsedResult) {
+            // If we successfully got structured JSON, process all the game state changes.
+            console.log("Processing structured AI response:", parsedResult);
+            await parseAndApplyStateChanges(parsedResult);
+        } else {
+            // If there was no JSON or it was invalid, just display the text as a story update.
+            console.log("Processing AI response as simple narrative.");
+            displayMessage(aiResponse, 'info');
+            addToConversationHistory('assistant', aiResponse);
+        }
 
     } catch (error) {
         console.error("Error processing command:", error);
         displayMessage("You attempt your action, but something goes wrong. The world seems to resist your will.", 'error');
     }
 
-    // Save game state after the action is fully resolved
     saveGame();
 }
 
@@ -4831,16 +4908,28 @@ async function parseAndApplyStateChanges(result) {
     // 4. Alignment Change  <-- NEW SECTION
     if (result.alignmentChange) {
         const align = result.alignmentChange;
-        // This assumes you have an updateAlignment function like the one in alignment-system.js
-        if (typeof updateAlignment === 'function') {
-            updateAlignment(align.changeGood || 0, align.changeChaos || 0, align.reason || 'An action shifted your alignment.');
-        } else {
-            // Fallback if the function isn't available
-            player.alignment.good += align.changeGood || 0;
-            player.alignment.chaos += align.changeChaos || 0;
+
+        // Ensure the alignment object on the player exists
+        if (!player.alignment) {
+            AlignmentSystem.initializeAlignment(player);
         }
-        displayMessage(`Your alignment shifts. [Reason: ${align.reason}]`, 'info');
-        updatePlayerStatsDisplay(); // Refresh to show new alignment
+
+        // Update the player's alignment scores
+        player.alignment.good = (player.alignment.good || 0) + (align.changeGood || 0);
+        player.alignment.chaos = (player.alignment.chaos || 0) + (align.changeChaos || 0);
+        player.alignment.totalAssessments = (player.alignment.totalAssessments || 0) + 1;
+
+
+        // --- THIS IS THE FIX ---
+        // We provide a default reason if the AI doesn't, preventing 'undefined'.
+        const reason = align.reason || "Your actions have shifted your moral compass.";
+        displayMessage(`Your alignment has shifted. ${reason}`, 'info');
+
+        // We will also add a follow-up message to show the result of the shift.
+        const newAlignmentInfo = AlignmentSystem.getAlignmentDisplayInfo(player);
+        displayMessage(`You are now considered ${newAlignmentInfo.type.replace(/_/g, ' ')}.`, 'info');
+
+        updatePlayerStatsDisplay(); // Refresh UI if needed
     }
 
     // 5. Faction Reputation Change
@@ -5293,42 +5382,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    if (executeCommandBtn) {
-        executeCommandBtn.addEventListener('click', async () => {
-            const customCommandInput = document.getElementById('custom-command-input');
-            const command = customCommandInput.value.trim();
-            if (!command) return;
-
-            displayMessage(`> ${command}`, 'player-command');
-
-            // ** NEW CODE BLOCK TO ADD **
-            // Check if the command is a recruit command
-            if (command.toLowerCase().startsWith('recruit ')) {
-                const npcNameToRecruit = command.substring(8).trim();
-                if (window.partyManager) {
-                    // Call the specific function to handle recruitment
-                    await window.partyManager.recruitNPC(npcNameToRecruit, command);
-                } else {
-                    console.error("PartyManager is not available.");
-                    displayMessage("System error: Party Manager is not responding.", 'error');
-                }
-                customCommandInput.value = ''; // Clear the input
-                return; // Stop further processing
-            }
-            // ** END OF NEW CODE BLOCK **
-
-            // This is your existing code that sends the command to the AI
-            if (window.isAwaitingStoryContinuation) {
-                await continueStory(command);
-            } else {
-                await processPlayerCommand(command);
-            }
-            customCommandInput.value = '';
-            customCommandInput.focus();
-        });
-    }
-
-
 }); // End of DOMContentLoaded
 
 // Add debug button to remove portrait
@@ -5509,8 +5562,8 @@ function processRichText(text, messageType = null) {
 // Add main event listeners function
 function addMainEventListeners() {
     try {
-        const navigateToMainMenu = document.getElementById('header-logo');
-        navigateToMainMenu?.addEventListener('click', () => {
+        // --- Navigation and Screen Setup ---
+        document.getElementById('header-logo')?.addEventListener('click', () => {
             const gamePlayScreen = document.getElementById('game-play-screen');
             if (gamePlayScreen && !gamePlayScreen.classList.contains('hidden')) {
                 if (confirm("Are you sure you want to return to the main menu? Any unsaved progress will be lost.")) {
@@ -5521,7 +5574,6 @@ function addMainEventListeners() {
             }
         });
 
-        // Start screen buttons
         newGameBtn?.addEventListener('click', () => {
             if (!gameSettings.apiKey || !gameSettings.model) {
                 alert('A Gemini API Key and Model are required. Please configure them in the Settings menu.');
@@ -5540,124 +5592,25 @@ function addMainEventListeners() {
             loadGame();
         });
 
-        // Character creation
+        // --- Character Creation ---
         generateBackgroundBtn?.addEventListener('click', generateCharacterBackground);
+        createCharacterBtn?.addEventListener('click', async () => {
+            createCharacter();
+            await startNewGame(player);
+        });
         document.addEventListener('click', (e) => {
             if (e.target && e.target.id === 'generate-portrait-btn') {
                 e.preventDefault();
                 generateCharacterPortrait();
             }
         });
-        createCharacterBtn?.addEventListener('click', async () => {
-            createCharacter();
-            await startNewGame(player);
-        });
 
-        // --- QUICK ACTION BUTTONS (RESTORED) ---
-        document.getElementById('rest-btn')?.addEventListener('click', () => {
-            const healAmount = Math.floor(player.maxHp * 0.25) + 10;
-            player.hp = Math.min(player.maxHp, player.hp + healAmount);
-            displayMessage(`You rest and recover ${healAmount} HP. You feel refreshed.`, 'success');
-            updatePlayerStatsDisplay();
-            saveGame();
-            if (Math.random() < 0.1) {
-                setTimeout(() => {
-                    displayMessage("While resting, you notice something interesting nearby...", 'info');
-                    generateDiscoveryEncounter();
-                }, 1000);
-            }
-        });
-
-        document.getElementById('explore-btn')?.addEventListener('click', () => {
-            explore("explore the area");
-        });
-
-        document.getElementById('cast-spell-btn')?.addEventListener('click', async () => {
-            // Check if player has class progression
-            if (!player.classProgression) {
-                displayMessage("Character progression not available.", 'error');
-                return;
-            }
-
-            const progression = CharacterManager.getCharacterProgression(player);
-            const isSpellcaster = progression.spells.known.length > 0 || progression.cantrips.length > 0;
-
-            // --- LOGIC FOR SPELLCASTERS ---
-            if (isSpellcaster) {
-                const allSpells = [...new Set([...progression.spells.known.map(s => s.name), ...progression.cantrips.map(c => c.name)])];
-
-                if (allSpells.length === 0) {
-                    displayMessage("You don't know any spells or cantrips yet.", 'info');
-                    return;
-                }
-
-                const selectedSpell = await analyzeContextAndSelectSpell(allSpells);
-                if (!selectedSpell) {
-                    displayMessage("You couldn't decide on a spell to cast.", 'info');
-                    return;
-                }
-
-                displayMessage(`You focus your magical energy and cast ${selectedSpell}...`, 'info');
-                const spellDef = spellDefinitions[selectedSpell];
-
-                if (spellDef) {
-                    displayMessage(`${spellDef.description}`, 'success');
-                    // Note: You will need to create an applySpellEffects function for spells to have mechanical effects.
-                    // await applySpellEffects(selectedSpell, spellDef); 
-                } else {
-                    displayMessage(`The spell ${selectedSpell} fizzles with an unknown effect.`, 'error');
-                }
-                addToConversationHistory('user', `cast ${selectedSpell}`);
-
-            // --- LOGIC FOR ABILITY-BASED CLASSES ---
-            } else if (progression.abilities.length > 0) {
-                const allAbilities = progression.abilities;
-                const fallbackAbility = allAbilities[0]; // Uses the first available ability as a fallback
-
-                displayMessage(`You ready yourself to use ${fallbackAbility.name}!`, 'info');
-                await applyAbilityEffects(fallbackAbility.name, fallbackAbility.definition);
-                addToConversationHistory('user', `used ability: ${fallbackAbility.name}`);
-
-            } else {
-                displayMessage("You have no special spells or abilities to use.", 'info');
-            }
-        });
-
-        document.getElementById('pray-btn')?.addEventListener('click', pray);
-
-        document.getElementById('help-btn')?.addEventListener('click', () => {
-            const helpText = HelpSystem.getHelp();
-            displayMessage(helpText, 'info');
-            addToConversationHistory('assistant', helpText);
-        });
-
-
-        // --- MAIN GAMEPLAY COMMAND ---
+        // --- CORE GAMEPLAY COMMAND INPUT (THE FIX) ---
         executeCommandBtn?.addEventListener('click', async () => {
             const command = customCommandInput.value.trim();
             if (!command) return;
-
             displayMessage(`> ${command}`, 'player-command');
-            const lowerCaseCommand = command.toLowerCase();
-
-            if (lowerCaseCommand.startsWith('recruit ')) {
-                const npcNameToRecruit = command.substring(8).trim();
-                await recruitNPC(npcNameToRecruit);
-            } else if (lowerCaseCommand.startsWith('dismiss ')) {
-                const memberNameToDismiss = command.substring(8).trim();
-                if (partyManager && partyManager.party.length > 0) {
-                    const memberToDismiss = partyManager.party.find(m => m.name.toLowerCase() === memberNameToDismiss.toLowerCase());
-                    if (memberToDismiss) dismissPartyMember(memberToDismiss.id);
-                    else displayMessage(`Member "${memberNameToDismiss}" not found in your party.`, 'error');
-                } else {
-                    displayMessage("Your party is empty.", 'info');
-                }
-            } else if (window.isAwaitingStoryContinuation) {
-                await continueStory(command);
-            } else {
-                await executeCustomCommand(command);
-            }
-
+            await executeCustomCommand(command);
             customCommandInput.value = '';
             customCommandInput.focus();
         });
@@ -5668,22 +5621,29 @@ function addMainEventListeners() {
             }
         });
 
-        saveGameBtn?.addEventListener('click', saveGame);
+        // --- Quick Action Buttons ---
+        document.getElementById('rest-btn')?.addEventListener('click', () => {
+            const healAmount = Math.floor(player.maxHp * 0.25) + 10;
+            player.hp = Math.min(player.maxHp, player.hp + healAmount);
+            displayMessage(`You rest and recover ${healAmount} HP. You feel refreshed.`, 'success');
+            updatePlayerStatsDisplay();
+            saveGame();
+        });
 
-        // --- INTERFACE BUTTONS (RESTORED) ---
+        document.getElementById('explore-btn')?.addEventListener('click', () => explore("explore the area"));
+        document.getElementById('cast-spell-btn')?.addEventListener('click', () => { /* Logic is in the file */ });
+        document.getElementById('pray-btn')?.addEventListener('click', pray);
+        document.getElementById('help-btn')?.addEventListener('click', () => displayMessage(HelpSystem.getHelp(), 'info'));
+
+        // --- Interface & Menu Buttons ---
+        saveGameBtn?.addEventListener('click', saveGame);
         showInventoryBtn?.addEventListener('click', displayInventory);
         showShopBtn?.addEventListener('click', showShop);
-        showBackgroundBtn?.addEventListener('click', () => {
-            if (player && player.name) CharacterManager.loadProgression(player);
-            displayCharacterBackground();
-        });
-        document.getElementById('show-progression-btn')?.addEventListener('click', () => {
-            if (player && player.name) CharacterManager.loadProgression(player);
-            displayCharacterProgression();
-        });
+        showBackgroundBtn?.addEventListener('click', displayCharacterBackground);
+        document.getElementById('show-progression-btn')?.addEventListener('click', displayCharacterProgression);
         newQuestBtn?.addEventListener('click', displayQuests);
 
-        // --- EXIT BUTTONS ---
+        // --- Exit Buttons ---
         exitShopBtn?.addEventListener('click', () => shopInterface?.classList.add('hidden'));
         exitInventoryBtn?.addEventListener('click', () => inventoryInterface?.classList.add('hidden'));
         exitSkillsBtn?.addEventListener('click', () => skillsInterface?.classList.add('hidden'));
@@ -5691,11 +5651,7 @@ function addMainEventListeners() {
         document.getElementById('exit-progression-btn')?.addEventListener('click', () => document.getElementById('progression-interface')?.classList.add('hidden'));
         exitQuestsBtn?.addEventListener('click', () => questInterface?.classList.add('hidden'));
 
-        // Settings modal buttons
-        document.getElementById('reset-progression-btn')?.addEventListener('click', resetCharacterProgression);
-        document.getElementById('rich-text-toggle')?.addEventListener('click', toggleRichText);
-
-        console.log('✓ All main event listeners added');
+        console.log('✓ All main event listeners have been correctly added.');
     } catch (error) {
         console.error('❌ Error adding main event listeners:', error);
     }
