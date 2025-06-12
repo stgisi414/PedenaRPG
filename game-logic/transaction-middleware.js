@@ -1,7 +1,9 @@
 // Transaction Detection Middleware - Uses Gemini AI to detect and process transactions
 export class TransactionMiddleware {
 
-    static async detectTransaction(aiResponse, player, gameContext) {
+    static async detectTransaction(aiResponse, command, player, gameContext) {
+        console.log(`--- TransactionMiddleware.detectTransaction CALLED ---`); // <<< ADD THIS LINE
+        console.log(`Command received: "${command}"`); // <<< ADD THIS LINE
         
         // --- NEW AND IMPROVED DIRECT COMMAND DETECTION ---
         const giveRegex = /^(?:give|pay)\s+(.+?)\s+(\d+)\s+gold/i; // Handles "give [recipient] [amount] gold"

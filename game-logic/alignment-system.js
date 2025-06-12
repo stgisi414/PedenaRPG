@@ -27,15 +27,12 @@ export class AlignmentSystem {
     static assessmentInterval = 10;
 
     static initializeAlignment(player) {
-        if (!player.alignment) {
+        if (!player.alignment || typeof player.alignment.goodScore === 'undefined') {
             player.alignment = {
-                goodScore: 0,
-                lawScore: 0,
-                type: this.alignmentTypes.TRUE_NEUTRAL,
+                goodScore: 0, // Tracks Good vs. Evil
+                lawScore: 0,  // Tracks Lawful vs. Chaotic
+                type: 'True Neutral',
                 history: [],
-                lastAssessment: Date.now(),
-                totalAssessments: 0,
-                messagesSinceLastAssessment: 0
             };
         }
         return player.alignment;
@@ -132,33 +129,35 @@ export class AlignmentSystem {
             const jsonMatch = cleanResponse.match(/\{[\s\S]*\}/);
             if (jsonMatch) {
                 const data = JSON.parse(jsonMatch[0]);
-                // Return an object with the changes, defaulting to 0 if missing.
                 return {
                     good: data.goodChange || 0,
                     law: data.lawChange || 0
                 };
             }
-            // If no JSON is found, return zero change.
             return { good: 0, law: 0 };
         } catch (error) {
             console.error("Failed to parse alignment JSON:", error);
-            return { good: 0, law: 0 }; // Return zero change on error
+            return { good: 0, law: 0 };
         }
     }
 
     static updateAlignment(player, change) {
         const alignment = this.initializeAlignment(player);
-
         const oldType = alignment.type;
 
-        // Update scores, capped between -10 (max evil/chaos) and +10 (max good/law)
+        console.log('--- AlignmentSystem.updateAlignment CALLED ---'); // <<< ADD THIS LINE
+        console.log('Change object received:', JSON.stringify(change)); // <<< ADD THIS LINE
+        console.log(`Scores BEFORE update: good=${alignment.goodScore}, law=${alignment.lawScore}`); // <<< ADD THIS LINE
+
         alignment.goodScore = Math.max(-10, Math.min(10, alignment.goodScore + change.good));
         alignment.lawScore = Math.max(-10, Math.min(10, alignment.lawScore + change.law));
 
-        // Determine new alignment type from the two scores
         alignment.type = this.getAlignmentType(alignment.goodScore, alignment.lawScore);
 
-        // Record this assessment in history
+        console.log(`Scores AFTER update: good=${alignment.goodScore}, law=${alignment.lawScore}`); // <<< ADD THIS LINE
+        console.log(`Alignment type changed from "${oldType}" to "${alignment.type}"`); // <<< ADD THIS LINE
+
+
         alignment.history.push({
             change: change,
             newGoodScore: alignment.goodScore,
@@ -186,14 +185,13 @@ export class AlignmentSystem {
         if (lawScore >= 3) horizontalAxis = 'Lawful';
         else if (lawScore <= -3) horizontalAxis = 'Chaotic';
 
-        // Combine the axes to get the final alignment
         if (verticalAxis === 'Neutral' && horizontalAxis === 'Neutral') {
             return 'True Neutral';
         }
-        if (verticalAxis === 'Neutral') return horizontalAxis; // Lawful Neutral, Chaotic Neutral
-        if (horizontalAxis === 'Neutral') return verticalAxis; // Neutral Good, Neutral Evil
+        if (verticalAxis === 'Neutral') return `${horizontalAxis} Neutral`;
+        if (horizontalAxis === 'Neutral') return `Neutral ${verticalAxis}`;
 
-        return `${horizontalAxis} ${verticalAxis}`; // Lawful Good, Chaotic Evil, etc.
+        return `${horizontalAxis} ${verticalAxis}`;
     }
 
     static getAlignmentModifier(player) {

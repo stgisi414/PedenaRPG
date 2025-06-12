@@ -818,6 +818,10 @@ async function generateNpcStats(npcName, playerLevel) {
 // Helper Functions
 // In script.js
 function updateGold(amount, reason = '') {
+    console.log(`--- updateGold CALLED ---`); // <<< ADD THIS LINE
+    console.log(`Attempting to change gold by ${amount} for reason: ${reason}`); // <<< ADD THIS LINE
+    console.log(`Gold BEFORE change: ${player.gold}`); // <<< ADD THIS LINE
+    
     const oldGold = player.gold;
     player.gold = Math.max(0, player.gold + Number(amount)); // Ensure amount is treated as a number
     console.log(`updateGold: Amount: ${amount}, Reason: ${reason}, Old Gold: ${oldGold}, New Gold: ${player.gold}`); // ADD THIS LOG
@@ -4797,6 +4801,10 @@ function createMasterPrompt(command) {
         YOUR TASK:
         Based on the command and context, determine the narrative outcome and all resulting game state changes.
 
+        CRITICAL RULES:
+        - For commands involving giving, paying, or donating gold (e.g., "give 10 gold", "donate 5 gold"), you MUST include a negative "gold" change in the "playerStateChanges" object. For example, "donate 5 gold" must result in '"gold": -5'. This is mandatory.
+
+
         JSON RESPONSE FORMAT:
         {
           "narrative": "...",
@@ -4950,19 +4958,38 @@ function movePartyWithPlayer(oldLocation, newLocation) {
 // Now, I'll modify the parseAndApplyStateChanges function to use this new helper.
 // I will replace the existing function with this updated version.
 async function parseAndApplyStateChanges(result) {
-    // 1. Time Progression
-    if (result.timePassedMinutes) {
-        gameWorld.time.setMinutes(gameWorld.time.getMinutes() + result.timePassedMinutes);
+    if (!result) {
+        console.error("parseAndApplyStateChanges called with null or undefined result.");
+        return;
     }
 
-    // 2. Narrative (Always present)
+    // 1. Narrative (Always present)
     if (result.narrative) {
         displayMessage(result.narrative, 'info');
         addToConversationHistory('assistant', result.narrative);
     }
 
-    // 3. Player State (HP, EXP, Gold, and Status Effects)
+    // 2. Player State (HP, EXP, Gold, and Status Effects)
     if (result.playerStateChanges) {
+        // --- This is the missing logic for Gold, XP, and HP ---
+        if (typeof result.playerStateChanges.gold === 'number' && result.playerStateChanges.gold !== 0) {
+            updateGold(result.playerStateChanges.gold, 'transaction');
+        }
+        if (typeof result.playerStateChanges.exp === 'number' && result.playerStateChanges.exp !== 0) {
+            gainExperience(result.playerStateChanges.exp);
+        }
+        if (typeof result.playerStateChanges.hp === 'number' && result.playerStateChanges.hp !== 0) {
+            const oldHp = player.hp;
+            player.hp = Math.max(0, Math.min(player.maxHp, player.hp + result.playerStateChanges.hp));
+            const actualChange = player.hp - oldHp;
+            if (actualChange > 0) {
+                displayMessage(`You recover ${actualChange} HP.`, 'success');
+            } else if (actualChange < 0) {
+                displayMessage(`You take ${Math.abs(actualChange)} damage.`, 'error');
+            }
+        }
+        // --- End of missing logic ---
+
         if (result.playerStateChanges.statusEffects) {
             const effects = result.playerStateChanges.statusEffects;
             if (effects.remove) {
@@ -4976,32 +5003,27 @@ async function parseAndApplyStateChanges(result) {
             }
             if (effects.add) {
                 effects.add.forEach(effectToAdd => {
+                    if (!player.statusEffects) player.statusEffects = [];
                     player.statusEffects.push(effectToAdd);
                     displayMessage(`You are now affected by: ${effectToAdd.name}.`, 'warning');
                 });
             }
         }
-        updatePlayerStatsDisplay();
     }
 
-    // 4. Alignment Change
+    // 3. Alignment Change (Immediate)
     if (result.alignmentChange) {
-        const align = result.alignmentChange;
-        if (!player.alignment) {
-            AlignmentSystem.initializeAlignment(player);
+        const alignmentResult = AlignmentSystem.updateAlignment(player, result.alignmentChange);
+        if (alignmentResult.changed) {
+            displayMessage(`Your alignment has shifted. You are now considered ${alignmentResult.newType}.`, 'info');
         }
-        player.alignment.good = (player.alignment.good || 0) + (align.changeGood || 0);
-        player.alignment.chaos = (player.alignment.chaos || 0) + (align.changeChaos || 0);
-        player.alignment.totalAssessments = (player.alignment.totalAssessments || 0) + 1;
-        const reason = align.reason || "Your actions have shifted your moral compass.";
-        displayMessage(`Your alignment has shifted. ${reason}`, 'info');
-        const newAlignmentInfo = AlignmentSystem.getAlignmentDisplayInfo(player);
-        displayMessage(`You are now considered ${newAlignmentInfo.type.replace(/_/g, ' ')}.`, 'info');
-        updatePlayerStatsDisplay();
     }
 
-    // 5. Faction Reputation Change
+    // 4. Faction Reputation Change
     if (result.factionReputationChange && result.factionReputationChange.length > 0) {
+        if (!player.reputation) {
+            player.reputation = {};
+        }
         result.factionReputationChange.forEach(change => {
             if (!player.reputation[change.faction]) {
                 player.reputation[change.faction] = 0;
@@ -5012,15 +5034,7 @@ async function parseAndApplyStateChanges(result) {
         });
     }
 
-    // 6. World Events
-    if (result.worldEvents && result.worldEvents.length > 0) {
-        result.worldEvents.forEach(event => {
-            gameWorld.activeEvents.push(event);
-            displayMessage(`[WORLD EVENT] ${event.details}`, 'world-event');
-        });
-    }
-
-    // 7. Item Changes (Add/Remove)
+    // 5. Item Changes
     if (result.itemChanges) {
         if (result.itemChanges.remove && result.itemChanges.remove.length > 0) {
             result.itemChanges.remove.forEach(itemToRemove => {
@@ -5038,31 +5052,16 @@ async function parseAndApplyStateChanges(result) {
                 displayMessage(`You obtained: ${newItem.name}!`, 'success');
             });
         }
-        if (!document.getElementById('inventory-interface').classList.contains('hidden')) {
-            displayInventory();
-        }
     }
 
-    // 8. Location Change (MODIFIED)
+    // 6. Location Change
     if (result.locationChange && result.locationChange !== player.currentLocation) {
         const oldLocation = player.currentLocation;
         player.currentLocation = result.locationChange;
-
-        // --- THIS IS THE FIX ---
-        // Move party members to the new location in the game world state.
         movePartyWithPlayer(oldLocation, player.currentLocation);
-
-        updatePlayerStatsDisplay();
     }
 
-    // 9. Relationship Changes
-    if (result.relationshipChanges && result.relationshipChanges.length > 0) {
-        result.relationshipChanges.forEach(change => {
-            updateRelationship(change.npcName, 0, change.trustChange, `Your interaction was ${change.emotionalImpact}.`);
-        });
-    }
-
-    // 10. Quest Progress
+    // 7. Quest Progress
     if (result.questProgress) {
         const quest = player.quests.find(q => q.title === result.questProgress.questTitle && !q.completed);
         if (quest) {
@@ -5073,10 +5072,13 @@ async function parseAndApplyStateChanges(result) {
         }
     }
 
-    // 11. Combat State
+    // 8. Combat State
     if (result.combatState && result.combatState.initiate) {
         await generateAndInitiateCombatEncounter(result.combatState.enemy);
     }
+
+    // Finally, update all displays.
+    updatePlayerStatsDisplay();
 }
 
 // Reset pagination when inventory or quests change significantly
