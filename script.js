@@ -1,44 +1,11 @@
-setTimeout(() => {
-    // Find the original displayMessage function
-    const originalDisplayMessage = window.displayMessage;
-
-    // If we found the function, replace it
-    if (typeof originalDisplayMessage === 'function') {
-        console.log("DEBUG: Detective code is now active. Watching for the alignment bug.");
-
-        // Create our new detective function
-        window.displayMessage = function(message, type) {
-
-            // Check if the message is the one causing the problem
-            if (typeof message === 'string' && message.includes('Your alignment shifts. undefined')) {
-
-                // If it is, print our findings to the console!
-                console.error("BUG FOUND! The broken alignment message was about to be displayed.");
-                console.log("The exact message was:", message);
-                console.log("Here is the 'call stack', which shows where the faulty function call came from:");
-
-                // This command prints the function history that led to the bug
-                console.trace(); 
-            }
-
-            // Finally, call the original function so messages still appear in the game
-            originalDisplayMessage(message, type);
-        };
-    } else {
-        console.error("DEBUG: Could not find the game's displayMessage function to start the trace.");
-    }
-}, 2000);
-// =========== DEBUGGING CODE END ===========
-
 // Import game data and assets
-import { gameData, GameDataManager } from './assets/game-data-loader.js';
 import { QuestCharacterGenerator } from './assets/quest-character-names.js';
-import { QuestTaskGenerator, questCategories, questThemes, questTemplates, questVariables } from './assets/quest-tasks.js';
+import { QuestTaskGenerator, questCategories, questThemes } from './assets/quest-tasks.js';
 import { CharacterManager } from './game-logic/character-manager.js';
 import { GameActions } from './game-logic/game-actions.js';
 import { LocationManager } from './game-logic/location-manager.js';
-import { classProgression, spellDefinitions, abilityDefinitions } from './game-logic/class-progression.js';
-import { ItemGenerator, ItemManager, itemCategories, itemRarity, statusEffects, itemTemplates } from './assets/world-items.js';
+import { classProgression } from './game-logic/class-progression.js';
+import { ItemGenerator, ItemManager, itemCategories, itemRarity, statusEffects } from './assets/world-items.js';
 import { TransactionMiddleware } from './game-logic/transaction-middleware.js';
 import { ItemExchangeMiddleware } from './game-logic/item-exchange-middleware.js';
 import { CombatSystem } from './game-logic/combat-system.js';
