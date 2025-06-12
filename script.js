@@ -49,7 +49,7 @@ function loadSettings() {
     if (apiKeyInput) apiKeyInput.value = gameSettings.apiKey;
 
     console.log("Game settings loaded:", gameSettings);
-}    
+}
 
 //Global delay function
 function delay(ms) {
@@ -776,9 +776,9 @@ const classes = {
 // --- NEW: Data structure for NPC classes ---
 const npcClasses = {
     warrior: { hp_base: 125, hp_per_level: 8, damage: '1d8', ac_bonus: 3, description: "A sturdy frontline fighter." },
-    mage:    { hp_base: 115, hp_per_level: 4, damage: '1d6', ac_bonus: 0, description: "A master of arcane arts." },
-    rogue:   { hp_base: 120, hp_per_level: 6, damage: '1d6', ac_bonus: 1, description: "A nimble and cunning scout." },
-    healer:  { hp_base: 118, hp_per_level: 5, damage: '1d4', ac_bonus: 0, description: "A supportive divine spellcaster.", skills: ['Minor Heal'] },
+    mage: { hp_base: 115, hp_per_level: 4, damage: '1d6', ac_bonus: 0, description: "A master of arcane arts." },
+    rogue: { hp_base: 120, hp_per_level: 6, damage: '1d6', ac_bonus: 1, description: "A nimble and cunning scout." },
+    healer: { hp_base: 118, hp_per_level: 5, damage: '1d4', ac_bonus: 0, description: "A supportive divine spellcaster.", skills: ['Minor Heal'] },
     // Default fallback
     commoner: { hp_base: 50, hp_per_level: 3, damage: '1d4', ac_bonus: 0, description: "A simple traveler." }
 };
@@ -821,7 +821,7 @@ function updateGold(amount, reason = '') {
     console.log(`--- updateGold CALLED ---`); // <<< ADD THIS LINE
     console.log(`Attempting to change gold by ${amount} for reason: ${reason}`); // <<< ADD THIS LINE
     console.log(`Gold BEFORE change: ${player.gold}`); // <<< ADD THIS LINE
-    
+
     const oldGold = player.gold;
     player.gold = Math.max(0, player.gold + Number(amount)); // Ensure amount is treated as a number
     console.log(`updateGold: Amount: ${amount}, Reason: ${reason}, Old Gold: ${oldGold}, New Gold: ${player.gold}`); // ADD THIS LOG
@@ -860,7 +860,7 @@ function displayMessage(message, type = 'info') {
         console.error("The call stack below shows exactly which function is responsible.");
 
         // This command will give us the clues we need.
-        console.trace(); 
+        console.trace();
 
         console.error("------------------------------------------------------");
     }
@@ -1236,7 +1236,7 @@ REQUIREMENTS: Use at least 7-10 different formatting effects per response. Use *
                 if (jsonString.startsWith('{') && jsonString.endsWith('}')) {
                     try {
                         // Test if it's parsable before returning
-                        JSON.parse(jsonString); 
+                        JSON.parse(jsonString);
                         return jsonString; // Return the clean, valid JSON string.
                     } catch (e) {
                         // It looked like JSON but wasn't, so fall through and return original text
@@ -2333,6 +2333,56 @@ function extractQuestTargets(text) {
     return commonTargets.filter(target => text.includes(target));
 }
 
+function completeQuest(quest) {
+    if (!quest || quest.completed) {
+        console.log("Attempted to complete a null or already completed quest.");
+        return;
+    }
+
+    quest.completed = true;
+    quest.dateCompleted = new Date().toLocaleDateString();
+
+    displayMessage(`🎉 Quest Completed: ${quest.title}!`, 'success');
+
+    // Award rewards directly from the quest object
+    const goldAward = quest.rewards?.gold || 0;
+    const xpAward = quest.rewards?.experience || 0;
+    const itemsAwarded = quest.rewards?.items || [];
+
+    if (goldAward > 0) {
+        updateGold(goldAward, 'quest reward');
+    }
+    if (xpAward > 0) {
+        gainExperience(xpAward);
+    }
+
+    if (itemsAwarded.length > 0) {
+        itemsAwarded.forEach(itemName => {
+            if (typeof itemName === 'string' && itemName.trim()) {
+                // We'll create a basic representation of the reward item
+                const rewardItem = {
+                    id: Date.now() + Math.random(),
+                    name: itemName.trim(),
+                    type: 'quest_reward',
+                    rarity: quest.difficulty === 'Hard' ? 'RARE' : 'UNCOMMON',
+                    description: `A reward for completing the quest: ${quest.title}`,
+                    value: (goldAward + xpAward) / 2 || 50
+                };
+                ItemManager.addItemToInventory(player, rewardItem);
+                displayMessage(`🎁 You received: ${rewardItem.name}!`, 'success');
+            }
+        });
+    }
+
+    // Update the UI
+    updateQuestButton();
+    resetQuestPagination();
+    const questInterface = document.getElementById('quest-interface');
+    if (questInterface && !questInterface.classList.contains('hidden')) {
+        displayQuests();
+    }
+}
+
 // Manual quest completion function
 function manualCompleteQuest(questTitle) {
     if (!player.quests || player.quests.length === 0) {
@@ -2645,17 +2695,17 @@ async function recruitNPC(npcName, npcData = null) {
             id: `npc_${Date.now()}`,
             name: npcName,
             ...npcStats, // Spread the stats into the new npc object
-            loyalty: 60 
+            loyalty: 60
         };
-    } 
+    }
     // If we found an existing NPC, check if they are missing stats.
     else if (!npc.health || !npc.maxHealth) {
         console.log(`Existing NPC ${npc.name} found, but is missing stats. Generating now.`);
         const npcStats = await generateNpcStats(npc.name, player.level);
         // Combine existing npc data (like ID and description) with the new stats.
         npc = {
-            ...npc, 
-            ...npcStats 
+            ...npc,
+            ...npcStats
         };
         console.log(`Stats generated for ${npc.name}: HP ${npc.health}`);
     }
@@ -2686,7 +2736,7 @@ function dismissPartyMember(memberId) {
 
     // Use loose equality (==) to find the member, which ignores the difference
     // between a number and a string (e.g., 123 == "123" is true).
-    const member = partyManager.party.find(m => m.id == memberId); 
+    const member = partyManager.party.find(m => m.id == memberId);
 
     if (!member) {
         // This is the error message you were seeing.
@@ -3702,7 +3752,7 @@ function displayCharacterProgression() {
         // Build the party status HTML and inject it into the container
         partyStatusContainer.innerHTML = buildPartyStatusHTML();
     }
-    
+
 }
 
 
@@ -4234,7 +4284,7 @@ async function generateCharacterBackground() {
     **Keep the entire response under 350 words.** IMPORTANT: Write in plain text only. Do NOT use any rich text formatting...`;
 
     try {
-         const background = await callGeminiAPI(prompt, 0.8, 2048, false);
+        const background = await callGeminiAPI(prompt, 0.8, 2048, false);
         if (background) {
             // Clean any potential formatting that might slip through
             const cleanBackground = background
@@ -4797,13 +4847,17 @@ function createMasterPrompt(command) {
 
         PLAYER COMMAND: "${command}"
 
-
         YOUR TASK:
         Based on the command and context, determine the narrative outcome and all resulting game state changes.
 
         CRITICAL RULES:
-        - For commands involving giving, paying, or donating gold (e.g., "give 10 gold", "donate 5 gold"), you MUST include a negative "gold" change in the "playerStateChanges" object. For example, "donate 5 gold" must result in '"gold": -5'. This is mandatory.
+        - For commands involving giving, paying, or donating gold... (existing rule)
 
+        // --- ADD THE FOLLOWING NEW RULE ---
+        - QUESTS: If the player's command is an attempt to complete a quest (e.g., "I'm done with the quest", "complete quest"), you MUST analyze the context to identify the correct quest.
+            - If the player is talking to the quest's "questGiver", assume they are turning in that specific quest.
+            - If the narrative context makes it obvious which quest they mean, use that one.
+            - If the correct quest is identified, you MUST return a "questProgress" object with "isComplete": true. This is mandatory for the game to work.
 
         JSON RESPONSE FORMAT:
         {
@@ -4824,7 +4878,11 @@ function createMasterPrompt(command) {
               { "faction": "Royal Guard", "change": 5, "reason": "Helped capture a thief." }
           ] or null,
           "relationshipChanges": [ ... ] or null,
-          "questProgress": { ... } or null,
+           "questProgress": {
+            "questTitle": "The Full Name of the Quest",
+            "update": "A description of the progress.",
+            "isComplete": true
+          } or null,
           "worldEvents": [ // <-- World Events
               { "event": "dragon_sighting", "location": "Dragon's Peak", "details": "Rumors spread of a red dragon seen near Dragon's Peak." }
           ] or null,
@@ -4858,7 +4916,7 @@ async function executeCustomCommand(command) {
                 console.log(`Intercepted recruitment command for: ${npcName}`);
                 // Use the dedicated recruit function which handles party state.
                 // This function will display its own system messages like "Jasper has joined your party!"
-                await recruitNPC(npcName); 
+                await recruitNPC(npcName);
 
                 // The narrative from your screenshot will now be generated here, based on the successful action.
                 const narrativePrompt = `The player, ${player.name}, just tried to recruit an NPC named ${npcName}. The recruitment was successful. Write a short, engaging narrative describing how ${npcName} agrees to join the party.`;
@@ -4869,7 +4927,7 @@ async function executeCustomCommand(command) {
                 }
 
                 // We've handled the command, so we exit here to avoid the generic master prompt.
-                return; 
+                return;
             }
         }
     }
@@ -4892,7 +4950,7 @@ async function executeCustomCommand(command) {
             }
         } catch (e) {
             console.warn("AI response contained malformed JSON. Treating as narrative.", e);
-            parsedResult = null; 
+            parsedResult = null;
         }
 
         if (parsedResult) {
@@ -5065,9 +5123,12 @@ async function parseAndApplyStateChanges(result) {
     if (result.questProgress) {
         const quest = player.quests.find(q => q.title === result.questProgress.questTitle && !q.completed);
         if (quest) {
-            displayMessage(`Quest Update: ${result.questProgress.update}`, 'success');
+            if (result.questProgress.update) {
+                displayMessage(`Quest Update: ${result.questProgress.update}`, 'success');
+            }
+            // If the AI says the quest is complete, call our new direct function
             if (result.questProgress.isComplete) {
-                checkQuestCompletion(quest.title);
+                completeQuest(quest);
             }
         }
     }
@@ -5261,6 +5322,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Make other functions globally accessible if needed by other parts of the code or for debugging
     window.LocationManager = typeof LocationManager !== 'undefined' ? LocationManager : {};
+    window.manualCompleteQuest = manualCompleteQuest; // <<< ADD THIS LINE
     window.GameActions = typeof GameActions !== 'undefined' ? GameActions : {};
     window.HelpSystem = HelpSystem;
     window.debugInventory = typeof debugInventory !== 'undefined' ? debugInventory : function() { /* ... */ };
@@ -6007,7 +6069,7 @@ function getIconForItem(item) {
     // --- Improved Inference Logic ---
     if (!inferredType) {
         // FIX: Check if armor property EXISTS, not if it's just a non-zero value.
-        if (typeof item.armor === 'number') inferredType = 'armor'; 
+        if (typeof item.armor === 'number') inferredType = 'armor';
         else if (item.damage) inferredType = 'weapon';
         else if (name.includes('potion') || name.includes('elixir')) inferredType = 'consumable';
         else if (name.includes('scroll')) inferredType = 'scroll';
@@ -6676,6 +6738,7 @@ async function useAbilityOrSpell(type, name) {
 
 // Add this new function to display the skills/abilities interface
 function displaySkillsAndAbilities() {
+    console.log("--- displaySkillsAndAbilities function called ---"); // <<< ADD THIS LINE
     const skillsInterface = document.getElementById('skills-interface');
     const skillsListDisplay = document.getElementById('skills-list');
     if (!skillsInterface || !skillsListDisplay) {
@@ -6691,6 +6754,8 @@ function displaySkillsAndAbilities() {
     });
 
     const progression = CharacterManager.getCharacterProgression(player);
+    console.log("Player progression data:", progression); // <<< ADD THIS LINE
+
     if (!progression) {
         displayMessage("Could not retrieve character progression.", "error");
         return;
@@ -6718,7 +6783,7 @@ function displaySkillsAndAbilities() {
         return sectionHTML;
     };
 
-    skillsHTML += createSection('Spells', progression.spells.known, 'spell');
+    skillsHTML += createSection('Spells', progression.spells.known, 'spell');F
     skillsHTML += createSection('Cantrips', progression.cantrips, 'cantrip');
     skillsHTML += createSection('Abilities', progression.abilities, 'ability');
     skillsHTML += createSection('Feats', progression.feats, 'feat');
