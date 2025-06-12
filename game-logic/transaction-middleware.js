@@ -2,7 +2,41 @@
 export class TransactionMiddleware {
 
     static async detectTransaction(aiResponse, player, gameContext) {
-        // First, check if the response contains explicit transaction indicators
+        // --- NEW CODE START ---
+        // Direct command detection to bypass narrative analysis for simple cases.
+        const giveGoldRegex = /^(?:give|pay)\s+(.+?)\s+(\d+)\s+gold/i; // Matches "give [recipient] [amount] gold"
+        const giveMatch = command.match(giveGoldRegex);
+
+        if (giveMatch) {
+            const recipientName = giveMatch[1];
+            const amount = parseInt(giveMatch[2], 10);
+
+            console.log(`TransactionMiddleware: Direct command detected to give ${amount} gold to ${recipientName}.`);
+
+            // Check if player has enough gold
+            if (player.gold >= amount) {
+                // Manually construct the transaction data.
+                return {
+                    hasTransaction: true,
+                    confidence: 1.0, // We are 100% confident.
+                    transactionType: "gift",
+                    items: [],
+                    goldChange: -amount, // Negative because the player is giving it away.
+                    vendor: recipientName
+                };
+            } else {
+                // Player doesn't have enough gold, return a failure message.
+                // You can customize this response.
+                if (typeof window.displayMessage === 'function') {
+                    window.displayMessage(`You check your pouch, but you don't have ${amount} gold to give.`, "error");
+                }
+                return { hasTransaction: false };
+            }
+        }
+        // --- NEW CODE END ---
+
+
+        // This is the original code, which will now only run if the direct command regex doesn't match.
         const transactionKeywords = [
             'you buy', 'you purchase', 'you sell', 'you trade', 'you pay',
             'costs', 'price', 'gold pieces', 'for sale', 'merchant offers',
