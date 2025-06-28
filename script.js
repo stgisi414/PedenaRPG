@@ -5516,11 +5516,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Settings button and modal functionality
     const settingsBtn = document.getElementById('settings-btn');
+    const startScreenSettingsBtn = document.getElementById('start-screen-settings-btn');
     const settingsModal = document.getElementById('settings-modal');
     const settingsModalCloseBtn = document.getElementById('settings-modal-close-btn');
 
     if (settingsBtn && settingsModal) {
         settingsBtn.addEventListener('click', () => {
+            settingsModal.classList.remove('hidden');
+        });
+    }
+
+    if (startScreenSettingsBtn && settingsModal) {
+        startScreenSettingsBtn.addEventListener('click', () => {
             settingsModal.classList.remove('hidden');
         });
     }
