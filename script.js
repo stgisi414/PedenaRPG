@@ -5514,6 +5514,31 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // Settings button and modal functionality
+    const settingsBtn = document.getElementById('settings-btn');
+    const settingsModal = document.getElementById('settings-modal');
+    const settingsModalCloseBtn = document.getElementById('settings-modal-close-btn');
+
+    if (settingsBtn && settingsModal) {
+        settingsBtn.addEventListener('click', () => {
+            settingsModal.classList.remove('hidden');
+        });
+    }
+
+    if (settingsModalCloseBtn && settingsModal) {
+        settingsModalCloseBtn.addEventListener('click', () => {
+            settingsModal.classList.add('hidden');
+        });
+    }
+
+    if (settingsModal) {
+        settingsModal.addEventListener('click', (event) => {
+            if (event.target === settingsModal) {
+                settingsModal.classList.add('hidden');
+            }
+        });
+    }
+
 }); // End of DOMContentLoaded
 
 // Add debug button to remove portrait
