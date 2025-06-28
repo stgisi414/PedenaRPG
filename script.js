@@ -5522,7 +5522,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if (settingsBtn && settingsModal) {
         settingsBtn.addEventListener('click', () => {
             settingsModal.classList.remove('hidden');
-            populateSettingsActions(); // Populate actions when modal opens
         });
     }
 
@@ -5538,33 +5537,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 settingsModal.classList.add('hidden');
             }
         });
-    }
-
-    // Populate settings actions container
-    function populateSettingsActions() {
-        const container = document.getElementById('settings-actions-container');
-        if (!container) return;
-
-        container.innerHTML = `
-            <button onclick="debugInventory()" class="btn-parchment bg-blue-600 hover:bg-blue-700 text-white">
-                <i class="ra ra-backpack mr-2"></i>Debug Inventory
-            </button>
-            <button onclick="fixInventory()" class="btn-parchment bg-green-600 hover:bg-green-700 text-white">
-                <i class="ra ra-wrench mr-2"></i>Fix Inventory
-            </button>
-            <button onclick="cleanupRelationships()" class="btn-parchment bg-yellow-600 hover:bg-yellow-700 text-white">
-                <i class="ra ra-broom mr-2"></i>Clean Relations
-            </button>
-            <button onclick="resetCharacterProgression()" class="btn-parchment bg-red-600 hover:bg-red-700 text-white">
-                <i class="ra ra-refresh mr-2"></i>Reset Progression
-            </button>
-            <button onclick="removeCharacterPortrait()" class="btn-parchment bg-purple-600 hover:bg-purple-700 text-white">
-                <i class="ra ra-image mr-2"></i>Remove Portrait
-            </button>
-            <button onclick="pray()" class="btn-parchment bg-indigo-600 hover:bg-indigo-700 text-white">
-                <i class="ra ra-prayer mr-2"></i>Pray
-            </button>
-        `;
     }
 
 }); // End of DOMContentLoaded
