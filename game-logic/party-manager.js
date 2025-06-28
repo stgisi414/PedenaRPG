@@ -84,6 +84,11 @@ export class PartyManager {
         return this.getAllMembers(player).filter(member => member.health > 0);
     }
 
+    // Get party member names (excluding player)
+    getPartyNames() {
+        return this.party.map(member => member.name);
+    }
+
     // Update party formation
     updateFormation() {
         const positions = ['front', 'left_flank', 'right_flank', 'rear'];
