@@ -7264,7 +7264,7 @@ const settingsBtn = document.createElement('button');
 settingsBtn.id = 'settings-btn';
 settingsBtn.className = 'btn-parchment bg-gray-600 hover:bg-gray-700 text-white text-xs md:text-sm py-1 px-2';
 settingsBtn.style.cssText = `position: fixed; top: 10px; right: 10px; z-index: 40;`;
-settingsBtn.innerHTML = '<span class="hidden sm:inline">Settings</span><span class="sm:hidden">⚙️ Settings</span>';
+settingsBtn.innerHTML = '<span>⚙️ Settings</span>';
 settingsBtn.title = 'Open Game Settings';
 
 // 2. Find the container inside the modal where the action buttons will go

@@ -10,7 +10,7 @@
     <link rel="icon" type="image/png" sizes="32x32" href="assets/pedena-logo.png">
     <link rel="icon" type="image/png" sizes="16x16" href="assets/pedena-logo.png">
     <link rel="shortcut icon" href="assets/pedena-logo.png">
-    
+
     <!-- Apple Touch Icon for iOS devices -->
     <link rel="apple-touch-icon" sizes="180x180" href="assets/pedena-logo.png">
     <link rel="apple-touch-icon" sizes="152x152" href="assets/pedena-logo.png">
@@ -21,31 +21,35 @@
     <link rel="apple-touch-icon" sizes="72x72" href="assets/pedena-logo.png">
     <link rel="apple-touch-icon" sizes="60x60" href="assets/pedena-logo.png">
     <link rel="apple-touch-icon" sizes="57x57" href="assets/pedena-logo.png">
-    
+
     <!-- Web App Manifest -->
     <link rel="manifest" href="manifest.json">
-    
+
     <!-- Microsoft Tiles -->
     <meta name="msapplication-TileImage" content="assets/pedena-logo.png">
     <meta name="msapplication-TileColor" content="#8B4513">
     <meta name="msapplication-config" content="browserconfig.xml">
 
-    <meta name="description" content="Embark on an epic AI-powered text-based RPG adventure in the realm of Pedena. Create your character, explore a dynamic world, complete quests, and battle monsters in this immersive fantasy RPG experience.">
-    <meta name="keywords" content="RPG, text-based game, AI RPG, fantasy adventure, Pedena, character creation, quests, dungeons, magic">
+    <meta name="description"
+        content="Embark on an epic AI-powered text-based RPG adventure in the realm of Pedena. Create your character, explore a dynamic world, complete quests, and battle monsters in this immersive fantasy RPG experience.">
+    <meta name="keywords"
+        content="RPG, text-based game, AI RPG, fantasy adventure, Pedena, character creation, quests, dungeons, magic">
     <meta name="author" content="Pedena RPG">
     <meta name="robots" content="index, follow">
 
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://ai-rpg.quest/">
     <meta property="og:title" content="Pedena RPG: A Text-Based Adventure | AI-Powered Fantasy RPG">
-    <meta property="og:description" content="Embark on an epic AI-powered text-based RPG adventure in the realm of Pedena. Create your character, explore a dynamic world, complete quests, and battle monsters.">
+    <meta property="og:description"
+        content="Embark on an epic AI-powered text-based RPG adventure in the realm of Pedena. Create your character, explore a dynamic world, complete quests, and battle monsters.">
     <meta property="og:image" content="https://ai-rpg.quest/assets/pedena-logo.png">
     <meta property="og:site_name" content="Pedena RPG">
 
     <meta property="twitter:card" content="summary_large_image">
     <meta property="twitter:url" content="https://ai-rpg.quest/">
     <meta property="twitter:title" content="Pedena RPG: A Text-Based Adventure | AI-Powered Fantasy RPG">
-    <meta property="twitter:description" content="Embark on an epic AI-powered text-based RPG adventure in the realm of Pedena. Create your character, explore a dynamic world, complete quests, and battle monsters.">
+    <meta property="twitter:description"
+        content="Embark on an epic AI-powered text-based RPG adventure in the realm of Pedena. Create your character, explore a dynamic world, complete quests, and battle monsters.">
     <meta property="twitter:image" content="https://ai-rpg.quest/assets/pedena-logo.png">
 
     <link rel="canonical" href="https://ai-rpg.quest/">
@@ -58,143 +62,160 @@
         rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" type="text/css" href="style.css">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/rpg-awesome@0.2.0/css/rpg-awesome.min.css" crossorigin="anonymous"></head>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/rpg-awesome@0.2.0/css/rpg-awesome.min.css"
+        crossorigin="anonymous">
+</head>
 
-    <body class="bg-stone-800 text-stone-100 font-merriweather">
-        <div id="game-container" class="max-w-4xl mx-auto p-8 rounded-lg shadow-xl relative overflow-hidden">
+<body class="bg-stone-800 text-stone-100 font-merriweather">
+    <div id="game-container" class="max-w-4xl mx-auto p-8 rounded-lg shadow-xl relative overflow-hidden">
 
-            <div id="settings-modal" class="hidden fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4">
-                <div id="settings-modal-content" class="parchment-bg p-6 rounded-lg shadow-xl w-full max-w-md relative border-4 border-amber-800">
-                    <div class="text-center border-b-2 border-amber-800/50 pb-3 mb-4 relative">
-                        <h4 class="text-2xl font-bold text-amber-800">Game Settings</h4>
-                        <button id="settings-modal-close-btn" class="absolute top-0 right-0 text-3xl font-bold text-amber-700 hover:text-red-700 leading-none">&times;</button>
-                    </div>
+        <div id="settings-modal"
+            class="hidden fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4">
+            <div id="settings-modal-content"
+                class="parchment-bg p-6 rounded-lg shadow-xl w-full max-w-md relative border-4 border-amber-800">
+                <div class="text-center border-b-2 border-amber-800/50 pb-3 mb-4 relative">
+                    <h4 class="text-2xl font-bold text-amber-800">Game Settings</h4>
+                    <button id="settings-modal-close-btn"
+                        class="absolute top-0 right-0 text-3xl font-bold text-amber-700 hover:text-red-700 leading-none">&times;</button>
+                </div>
 
-                    <div class="space-y-6">
-                        <div>
-                            <h5 class="font-bold mb-2 text-amber-700 text-lg" style="color: rgb(255 251 235);">API Configuration</h5>
-                            <div class="space-y-4">
-                                <div>
-                                    <label for="gemini-model-select" class="block text-sm font-semibold mb-1">Gemini Model:
-                                        <a href="https://aistudio.google.com/apikey" target="_blank"
-                                           class="text-xs text-google-blue hover:text-blue-600 underline"
-                                           style="float: right;">
-                                            Get API Key
-                                        </a>
-                                    </label>
-                                    <select id="gemini-model-select" class="w-full p-2 border border-amber-700/50 rounded bg-amber-50 focus:outline-none focus:ring-2 focus:ring-amber-500" style="color: rgb(146 64 14) !important;" placeholder="Choose your Gemini model">
-                                        <option value="gemini-1.5-flash-latest">Gemini 1.5 Flash (Recommended)</option>
-                                        <option value="gemini-2.0.flash">Gemini 2.0 Flash</option>
-                                        <option value="gemini-2.0.flash-thinking-exp-01-21">Gemini 2.0 Flash Experimental Thinking</option>
-                                        <option value="gemini-2.0-flash-lite">Gemini 2.0 Flash Lite</option>
-                                        <option value="gemini-2.5-flash-preview-05-20">Gemini 2.5 Flash</option>
-                                    </select>
-                                </div>
-                                <div>
-                                    <label for="gemini-api-key-input" class="block text-sm font-semibold mb-1">Your Gemini API Key:</label>
-                                    <input type="password" id="gemini-api-key-input" placeholder="Enter your API key here" class="w-full p-2 border border-amber-700/50 rounded bg-amber-50 focus:outline-none focus:ring-2 focus:ring-amber-500" style="color: rgb(146 64 14) !important;">
-                                </div>
+                <div class="space-y-6">
+                    <div>
+                        <h5 class="font-bold mb-2 text-amber-700 text-lg" style="color: rgb(255 251 235);">API
+                            Configuration</h5>
+                        <div class="space-y-4">
+                            <div>
+                                <label for="gemini-model-select" class="block text-sm font-semibold mb-1">Gemini Model:
+                                    <a href="https://aistudio.google.com/apikey" target="_blank"
+                                        class="text-xs text-google-blue hover:text-blue-600 underline"
+                                        style="float: right;">
+                                        Get API Key
+                                    </a>
+                                </label>
+                                <select id="gemini-model-select"
+                                    class="w-full p-2 border border-amber-700/50 rounded bg-amber-50 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                                    style="color: rgb(146 64 14) !important;" placeholder="Choose your Gemini model">
+                                    <option value="gemini-1.5-flash-latest">Gemini 1.5 Flash (Recommended)</option>
+                                    <option value="gemini-2.0.flash">Gemini 2.0 Flash</option>
+                                    <option value="gemini-2.0.flash-thinking-exp-01-21">Gemini 2.0 Flash Experimental
+                                        Thinking</option>
+                                    <option value="gemini-2.0-flash-lite">Gemini 2.0 Flash Lite</option>
+                                    <option value="gemini-2.5-flash-preview-05-20">Gemini 2.5 Flash</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label for="gemini-api-key-input" class="block text-sm font-semibold mb-1">Your Gemini
+                                    API Key:</label>
+                                <input type="password" id="gemini-api-key-input" placeholder="Enter your API key here"
+                                    class="w-full p-2 border border-amber-700/50 rounded bg-amber-50 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                                    style="color: rgb(146 64 14) !important;">
                             </div>
                         </div>
+                    </div>
 
-                        <div>
-                            <h5 class="font-bold mb-3 text-amber-700 text-lg" style="color: rgb(255 251 235);">Game Actions</h5>
-                            <div id="settings-actions-container" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                </div>
+                    <div>
+                        <h5 class="font-bold mb-3 text-amber-700 text-lg" style="color: rgb(255 251 235);">Game Actions
+                        </h5>
+                        <div id="settings-actions-container" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         </div>
                     </div>
                 </div>
             </div>
+        </div>
 
-            <div id="parchment-background" class="absolute inset-0 z-0"></div>
-            <div class="relative z-10 p-6">
-                <header class="text-center mb-8">
-                    <div class="flex items-center justify-center gap-4 mb-2">
-                        <img id="header-logo" src="assets/pedena-logo.png" alt="Pedena Logo" class="w-16 h-16 object-contain" style="cursor: pointer;">
-                        <h1 class="text-4xl font-bold font-old-standard-tt drop-shadow-lg">The Chronicles of Pedena</h1>
+        <div id="parchment-background" class="absolute inset-0 z-0"></div>
+        <div class="relative z-10 p-6">
+            <header class="text-center mb-8">
+                <div class="flex items-center justify-center gap-4 mb-2">
+                    <img id="header-logo" src="assets/pedena-logo.png" alt="Pedena Logo"
+                        class="w-16 h-16 object-contain" style="cursor: pointer;">
+                    <h1 class="text-4xl font-bold font-old-standard-tt drop-shadow-lg">The Chronicles of Pedena</h1>
+                </div>
+                <p class="text-xl mt-2" style="color: #F5DEB3 !important;">A Text-Based RPG Adventure</p>
+            </header>
+
+            <main id="game-screen">
+                <section id="start-screen">
+                    <h2 class="text-3xl font-bold mb-6 text-center">Welcome, Adventurer!</h2>
+                    <div class="flex flex-col md:flex-row justify-center items-center gap-6">
+                        <button id="new-game-btn" class="btn-parchment">🧙‍♂️ New Game</button>
+                        <button id="load-game-btn" class="btn-parchment" disabled>📖 Load Game</button>
                     </div>
-                    <p class="text-xl mt-2" style="color: #F5DEB3 !important;">A Text-Based RPG Adventure</p>
-                </header>
+                </section>
 
-                <main id="game-screen">
-                    <section id="start-screen">
-                        <h2 class="text-3xl font-bold mb-6 text-center">Welcome, Adventurer!</h2>
-                        <div class="flex flex-col md:flex-row justify-center items-center gap-6">
-                            <button id="new-game-btn" class="btn-parchment">🧙‍♂️ New Game</button>
-                            <button id="load-game-btn" class="btn-parchment" disabled>📖 Load Game</button>
+                <section id="character-creation-screen" class="hidden">
+                    <h2 class="text-3xl font-bold mb-6 text-center">Character Creation</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                        <div>
+                            <label for="char-name" class="block text-lg mb-2"
+                                style="color: #F5DEB3 !important;">Character Name:</label>
+                            <input type="text" id="char-name" class="input-parchment"
+                                placeholder="Enter your hero's name">
                         </div>
-                    </section>
+                        <div>
+                            <label for="char-class" class="block text-lg mb-2"
+                                style="color: #F5DEB3 !important;">Class:</label>
+                            <select id="char-class" class="input-parchment">
+                                <option value="">Choose a Class</option>
+                                <option value="warrior">Warrior</option>
+                                <option value="mage">Mage</option>
+                                <option value="rogue">Rogue</option>
+                                <option value="ranger">Ranger</option>
+                                <option value="priest">Cleric</option>
+                                <option value="paladin">Paladin</option>
+                                <option value="bard">Bard</option>
+                                <option value="druid">Druid</option>
+                                <option value="monk">Monk</option>
+                                <option value="sorcerer">Sorcerer</option>
+                                <option value="warlock">Warlock</option>
+                                <option value="barbarian">Barbarian</option>
+                                <option value="brawler">Brawler</option>
+                                <option value="assassin">Assassin</option>
+                                <option value="hunter">Hunter</option>
+                                <option value="shaman">Shaman</option>
+                                <option value="gladiator">Gladiator</option>
+                                <option value="ninja">Ninja</option>
+                                <option value="summoner">Summoner</option>
+                                <option value="necromancer">Necromancer</option>
+                                <option value="illusionist">Illusionist</option>
+                                <option value="engineer">Engineer</option>
+                                <option value="alchemist">Alchemist</option>
+                                <option value="scholar">Scholar</option>
+                                <option value="psychic">Psychic</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="mb-6">
+                        <label class="block text-lg mb-2" style="color: #F5DEB3 !important;">Gender:</label>
+                        <div class="flex gap-4">
+                            <label class="inline-flex items-center">
+                                <input type="radio" name="char-gender" value="male" class="form-radio text-amber-700">
+                                <span class="ml-2" style="color: #F5DEB3 !important;">♂️ Male</span>
+                            </label>
+                            <label class="inline-flex items-center">
+                                <input type="radio" name="char-gender" value="female" class="form-radio text-amber-700">
+                                <span class="ml-2" style="color: #F5DEB3 !important;">♀️ Female</span>
+                            </label>
 
-                    <section id="character-creation-screen" class="hidden">
-                        <h2 class="text-3xl font-bold mb-6 text-center">Character Creation</h2>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                            <div>
-                                <label for="char-name" class="block text-lg mb-2" style="color: #F5DEB3 !important;">Character Name:</label>
-                                <input type="text" id="char-name" class="input-parchment"
-                                    placeholder="Enter your hero's name">
-                            </div>
-                            <div>
-                                <label for="char-class" class="block text-lg mb-2" style="color: #F5DEB3 !important;">Class:</label>
-                                <select id="char-class" class="input-parchment">
-                                    <option value="">Choose a Class</option>
-                                    <option value="warrior">Warrior</option>
-                                    <option value="mage">Mage</option>
-                                    <option value="rogue">Rogue</option>
-                                    <option value="ranger">Ranger</option>
-                                    <option value="priest">Cleric</option>
-                                    <option value="paladin">Paladin</option>
-                                    <option value="bard">Bard</option>
-                                    <option value="druid">Druid</option>
-                                    <option value="monk">Monk</option>
-                                    <option value="sorcerer">Sorcerer</option>
-                                    <option value="warlock">Warlock</option>
-                                    <option value="barbarian">Barbarian</option>
-                                    <option value="brawler">Brawler</option>
-                                    <option value="assassin">Assassin</option>
-                                    <option value="hunter">Hunter</option>
-                                    <option value="shaman">Shaman</option>
-                                    <option value="gladiator">Gladiator</option>
-                                    <option value="ninja">Ninja</option>
-                                    <option value="summoner">Summoner</option>
-                                    <option value="necromancer">Necromancer</option>
-                                    <option value="illusionist">Illusionist</option>
-                                    <option value="engineer">Engineer</option>
-                                    <option value="alchemist">Alchemist</option>
-                                    <option value="scholar">Scholar</option>
-                                    <option value="psychic">Psychic</option>
-                                </select>
-                            </div>
                         </div>
-                        <div class="mb-6">
-                            <label class="block text-lg mb-2" style="color: #F5DEB3 !important;">Gender:</label>
-                            <div class="flex gap-4">
-                                <label class="inline-flex items-center">
-                                    <input type="radio" name="char-gender" value="male" class="form-radio text-amber-700">
-                                    <span class="ml-2" style="color: #F5DEB3 !important;">♂️ Male</span>
-                                </label>
-                                <label class="inline-flex items-center">
-                                    <input type="radio" name="char-gender" value="female" class="form-radio text-amber-700">
-                                    <span class="ml-2" style="color: #F5DEB3 !important;">♀️ Female</span>
-                                </label>
+                    </div>
+                    <div id="portrait-section" class="text-center my-4">
+                        <div id="portrait-container" class="w-full max-w-sm mx-auto parchment-box p-2">
+                        </div>
+                        <button id="generate-portrait-btn" class="btn-parchment mt-4">Generate Portrait</button>
+                    </div>
+                    <div class="mb-6">
+                        <label for="char-background" class="block text-lg mb-2"
+                            style="color: #F5DEB3 !important;">Background Story (AI Generated):</label>
+                        <textarea id="char-background" class="input-parchment" style="width:100%;" readonly></textarea>
+                        <button id="generate-background-btn" class="btn-parchment mt-4 w-full">Generate
+                            Background</button>
+                    </div>
+                    <button id="create-character-btn" class="btn-parchment w-full"><i
+                            class="ra ra-crossed-swords mr-2"></i>Start Adventure!</button>
+                </section>
 
-                            </div>
-                        </div>
-                        <div id="portrait-section" class="text-center my-4">
-                            <div id="portrait-container" class="w-full max-w-sm mx-auto parchment-box p-2">
-                                </div>
-                            <button id="generate-portrait-btn" class="btn-parchment mt-4">Generate Portrait</button>
-                        </div>
-                        <div class="mb-6">
-                            <label for="char-background" class="block text-lg mb-2" style="color: #F5DEB3 !important;">Background Story (AI Generated):</label>
-                            <textarea id="char-background" class="input-parchment" style="width:100%;" readonly></textarea>
-                            <button id="generate-background-btn" class="btn-parchment mt-4 w-full">Generate
-                                Background</button>
-                        </div>
-                        <button id="create-character-btn" class="btn-parchment w-full"><i
-                                class="ra ra-crossed-swords mr-2"></i>Start Adventure!</button>
-                    </section>
-
-                    <section id="game-play-screen" class="hidden relative">
+                <section id="game-play-screen" class="hidden relative">
                         <div class="flex justify-between items-center mb-6">
                             <h3 id="player-name" class="text-2xl font-bold"></h3>
                             <div style="color: #F5DEB3 !important;">
@@ -207,10 +228,13 @@
                         </div>
 
                         <div id="custom-command-section" class="mb-6">
-                            <label for="custom-command-input" class="block text-lg mb-2" style="color:#F5DEB3 !important;">Enter Command: <span style="text-align: right;">
-    <button id="help-btn" class="btn-parchment bg-purple-600 hover:bg-purple-700 text-xs md:text-sm py-1 px-2 text-white" title="Show help system" style="display: inline;">
-                                <i class="ra ra-quill mr-2"></i>Help
-                            </button></span></label>
+                            <label for="custom-command-input" class="block text-lg mb-2"
+                                style="color:#F5DEB3 !important;">Enter Command: <span style="text-align: right;">
+                                    <button id="help-btn"
+                                        class="btn-parchment bg-purple-600 hover:bg-purple-700 text-xs md:text-sm py-1 px-2 text-white"
+                                        title="Show help system" style="display: inline;">
+                                        <i class="ra ra-quill mr-2"></i>Help
+                                    </button></span></label>
                             <div class="flex gap-2">
                                 <input type="text" id="custom-command-input" class="input-parchment flex-1"
                                     placeholder="Type your action here (e.g., 'examine the mysterious door', 'talk to the merchant', 'cast fireball')...">
@@ -234,14 +258,15 @@
 
                         <div class="flex justify-center mt-4">
                             <button id="settings-btn" class="btn-parchment bg-gray-600 hover:bg-gray-700 text-white">
-                                <i class="ra ra-wrench mr-2"></i><span class="sm:inline">Settings</span><span class="sm:hidden">⚙️</span>
+                                <span>Settings⚙️</span>
                             </button>
                         </div>
 
                         <div id="quick-actions" class="grid grid-cols-2 md:grid-cols-4 gap-2 mt-4">
                             <button id="rest-btn" class="btn-parchment text-sm">😴 Rest</button>
                             <button id="explore-btn" class="btn-parchment text-sm">🔍 Explore</button>
-                            <button id="cast-spell-btn" class="btn-parchment text-sm"><i class="ra ra-magic-swirl mr-2"></i>Cast Spell</button>
+                            <button id="cast-spell-btn" class="btn-parchment text-sm"><i
+                                    class="ra ra-magic-swirl mr-2"></i>Cast Spell</button>
                             <button id="pray-btn" class="btn-parchment text-sm">🙏 Pray</button>
                         </div>
 
@@ -288,7 +313,7 @@
                             <div id="party-manager-section" class="parchment-box p-4 mb-4">
                                 <h5 class="font-bold mb-2">Party Manager</h5>
                                 <div id="party-manager-display">
-                                    </div>
+                                </div>
                             </div>
                             <div class="text-center">
                                 <button id="exit-progression-btn"
@@ -308,21 +333,25 @@
 
                 </main>
 
-                <footer class="text-center mt-8 text-sm">
-                    <p style="color: #F5DEB3 !important;">&copy; 2025 Pedena RPG. Powered by Gemini API & the spirit of adventure.</p>
-                </footer>
-            </div>
+            <footer class="text-center mt-8 text-sm">
+                <p style="color: #F5DEB3 !important;">&copy; 2025 Pedena RPG. Powered by Gemini API & the spirit of
+                    adventure.</p>
+            </footer>
         </div>
+    </div>S
 
-        <script type="module" src="script.js"></script>
+    <script type="module" src="script.js"></script>
 
 
-        <div id="scenery-image-display" class="hidden fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
-            <div class="bg-stone-800 p-4 rounded-lg shadow-xl max-w-3xl w-full relative parchment-border">
-                <img id="generated-scenery-image" src="#" alt="Generated Scenery" class="w-full h-auto rounded mb-4 max-h-[70vh] object-contain">
-                <button id="close-scenery-image-btn" class="btn-parchment absolute top-2 right-2 bg-red-700 hover:bg-red-800 text-white py-1 px-2 text-sm">Close</button>
-            </div>
+    <div id="scenery-image-display"
+        class="hidden fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
+        <div class="bg-stone-800 p-4 rounded-lg shadow-xl max-w-3xl w-full relative parchment-border">
+            <img id="generated-scenery-image" src="#" alt="Generated Scenery"
+                class="w-full h-auto rounded mb-4 max-h-[70vh] object-contain">
+            <button id="close-scenery-image-btn"
+                class="btn-parchment absolute top-2 right-2 bg-red-700 hover:bg-red-800 text-white py-1 px-2 text-sm">Close</button>
         </div>
-    </body>
+    </div>
+</body>
 
 </html>
