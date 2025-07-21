@@ -225,27 +225,6 @@ h1, h2, h3, h4 {
     background-color: #374151;
 }
 
-/* Donate Button Styling */
-#donate-btn {
-    background: linear-gradient(135deg, #D97706, #F59E0B) !important;
-    border-color: #B45309 !important;
-    color: white !important;
-    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
-    box-shadow: 0 4px 8px rgba(217, 119, 6, 0.3);
-    transition: all 0.3s ease;
-}
-
-#donate-btn:hover {
-    background: linear-gradient(135deg, #F59E0B, #FBBF24) !important;
-    transform: translateY(-2px);
-    box-shadow: 0 6px 12px rgba(217, 119, 6, 0.4);
-}
-
-#donate-btn:active {
-    transform: translateY(0);
-    box-shadow: 0 2px 4px rgba(217, 119, 6, 0.3);
-}
-
 /* Hide elements initially, controlled by JS */
 .hidden {
     display: none !important;
