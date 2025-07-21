@@ -1,0 +1,3 @@
+-donate button with venmo api
+-bgm with mytunes (array of songs i generate for specific situations) and google lyria 
+-firebase authentication for playing character on multiple devices and saving current character data and game save data and enabling bgm for 1 dollar per 15 minutes
