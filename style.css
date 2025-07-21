@@ -225,11 +225,6 @@ h1, h2, h3, h4 {
     background-color: #374151;
 }
 
-/* Hide elements initially, controlled by JS */
-.hidden {
-    display: none !important;
-}
-
 /* Donate Button Styling */
 #donate-btn {
     background: linear-gradient(135deg, #D97706, #F59E0B) !important;
@@ -249,6 +244,11 @@ h1, h2, h3, h4 {
 #donate-btn:active {
     transform: translateY(0);
     box-shadow: 0 2px 4px rgba(217, 119, 6, 0.3);
+}
+
+/* Hide elements initially, controlled by JS */
+.hidden {
+    display: none !important;
 }
 
 /* Control Button Styling System */
