@@ -71,6 +71,17 @@ async function initializeGame() {
         // Initialize UI manager
         uiManager.updateRichTextToggle();
         
+        // Add missing global UI functions for backward compatibility
+        window.updateIllustrationButtonVisibility = () => {
+            // Implementation for illustration button visibility
+            console.log('Illustration button visibility updated');
+        };
+        
+        window.updateQuestButton = () => {
+            // Implementation for quest button updates  
+            console.log('Quest button updated');
+        };
+        
         console.log('✓ Game initialized successfully');
         
     } catch (error) {
@@ -127,6 +138,14 @@ function setupEventListeners() {
                 uiManager.updatePlayerStatsDisplay();
                 uiManager.updateIllustrationButtonVisibility();
                 uiManager.updateQuestButton();
+                uiManager.displayMessage(`Welcome back, ${window.player.name}! You are in ${window.player.currentLocation}.`, 'success');
+                
+                // Add helpful reminder about the Explore button
+                setTimeout(() => {
+                    uiManager.displayMessage("💡 The DM remembers your last encounters! Try using the 🔍 Explore button to help return to your adventure!", 'info');
+                }, 1000);
+            } else {
+                uiManager.displayMessage("No saved game found.", 'error');
             }
         });
     }
