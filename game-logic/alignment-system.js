@@ -196,61 +196,36 @@ export class AlignmentSystem {
 
     static getAlignmentModifier(player) {
         const alignment = this.initializeAlignment(player);
-        const type = alignment.type;
+        const goodScore = alignment.goodScore;
 
         return {
-            npcTrustModifier: this.getNpcTrustModifier(type),
-            shopPriceModifier: this.getShopPriceModifier(type),
-            questRewardModifier: this.getQuestRewardModifier(type),
-            combatModifier: this.getCombatModifier(type),
-            prayerEffects: this.getPrayerEffects(type, alignment.score)
+            npcTrustModifier: this.getNpcTrustModifier(goodScore),
+            shopPriceModifier: this.getShopPriceModifier(goodScore),
+            questRewardModifier: this.getQuestRewardModifier(goodScore),
+            combatModifier: this.getCombatModifier(goodScore),
+            prayerEffects: this.getPrayerEffects(alignment.type, goodScore)
         };
     }
 
-    static getNpcTrustModifier(alignmentType) {
-        const modifiers = {
-            malevolent: -30,
-            evil: -20,
-            neutral_evil: -10,
-            neutral: 0,
-            neutral_good: 10,
-            good: 20,
-            devout: 30
-        };
-        return modifiers[alignmentType] || 0;
+    static getNpcTrustModifier(goodScore) {
+        return goodScore * 3; // -30 to +30 range
     }
 
-    static getShopPriceModifier(alignmentType) {
-        const modifiers = {
-            malevolent: 1.3,  // 30% more expensive
-            evil: 1.2,        // 20% more expensive
-            neutral_evil: 1.1, // 10% more expensive
-            neutral: 1.0,     // Normal prices
-            neutral_good: 0.95, // 5% discount
-            good: 0.9,        // 10% discount
-            devout: 0.8       // 20% discount
-        };
-        return modifiers[alignmentType] || 1.0;
+    static getShopPriceModifier(goodScore) {
+        // Good characters get discounts, evil pay more
+        return 1.0 - (goodScore * 0.03); // 0.7 to 1.3 range
     }
 
-    static getQuestRewardModifier(alignmentType) {
-        const modifiers = {
-            malevolent: 0.7,  // 30% less rewards
-            evil: 0.8,        // 20% less rewards
-            neutral_evil: 0.9, // 10% less rewards
-            neutral: 1.0,     // Normal rewards
-            neutral_good: 1.1, // 10% bonus rewards
-            good: 1.2,        // 20% bonus rewards
-            devout: 1.3       // 30% bonus rewards
-        };
-        return modifiers[alignmentType] || 1.0;
+    static getQuestRewardModifier(goodScore) {
+        // Good characters get better rewards
+        return 1.0 + (goodScore * 0.03); // 0.7 to 1.3 range
     }
 
-    static getCombatModifier(alignmentType) {
+    static getCombatModifier(goodScore) {
         return {
-            damageBonus: alignmentType === 'malevolent' ? 0.1 : alignmentType === 'devout' ? 0.1 : 0,
-            defenseBonus: alignmentType === 'good' || alignmentType === 'devout' ? 0.05 : 0,
-            critChance: alignmentType === 'evil' || alignmentType === 'malevolent' ? 0.05 : 0
+            damageBonus: Math.abs(goodScore) >= 6 ? 0.1 : 0, // Extreme alignments get damage bonus
+            defenseBonus: goodScore >= 3 ? 0.05 : 0, // Good alignment gets defense
+            critChance: goodScore <= -3 ? 0.05 : 0 // Evil alignment gets crit chance
         };
     }
 
@@ -312,15 +287,32 @@ export class AlignmentSystem {
 
     static getAlignmentDescription(player) {
         const alignment = this.initializeAlignment(player);
-        return this.alignmentDescriptions[alignment.type] || "Your moral standing is unclear.";
+        
+        // Convert alignment type to description key
+        const goodScore = alignment.goodScore;
+        let descriptionKey = 'neutral';
+        
+        if (goodScore >= 6) descriptionKey = 'devout';
+        else if (goodScore >= 3) descriptionKey = 'good';
+        else if (goodScore >= 1) descriptionKey = 'neutral_good';
+        else if (goodScore <= -6) descriptionKey = 'malevolent';
+        else if (goodScore <= -3) descriptionKey = 'evil';
+        else if (goodScore <= -1) descriptionKey = 'neutral_evil';
+        
+        return this.alignmentDescriptions[descriptionKey] || "Your moral standing is unclear.";
     }
 
     static getAlignmentDisplayInfo(player) {
         const alignment = this.initializeAlignment(player);
 
+        // Calculate a combined moral score for display (good score is primary)
+        const moralScore = alignment.goodScore;
+
         return {
             type: alignment.type,
-            score: alignment.score,
+            score: moralScore,
+            goodScore: alignment.goodScore,
+            lawScore: alignment.lawScore,
             description: this.getAlignmentDescription(player),
             color: this.getAlignmentColor(alignment.type),
             modifier: this.getAlignmentModifier(player)
@@ -329,13 +321,15 @@ export class AlignmentSystem {
 
     static getAlignmentColor(alignmentType) {
         const colors = {
-            malevolent: 'text-red-900',
-            evil: 'text-red-700',
-            neutral_evil: 'text-red-400',
-            neutral: 'text-gray-600',
-            neutral_good: 'text-blue-400',
-            good: 'text-blue-700',
-            devout: 'text-yellow-600'
+            'Chaotic Evil': 'text-red-900',
+            'Neutral Evil': 'text-red-700',
+            'Lawful Evil': 'text-red-600',
+            'Chaotic Neutral': 'text-orange-600',
+            'True Neutral': 'text-gray-600',
+            'Lawful Neutral': 'text-blue-400',
+            'Chaotic Good': 'text-green-500',
+            'Neutral Good': 'text-green-600',
+            'Lawful Good': 'text-yellow-600'
         };
         return colors[alignmentType] || 'text-gray-600';
     }

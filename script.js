@@ -426,8 +426,8 @@ async function processAlignmentChange(change) {
         }
 
         if (result.changed) {
-            const changeText = change > 0 ? 'improved' : 'declined';
-            const newAlignmentName = result.newType.replace(/_/g, ' ');
+            const changeText = (change.good && change.good > 0) || (change.law && change.law > 0) ? 'improved' : 'declined';
+            const newAlignmentName = result.newType;
 
             displayMessage(`Your moral standing has ${changeText}. You are now ${newAlignmentName}.`,
                 change > 0 ? 'success' : 'error');
