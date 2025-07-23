@@ -1,8 +1,7 @@
-
 {
-  "name": "Pedena RPG: A Text-Based Adventure",
-  "short_name": "Pedena RPG",
-  "description": "Embark on an epic AI-powered text-based RPG adventure in the realm of Pedena",
+  "name": "Shadowscale Chronicles: A Text-Based Adventure",
+  "short_name": "Shadowscale Chronicles",
+  "description": "An immersive AI-powered text-based RPG adventure in the Shadowscale Chronicles",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#262626",
