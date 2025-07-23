@@ -362,10 +362,33 @@ export class CharacterManager {
         player.level = newLevel;
         player.classProgression.level = newLevel;
         
+        // Apply stat increases on level-up
+        this.applyStatIncreases(player, newLevel);
+        
         // Apply new level progression
         this.applyLevelProgression(player, newLevel);
         
         return true;
+    }
+    
+    static applyStatIncreases(player, level) {
+        // Every level, increase all stats by 1
+        const statNames = ['strength', 'dexterity', 'intelligence', 'constitution', 'wisdom', 'charisma'];
+        
+        statNames.forEach(statName => {
+            player.stats[statName] += 1;
+        });
+        
+        // Every 4 levels (4, 8, 12, 16), give an additional +2 to primary stats
+        if (level % 4 === 0) {
+            const progression = classProgression[player.classProgression.class];
+            progression.primaryStats.forEach(stat => {
+                player.stats[stat] += 2;
+            });
+            console.log(`Level ${level}: Applied bonus to primary stats (${progression.primaryStats.join(', ')})`);
+        }
+        
+        console.log(`Level ${level}: Applied stat increases`);
     }
     
     static getCharacterProgression(player) {
