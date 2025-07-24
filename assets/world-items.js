@@ -2681,7 +2681,7 @@ export class ItemGenerator {
         return JSON.parse(JSON.stringify(randomTemplate)); // Return a deep copy
     }
     
-    static async generateItem(context = {}) {
+    static generateItem(context = {}) {
         const {
             category = this.getRandomCategory(),
             rarity = this.getRandomRarityKey(),
@@ -2695,21 +2695,38 @@ export class ItemGenerator {
 
         if (!baseItem) {
             console.error("Could not find a base item for generation. Category:", category, "SubType:", subType);
-            return null;
+            // Create a fallback item instead of returning null
+            return this.createFallbackItem(context.narrativeContext || 'Unknown Item', context.playerLevel || 1);
         }
 
         // Force the rarity from the context onto the chosen template.
         baseItem.rarity = rarity; 
 
         // The rest of the enhancement process remains the same.
-        // NOTE: The AI enhancement part is currently non-functional in your code.
-        // let enhancedItem = await this.enhanceItemWithAI(baseItem, context); 
         let enhancedItem = this.enhanceItem(baseItem, context); 
 
         return {
             id: `item_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
             ...enhancedItem,
             generatedAt: Date.now()
+        };
+    }
+
+    static createFallbackItem(itemName, playerLevel = 1) {
+        const cleanName = (itemName || 'Unknown Item').replace(/^(the|a|an)\s+/i, '').trim();
+        const capitalizedName = cleanName.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+        
+        return {
+            id: `fallback_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
+            name: capitalizedName,
+            type: 'trinket',
+            rarity: 'COMMON',
+            description: `A ${cleanName.toLowerCase()} that you've encountered. While it appears ordinary, it might have some value or significance in your adventures.`,
+            value: Math.max(1, Math.floor(Math.random() * (playerLevel * 5)) + 10),
+            effects: [],
+            isIdentified: true,
+            source: 'item_generator_fallback',
+            slot: null
         };
     }
 

@@ -1,18 +1,17 @@
-
 // Character Management System - Handles leveling, abilities, and progression
 import { classProgression, spellDefinitions, abilityDefinitions, featDefinitions } from './class-progression.js';
 
 import { ItemGenerator, ItemManager, itemCategories } from '../assets/world-items.js';
 
 export class CharacterManager {
-    
+
     static initializeCharacter(player, charClass) {
         const progression = classProgression[charClass];
         if (!progression) {
             console.error(`Unknown class: ${charClass}`);
             return;
         }
-        
+
         // Initialize character progression data
         player.classProgression = {
             class: charClass,
@@ -27,20 +26,20 @@ export class CharacterManager {
             spellSlots: this.calculateSpellSlots(charClass, 1),
             abilityUses: {}
         };
-        
+
         // Apply level 1 progression
         this.applyLevelProgression(player, 1);
-        
+
         // Set class-specific starting equipment and bonuses
         this.applyClassBonuses(player, progression);
 
         this.assignInitialEquipment(player); // ADD THIS LINE
-        
+
         return player;
     }
 
     static async assignInitialEquipment(player) {
-        
+
         console.log(`Assigning initial equipment for <span class="math-inline">\{player\.name\} \(</span>{player.class}).`);
         console.log(`[DEBUG_ASSIGN_EQUIP] Player Class: ${player.class}`); // NEW LOG
         const { ItemGenerator, ItemManager, itemCategories } = window;
@@ -71,24 +70,24 @@ export class CharacterManager {
             case 'barbarian':
             case 'brawler':
                 console.log(`[DEBUG_ASSIGN_EQUIP] Processing ${player.class} equipment assignments.`);
-                await addAndEquip(itemCategories.WEAPON, 'COMMON', 'swords');
-                await addAndEquip(itemCategories.ARMOR, 'COMMON', 'shields');
-                await addAndEquip(itemCategories.ARMOR, 'COMMON', 'chestplates');
-                await addAndEquip(itemCategories.ARMOR, 'COMMON', 'helmets');
-                await addAndEquip(itemCategories.ARMOR, 'COMMON', 'leggings');
-                await addAndEquip(itemCategories.ARMOR, 'COMMON', 'boots');
-                await addAndEquip(itemCategories.ARMOR, 'COMMON', 'gauntlets');
+                addAndEquip(itemCategories.WEAPON, 'COMMON', 'swords');
+                addAndEquip(itemCategories.ARMOR, 'COMMON', 'shields');
+                addAndEquip(itemCategories.ARMOR, 'COMMON', 'chestplates');
+                addAndEquip(itemCategories.ARMOR, 'COMMON', 'helmets');
+                addAndEquip(itemCategories.ARMOR, 'COMMON', 'leggings');
+                addAndEquip(itemCategories.ARMOR, 'COMMON', 'boots');
+                addAndEquip(itemCategories.ARMOR, 'COMMON', 'gauntlets');
                 break;
             case 'paladin':
             case 'knight':
                 console.log(`[DEBUG_ASSIGN_EQUIP] Processing ${player.class} equipment assignments.`);
-                await addAndEquip(itemCategories.WEAPON, 'COMMON', 'swords');
-                await addAndEquip(itemCategories.ARMOR, 'COMMON', 'shields');
-                await addAndEquip(itemCategories.ARMOR, 'COMMON', 'chestplates');
-                await addAndEquip(itemCategories.ARMOR, 'COMMON', 'helmets');
-                await addAndEquip(itemCategories.ARMOR, 'COMMON', 'leggings');
-                await addAndEquip(itemCategories.ARMOR, 'COMMON', 'boots');
-                await addAndEquip(itemCategories.ARMOR, 'COMMON', 'gauntlets');
+                addAndEquip(itemCategories.WEAPON, 'COMMON', 'swords');
+                addAndEquip(itemCategories.ARMOR, 'COMMON', 'shields');
+                addAndEquip(itemCategories.ARMOR, 'COMMON', 'chestplates');
+                addAndEquip(itemCategories.ARMOR, 'COMMON', 'helmets');
+                addAndEquip(itemCategories.ARMOR, 'COMMON', 'leggings');
+                addAndEquip(itemCategories.ARMOR, 'COMMON', 'boots');
+                addAndEquip(itemCategories.ARMOR, 'COMMON', 'gauntlets');
                 break;
             case 'mage':
             case 'sorcerer':
@@ -97,34 +96,34 @@ export class CharacterManager {
             case 'illusionist':
             case 'psychic':
                 console.log(`[DEBUG_ASSIGN_EQUIP] Processing ${player.class} equipment assignments.`);
-                await addAndEquip(itemCategories.WEAPON, 'COMMON', 'staves');
-                await addAndEquip(itemCategories.ARMOR, 'COMMON', 'cloaks');
-                await addAndEquip(itemCategories.ARMOR, 'COMMON', 'chestplates');
-                await addAndEquip(itemCategories.ARMOR, 'COMMON', 'leggings');
-                await addAndEquip(itemCategories.ARMOR, 'COMMON', 'boots');
-                await addAndEquip(itemCategories.ARMOR, 'COMMON', 'sleeves');
+                addAndEquip(itemCategories.WEAPON, 'COMMON', 'staves');
+                addAndEquip(itemCategories.ARMOR, 'COMMON', 'cloaks');
+                addAndEquip(itemCategories.ARMOR, 'COMMON', 'chestplates');
+                addAndEquip(itemCategories.ARMOR, 'COMMON', 'leggings');
+                addAndEquip(itemCategories.ARMOR, 'COMMON', 'boots');
+                addAndEquip(itemCategories.ARMOR, 'COMMON', 'sleeves');
                 break;
             case 'rogue':
             case 'assassin':
             case 'thief':
             case 'smuggler':
                 console.log(`[DEBUG_ASSIGN_EQUIP] Processing ${player.class} equipment assignments.`);
-                await addAndEquip(itemCategories.WEAPON, 'COMMON', 'daggers');
-                await addAndEquip(itemCategories.WEAPON, 'COMMON', 'daggers'); // Secondary Dagger
-                await addAndEquip(itemCategories.ARMOR, 'COMMON', 'chestplates');
-                await addAndEquip(itemCategories.ARMOR, 'COMMON', 'leggings');
-                await addAndEquip(itemCategories.ARMOR, 'COMMON', 'boots');
-                await addAndEquip(itemCategories.ARMOR, 'COMMON', 'sleeves');
+                addAndEquip(itemCategories.WEAPON, 'COMMON', 'daggers');
+                addAndEquip(itemCategories.WEAPON, 'COMMON', 'daggers'); // Secondary Dagger
+                addAndEquip(itemCategories.ARMOR, 'COMMON', 'chestplates');
+                addAndEquip(itemCategories.ARMOR, 'COMMON', 'leggings');
+                addAndEquip(itemCategories.ARMOR, 'COMMON', 'boots');
+                addAndEquip(itemCategories.ARMOR, 'COMMON', 'sleeves');
                 break;
             case 'ranger':
             case 'hunter':
             case 'outlander':
                 console.log(`[DEBUG_ASSIGN_EQUIP] Processing ${player.class} equipment assignments.`);
-                await addAndEquip(itemCategories.WEAPON, 'COMMON', 'bows');
-                await addAndEquip(itemCategories.ARMOR, 'COMMON', 'chestplates');
-                await addAndEquip(itemCategories.ARMOR, 'COMMON', 'leggings');
-                await addAndEquip(itemCategories.ARMOR, 'COMMON', 'boots');
-                await addAndEquip(itemCategories.ARMOR, 'COMMON', 'sleeves');
+                addAndEquip(itemCategories.WEAPON, 'COMMON', 'bows');
+                addAndEquip(itemCategories.ARMOR, 'COMMON', 'chestplates');
+                addAndEquip(itemCategories.ARMOR, 'COMMON', 'leggings');
+                addAndEquip(itemCategories.ARMOR, 'COMMON', 'boots');
+                addAndEquip(itemCategories.ARMOR, 'COMMON', 'sleeves');
                 break;
             case 'cleric':
             case 'druid':
@@ -132,32 +131,32 @@ export class CharacterManager {
             case 'acolyte':
             case 'pilgrim':
                 console.log(`[DEBUG_ASSIGN_EQUIP] Processing ${player.class} equipment assignments.`);
-                await addAndEquip(itemCategories.WEAPON, 'COMMON', 'maces');
-                await addAndEquip(itemCategories.ARMOR, 'COMMON', 'shields');
-                await addAndEquip(itemCategories.ARMOR, 'COMMON', 'chestplates');
-                await addAndEquip(itemCategories.ARMOR, 'COMMON', 'leggings');
-                await addAndEquip(itemCategories.ARMOR, 'COMMON', 'boots');
-                await addAndEquip(itemCategories.ARMOR, 'COMMON', 'sleeves');
+                addAndEquip(itemCategories.WEAPON, 'COMMON', 'maces');
+                addAndEquip(itemCategories.ARMOR, 'COMMON', 'shields');
+                addAndEquip(itemCategories.ARMOR, 'COMMON', 'chestplates');
+                addAndEquip(itemCategories.ARMOR, 'COMMON', 'leggings');
+                addAndEquip(itemCategories.ARMOR, 'COMMON', 'boots');
+                addAndEquip(itemCategories.ARMOR, 'COMMON', 'sleeves');
                 break;
             case 'bard':
             case 'entertainer':
                 console.log(`[DEBUG_ASSIGN_EQUIP] Processing ${player.class} equipment assignments.`);
-                await addAndEquip(itemCategories.WEAPON, 'COMMON', 'daggers');
-                await addAndEquip(itemCategories.ARMOR, 'COMMON', 'cloaks');
-                await addAndEquip(itemCategories.ARMOR, 'COMMON', 'chestplates');
-                await addAndEquip(itemCategories.ARMOR, 'COMMON', 'leggings');
-                await addAndEquip(itemCategories.ARMOR, 'COMMON', 'boots');
-                await addAndEquip(itemCategories.ARMOR, 'COMMON', 'sleeves');
+                addAndEquip(itemCategories.WEAPON, 'COMMON', 'daggers');
+                addAndEquip(itemCategories.ARMOR, 'COMMON', 'cloaks');
+                addAndEquip(itemCategories.ARMOR, 'COMMON', 'chestplates');
+                addAndEquip(itemCategories.ARMOR, 'COMMON', 'leggings');
+                addAndEquip(itemCategories.ARMOR, 'COMMON', 'boots');
+                addAndEquip(itemCategories.ARMOR, 'COMMON', 'sleeves');
                 break;
             case 'monk':
             case 'ninja':
                 console.log(`[DEBUG_ASSIGN_EQUIP] Processing ${player.class} equipment assignments.`);
-                await addAndEquip(itemCategories.WEAPON, 'COMMON', 'fistWeapons');
-                await addAndEquip(itemCategories.ARMOR, 'COMMON', 'cloaks');
-                await addAndEquip(itemCategories.ARMOR, 'COMMON', 'chestplates');
-                await addAndEquip(itemCategories.ARMOR, 'COMMON', 'leggings');
-                await addAndEquip(itemCategories.ARMOR, 'COMMON', 'boots');
-                await addAndEquip(itemCategories.ARMOR, 'COMMON', 'sleeves');
+                addAndEquip(itemCategories.WEAPON, 'COMMON', 'fistWeapons');
+                addAndEquip(itemCategories.ARMOR, 'COMMON', 'cloaks');
+                addAndEquip(itemCategories.ARMOR, 'COMMON', 'chestplates');
+                addAndEquip(itemCategories.ARMOR, 'COMMON', 'leggings');
+                addAndEquip(itemCategories.ARMOR, 'COMMON', 'boots');
+                addAndEquip(itemCategories.ARMOR, 'COMMON', 'sleeves');
                 break;
             case 'alchemist':
             case 'engineer':
@@ -166,46 +165,46 @@ export class CharacterManager {
             case 'doctor':
             case 'gambler':
                 console.log(`[DEBUG_ASSIGN_EQUIP] Processing ${player.class} equipment assignments.`);
-                await addAndEquip(itemCategories.WEAPON, 'COMMON', 'daggers');
-                await addAndEquip(itemCategories.ARMOR, 'COMMON', 'cloaks');
-                await addAndEquip(itemCategories.ARMOR, 'COMMON', 'chestplates');
-                await addAndEquip(itemCategories.ARMOR, 'COMMON', 'leggings');
-                await addAndEquip(itemCategories.ARMOR, 'COMMON', 'boots');
-                await addAndEquip(itemCategories.TOOL, 'COMMON', 'utility');
-                await addAndEquip(itemCategories.ARMOR, 'COMMON', 'sleeves');
+                addAndEquip(itemCategories.WEAPON, 'COMMON', 'daggers');
+                addAndEquip(itemCategories.ARMOR, 'COMMON', 'cloaks');
+                addAndEquip(itemCategories.ARMOR, 'COMMON', 'chestplates');
+                addAndEquip(itemCategories.ARMOR, 'COMMON', 'leggings');
+                addAndEquip(itemCategories.ARMOR, 'COMMON', 'boots');
+                addAndEquip(itemCategories.TOOL, 'COMMON', 'utility');
+                addAndEquip(itemCategories.ARMOR, 'COMMON', 'sleeves');
                 break;
             default:
                 console.log(`No specific initial equipment defined for ${player.class}. Assigning basic defaults.`);
-                await addAndEquip(itemCategories.WEAPON, 'COMMON', 'swords');
-                await addAndEquip(itemCategories.ARMOR, 'COMMON', 'chestplates');
-                await addAndEquip(itemCategories.ARMOR, 'COMMON', 'boots');
-                await addAndEquip(itemCategories.ARMOR, 'COMMON', 'sleeves');
+                addAndEquip(itemCategories.WEAPON, 'COMMON', 'swords');
+                addAndEquip(itemCategories.ARMOR, 'COMMON', 'chestplates');
+                addAndEquip(itemCategories.ARMOR, 'COMMON', 'boots');
+                addAndEquip(itemCategories.ARMOR, 'COMMON', 'sleeves');
                 break;
         }
         console.log(`Finished assigning initial equipment for ${player.name}.`);
-                                                              
+
     }
-    
+
     static applyLevelProgression(player, level) {
         const progression = classProgression[player.classProgression.class];
         const levelData = progression.levels[level];
-        
+
         if (!levelData) {
             console.error(`No progression data for level ${level}`);
             return;
         }
-        
+
         // Add HP
         player.maxHp += levelData.hp;
         player.hp = player.maxHp; // Full heal on level up
-        
+
         // Add features
         levelData.features.forEach(feature => {
             if (!player.classProgression.unlockedFeatures.includes(feature)) {
                 player.classProgression.unlockedFeatures.push(feature);
             }
         });
-        
+
         // Add abilities
         levelData.abilities.forEach(abilityName => {
             if (!player.classProgression.classAbilities.includes(abilityName)) {
@@ -220,7 +219,7 @@ export class CharacterManager {
                 }
             }
         });
-        
+
         // Add feats
         levelData.feats.forEach(featName => {
             if (!player.classProgression.classFeats.includes(featName)) {
@@ -228,7 +227,7 @@ export class CharacterManager {
                 this.applyFeatEffects(player, featName);
             }
         });
-        
+
         levelData.spells.forEach(spellName => {
             if (!player.classProgression.availableSpells.includes(spellName)) {
                 player.classProgression.availableSpells.push(spellName);
@@ -240,7 +239,7 @@ export class CharacterManager {
                 player.classProgression.knownSpells.push(spellName);
             }
         });
-        
+
         // Add cantrips
         levelData.cantrips.forEach(cantripName => {
             if (!player.classProgression.availableCantrips.includes(cantripName)) {
@@ -251,19 +250,19 @@ export class CharacterManager {
                 }
             }
         });
-        
+
         // Update spell slots
         player.classProgression.spellSlots = this.calculateSpellSlots(player.classProgression.class, level);
-        
+
         console.log(`Applied level ${level} progression for ${player.classProgression.class}`);
     }
-    
+
     static applyClassBonuses(player, progression) {
         // Apply hit die bonus
         const hitDieBonus = this.getHitDieBonus(progression.hitDie);
         player.maxHp += hitDieBonus;
         player.hp = player.maxHp;
-        
+
         // Ensure stats object exists and has base values
         if (!player.stats) {
             player.stats = {
@@ -275,7 +274,7 @@ export class CharacterManager {
                 charisma: 10
             };
         }
-        
+
         // Apply primary stat bonuses
         progression.primaryStats.forEach(stat => {
             if (player.stats[stat] < 10) {
@@ -284,7 +283,7 @@ export class CharacterManager {
             player.stats[stat] += 2; // Bonus for primary stats
         });
     }
-    
+
     static getHitDieBonus(hitDie) {
         const dieMap = {
             'd6': 6,
@@ -294,7 +293,7 @@ export class CharacterManager {
         };
         return dieMap[hitDie] || 8;
     }
-    
+
     static calculateSpellSlots(charClass, level) {
         const slots = {
             1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0, 8: 0, 9: 0
@@ -326,11 +325,11 @@ export class CharacterManager {
         }
         return slots;
     }
-    
+
     static applyFeatEffects(player, featName) {
         const feat = featDefinitions[featName];
         if (!feat) return;
-        
+
         // Apply feat effects to player stats/abilities (if they exist)
         if (feat.effect) {
             if (feat.effect.attack_bonus) {
@@ -343,42 +342,42 @@ export class CharacterManager {
                 player.stats.damageBonus = (player.stats.damageBonus || 0) + feat.effect.damage_bonus;
             }
         }
-        
+
         console.log(`Applied feat: ${featName}`);
     }
-    
+
     static levelUp(player) {
         const currentLevel = player.level;
         const newLevel = currentLevel + 1;
-        
+
         // Check if progression data exists for new level
         const progression = classProgression[player.classProgression.class];
         if (!progression.levels[newLevel]) {
             console.log(`No more progression data available beyond level ${currentLevel}`);
             return false;
         }
-        
+
         // Update player level
         player.level = newLevel;
         player.classProgression.level = newLevel;
-        
+
         // Apply stat increases on level-up
         this.applyStatIncreases(player, newLevel);
-        
+
         // Apply new level progression
         this.applyLevelProgression(player, newLevel);
-        
+
         return true;
     }
-    
+
     static applyStatIncreases(player, level) {
         // Every level, increase all stats by 1
         const statNames = ['strength', 'dexterity', 'intelligence', 'constitution', 'wisdom', 'charisma'];
-        
+
         statNames.forEach(statName => {
             player.stats[statName] += 1;
         });
-        
+
         // Every 4 levels (4, 8, 12, 16), give an additional +2 to primary stats
         if (level % 4 === 0) {
             const progression = classProgression[player.classProgression.class];
@@ -387,19 +386,19 @@ export class CharacterManager {
             });
             console.log(`Level ${level}: Applied bonus to primary stats (${progression.primaryStats.join(', ')})`);
         }
-        
+
         console.log(`Level ${level}: Applied stat increases`);
     }
-    
+
     static getCharacterProgression(player) {
         if (!player.classProgression) {
             console.error('Character progression not initialized');
             return null;
         }
-        
+
         const progression = classProgression[player.classProgression.class];
         const currentLevel = player.level;
-        
+
         return {
             class: player.classProgression.class,
             level: currentLevel,
@@ -431,16 +430,16 @@ export class CharacterManager {
             spellSlots: player.classProgression.spellSlots
         };
     }
-    
+
     static canUseAbility(player, abilityName) {
         const ability = abilityDefinitions[abilityName];
         if (!ability) return false;
-        
+
         // Check if player has this ability
         if (!player.classProgression.classAbilities.includes(abilityName)) {
             return false;
         }
-        
+
         // Check cooldown
         if (ability.cooldown > 0) {
             const abilityUse = player.classProgression.abilityUses[abilityName];
@@ -451,17 +450,17 @@ export class CharacterManager {
                 }
             }
         }
-        
+
         return true;
     }
-    
+
     static useAbility(player, abilityName) {
         if (!this.canUseAbility(player, abilityName)) {
             return { success: false, message: "Cannot use this ability right now." };
         }
-        
+
         const ability = abilityDefinitions[abilityName];
-        
+
         // Mark ability as used
         if (ability.cooldown > 0) {
             if (!player.classProgression.abilityUses[abilityName]) {
@@ -469,27 +468,27 @@ export class CharacterManager {
             }
             player.classProgression.abilityUses[abilityName].lastUsed = Date.now();
         }
-        
+
         return { 
             success: true, 
             message: `Used ${abilityName}: ${ability.description}`,
             effect: ability.effect
         };
     }
-    
+
     static learnSpell(player, spellName) {
         if (!player.classProgression.availableSpells.includes(spellName)) {
             return { success: false, message: "Spell not available to learn." };
         }
-        
+
         if (player.classProgression.knownSpells.includes(spellName)) {
             return { success: false, message: "Spell already known." };
         }
-        
+
         player.classProgression.knownSpells.push(spellName);
         return { success: true, message: `Learned spell: ${spellName}` };
     }
-    
+
     static saveProgression(player) {
         // Save progression data to localStorage
         const progressionData = {
@@ -500,11 +499,11 @@ export class CharacterManager {
             exp: player.exp, // ADDED: Save current experience
             expToNextLevel: player.expToNextLevel // ADDED: Save XP needed for next level
         };
-        
+
         localStorage.setItem(`progression_${player.name}`, JSON.stringify(progressionData));
         console.log('Character progression saved');
     }
-    
+
     // Modify CharacterManager.loadProgression to load XP fields:
     static loadProgression(player) {
         const savedData = localStorage.getItem(`progression_${player.name}`);

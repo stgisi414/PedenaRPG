@@ -268,7 +268,7 @@ If no actual transaction is detected, return {"hasTransaction": false, "confiden
             const baseItem = (typeof window !== 'undefined' && window.ItemGenerator) ? window.ItemGenerator.generateItem(context) : null;
             if (!baseItem) {
                 console.error("ItemGenerator.generateItem failed or ItemGenerator not found.");
-                return null;
+                return this.createFallbackItem(itemData.name || 'Unknown Item', player);
             }
             // Override with narrative-specific data
             if (itemData.name) {
