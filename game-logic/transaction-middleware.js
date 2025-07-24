@@ -328,8 +328,19 @@ If no actual transaction is detected, return {"hasTransaction": false, "confiden
             }
 
             // Create enhanced context for ItemGenerator
+            // Map category names to correct itemCategories values
+            const categoryMapping = {
+                'CONSUMABLE': window.itemCategories?.CONSUMABLE || 'consumable',
+                'WEAPON': window.itemCategories?.WEAPON || 'weapon',
+                'ARMOR': window.itemCategories?.ARMOR || 'armor',
+                'MAGICAL': window.itemCategories?.MAGICAL || 'magical',
+                'JEWELRY': window.itemCategories?.JEWELRY || 'jewelry'
+            };
+            
+            const mappedCategory = categoryMapping[itemData.category] || window.itemCategories?.MAGICAL || 'magical';
+            
             const context = {
-                category: window.itemCategories[itemData.category] || window.itemCategories.MAGICAL || 'magical',
+                category: mappedCategory,
                 rarity: itemData.rarity || 'COMMON',
                 locationContext: player.currentLocation,
                 playerLevel: player.level,

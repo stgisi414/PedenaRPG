@@ -5120,14 +5120,17 @@ async function parseAndApplyStateChanges(result) {
         displayMessage(result.narrative, 'info');
         addToConversationHistory('assistant', result.narrative);
         
-        // Check for transactions in the narrative
-        if (window.TransactionMiddleware && typeof TransactionMiddleware.detectTransaction === 'function') {
+        // Only check for transactions in narrative if there are no explicit itemChanges
+        // This prevents duplicate processing when the AI provides both structured item changes and narrative transactions
+        if (!result.itemChanges && window.TransactionMiddleware && typeof TransactionMiddleware.detectTransaction === 'function') {
             console.log("Checking for transactions in structured AI response narrative...");
             const transactionData = await TransactionMiddleware.detectTransaction(result.narrative, '', player, getConversationContext());
             if (transactionData && transactionData.hasTransaction) {
                 console.log("Transaction detected in structured response:", transactionData);
                 await TransactionMiddleware.processTransaction(transactionData, player);
             }
+        } else if (result.itemChanges) {
+            console.log("Skipping transaction detection - itemChanges present in structured response");
         }
     }
 
