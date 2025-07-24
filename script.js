@@ -7519,6 +7519,46 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    const donateBtn = document.getElementById('donate-btn');
+    const donationModal = document.getElementById('donation-modal');
+    const donationModalCloseBtn = document.getElementById('donation-modal-close-btn');
+    const donationButtonsContainer = document.getElementById('donation-buttons-container');
+
+    if (donateBtn && donationModal) {
+        const donationAmounts = [5, 10, 20, 50];
+        const venmoUsername = 'Stefan-Worldwide';
+
+        // Create the donation buttons
+        donationAmounts.forEach(amount => {
+            const button = document.createElement('a');
+            button.href = `https://venmo.com/${venmoUsername}?txn=pay&amount=${amount}&note=Supporting%20Shadowscale%20Chronicles`;
+            button.target = '_blank'; // Open in a new tab
+            button.rel = 'noopener noreferrer';
+            button.className = 'btn-parchment bg-green-600 hover:bg-green-700 text-white text-lg';
+            button.textContent = `$${amount}`;
+            donationButtonsContainer.appendChild(button);
+        });
+
+        // Show the modal when the main donate button is clicked
+        donateBtn.addEventListener('click', () => {
+            donationModal.classList.remove('hidden');
+        });
+
+        // Hide the modal
+        const closeDonationModal = () => {
+            donationModal.classList.add('hidden');
+        };
+
+        donationModalCloseBtn.addEventListener('click', closeDonationModal);
+
+        // Also close if the user clicks on the dark overlay
+        donationModal.addEventListener('click', (event) => {
+            if (event.target === donationModal) {
+                closeDonationModal();
+            }
+        });
+    }
+
     if (inventoryItemsDisplay) {
         inventoryItemsDisplay.addEventListener('click', function(event) {
             const button = event.target.closest('.inventory-action-btn');
