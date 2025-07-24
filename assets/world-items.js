@@ -4359,7 +4359,8 @@ export class ItemManager {
                 // Do NOT load player.stats here. Player.stats should be loaded by the main saveGame/loadGame logic.
                 // if (savedStats) player.stats = JSON.parse(savedStats);
 
-
+                // Fix undefined items in inventory
+                this.fixUndefinedItems(player);
                 this.updateStatusEffects(player); // Clean up expired effects immediately on load
             } catch (e) {
                 console.error("Failed to load inventory-related data from localStorage:", e);
@@ -4369,6 +4370,160 @@ export class ItemManager {
                  // Do not reset player.stats here.
             }
         }
+    }
+
+    static fixUndefinedItems(player) {
+        if (!player.inventory) return;
+        
+        for (let i = 0; i < player.inventory.length; i++) {
+            const item = player.inventory[i];
+            if (!item || typeof item !== 'object' || item === null) {
+                // Replace undefined/null items with unidentified placeholder
+                player.inventory[i] = this.createUnidentifiedItem();
+                console.log(`Fixed undefined item at index ${i}, replaced with Unidentified Item`);
+            } else if (!item.name || !item.id) {
+                // Fix items missing critical properties
+                if (!item.name) item.name = "Unidentified Item";
+                if (!item.id) item.id = ItemGenerator.generateItemId();
+                if (!item.type) item.type = itemCategories.TRINKET;
+                if (!item.description) item.description = "A mysterious item that needs to be identified.";
+                if (!item.value) item.value = 10;
+                if (!item.rarity) item.rarity = 'COMMON';
+                item.needsIdentification = true;
+                console.log(`Fixed corrupted item at index ${i}, marked for identification`);
+            }
+        }
+        
+        // Save the fixed inventory
+        this.saveInventoryToStorage(player);
+    }
+
+    static createUnidentifiedItem() {
+        return {
+            id: ItemGenerator.generateItemId(),
+            name: "Unidentified Item",
+            type: itemCategories.TRINKET,
+            rarity: 'COMMON',
+            description: "A mysterious item that needs to be identified. Its true nature is hidden.",
+            value: 10,
+            needsIdentification: true,
+            effects: []
+        };
+    }
+
+    static async identifyItem(player, itemIndex) {
+        if (!player.inventory || !player.inventory[itemIndex]) {
+            return { success: false, message: "Item not found." };
+        }
+
+        const item = player.inventory[itemIndex];
+        if (!item.needsIdentification) {
+            return { success: false, message: "This item doesn't need identification." };
+        }
+
+        try {
+            // Generate context for item identification
+            const context = this.generateIdentificationContext(player);
+            
+            // Use AI to generate a new item based on story context
+            const newItem = await this.regenerateItemFromContext(context, player.level);
+            
+            if (newItem) {
+                // Replace the unidentified item with the newly generated one
+                player.inventory[itemIndex] = newItem;
+                this.saveInventoryToStorage(player);
+                
+                return { 
+                    success: true, 
+                    message: `The mysterious item reveals itself to be: ${newItem.name}!`,
+                    newItem: newItem
+                };
+            } else {
+                return { success: false, message: "Failed to identify the item. Try again later." };
+            }
+        } catch (error) {
+            console.error("Error during item identification:", error);
+            return { success: false, message: "Something went wrong during identification." };
+        }
+    }
+
+    static generateIdentificationContext(player) {
+        let context = `Player: ${player.name}, Level ${player.level} ${player.class}\n`;
+        context += `Current Location: ${player.currentLocation}\n`;
+        
+        // Add recent conversation history if available
+        if (typeof window !== 'undefined' && window.conversationHistory && window.conversationHistory.messages) {
+            const recentMessages = window.conversationHistory.messages.slice(-3);
+            context += "Recent events:\n";
+            recentMessages.forEach(msg => {
+                const role = msg.role === 'user' ? 'Player' : 'DM';
+                context += `- ${role}: ${msg.content.slice(0, 100)}...\n`;
+            });
+        }
+
+        // Add active quests
+        if (player.quests && player.quests.length > 0) {
+            const activeQuest = player.quests.find(q => !q.completed);
+            if (activeQuest) {
+                context += `Active Quest: ${activeQuest.title}\n`;
+            }
+        }
+
+        return context;
+    }
+
+    static async regenerateItemFromContext(context, playerLevel) {
+        if (typeof window === 'undefined' || typeof window.callGeminiAPI !== 'function') {
+            console.error("Gemini API not available for item identification");
+            return null;
+        }
+
+        const prompt = `Based on the following game context, generate a single appropriate item that a player might have found or acquired.
+
+Context:
+${context}
+
+Create an item that fits the story context and player level. Respond with ONLY valid JSON in this format:
+{
+    "name": "Item Name",
+    "type": "weapon/armor/consumable/magical/tool/jewelry/scroll/book",
+    "rarity": "COMMON/UNCOMMON/RARE/EPIC/LEGENDARY",
+    "description": "Item description explaining what it is and its significance",
+    "value": 50,
+    "effects": [],
+    "slot": "mainHand/head/chest/etc (if applicable)"
+}
+
+Make the item interesting and relevant to the current story context. For weapons, include "damage" field. For armor, include "armor" field.`;
+
+        try {
+            const response = await window.callGeminiAPI(prompt, 0.7, 500, false);
+            if (!response) return null;
+
+            const cleanResponse = response.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+            const jsonMatch = cleanResponse.match(/\{[\s\S]*\}/);
+
+            if (jsonMatch) {
+                const itemData = JSON.parse(jsonMatch[0]);
+                
+                // Validate and add missing properties
+                if (!itemData.id) itemData.id = ItemGenerator.generateItemId();
+                if (!itemData.value) itemData.value = 10;
+                if (!itemData.effects) itemData.effects = [];
+                if (!itemData.rarity) itemData.rarity = 'COMMON';
+                
+                // Scale value based on player level and rarity
+                const rarityMultiplier = itemRarity[itemData.rarity]?.multiplier || 1;
+                itemData.value = Math.floor((itemData.value + playerLevel * 5) * rarityMultiplier);
+                
+                console.log("Generated identified item:", itemData);
+                return itemData;
+            }
+        } catch (error) {
+            console.error("Error parsing generated item:", error);
+        }
+
+        return null;
     }
 
     static applyItemEffects(player, item) {
