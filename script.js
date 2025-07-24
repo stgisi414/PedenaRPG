@@ -5294,6 +5294,89 @@ function buyShopItem(itemIndex) { // Renamed parameter to itemIndex for clarity 
     }
 }
 
+// Start new game function
+function startNewGame() {
+    // Reset game state
+    player = {
+        name: '',
+        gender: '',
+        class: '',
+        background: '',
+        stats: {
+            strength: 10,
+            dexterity: 10,
+            intelligence: 10,
+            constitution: 10,
+            wisdom: 10,
+            charisma: 10
+        },
+        hp: 100,
+        maxHp: 100,
+        level: 1,
+        exp: 0,
+        expToNextLevel: 100,
+        gold: 50,
+        inventory: [],
+        equipment: {
+            head: null,
+            chest: null,
+            hands: null,
+            legs: null,
+            feet: null,
+            mainHand: null,
+            offHand: null,
+            amulet: null,
+            ring1: null,
+            ring2: null,
+            back: null
+        },
+        skills: [],
+        abilities: [],
+        quests: [],
+        relationships: {},
+        currentLocation: 'Pedena Town Square',
+        currentEnemy: null,
+        alignment: null
+    };
+
+    // Reset conversation history
+    conversationHistory = {
+        messages: [],
+        maxMessages: 75
+    };
+
+    // Reset game world
+    gameWorld = {
+        npcs: new Map(),
+        locationMemory: new Map(),
+        lastNPCInteraction: null,
+        time: new Date(864, 5, 12, 8, 0, 0),
+        activeEvents: []
+    };
+
+    // Clear any existing portrait
+    if (player.portraitUrl) {
+        delete player.portraitUrl;
+    }
+
+    // Update global reference
+    window.player = player;
+
+    // Show character creation screen
+    showScreen('character-creation-screen');
+    
+    // Clear any previous form data
+    if (charNameInput) charNameInput.value = '';
+    if (charClassSelect) charClassSelect.value = 'warrior';
+    if (charBackgroundTextarea) charBackgroundTextarea.value = '';
+    
+    // Reset gender selection to first option
+    const firstGenderRadio = document.querySelector('input[name="char-gender"]');
+    if (firstGenderRadio) firstGenderRadio.checked = true;
+
+    console.log('New game started - character creation screen shown');
+}
+
 // Initialize game
 document.addEventListener('DOMContentLoaded', () => {
     // Check if there's a saved game to enable load button
