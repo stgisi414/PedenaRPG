@@ -5352,10 +5352,9 @@ function buyShopItem(itemIndex) { // Renamed parameter to itemIndex for clarity 
 }
 
 // Start new game function
-function startNewGame(player) {
+function startNewGame() {
     // Reset game state
-    if (!player) {
-        player = {
+    player = {
         name: '',
         gender: '',
         class: '',
@@ -5396,8 +5395,7 @@ function startNewGame(player) {
         currentEnemy: null,
         alignment: null
     };
-    }
-    
+
     // Reset conversation history
     conversationHistory = {
         messages: [],
@@ -5420,6 +5418,9 @@ function startNewGame(player) {
 
     // Update global reference
     window.player = player;
+
+    // Show character creation screen
+    showScreen('character-creation-screen');
     
     // Clear any previous form data
     if (charNameInput) charNameInput.value = '';
