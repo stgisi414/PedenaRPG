@@ -3799,6 +3799,28 @@ export class ItemGenerator {
 export class ItemManager {
 
     static addItemToInventory(player, item) {
+
+        // Check for undefined or null items
+        if (!item) {
+            console.error("Attempted to add an undefined or null item to inventory. Creating a placeholder.");
+            // Create a placeholder for the unidentified item
+            const unidentifiedItem = {
+                id: `unidentified_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
+                name: "Unidentified Item",
+                description: "A mysterious item shrouded in magic. Its true nature is hidden. Perhaps it can be appraised?",
+                unidentified: true, // Special flag to identify this item later
+                value: 5, // A nominal value
+                rarity: 'COMMON'
+            };
+            if (!player.inventory) {
+                player.inventory = [];
+            }
+            player.inventory.push(unidentifiedItem);
+            displayMessage("You found something, but its form is unclear...", "info");
+            this.saveInventoryToStorage(player);
+            return; // Exit the function to prevent further processing
+        }
+        
         if (!player.inventory) {
             player.inventory = [];
         }

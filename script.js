@@ -6311,6 +6311,28 @@ function buildEquipmentDisplay() {
 }
 
 function buildInventoryItemDisplay(item, index) {
+
+    if (item.unidentified) {
+        return `
+            <div class="parchment-box p-3 w-full flex gap-3 border-2 border-dashed border-purple-400">
+                <div class="flex-shrink-0 pt-1">
+                    <i class="ra ra-help text-3xl text-purple-600 animate-pulse"></i>
+                </div>
+                <div class="flex-grow">
+                    <div class="flex justify-between items-start mb-1">
+                        <h6 class="font-bold text-lg text-purple-700">${item.name}</h6>
+                        <span class="text-xs px-2 py-1 rounded bg-purple-200 text-purple-800">Mysterious</span>
+                    </div>
+                    <p class="text-sm text-amber-700 mb-2 italic">${item.description}</p>
+                    <div class="flex gap-2 flex-wrap">
+                         <button class="btn-parchment inventory-action-btn text-xs py-1 px-2 bg-purple-600 hover:bg-purple-700" style="color: #D2B48C !important;" data-action="appraise" data-index="${index}">Appraise</button>
+                         <button class="btn-parchment inventory-action-btn text-xs py-1 px-2 bg-red-600 hover:bg-red-700" data-action="drop" data-index="${index}">Drop</button>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+    
     const canEquip = item.slot && (!player.equipment[item.slot] || player.equipment[item.slot].id !== item.id);
     const isConsumable = item.type === 'consumable' || (item.effect && (item.effect.type === 'heal' || item.effect.type === 'mana'));
 
@@ -6732,6 +6754,43 @@ function dropItem(itemIndex) {
         player.inventory.splice(itemIndex, 1);
         displayMessage(`Dropped ${item.name}.`, 'info');
         displayInventory(); // Refresh display
+    }
+}
+
+async function appraiseItem(itemIndex) {
+    if (!player.inventory || !player.inventory[itemIndex]) {
+        displayMessage("Item not found for appraisal.", 'error');
+        return;
+    }
+
+    const itemToAppraise = player.inventory[itemIndex];
+
+    if (!itemToAppraise.unidentified) {
+        displayMessage("This item is already identified.", 'info');
+        return;
+    }
+
+    displayMessage(`You focus on the mysterious item, trying to discern its properties...`, 'info');
+
+    try {
+        // Generate a new, random item to replace the placeholder
+        const newItem = await ItemGenerator.generateItem({
+            playerLevel: player.level,
+            playerClass: player.class,
+            locationContext: player.currentLocation
+        });
+
+        if (newItem) {
+            player.inventory[itemIndex] = newItem; // Replace the placeholder with the new item
+            displayMessage(`The item's true nature is revealed! You have identified: <strong>${newItem.name}</strong>!`, 'success');
+            ItemManager.saveInventoryToStorage(player);
+            displayInventory(); // Refresh the inventory UI
+        } else {
+            throw new Error("Item generation failed during appraisal.");
+        }
+    } catch (error) {
+        console.error("Error during item appraisal:", error);
+        displayMessage("You couldn't quite figure out what the item is. Perhaps try again later.", "error");
     }
 }
 
@@ -7209,6 +7268,7 @@ if (typeof window !== 'undefined') {
     window.useItem = useItem;
     window.sellItem = sellItem;
     window.dropItem = dropItem;
+    window.appraiseItem = appraiseItem;
     window.useAbilityOrSpell = useAbilityOrSpell;
     window.displaySkillsAndAbilities = displaySkillsAndAbilities;
     // ... and any other functions called by inline HTML event handlers
@@ -7458,4 +7518,51 @@ document.addEventListener('DOMContentLoaded', () => {
             updateIllustrationButton();
         }
     });
+
+    if (inventoryItemsDisplay) {
+        inventoryItemsDisplay.addEventListener('click', function(event) {
+            const button = event.target.closest('.inventory-action-btn');
+
+            if (button) {
+                const action = button.dataset.action;
+                const itemIndexStr = button.dataset.index;
+                const slot = button.dataset.slot;
+                const itemIndex = itemIndexStr !== undefined ? parseInt(itemIndexStr, 10) : null;
+
+                // ... (validation code remains the same) ...
+
+                switch (action) {
+                    // --- ADD THIS NEW CASE ---
+                    case 'appraise':
+                        if (itemIndex !== null) appraiseItem(itemIndex);
+                        break;
+                    // --- END OF NEW CASE ---
+                    case 'use':
+                        if (itemIndex !== null) ItemManager.useItem(player, itemIndex);
+                        break;
+                    case 'equip':
+                        if (itemIndex !== null) ItemManager.equipItem(player, itemIndex);
+                        break;
+                    case 'sell':
+                        if (itemIndex !== null) ItemManager.sellItem(player, itemIndex);
+                        break;
+                    case 'drop':
+                        if (itemIndex !== null) ItemManager.dropItem(player, itemIndex);
+                        break;
+                    case 'unequip':
+                        if (slot) {
+                            ItemManager.unequipItem(player, slot);
+                        } else {
+                            console.error("Unequip action requires a slot, but it's missing.");
+                            displayMessage("Error: Slot not found for unequip action.", "error");
+                        }
+                        break;
+                    default:
+                        console.warn('Unknown inventory action:', action);
+                }
+            }
+        });
+        console.log("✓ Event delegation setup for inventory items.");
+    }
+    
 });
