@@ -203,7 +203,16 @@ If no actual transaction is detected, return {"hasTransaction": false, "confiden
                             value: generatedItem.value
                         } : 'null');
                         
-                        if (generatedItem && generatedItem.name && generatedItem.name !== 'undefined' && generatedItem.name.trim() !== '') {
+                        // ENHANCED VALIDATION: Check multiple conditions for valid item
+                        const isValidItem = generatedItem && 
+                                          generatedItem.name && 
+                                          generatedItem.name !== 'undefined' && 
+                                          generatedItem.name !== undefined &&
+                                          typeof generatedItem.name === 'string' &&
+                                          generatedItem.name.trim() !== '' &&
+                                          generatedItem.name.toLowerCase() !== 'undefined';
+                        
+                        if (isValidItem) {
                             console.log('[TransactionMiddleware] Adding valid item to inventory:', generatedItem.name);
                             window.ItemManager.addItemToInventory(player, generatedItem);
                             results.push(generatedItem);
@@ -215,16 +224,19 @@ If no actual transaction is detected, return {"hasTransaction": false, "confiden
                             }
                             itemsChanged = true;
                         } else {
-                            console.error('[TransactionMiddleware] Generated item was invalid or had undefined name:', {
+                            console.error('[TransactionMiddleware] Generated item failed validation:', {
                                 item: generatedItem,
+                                hasItem: !!generatedItem,
                                 hasName: !!generatedItem?.name,
                                 nameValue: generatedItem?.name,
-                                nameIsUndefined: generatedItem?.name === 'undefined'
+                                nameType: typeof generatedItem?.name,
+                                nameIsUndefined: generatedItem?.name === 'undefined',
+                                nameIsUndefinedLower: generatedItem?.name?.toLowerCase?.() === 'undefined'
                             });
                             
                             // Display error message to user
                             if (typeof window.displayMessage === 'function') {
-                                window.displayMessage(`Failed to generate item properly. Item was not added to inventory.`, 'error');
+                                window.displayMessage(`Transaction completed but item could not be properly generated. Please check your inventory.`, 'error');
                             }
                         }
                     } else {
@@ -286,11 +298,19 @@ If no actual transaction is detected, return {"hasTransaction": false, "confiden
                 return this.createFallbackItem('Unknown Item', player);
             }
 
-            // Extract name early and validate it
+            // Extract name early and validate it - be more strict about validation
             let itemName = itemData.name;
-            if (!itemName || itemName === 'undefined' || typeof itemName !== 'string' || itemName.trim() === '') {
-                console.warn('[TransactionMiddleware] Invalid or missing item name in itemData, using fallback');
+            if (!itemName || itemName === 'undefined' || itemName === undefined || typeof itemName !== 'string' || itemName.trim() === '' || itemName.toLowerCase() === 'undefined') {
+                console.warn('[TransactionMiddleware] Invalid or missing item name in itemData:', itemName);
+                console.warn('[TransactionMiddleware] Using fallback name instead');
                 itemName = 'Mysterious Item';
+            } else {
+                // Clean the item name
+                itemName = itemName.trim();
+                if (itemName === 'undefined' || itemName.toLowerCase() === 'undefined') {
+                    console.warn('[TransactionMiddleware] Item name was "undefined", using fallback');
+                    itemName = 'Mysterious Item';
+                }
             }
 
             console.log('[TransactionMiddleware] Validated item name:', itemName);
@@ -336,9 +356,14 @@ If no actual transaction is detected, return {"hasTransaction": false, "confiden
                 return this.createFallbackItem(itemName, player);
             }
 
-            // Force the correct name from itemData
-            baseItem.name = itemName;
-            console.log('[TransactionMiddleware] Set item name to:', baseItem.name);
+            // CRITICAL: Force the correct name from itemData and validate it again
+            if (itemName && itemName !== 'undefined' && itemName.trim() !== '') {
+                baseItem.name = itemName;
+                console.log('[TransactionMiddleware] Set item name to:', baseItem.name);
+            } else {
+                console.error('[TransactionMiddleware] Item name validation failed after generation, using fallback item');
+                return this.createFallbackItem('Mysterious Item', player);
+            }
 
             // Override description if provided
             if (itemData.description && itemData.description !== 'undefined' && itemData.description.trim() !== '') {
@@ -371,10 +396,11 @@ If no actual transaction is detected, return {"hasTransaction": false, "confiden
                 this.addEquipmentProperties(baseItem, itemData);
             }
 
-            // Final validation
-            if (!baseItem.name || baseItem.name === 'undefined' || baseItem.name.trim() === '') {
-                console.error('[TransactionMiddleware] CRITICAL: Final item still has invalid name, forcing fallback');
-                return this.createFallbackItem(itemName, player);
+            // FINAL CRITICAL VALIDATION - absolutely ensure the name is valid
+            if (!baseItem.name || baseItem.name === 'undefined' || baseItem.name === undefined || typeof baseItem.name !== 'string' || baseItem.name.trim() === '' || baseItem.name.toLowerCase() === 'undefined') {
+                console.error('[TransactionMiddleware] CRITICAL: Final item has invalid name after all processing:', baseItem.name);
+                console.error('[TransactionMiddleware] Forcing fallback item creation');
+                return this.createFallbackItem('Mysterious Transaction Item', player);
             }
 
             console.log('[TransactionMiddleware] === ITEM GENERATION SUCCESS ===');
@@ -392,20 +418,33 @@ If no actual transaction is detected, return {"hasTransaction": false, "confiden
             console.error('[TransactionMiddleware] Error:', error.message);
             console.error('[TransactionMiddleware] Stack:', error.stack);
             console.log('[TransactionMiddleware] Creating fallback item');
-            return this.createFallbackItem(itemData?.name || 'Unknown Item', player);
+            return this.createFallbackItem('Transaction Error Item', player);
         }
     }
 
     static createFallbackItem(itemName, player) {
-        const cleanName = (itemName || 'Unknown Item').replace(/^(the|a|an)\s+/i, '').trim();
-        const capitalizedName = cleanName.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+        // Ensure we have a valid item name, handle all edge cases
+        let safeName = itemName;
+        if (!safeName || safeName === 'undefined' || safeName === undefined || typeof safeName !== 'string' || safeName.trim() === '' || safeName.toLowerCase() === 'undefined') {
+            safeName = 'Unknown Item';
+        }
+        
+        const cleanName = safeName.replace(/^(the|a|an)\s+/i, '').trim();
+        let capitalizedName = cleanName;
+        
+        // Only capitalize if we have a valid string
+        if (cleanName && cleanName.length > 0) {
+            capitalizedName = cleanName.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+        } else {
+            capitalizedName = 'Unknown Item';
+        }
         
         return {
             id: `fallback_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
             name: capitalizedName,
             type: 'trinket',
             rarity: 'COMMON',
-            description: `A ${cleanName.toLowerCase()} that you've encountered. While it appears ordinary, it might have some value or significance in your adventures.`,
+            description: `A ${cleanName.toLowerCase() || 'mysterious item'} that you've encountered. While it appears ordinary, it might have some value or significance in your adventures.`,
             value: Math.max(1, Math.floor(Math.random() * (player.level * 5)) + 10),
             effects: [],
             isIdentified: true,
