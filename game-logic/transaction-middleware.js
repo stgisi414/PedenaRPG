@@ -192,9 +192,9 @@ If no actual transaction is detected, return {"hasTransaction": false, "confiden
             } else { // Purchases, rewards, loot
                 for (const itemData of transactionData.items) {
                     if (typeof this.generateStructuredItem === 'function' && typeof window.ItemManager !== 'undefined' && typeof window.ItemManager.addItemToInventory === 'function') {
-                        const generatedItem = this.generateStructuredItem(itemData, player);
-                        if (generatedItem) {
-                            window.ItemManager.addItemToInventory(player, generatedItem); // This should also save inventory to localStorage via ItemManager's own method
+                        const generatedItem = await this.generateStructuredItem(itemData, player);
+                        if (generatedItem && generatedItem.name && generatedItem.name !== 'undefined') {
+                            window.ItemManager.addItemToInventory(player, generatedItem);
                             results.push(generatedItem);
                             if (typeof window.displayMessage === 'function') {
                                 window.displayMessage(`Added to inventory: ${generatedItem.name}`, 'success');
@@ -203,6 +203,8 @@ If no actual transaction is detected, return {"hasTransaction": false, "confiden
                                 }
                             }
                             itemsChanged = true;
+                        } else {
+                            console.error("Generated item was invalid:", generatedItem);
                         }
                     } else {
                         console.error("generateStructuredItem or ItemManager.addItemToInventory missing.");
@@ -247,13 +249,15 @@ If no actual transaction is detected, return {"hasTransaction": false, "confiden
         return results;
     }
 
-    static generateStructuredItem(itemData, player) {
+    static async generateStructuredItem(itemData, player) {
         try {
             // Validate input data
             if (!itemData || typeof itemData !== 'object') {
                 console.warn('Invalid itemData provided to generateStructuredItem, creating fallback');
                 return this.createFallbackItem('Unknown Item', player);
             }
+
+            console.log('[DEBUG] generateStructuredItem called with:', JSON.stringify(itemData, null, 2));
 
             // Use ItemGenerator with enhanced context
             const context = {
@@ -265,17 +269,24 @@ If no actual transaction is detected, return {"hasTransaction": false, "confiden
                 narrativeContext: itemData.description
             };
 
-            const baseItem = (typeof window !== 'undefined' && window.ItemGenerator) ? window.ItemGenerator.generateItem(context) : null;
-            if (!baseItem) {
-                console.error("ItemGenerator.generateItem failed or ItemGenerator not found.");
+            console.log('[DEBUG] ItemGenerator context:', JSON.stringify(context, null, 2));
+
+            // ItemGenerator.generateItem might be async, so await it
+            const baseItem = (typeof window !== 'undefined' && window.ItemGenerator) ? await window.ItemGenerator.generateItem(context) : null;
+            
+            console.log('[DEBUG] ItemGenerator returned:', baseItem ? baseItem.name : 'null');
+            
+            if (!baseItem || baseItem.name === 'undefined' || !baseItem.name) {
+                console.warn("ItemGenerator.generateItem failed or returned invalid item, creating fallback");
                 return this.createFallbackItem(itemData.name || 'Unknown Item', player);
             }
+
             // Override with narrative-specific data
-            if (itemData.name) {
+            if (itemData.name && itemData.name !== 'undefined') {
                 baseItem.name = itemData.name;
             }
 
-            if (itemData.description) {
+            if (itemData.description && itemData.description !== 'undefined') {
                 baseItem.description = itemData.description;
             }
 
@@ -285,11 +296,14 @@ If no actual transaction is detected, return {"hasTransaction": false, "confiden
 
             if (baseItem.isEquippable && itemData.slot && itemData.slot !== 'null') {
                 baseItem.slot = itemData.slot;
-                baseItem.type = (typeof window !== 'undefined' && window.itemCategories) ? window.itemCategories.ARMOR : 'armor'; // Ensure it's treated as equipment
+                baseItem.type = (typeof window !== 'undefined' && window.itemCategories) ? window.itemCategories.ARMOR : 'armor';
             }
+            
             if (baseItem.isEquippable && typeof this.addEquipmentProperties === 'function') {
                 this.addEquipmentProperties(baseItem, itemData);
             }
+
+            console.log('[DEBUG] Final generated item:', JSON.stringify(baseItem, null, 2));
             return baseItem;
         } catch (error) {
             console.error('Error generating structured item:', error);
