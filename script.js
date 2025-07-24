@@ -5680,11 +5680,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // Initialize party system
     initializePartySystem();
 
-    // Initialize BGM system
-    if (typeof initializeBGMSystem === 'function') {
-        initializeBGMSystem();
-    }
-
     // Make required functions globally available for TransactionMiddleware and other modules
     window.callGeminiAPI = callGeminiAPI;
     window.updateGold = updateGold;
@@ -5732,6 +5727,13 @@ document.addEventListener('DOMContentLoaded', () => {
     window.abandonQuest = abandonQuest;
     window.cleanupRelationships = cleanupRelationships;
     window.recruitNPC = recruitNPC;
+
+    // Initialize BGM system after all other systems are ready
+    try {
+        initializeBGMSystem();
+    } catch (error) {
+        console.error('Failed to initialize BGM system:', error);
+    }
     window.dismissPartyMember = dismissPartyMember;
     window.displayPartyStatus = displayPartyStatus;
     window.initiateMultiCombat = initiateMultiCombat;
