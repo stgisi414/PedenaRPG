@@ -5134,6 +5134,12 @@ async function parseAndApplyStateChanges(result) {
         }
     }
 
+    // Process itemChanges if they exist
+    if (result.itemChanges) {
+        console.log("Processing itemChanges from structured response:", result.itemChanges);
+        await processItemChanges(result.itemChanges, player);
+    }
+
     // 2. Player State (HP, EXP, Gold, and Status Effects)
     if (result.playerStateChanges) {
         // --- This is the missing logic for Gold, XP, and HP ---
@@ -5991,6 +5997,110 @@ function addMainEventListeners() {
         showInventoryBtn?.addEventListener('click', displayInventory);
         showShopBtn?.addEventListener('click', showShop);
         showBackgroundBtn?.addEventListener('click', displayCharacterBackground);
+
+// Process structured item changes from AI responses
+async function processItemChanges(itemChanges, player) {
+    if (!itemChanges || typeof itemChanges !== 'object') {
+        console.log("No valid itemChanges to process");
+        return;
+    }
+
+    // Process items to add
+    if (itemChanges.itemsToAdd && Array.isArray(itemChanges.itemsToAdd)) {
+        for (const itemData of itemChanges.itemsToAdd) {
+            console.log("Processing item to add:", itemData);
+            
+            // Validate item data
+            if (!itemData || !itemData.name || itemData.name === 'undefined') {
+                console.warn("Skipping invalid item:", itemData);
+                continue;
+            }
+
+            try {
+                // Create a proper item using ItemGenerator or fallback
+                let newItem;
+                
+                if (window.ItemGenerator && typeof ItemGenerator.generateItem === 'function') {
+                    const context = {
+                        category: window.itemCategories?.CONSUMABLE || 'consumable',
+                        rarity: itemData.rarity || 'COMMON',
+                        locationContext: player.currentLocation,
+                        playerLevel: player.level,
+                        playerClass: player.class,
+                        narrativeContext: itemData.description
+                    };
+                    
+                    newItem = await ItemGenerator.generateItem(context);
+                    
+                    if (newItem) {
+                        // Override with specific details from itemChanges
+                        newItem.name = itemData.name;
+                        if (itemData.description) newItem.description = itemData.description;
+                        if (itemData.value) newItem.value = itemData.value;
+                    }
+                }
+
+                // Fallback if ItemGenerator fails
+                if (!newItem) {
+                    newItem = {
+                        id: `structured_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
+                        name: itemData.name,
+                        type: itemData.type || 'consumable',
+                        rarity: itemData.rarity || 'COMMON',
+                        description: itemData.description || `A ${itemData.name.toLowerCase()} obtained during your adventure.`,
+                        value: itemData.value || Math.max(1, Math.floor(Math.random() * 20) + 5),
+                        isUsable: itemData.isUsable || false,
+                        isEquippable: itemData.isEquippable || false
+                    };
+                }
+
+                // Add to inventory using ItemManager
+                if (window.ItemManager && typeof ItemManager.addItemToInventory === 'function') {
+                    ItemManager.addItemToInventory(player, newItem);
+                    displayMessage(`Added to inventory: ${newItem.name}`, 'success');
+                } else {
+                    // Direct inventory addition as fallback
+                    if (!player.inventory) player.inventory = [];
+                    player.inventory.push(newItem);
+                    displayMessage(`Added to inventory: ${newItem.name}`, 'success');
+                }
+
+            } catch (error) {
+                console.error("Error processing item to add:", error);
+                displayMessage(`Failed to add item: ${itemData.name}`, 'error');
+            }
+        }
+    }
+
+    // Process items to remove
+    if (itemChanges.itemsToRemove && Array.isArray(itemChanges.itemsToRemove)) {
+        for (const itemName of itemChanges.itemsToRemove) {
+            if (!itemName || itemName === 'undefined') continue;
+            
+            const itemIndex = player.inventory?.findIndex(item => 
+                item.name.toLowerCase().includes(itemName.toLowerCase())
+            );
+            
+            if (itemIndex !== -1) {
+                const removedItem = player.inventory.splice(itemIndex, 1)[0];
+                displayMessage(`Removed from inventory: ${removedItem.name}`, 'info');
+            }
+        }
+    }
+
+    // Process gold changes
+    if (itemChanges.goldChange && typeof itemChanges.goldChange === 'number' && itemChanges.goldChange !== 0) {
+        updateGold(itemChanges.goldChange, 'item transaction');
+    }
+
+    // Save changes
+    if (window.ItemManager && typeof ItemManager.saveInventoryToStorage === 'function') {
+        ItemManager.saveInventoryToStorage(player);
+    }
+    saveGame();
+}
+
+
         document.getElementById('show-progression-btn')?.addEventListener('click', displayCharacterProgression);
         newQuestBtn?.addEventListener('click', displayQuests);
 

@@ -330,14 +330,26 @@ If no actual transaction is detected, return {"hasTransaction": false, "confiden
             // Create enhanced context for ItemGenerator
             // Map category names to correct itemCategories values
             const categoryMapping = {
-                'CONSUMABLE': window.itemCategories?.CONSUMABLE || 'consumable',
-                'WEAPON': window.itemCategories?.WEAPON || 'weapon',
-                'ARMOR': window.itemCategories?.ARMOR || 'armor',
-                'MAGICAL': window.itemCategories?.MAGICAL || 'magical',
-                'JEWELRY': window.itemCategories?.JEWELRY || 'jewelry'
+                'CONSUMABLE': window.itemCategories?.CONSUMABLE || window.itemCategories?.consumable || 'consumable',
+                'WEAPON': window.itemCategories?.WEAPON || window.itemCategories?.weapon || 'weapon', 
+                'ARMOR': window.itemCategories?.ARMOR || window.itemCategories?.armor || 'armor',
+                'MAGICAL': window.itemCategories?.MAGICAL || window.itemCategories?.magical || 'magical',
+                'JEWELRY': window.itemCategories?.JEWELRY || window.itemCategories?.jewelry || 'jewelry'
             };
             
-            const mappedCategory = categoryMapping[itemData.category] || window.itemCategories?.MAGICAL || 'magical';
+            // Use the actual itemCategories values if available
+            let mappedCategory;
+            if (window.itemCategories) {
+                // Try uppercase first, then lowercase
+                mappedCategory = window.itemCategories[itemData.category] || 
+                               window.itemCategories[itemData.category?.toLowerCase()] ||
+                               categoryMapping[itemData.category] ||
+                               window.itemCategories.CONSUMABLE ||
+                               window.itemCategories.consumable ||
+                               'consumable';
+            } else {
+                mappedCategory = 'consumable';
+            }
             
             const context = {
                 category: mappedCategory,
