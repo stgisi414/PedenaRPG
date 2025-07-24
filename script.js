@@ -3163,15 +3163,43 @@ async function generateItemFromDescription(itemName, context) {
             if (itemData.description) {
                 generatedItem.description = itemData.description;
             }
+            
+            // Ensure the item has all required properties
+            if (!generatedItem.id) generatedItem.id = ItemGenerator.generateItemId();
+            if (!generatedItem.value) generatedItem.value = Math.max(1, Math.floor(Math.random() * 50) + 10);
+            if (!generatedItem.type) generatedItem.type = itemData.category || 'trinket';
+            if (!generatedItem.rarity) generatedItem.rarity = itemData.rarity || 'COMMON';
+            
             return generatedItem;
         }
 
-        return null;
+        // Fallback: create a basic item if generation fails
+        console.warn(`Failed to generate item for "${cleanName}", creating fallback item`);
+        return createFallbackItem(cleanName, itemData);
 
     } catch (error) {
         console.error('Error generating item from description:', error);
-        return null;
+        // Return fallback item instead of null
+        return createFallbackItem(itemName, { category: 'trinket', rarity: 'COMMON' });
     }
+}
+
+// Create a fallback item when generation fails
+function createFallbackItem(itemName, itemData = {}) {
+    const cleanName = itemName.replace(/^(the|a|an)\s+/i, '').trim();
+    const capitalizedName = cleanName.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+    
+    return {
+        id: ItemGenerator ? ItemGenerator.generateItemId() : `fallback_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
+        name: capitalizedName || "Mysterious Item",
+        type: itemData.category || 'trinket',
+        rarity: itemData.rarity || 'COMMON',
+        description: `A ${cleanName.toLowerCase() || 'mysterious item'} that you've acquired. Its properties seem ordinary but it might have hidden value.`,
+        value: Math.max(1, Math.floor(Math.random() * 30) + 5),
+        effects: [],
+        isIdentified: true,
+        source: 'ai_fallback'
+    };
 }
 
 // Categorize item based on name/description

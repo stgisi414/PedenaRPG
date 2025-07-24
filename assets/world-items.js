@@ -4439,7 +4439,7 @@ export class ItemManager {
         }
 
         const item = player.inventory[itemIndex];
-        if (!item.needsIdentification) {
+        if (!item.needsIdentification && !item.unidentified) {
             return { success: false, message: "This item doesn't need identification." };
         }
 
@@ -4450,7 +4450,7 @@ export class ItemManager {
             // Use AI to generate a new item based on story context
             const newItem = await this.regenerateItemFromContext(context, player.level);
             
-            if (newItem) {
+            if (newItem && newItem.name && newItem.id) {
                 // Replace the unidentified item with the newly generated one
                 player.inventory[itemIndex] = newItem;
                 this.saveInventoryToStorage(player);
@@ -4461,12 +4461,47 @@ export class ItemManager {
                     newItem: newItem
                 };
             } else {
-                return { success: false, message: "Failed to identify the item. Try again later." };
+                // Create a basic identified item as fallback
+                const fallbackItem = this.createBasicIdentifiedItem(item.name || 'Mysterious Item', player.level);
+                player.inventory[itemIndex] = fallbackItem;
+                this.saveInventoryToStorage(player);
+                
+                return { 
+                    success: true, 
+                    message: `You identify the item as: ${fallbackItem.name}. It appears to be a simple but useful item.`,
+                    newItem: fallbackItem
+                };
             }
         } catch (error) {
             console.error("Error during item identification:", error);
-            return { success: false, message: "Something went wrong during identification." };
+            // Create a basic fallback item
+            const fallbackItem = this.createBasicIdentifiedItem(item.name || 'Mysterious Item', player.level);
+            player.inventory[itemIndex] = fallbackItem;
+            this.saveInventoryToStorage(player);
+            
+            return { 
+                success: true, 
+                message: `Despite some difficulties, you identify this as: ${fallbackItem.name}.`,
+                newItem: fallbackItem
+            };
         }
+    }
+
+    static createBasicIdentifiedItem(itemName, playerLevel) {
+        const cleanName = itemName.replace(/unidentified|mysterious/gi, '').trim() || 'Simple Item';
+        const capitalizedName = cleanName.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+        
+        return {
+            id: ItemGenerator ? ItemGenerator.generateItemId() : `basic_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
+            name: capitalizedName,
+            type: 'trinket',
+            rarity: 'COMMON',
+            description: `A ${cleanName.toLowerCase()} that you've successfully identified. While not magical, it has some practical value.`,
+            value: Math.max(5, Math.floor(Math.random() * (playerLevel * 3)) + 10),
+            effects: [],
+            isIdentified: true,
+            source: 'basic_identification'
+        };
     }
 
     static generateIdentificationContext(player) {

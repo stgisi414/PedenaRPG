@@ -249,6 +249,12 @@ If no actual transaction is detected, return {"hasTransaction": false, "confiden
 
     static generateStructuredItem(itemData, player) {
         try {
+            // Validate input data
+            if (!itemData || typeof itemData !== 'object') {
+                console.warn('Invalid itemData provided to generateStructuredItem, creating fallback');
+                return this.createFallbackItem('Unknown Item', player);
+            }
+
             // Use ItemGenerator with enhanced context
             const context = {
                 category: (typeof window !== 'undefined' && window.itemCategories && window.itemCategories[itemData.category]) || (typeof window !== 'undefined' && window.itemCategories && window.itemCategories.MAGICAL),
@@ -287,8 +293,26 @@ If no actual transaction is detected, return {"hasTransaction": false, "confiden
             return baseItem;
         } catch (error) {
             console.error('Error generating structured item:', error);
-            return null;
+            return this.createFallbackItem(itemData.name || 'Unknown Item', player);
         }
+    }
+
+    static createFallbackItem(itemName, player) {
+        const cleanName = (itemName || 'Unknown Item').replace(/^(the|a|an)\s+/i, '').trim();
+        const capitalizedName = cleanName.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+        
+        return {
+            id: `fallback_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
+            name: capitalizedName,
+            type: 'trinket',
+            rarity: 'COMMON',
+            description: `A ${cleanName.toLowerCase()} that you've encountered. While it appears ordinary, it might have some value or significance in your adventures.`,
+            value: Math.max(1, Math.floor(Math.random() * (player.level * 5)) + 10),
+            effects: [],
+            isIdentified: true,
+            source: 'transaction_fallback',
+            slot: null
+        };
     }
 
     static addEquipmentProperties(item, itemData) {
