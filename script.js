@@ -5044,6 +5044,16 @@ async function executeCustomCommand(command) {
             console.log("Processing AI response as simple narrative.");
             displayMessage(aiResponse, 'info');
             addToConversationHistory('assistant', aiResponse);
+            
+            // Check for transactions in unstructured responses
+            if (window.TransactionMiddleware && typeof TransactionMiddleware.detectTransaction === 'function') {
+                console.log("Checking for transactions in unstructured AI response...");
+                const transactionData = await TransactionMiddleware.detectTransaction(aiResponse, command, player, getConversationContext());
+                if (transactionData && transactionData.hasTransaction) {
+                    console.log("Transaction detected in unstructured response:", transactionData);
+                    await TransactionMiddleware.processTransaction(transactionData, player);
+                }
+            }
         }
 
     } catch (error) {
@@ -5109,6 +5119,16 @@ async function parseAndApplyStateChanges(result) {
     if (result.narrative) {
         displayMessage(result.narrative, 'info');
         addToConversationHistory('assistant', result.narrative);
+        
+        // Check for transactions in the narrative
+        if (window.TransactionMiddleware && typeof TransactionMiddleware.detectTransaction === 'function') {
+            console.log("Checking for transactions in structured AI response narrative...");
+            const transactionData = await TransactionMiddleware.detectTransaction(result.narrative, '', player, getConversationContext());
+            if (transactionData && transactionData.hasTransaction) {
+                console.log("Transaction detected in structured response:", transactionData);
+                await TransactionMiddleware.processTransaction(transactionData, player);
+            }
+        }
     }
 
     // 2. Player State (HP, EXP, Gold, and Status Effects)
