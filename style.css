@@ -819,3 +819,44 @@ h1, h2, h3, h4 {
 #back-slot-icon { background-image: url('./assets/icons/equip-slot-back.png'); }
 #amulet-slot-icon { background-image: url('./assets/icons/equip-slot-amulet.png'); }
 #ring1-slot-icon, #ring2-slot-icon { background-image: url('./assets/icons/equip-slot-ring.png'); }
+
+/* World Map Styles */
+#map-display {
+    aspect-ratio: 4 / 3; /* Maintain a good aspect ratio for the map */
+}
+
+.country-btn {
+    padding: 8px;
+    border: 2px solid #8B4513; /* A brown color that fits the parchment theme */
+    background-color: #F5DEB3; /* A light parchment color */
+    cursor: pointer;
+    transition: all 0.2s ease-in-out;
+    text-align: center;
+    font-weight: bold;
+    font-size: 0.8rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.country-btn:hover {
+    background-color: #D2B48C; /* A darker parchment color on hover */
+    transform: scale(1.05);
+}
+
+#map-info-panel h5 {
+    border-bottom: 2px solid #8B4513;
+    padding-bottom: 8px;
+}
+
+#map-info-content h6 {
+    font-weight: bold;
+    margin-top: 1rem;
+    color: #8B4513;
+}
+
+#map-info-content ul {
+    list-style-type: disc;
+    padding-left: 20px;
+    font-size: 0.9rem;
+}

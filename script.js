@@ -14,6 +14,7 @@ import { PartyManager } from './game-logic/party-manager.js';
 import { MultiCombatSystem } from './game-logic/multi-combat-system.js';
 import { RelationshipMiddleware } from './game-logic/relationship-middleware.js';
 import { HelpSystem } from './game-logic/help-system.js';
+import { countries, cities, regions } from './assets/world-data.js';
 
 let GEMINI_API_KEY = ''; // We will load this from settings
 let GEMINI_API_URL = ``; // We will build this dynamically
@@ -206,6 +207,61 @@ let gameWorld = {
     time: new Date(864, 5, 12, 8, 0, 0), // Default game start time
     activeEvents: []
 };
+
+const showMapBtn = document.getElementById('show-map-btn');
+const mapInterface = document.getElementById('map-interface');
+const mapDisplay = document.getElementById('map-display');
+const mapInfoPanel = document.getElementById('map-info-panel');
+const mapInfoContent = document.getElementById('map-info-content');
+const exitMapBtn = document.getElementById('exit-map-btn');
+
+function displayMap() {
+    mapInterface.classList.remove('hidden');
+    mapDisplay.innerHTML = ''; // Clear previous map
+
+    // Create a button for each country
+    for (const countryKey in countries) {
+        const country = countries[countryKey];
+        const countryBtn = document.createElement('button');
+        countryBtn.className = 'country-btn';
+        countryBtn.textContent = country.name;
+        countryBtn.title = country.description;
+        countryBtn.onclick = () => showCountryDetails(countryKey);
+        mapDisplay.appendChild(countryBtn);
+    }
+}
+
+function showCountryDetails(countryKey) {
+    const country = countries[countryKey];
+    const countryCities = Object.values(cities).filter(city => city.country === countryKey);
+    const countryRegions = Object.values(regions).filter(region => region.country === countryKey);
+
+    let detailsHTML = `
+        <h5 class="font-bold text-xl mb-2 text-center">${country.name}</h5>
+        <p class="text-sm italic mb-4 text-center">"${country.description}"</p>
+        <p><strong>Capital:</strong> ${country.capital}</p>
+        <p><strong>Ruler:</strong> ${country.ruler}</p>
+        <p><strong>Climate:</strong> ${country.climate}</p>
+    `;
+
+    if (countryCities.length > 0) {
+        detailsHTML += `<h6>Cities:</h6><ul>`;
+        countryCities.forEach(city => {
+            detailsHTML += `<li>${city.name} (${city.type})</li>`;
+        });
+        detailsHTML += `</ul>`;
+    }
+
+    if (countryRegions.length > 0) {
+        detailsHTML += `<h6>Regions:</h6><ul>`;
+        countryRegions.forEach(region => {
+            detailsHTML += `<li>${region.name} (${region.type})</li>`;
+        });
+        detailsHTML += `</ul>`;
+    }
+
+    mapInfoContent.innerHTML = detailsHTML;
+}
 
 // Conversation History System for AI Context
 let conversationHistory = {
@@ -5778,6 +5834,10 @@ function addMainEventListeners() {
             }
         });
 
+        // --- Map Stuff --- //
+        showMapBtn?.addEventListener('click', displayMap);
+        exitMapBtn?.addEventListener('click', () => mapInterface.classList.add('hidden'));
+        
         // --- Quick Action Buttons ---
         document.getElementById('rest-btn')?.addEventListener('click', () => {
             const healAmount = Math.floor(player.maxHp * 0.25) + 10;

@@ -238,7 +238,13 @@
                                         class="btn-parchment bg-purple-600 hover:bg-purple-700 text-xs md:text-sm py-1 px-2 text-white"
                                         title="Show help system" style="display: inline;">
                                         <i class="ra ra-quill mr-2"></i>Help
-                                    </button></span></label>
+                                    </button> | 
+                                    <button id="show-map-btn" 
+                                        class="btn-parchment bg-green-600 hover:bg-blue-700 text-xs md:text-sm py-1 px-2 text-white" 
+                                        title="Show world map" style="display: inline;">
+                                        <i class="ra ra-compass mr-2"></i>Show Map
+                                    </button>
+</span></label>
                             <div class="flex gap-2">
                                 <input type="text" id="custom-command-input" class="input-parchment flex-1"
                                     placeholder="Type your action here (e.g., 'examine the mysterious door', 'talk to the merchant', 'cast fireball')...">
@@ -277,6 +283,23 @@
                             <button id="cast-spell-btn" class="btn-parchment text-sm"><i
                                     class="ra ra-magic-swirl mr-2"></i>Cast Spell</button>
                             <button id="pray-btn" class="btn-parchment text-sm">🙏 Pray</button>
+                        </div>
+
+                        <div id="map-interface" class="hidden absolute inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4 z-40">
+                            <div class="parchment-bg w-full max-w-4xl h-full max-h-[90vh] p-6 rounded-lg shadow-lg overflow-y-auto relative">
+                                <h4 class="text-3xl font-bold mb-4 text-center text-amber-800 medieval-font">World Map</h4>
+                                <div id="map-content" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                    <div id="map-display" class="md:col-span-2 grid grid-cols-4 gap-2 p-2 border-2 border-amber-700/50 rounded bg-amber-50/20">
+                                        </div>
+                                    <div id="map-info-panel" class="parchment-box p-4">
+                                        <h5 class="font-bold text-xl mb-2 text-center">Select a Country</h5>
+                                        <div id="map-info-content">
+                                            <p class="text-center italic">Click on a country on the map to see its details.</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <button id="exit-map-btn" class="absolute top-4 right-4 btn-parchment bg-red-600 hover:bg-red-700 text-white">&times;</button>
+                            </div>
                         </div>
 
                         <div id="shop-interface" class="hidden mt-6">
