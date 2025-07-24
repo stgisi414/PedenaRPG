@@ -220,153 +220,160 @@
                 </section>
 
                 <section id="game-play-screen" class="hidden relative">
-                        <div class="flex justify-between items-center mb-6">
-                            <h3 id="player-name" class="text-2xl font-bold"></h3>
-                            <div style="color: #F5DEB3 !important;">
-                                <span id="player-level" class="text-xl mr-4"></span>
-                                <span id="player-hp" class="text-xl"></span>
-                            </div>
+                    <div class="flex justify-between items-center mb-6">
+                        <h3 id="player-name" class="text-2xl font-bold"></h3>
+                        <div style="color: #F5DEB3 !important;">
+                            <span id="player-level" class="text-xl mr-4"></span>
+                            <span id="player-hp" class="text-xl"></span>
                         </div>
+                    </div>
 
-                        <div id="game-output" class="parchment-box mb-6 h-96 overflow-y-auto">
+                    <div id="game-output" class="parchment-box mb-6 h-96 overflow-y-auto">
+                    </div>
+
+                    <div id="custom-command-section" class="mb-6">
+                        <label for="custom-command-input" class="block text-lg mb-2"
+                            style="color:#F5DEB3 !important;">Enter Command: <span style="text-align: right;">
+                                <button id="help-btn"
+                                    class="btn-parchment bg-purple-600 hover:bg-purple-700 text-xs md:text-sm py-1 px-2 text-white"
+                                    title="Show help system" style="display: inline;">
+                                    <i class="ra ra-quill mr-2"></i>Help
+                                </button> |
+                                <button id="show-map-btn"
+                                    class="btn-parchment bg-green-600 hover:bg-blue-700 text-xs md:text-sm py-1 px-2 text-white"
+                                    title="Show world map" style="display: inline;">
+                                    <i class="ra ra-compass mr-2"></i>Show Map
+                                </button>
+                            </span></label>
+                        <div class="flex gap-2">
+                            <input type="text" id="custom-command-input" class="input-parchment flex-1"
+                                placeholder="Type your action here (e.g., 'examine the mysterious door', 'talk to the merchant', 'cast fireball')...">
+                            <button id="execute-command-btn" class="btn-parchment"><i
+                                    class="ra ra-lightning-bolt mr-2"></i>Execute</button>
                         </div>
+                    </div>
 
-                        <div id="custom-command-section" class="mb-6">
-                            <label for="custom-command-input" class="block text-lg mb-2"
-                                style="color:#F5DEB3 !important;">Enter Command: <span style="text-align: right;">
-                                    <button id="help-btn"
-                                        class="btn-parchment bg-purple-600 hover:bg-purple-700 text-xs md:text-sm py-1 px-2 text-white"
-                                        title="Show help system" style="display: inline;">
-                                        <i class="ra ra-quill mr-2"></i>Help
-                                    </button> | 
-                                    <button id="show-map-btn" 
-                                        class="btn-parchment bg-green-600 hover:bg-blue-700 text-xs md:text-sm py-1 px-2 text-white" 
-                                        title="Show world map" style="display: inline;">
-                                        <i class="ra ra-compass mr-2"></i>Show Map
-                                    </button>
-</span></label>
-                            <div class="flex gap-2">
-                                <input type="text" id="custom-command-input" class="input-parchment flex-1"
-                                    placeholder="Type your action here (e.g., 'examine the mysterious door', 'talk to the merchant', 'cast fireball')...">
-                                <button id="execute-command-btn" class="btn-parchment"><i
-                                        class="ra ra-lightning-bolt mr-2"></i>Execute</button>
-                            </div>
-                        </div>
+                    <div id="game-actions" class="grid grid-cols-2 md:grid-cols-6 gap-4">
+                        <button id="save-game-btn" class="btn-parchment"><i class="ra ra-save mr-2"></i>Save
+                            Game</button>
+                        <button id="new-quest-btn" class="btn-parchment">📜 New Quest</button>
+                        <button id="show-inventory-btn" class="btn-parchment"><i
+                                class="ra ra-backpack mr-2"></i>Inventory</button>
+                        <button id="show-shop-btn" class="btn-parchment">🛒 Shop</button>
+                        <button id="show-progression-btn" class="btn-parchment"><i
+                                class="ra ra-level-up mr-2"></i>Progression</button>
+                        <button id="show-background-btn" class="btn-parchment"><i
+                                class="ra ra-book mr-2"></i>Background</button>
+                    </div>
 
-                        <div id="game-actions" class="grid grid-cols-2 md:grid-cols-6 gap-4">
-                            <button id="save-game-btn" class="btn-parchment"><i class="ra ra-save mr-2"></i>Save
-                                Game</button>
-                            <button id="new-quest-btn" class="btn-parchment">📜 New Quest</button>
-                            <button id="show-inventory-btn" class="btn-parchment"><i
-                                    class="ra ra-backpack mr-2"></i>Inventory</button>
-                            <button id="show-shop-btn" class="btn-parchment">🛒 Shop</button>
-                            <button id="show-progression-btn" class="btn-parchment"><i
-                                    class="ra ra-level-up mr-2"></i>Progression</button>
-                            <button id="show-background-btn" class="btn-parchment"><i
-                                    class="ra ra-book mr-2"></i>Background</button>
-                        </div>
+                    <div class="flex justify-center gap-4 mt-4">
+                        <button id="settings-btn" class="btn-parchment bg-gray-600 hover:bg-gray-700 text-white">
+                            <span>Settings⚙️</span>
+                        </button>
 
-                        <div class="flex justify-center gap-4 mt-4">
-                            <button id="settings-btn" class="btn-parchment bg-gray-600 hover:bg-gray-700 text-white">
-                                <span>Settings⚙️</span>
-                            </button>
+                        <!-- Donate Button -->
+                        <button id="donate-btn"
+                            class="btn-parchment bg-gradient-to-r from-yellow-600 to-yellow-700 hover:from-yellow-500 hover:to-yellow-600 text-white">
+                            Support via Venmo
+                        </button>
+                    </div>
 
-                            <!-- Donate Button -->
-                            <button id="donate-btn" class="btn-parchment bg-gradient-to-r from-yellow-600 to-yellow-700 hover:from-yellow-500 hover:to-yellow-600 text-white">
-                                Support via Venmo
-                            </button>
-                        </div>
+                    <div id="quick-actions" class="grid grid-cols-2 md:grid-cols-4 gap-2 mt-4">
+                        <button id="rest-btn" class="btn-parchment text-sm">😴 Rest</button>
+                        <button id="explore-btn" class="btn-parchment text-sm">🔍 Explore</button>
+                        <button id="cast-spell-btn" class="btn-parchment text-sm"><i
+                                class="ra ra-magic-swirl mr-2"></i>Cast Spell</button>
+                        <button id="pray-btn" class="btn-parchment text-sm">🙏 Pray</button>
+                    </div>
 
-                        <div id="quick-actions" class="grid grid-cols-2 md:grid-cols-4 gap-2 mt-4">
-                            <button id="rest-btn" class="btn-parchment text-sm">😴 Rest</button>
-                            <button id="explore-btn" class="btn-parchment text-sm">🔍 Explore</button>
-                            <button id="cast-spell-btn" class="btn-parchment text-sm"><i
-                                    class="ra ra-magic-swirl mr-2"></i>Cast Spell</button>
-                            <button id="pray-btn" class="btn-parchment text-sm">🙏 Pray</button>
-                        </div>
-
-                        <div id="map-interface" class="hidden absolute inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4 z-40">
-                            <div class="parchment-bg w-full max-w-4xl h-full max-h-[90vh] p-6 rounded-lg shadow-lg overflow-y-auto relative">
-                                <h4 class="text-3xl font-bold mb-4 text-center text-amber-800 medieval-font">World Map</h4>
-                                <div id="map-content" class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                    <div id="map-display" class="md:col-span-2 grid grid-cols-4 gap-2 p-2 border-2 border-amber-700/50 rounded bg-amber-50/20">
-                                        </div>
-                                    <div id="map-info-panel" class="parchment-box p-4">
-                                        <h5 class="font-bold text-xl mb-2 text-center">Select a Country</h5>
-                                        <div id="map-info-content">
-                                            <p class="text-center italic">Click on a country on the map to see its details.</p>
-                                        </div>
+                    <div id="map-interface"
+                        class="hidden absolute inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4 z-40">
+                        <div
+                            class="parchment-bg w-full max-w-4xl h-full max-h-[90vh] p-6 rounded-lg shadow-lg overflow-y-auto relative">
+                            <h4 class="text-3xl font-bold mb-4 text-center text-amber-800 medieval-font">World Map</h4>
+                            <div id="map-content" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div id="map-display"
+                                    class="md:col-span-2 grid grid-cols-4 gap-2 p-2 border-2 border-amber-700/50 rounded bg-amber-50/20">
+                                </div>
+                                <div id="map-info-panel" class="parchment-box p-4">
+                                    <h5 class="font-bold text-xl mb-2 text-center">Select a Country</h5>
+                                    <div id="map-info-content">
+                                        <p class="text-center italic">Click on a country on the map to see its details.
+                                        </p>
                                     </div>
                                 </div>
-                                <button id="exit-map-btn" class="absolute top-4 right-4 btn-parchment bg-red-600 hover:bg-red-700 text-white">&times;</button>
+                            </div>
+                            <button id="exit-map-btn"
+                                class="absolute top-4 right-4 btn-parchment bg-red-600 hover:bg-red-700 text-white">&times;</button>
+                        </div>
+                    </div>
+
+                    <div id="shop-interface" class="hidden mt-6">
+                        <h4 class="text-2xl font-bold text-green-700 mb-4 text-center">The Merchant's Stall</h4>
+                        <div id="shop-items" class="parchment-box p-4 mb-4 grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+                        <div class="text-center">
+                            <button id="exit-shop-btn"
+                                class="btn-parchment bg-gray-600 hover:bg-gray-700 text-white">Exit Shop</button>
+                        </div>
+                    </div>
+
+                    <div id="inventory-interface" class="hidden mt-6">
+                        <h4 class="text-2xl font-bold text-blue-700 mb-4 text-center">Your Inventory</h4>
+                        <div id="inventory-items" class="parchment-box p-4 mb-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                        </div>
+                        <div class="text-center">
+                            <button id="exit-inventory-btn"
+                                class="btn-parchment bg-gray-600 hover:bg-gray-700 text-white">Close Inventory</button>
+                        </div>
+                    </div>
+
+                    <div id="skills-interface" class="hidden mt-6">
+                        <h4 class="text-2xl font-bold text-purple-700 mb-4 text-center">Your Skills & Abilities</h4>
+                        <div id="skills-list" class="parchment-box p-4 mb-4"></div>
+                        <div class="text-center">
+                            <button id="exit-skills-btn"
+                                class="btn-parchment bg-gray-600 hover:bg-gray-700 text-white">Close Skills</button>
+                        </div>
+                    </div>
+
+                    <div id="quest-interface" class="hidden mt-6">
+                        <h4 class="text-2xl font-bold text-orange-700 mb-4 text-center">Active Quests</h4>
+                        <div id="quest-list" class="parchment-box p-4 mb-4"></div>
+                        <div class="text-center">
+                            <button id="exit-quests-btn"
+                                class="btn-parchment bg-gray-600 hover:bg-gray-700 text-white">Close Quests</button>
+                        </div>
+                    </div>
+
+                    <div id="progression-interface" class="hidden mt-6">
+                        <h4 class="text-2xl font-bold text-purple-700 mb-4 text-center">Character Progression</h4>
+                        <div id="progression-content" class="parchment-box p-4 mb-4"></div>
+                        <div id="party-manager-section" class="parchment-box p-4 mb-4">
+                            <h5 class="font-bold mb-2">Party Manager</h5>
+                            <div id="party-manager-display">
                             </div>
                         </div>
-
-                        <div id="shop-interface" class="hidden mt-6">
-                            <h4 class="text-2xl font-bold text-green-700 mb-4 text-center">The Merchant's Stall</h4>
-                            <div id="shop-items" class="parchment-box p-4 mb-4 grid grid-cols-1 md:grid-cols-2 gap-4"></div>
-                            <div class="text-center">
-                                <button id="exit-shop-btn"
-                                    class="btn-parchment bg-gray-600 hover:bg-gray-700 text-white">Exit Shop</button>
-                            </div>
+                        <div class="text-center">
+                            <button id="exit-progression-btn"
+                                class="btn-parchment bg-gray-600 hover:bg-gray-700 text-white">Close
+                                Progression</button>
                         </div>
+                    </div>
 
-                        <div id="inventory-interface" class="hidden mt-6">
-                            <h4 class="text-2xl font-bold text-blue-700 mb-4 text-center">Your Inventory</h4>
-                            <div id="inventory-items" class="parchment-box p-4 mb-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-                            </div>
-                            <div class="text-center">
-                                <button id="exit-inventory-btn"
-                                    class="btn-parchment bg-gray-600 hover:bg-gray-700 text-white">Close Inventory</button>
-                            </div>
+                    <div id="background-interface" class="hidden mt-6">
+                        <h4 class="text-2xl font-bold text-blue-700 mb-4 text-center">Character Background</h4>
+                        <div id="background-content" class="parchment-box p-4 mb-4"></div>
+                        <div class="text-center">
+                            <button id="exit-background-btn"
+                                class="btn-parchment bg-gray-600 hover:bg-gray-700 text-white">Close Background</button>
                         </div>
+                    </div>
 
-                        <div id="skills-interface" class="hidden mt-6">
-                            <h4 class="text-2xl font-bold text-purple-700 mb-4 text-center">Your Skills & Abilities</h4>
-                            <div id="skills-list" class="parchment-box p-4 mb-4"></div>
-                            <div class="text-center">
-                                <button id="exit-skills-btn"
-                                    class="btn-parchment bg-gray-600 hover:bg-gray-700 text-white">Close Skills</button>
-                            </div>
-                        </div>
-
-                        <div id="quest-interface" class="hidden mt-6">
-                            <h4 class="text-2xl font-bold text-orange-700 mb-4 text-center">Active Quests</h4>
-                            <div id="quest-list" class="parchment-box p-4 mb-4"></div>
-                            <div class="text-center">
-                                <button id="exit-quests-btn"
-                                    class="btn-parchment bg-gray-600 hover:bg-gray-700 text-white">Close Quests</button>
-                            </div>
-                        </div>
-
-                        <div id="progression-interface" class="hidden mt-6">
-                            <h4 class="text-2xl font-bold text-purple-700 mb-4 text-center">Character Progression</h4>
-                            <div id="progression-content" class="parchment-box p-4 mb-4"></div>
-                            <div id="party-manager-section" class="parchment-box p-4 mb-4">
-                                <h5 class="font-bold mb-2">Party Manager</h5>
-                                <div id="party-manager-display">
-                                </div>
-                            </div>
-                            <div class="text-center">
-                                <button id="exit-progression-btn"
-                                    class="btn-parchment bg-gray-600 hover:bg-gray-700 text-white">Close
-                                    Progression</button>
-                            </div>
-                        </div>
-
-                        <div id="background-interface" class="hidden mt-6">
-                            <h4 class="text-2xl font-bold text-blue-700 mb-4 text-center">Character Background</h4>
-                            <div id="background-content" class="parchment-box p-4 mb-4"></div>
-                            <div class="text-center">
-                                <button id="exit-background-btn"
-                                    class="btn-parchment bg-gray-600 hover:bg-gray-700 text-white">Close Background</button>
-                            </div>
-                        </div>
-
-                </main>
+            </main>
 
             <footer class="text-center mt-8 text-sm">
-                <p style="color: #F5DEB3 !important;">&copy; 2025 Shadowscale Chronicles. Powered by Gemini API & the spirit of
+                <p style="color: #F5DEB3 !important;">&copy; 2025 Shadowscale Chronicles. Powered by Gemini API & the
+                    spirit of
                     adventure.</p>
             </footer>
         </div>
@@ -385,16 +392,19 @@
         </div>
     </div>
 
-    <div id="donation-modal" class="hidden fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4">
-        <div class="parchment-bg p-6 rounded-lg shadow-xl w-full max-w-sm relative border-4 border-amber-800 text-center">
+    <div id="donation-modal"
+        class="hidden fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4">
+        <div
+            class="parchment-bg bg-zinc-700 p-6 rounded-lg shadow-xl w-full max-w-sm relative border-4 border-amber-800 text-center">
             <h4 class="text-2xl font-bold text-amber-800 mb-4">Support the Adventure</h4>
             <p class="text-amber-700 mb-6">Your support helps keep the chronicles alive. Thank you, adventurer!</p>
             <div id="donation-buttons-container" class="grid grid-cols-2 gap-4">
-                </div>
-            <button id="donation-modal-close-btn" class="btn-parchment bg-gray-600 hover:bg-gray-700 text-white mt-6">Close</button>
+            </div>
+            <button id="donation-modal-close-btn"
+                class="btn-parchment bg-gray-600 hover:bg-gray-700 text-white mt-6">Close</button>
         </div>
     </div>
-    
+
 </body>
 
 </html>
