@@ -1,0 +1,116 @@
+Processing structured AI response: {narrative: 'You approach the shopkeeper and offer 5 gold for a…g swig, and a wave of relaxation washes over you.', timePassedMinutes: 5, playerStateChanges: {…}}
+eruda:8 Checking for transactions in structured AI response narrative...
+eruda:8 --- TransactionMiddleware.detectTransaction CALLED ---
+eruda:8 Command received: ""
+eruda:8 Transaction detected in structured response: {hasTransaction: true, confidence: 0.9, transactionType: 'purchase', items: Array(1), goldChange: -5, …}
+eruda:8 TransactionMiddleware: processTransaction called with data: {
+  "hasTransaction": true,
+  "confidence": 0.9,
+  "transactionType": "purchase",
+  "items": [
+    {
+      "name": "CBD drink",
+      "cost": 0,
+      "category": "CONSUMABLE",
+      "rarity": "COMMON",
+      "isEquippable": false,
+      "isUsable": true,
+      "slot": "null",
+      "description": "a bottle"
+    }
+  ],
+  "goldChange": -5,
+  "vendor": "gnome"
+}
+eruda:8 --- updateGold CALLED ---
+eruda:8 Attempting to change gold by -5 for reason: purchase
+eruda:8 Gold BEFORE change: 101
+eruda:8 updateGold: Amount: -5, Reason: purchase, Old Gold: 101, New Gold: 96
+eruda:8 updateGold: About to call saveGame(). Current player.gold is 96
+eruda:8 Character progression saved
+eruda:8 saveGame: Player object being saved: {name: 'Adedayo', gender: 'male', class: 'shaman', background: 'Adedayo grew up in the secluded village of Olorun,…, thus embarking on his journey as an adventurer.', stats: {…}, …}
+eruda:8 saveGame: Saving player.gold = 96
+eruda:8 [TransactionMiddleware] Processing item data for addition: {
+  "name": "CBD drink",
+  "cost": 0,
+  "category": "CONSUMABLE",
+  "rarity": "COMMON",
+  "isEquippable": false,
+  "isUsable": true,
+  "slot": "null",
+  "description": "a bottle"
+}
+eruda:8 [TransactionMiddleware] === STARTING ITEM GENERATION ===
+eruda:8 [TransactionMiddleware] Raw itemData received: {
+  "name": "CBD drink",
+  "cost": 0,
+  "category": "CONSUMABLE",
+  "rarity": "COMMON",
+  "isEquippable": false,
+  "isUsable": true,
+  "slot": "null",
+  "description": "a bottle"
+}
+eruda:8 [TransactionMiddleware] Player context: {name: 'Adedayo', level: 1, class: 'shaman', location: 'Smoke Shop'}
+eruda:8 [TransactionMiddleware] Validated item name: CBD drink
+eruda:8 [TransactionMiddleware] ItemGenerator context: {
+  "category": "consumable",
+  "rarity": "COMMON",
+  "locationContext": "Smoke Shop",
+  "playerLevel": 1,
+  "playerClass": "shaman",
+  "narrativeContext": "a bottle"
+}
+eruda:8 [DEBUG_ITEM_GEN] Starting generateItem for: Category=consumable, Rarity=COMMON, SubType=null
+eruda:8 [ItemGenerator] Invalid category provided: consumable
+_t.forEach.n.<computed> @ eruda:8
+getRandomItemTemplate @ world-items.js:2647
+generateItem @ world-items.js:2694
+generateStructuredItem @ transaction-middleware.js:343
+processTransaction @ transaction-middleware.js:197
+parseAndApplyStateChanges @ script.js:5129
+await in parseAndApplyStateChanges
+executeCustomCommand @ script.js:5042
+await in executeCustomCommand
+(anonymous) @ script.js:5957
+(anonymous) @ script.js:5964Understand this error
+eruda:8 Could not find a base item for generation. Category: consumable SubType: null
+_t.forEach.n.<computed> @ eruda:8
+generateItem @ world-items.js:2697
+generateStructuredItem @ transaction-middleware.js:343
+processTransaction @ transaction-middleware.js:197
+parseAndApplyStateChanges @ script.js:5129
+await in parseAndApplyStateChanges
+executeCustomCommand @ script.js:5042
+await in executeCustomCommand
+(anonymous) @ script.js:5957
+(anonymous) @ script.js:5964Understand this error
+eruda:8 [TransactionMiddleware] ItemGenerator returned: {name: 'Bottle', id: 'fallback_1753351159820_gjl89xm', type: 'trinket', rarity: 'COMMON', value: 11}
+eruda:8 [TransactionMiddleware] Set item name to: CBD drink
+eruda:8 [TransactionMiddleware] Set custom description
+eruda:8 [TransactionMiddleware] === ITEM GENERATION SUCCESS ===
+eruda:8 [TransactionMiddleware] Final item: {name: 'CBD drink', id: 'fallback_1753351159820_gjl89xm', type: 'trinket', value: 11, description: 'a bottle...'}
+eruda:8 [TransactionMiddleware] Generated item result: {name: 'CBD drink', id: 'fallback_1753351159820_gjl89xm', type: 'trinket', value: 11}
+eruda:8 [TransactionMiddleware] Adding valid item to inventory: CBD drink
+eruda:8 ItemManager: Added item to inventory: CBD drink fallback_1753351159820_gjl89xm
+eruda:8 ItemManager: Current inventory length: 6
+eruda:8 --- updateGold CALLED ---
+eruda:8 Attempting to change gold by -5 for reason: transaction
+eruda:8 Gold BEFORE change: 96
+eruda:8 updateGold: Amount: -5, Reason: transaction, Old Gold: 96, New Gold: 91
+eruda:8 updateGold: About to call saveGame(). Current player.gold is 91
+eruda:8 Character progression saved
+eruda:8 saveGame: Player object being saved: {name: 'Adedayo', gender: 'male', class: 'shaman', background: 'Adedayo grew up in the secluded village of Olorun,…, thus embarking on his journey as an adventurer.', stats: {…}, …}
+eruda:8 saveGame: Saving player.gold = 91
+eruda:8 Character progression saved
+eruda:8 saveGame: Player object being saved: {name: 'Adedayo', gender: 'male', class: 'shaman', background: 'Adedayo grew up in the secluded village of Olorun,…, thus embarking on his journey as an adventurer.', stats: {…}, …}
+eruda:8 saveGame: Saving player.gold = 91
+eruda:8 Processing structured AI response: {narrative: 'You approach the shopkeeper and ask for a bag of w…it before you. He holds out his hand expectantly.', timePassedMinutes: 5, playerStateChanges: null, itemChanges: {…}}
+eruda:8 Checking for transactions in structured AI response narrative...
+eruda:8 --- TransactionMiddleware.detectTransaction CALLED ---
+eruda:8 Command received: ""
+eruda:8 ItemManager: Added item to inventory: undefined item_1753351178097_09gqtate1
+eruda:8 ItemManager: Current inventory length: 7
+eruda:8 Character progression saved
+eruda:8 saveGame: Player object being saved: {name: 'Adedayo', gender: 'male', class: 'shaman', background: 'Adedayo grew up in the secluded village of Olorun,…, thus embarking on his journey as an adventurer.', stats: {…}, …}
+eruda:8 saveGame: Saving player.gold = 91
