@@ -191,9 +191,20 @@ If no actual transaction is detected, return {"hasTransaction": false, "confiden
                 }
             } else { // Purchases, rewards, loot
                 for (const itemData of transactionData.items) {
+                    console.log('[TransactionMiddleware] Processing item data for addition:', JSON.stringify(itemData, null, 2));
+                    
                     if (typeof this.generateStructuredItem === 'function' && typeof window.ItemManager !== 'undefined' && typeof window.ItemManager.addItemToInventory === 'function') {
                         const generatedItem = await this.generateStructuredItem(itemData, player);
-                        if (generatedItem && generatedItem.name && generatedItem.name !== 'undefined') {
+                        
+                        console.log('[TransactionMiddleware] Generated item result:', generatedItem ? {
+                            name: generatedItem.name,
+                            id: generatedItem.id,
+                            type: generatedItem.type,
+                            value: generatedItem.value
+                        } : 'null');
+                        
+                        if (generatedItem && generatedItem.name && generatedItem.name !== 'undefined' && generatedItem.name.trim() !== '') {
+                            console.log('[TransactionMiddleware] Adding valid item to inventory:', generatedItem.name);
                             window.ItemManager.addItemToInventory(player, generatedItem);
                             results.push(generatedItem);
                             if (typeof window.displayMessage === 'function') {
@@ -204,10 +215,24 @@ If no actual transaction is detected, return {"hasTransaction": false, "confiden
                             }
                             itemsChanged = true;
                         } else {
-                            console.error("Generated item was invalid:", generatedItem);
+                            console.error('[TransactionMiddleware] Generated item was invalid or had undefined name:', {
+                                item: generatedItem,
+                                hasName: !!generatedItem?.name,
+                                nameValue: generatedItem?.name,
+                                nameIsUndefined: generatedItem?.name === 'undefined'
+                            });
+                            
+                            // Display error message to user
+                            if (typeof window.displayMessage === 'function') {
+                                window.displayMessage(`Failed to generate item properly. Item was not added to inventory.`, 'error');
+                            }
                         }
                     } else {
-                        console.error("generateStructuredItem or ItemManager.addItemToInventory missing.");
+                        console.error('[TransactionMiddleware] Required functions missing:', {
+                            hasGenerateStructuredItem: typeof this.generateStructuredItem === 'function',
+                            hasItemManager: typeof window.ItemManager !== 'undefined',
+                            hasAddItemToInventory: typeof window.ItemManager?.addItemToInventory === 'function'
+                        });
                     }
                 }
             }
@@ -253,15 +278,29 @@ If no actual transaction is detected, return {"hasTransaction": false, "confiden
         try {
             // Validate input data
             if (!itemData || typeof itemData !== 'object') {
-                console.warn('Invalid itemData provided to generateStructuredItem, creating fallback');
+                console.warn('[TransactionMiddleware] Invalid itemData provided to generateStructuredItem, creating fallback');
+                console.log('[TransactionMiddleware] itemData received:', itemData);
                 return this.createFallbackItem('Unknown Item', player);
             }
 
-            console.log('[DEBUG] generateStructuredItem called with:', JSON.stringify(itemData, null, 2));
+            console.log('[TransactionMiddleware] generateStructuredItem called with:', JSON.stringify(itemData, null, 2));
+            console.log('[TransactionMiddleware] Player context:', { name: player.name, level: player.level, class: player.class, location: player.currentLocation });
+
+            // Check if ItemGenerator is available
+            if (typeof window === 'undefined' || !window.ItemGenerator) {
+                console.error('[TransactionMiddleware] ItemGenerator not available on window object');
+                return this.createFallbackItem(itemData.name || 'Unknown Item', player);
+            }
+
+            // Check if itemCategories is available
+            if (!window.itemCategories) {
+                console.error('[TransactionMiddleware] itemCategories not available on window object');
+                return this.createFallbackItem(itemData.name || 'Unknown Item', player);
+            }
 
             // Use ItemGenerator with enhanced context
             const context = {
-                category: (typeof window !== 'undefined' && window.itemCategories && window.itemCategories[itemData.category]) || (typeof window !== 'undefined' && window.itemCategories && window.itemCategories.MAGICAL),
+                category: window.itemCategories[itemData.category] || window.itemCategories.MAGICAL || 'magical',
                 rarity: itemData.rarity || 'COMMON',
                 locationContext: player.currentLocation,
                 playerLevel: player.level,
@@ -269,25 +308,45 @@ If no actual transaction is detected, return {"hasTransaction": false, "confiden
                 narrativeContext: itemData.description
             };
 
-            console.log('[DEBUG] ItemGenerator context:', JSON.stringify(context, null, 2));
+            console.log('[TransactionMiddleware] ItemGenerator context:', JSON.stringify(context, null, 2));
 
-            // ItemGenerator.generateItem might be async, so await it
-            const baseItem = (typeof window !== 'undefined' && window.ItemGenerator) ? await window.ItemGenerator.generateItem(context) : null;
+            // Generate item using ItemGenerator
+            const baseItem = await window.ItemGenerator.generateItem(context);
             
-            console.log('[DEBUG] ItemGenerator returned:', baseItem ? baseItem.name : 'null');
+            console.log('[TransactionMiddleware] ItemGenerator returned raw item:', JSON.stringify(baseItem, null, 2));
             
-            if (!baseItem || baseItem.name === 'undefined' || !baseItem.name) {
-                console.warn("ItemGenerator.generateItem failed or returned invalid item, creating fallback");
+            // Validate the generated item
+            if (!baseItem) {
+                console.error('[TransactionMiddleware] ItemGenerator returned null/undefined');
                 return this.createFallbackItem(itemData.name || 'Unknown Item', player);
             }
 
-            // Override with narrative-specific data
-            if (itemData.name && itemData.name !== 'undefined') {
+            if (!baseItem.name || baseItem.name === 'undefined' || baseItem.name.trim() === '') {
+                console.error('[TransactionMiddleware] ItemGenerator returned item with invalid name:', baseItem.name);
+                console.log('[TransactionMiddleware] Full invalid item:', JSON.stringify(baseItem, null, 2));
+                return this.createFallbackItem(itemData.name || 'Unknown Item', player);
+            }
+
+            // Override with narrative-specific data if provided
+            if (itemData.name && itemData.name !== 'undefined' && itemData.name.trim() !== '') {
+                console.log('[TransactionMiddleware] Overriding item name from', baseItem.name, 'to', itemData.name);
                 baseItem.name = itemData.name;
             }
 
-            if (itemData.description && itemData.description !== 'undefined') {
+            if (itemData.description && itemData.description !== 'undefined' && itemData.description.trim() !== '') {
+                console.log('[TransactionMiddleware] Overriding item description');
                 baseItem.description = itemData.description;
+            }
+
+            // Ensure item has required properties
+            if (!baseItem.id) {
+                baseItem.id = `generated_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+                console.log('[TransactionMiddleware] Added missing ID to item:', baseItem.id);
+            }
+
+            if (!baseItem.value || baseItem.value <= 0) {
+                baseItem.value = Math.max(1, Math.floor(Math.random() * (player.level * 5)) + 10);
+                console.log('[TransactionMiddleware] Set item value to:', baseItem.value);
             }
 
             // Set equipment properties
@@ -296,17 +355,27 @@ If no actual transaction is detected, return {"hasTransaction": false, "confiden
 
             if (baseItem.isEquippable && itemData.slot && itemData.slot !== 'null') {
                 baseItem.slot = itemData.slot;
-                baseItem.type = (typeof window !== 'undefined' && window.itemCategories) ? window.itemCategories.ARMOR : 'armor';
+                baseItem.type = window.itemCategories.ARMOR || 'armor';
+                console.log('[TransactionMiddleware] Set item as equippable in slot:', itemData.slot);
             }
             
             if (baseItem.isEquippable && typeof this.addEquipmentProperties === 'function') {
                 this.addEquipmentProperties(baseItem, itemData);
             }
 
-            console.log('[DEBUG] Final generated item:', JSON.stringify(baseItem, null, 2));
+            // Final validation before returning
+            if (!baseItem.name || baseItem.name === 'undefined') {
+                console.error('[TransactionMiddleware] Final validation failed - item still has invalid name');
+                return this.createFallbackItem(itemData.name || 'Unknown Item', player);
+            }
+
+            console.log('[TransactionMiddleware] Successfully generated item:', baseItem.name, 'with ID:', baseItem.id);
+            console.log('[TransactionMiddleware] Final generated item details:', JSON.stringify(baseItem, null, 2));
             return baseItem;
         } catch (error) {
-            console.error('Error generating structured item:', error);
+            console.error('[TransactionMiddleware] Error in generateStructuredItem:', error);
+            console.error('[TransactionMiddleware] Error stack:', error.stack);
+            console.log('[TransactionMiddleware] Falling back to createFallbackItem with:', itemData.name || 'Unknown Item');
             return this.createFallbackItem(itemData.name || 'Unknown Item', player);
         }
     }
