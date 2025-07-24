@@ -15,6 +15,7 @@ import { MultiCombatSystem } from './game-logic/multi-combat-system.js';
 import { RelationshipMiddleware } from './game-logic/relationship-middleware.js';
 import { HelpSystem } from './game-logic/help-system.js';
 import { countries, cities, regions } from './assets/world-data.js';
+import { BGMManager } from './game-logic/bgm-manager.js';
 
 let GEMINI_API_KEY = ''; // We will load this from settings
 let GEMINI_API_URL = ``; // We will build this dynamically
@@ -1447,7 +1448,7 @@ Make the location name proper and descriptive.`;
         player.currentLocation = movementData.newLocation;
         displayMessage(movementData.description, 'success');
         displayMessage(`You arrive at ${movementData.newLocation}.`, 'info');
-        
+
         // Update BGM for new location
         await handleLocationMusicUpdate();
 
@@ -3169,13 +3170,13 @@ async function generateItemFromDescription(itemName, context) {
             if (itemData.description) {
                 generatedItem.description = itemData.description;
             }
-            
+
             // Ensure the item has all required properties
             if (!generatedItem.id) generatedItem.id = ItemGenerator.generateItemId();
             if (!generatedItem.value) generatedItem.value = Math.max(1, Math.floor(Math.random() * 50) + 10);
             if (!generatedItem.type) generatedItem.type = itemData.category || 'trinket';
             if (!generatedItem.rarity) generatedItem.rarity = itemData.rarity || 'COMMON';
-            
+
             return generatedItem;
         }
 
@@ -3194,7 +3195,7 @@ async function generateItemFromDescription(itemName, context) {
 function createFallbackItem(itemName, itemData = {}) {
     const cleanName = itemName.replace(/^(the|a|an)\s+/i, '').trim();
     const capitalizedName = cleanName.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
-    
+
     return {
         id: ItemGenerator ? ItemGenerator.generateItemId() : `fallback_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
         name: capitalizedName || "Mysterious Item",
@@ -4002,181 +4003,181 @@ Example:
 
 
 
-// BGM System Functions
-function initializeBGMSystem() {
-    if (typeof BGMManager !== 'undefined') {
-        bgmManager = new BGMManager();
-        console.log('BGM Manager initialized');
-        
-        // Load BGM settings
-        loadBGMSettings();
-        setupBGMEventListeners();
-    } else {
-        console.warn('BGMManager class not found - BGM features will be limited');
-    }
-}
+            // BGM System Functions
+            function initializeBGMSystem() {
+                if (typeof BGMManager !== 'undefined') {
+                    bgmManagerR = new BGMManager();
+                    console.log('BGM Manager initialized');
 
-function loadBGMSettings() {
-    const bgmSettings = JSON.parse(localStorage.getItem('bgmSettings') || '{"enabled": false, "volume": 50}');
-    
-    const enabledCheckbox = document.getElementById('bgm-enabled');
-    const volumeSlider = document.getElementById('bgm-volume');
-    const volumeDisplay = document.getElementById('bgm-volume-display');
-    
-    if (enabledCheckbox) enabledCheckbox.checked = bgmSettings.enabled;
-    if (volumeSlider) volumeSlider.value = bgmSettings.volume;
-    if (volumeDisplay) volumeDisplay.textContent = bgmSettings.volume + '%';
-    
-    if (bgmManager) {
-        bgmManager.setVolume(bgmSettings.volume / 100);
-    }
-}
-
-function saveBGMSettings() {
-    const enabledCheckbox = document.getElementById('bgm-enabled');
-    const volumeSlider = document.getElementById('bgm-volume');
-    
-    const settings = {
-        enabled: enabledCheckbox ? enabledCheckbox.checked : false,
-        volume: volumeSlider ? parseInt(volumeSlider.value) : 50
-    };
-    
-    localStorage.setItem('bgmSettings', JSON.stringify(settings));
-}
-
-function setupBGMEventListeners() {
-    // BGM enabled/disabled toggle
-    const enabledCheckbox = document.getElementById('bgm-enabled');
-    if (enabledCheckbox) {
-        enabledCheckbox.addEventListener('change', () => {
-            saveBGMSettings();
-            updateBGMStatus();
-            if (!enabledCheckbox.checked && bgmManager) {
-                bgmManager.stopMusic();
+                    // Load BGM settings
+                    loadBGMSettings();
+                    setupBGMEventListeners();
+                } else {
+                    console.warn('BGMManager class not found - BGM features will be limited');
+                }
             }
-        });
-    }
-    
-    // Volume slider
-    const volumeSlider = document.getElementById('bgm-volume');
-    const volumeDisplay = document.getElementById('bgm-volume-display');
-    if (volumeSlider && volumeDisplay) {
-        volumeSlider.addEventListener('input', () => {
-            const volume = parseInt(volumeSlider.value);
-            volumeDisplay.textContent = volume + '%';
-            if (bgmManager) {
-                bgmManager.setVolume(volume / 100);
+
+            function loadBGMSettings() {
+                const bgmSettings = JSON.parse(localStorage.getItem('bgmSettings') || '{"enabled": false, "volume": 50}');
+
+                const enabledCheckbox = document.getElementById('bgm-enabled');
+                const volumeSlider = document.getElementById('bgm-volume');
+                const volumeDisplay = document.getElementById('bgm-volume-display');
+
+                if (enabledCheckbox) enabledCheckbox.checked = bgmSettings.enabled;
+                if (volumeSlider) volumeSlider.value = bgmSettings.volume;
+                if (volumeDisplay) volumeDisplay.textContent = bgmSettings.volume + '%';
+
+                if (bgmManager) {
+                    bgmManager.setVolume(bgmSettings.volume / 100);
+                }
             }
-            saveBGMSettings();
-        });
-    }
-    
-    // Generate location music button
-    const generateMusicBtn = document.getElementById('generate-location-music-btn');
-    if (generateMusicBtn) {
-        generateMusicBtn.addEventListener('click', async () => {
-            await generateLocationMusic();
-        });
-    }
-    
-    // Stop music button
-    const stopMusicBtn = document.getElementById('stop-music-btn');
-    if (stopMusicBtn) {
-        stopMusicBtn.addEventListener('click', () => {
-            if (bgmManager) {
-                bgmManager.stopMusic();
-                updateBGMStatus();
-                displayMessage("Background music stopped.", 'info');
+
+            function saveBGMSettings() {
+                const enabledCheckbox = document.getElementById('bgm-enabled');
+                const volumeSlider = document.getElementById('bgm-volume');
+
+                const settings = {
+                    enabled: enabledCheckbox ? enabledCheckbox.checked : false,
+                    volume: volumeSlider ? parseInt(volumeSlider.value) : 50
+                };
+
+                localStorage.setItem('bgmSettings', JSON.stringify(settings));
             }
-        });
-    }
-}
 
-async function generateLocationMusic() {
-    if (!bgmManager) {
-        displayMessage("BGM system not available.", 'error');
-        return;
-    }
-    
-    const enabledCheckbox = document.getElementById('bgm-enabled');
-    if (!enabledCheckbox || !enabledCheckbox.checked) {
-        displayMessage("Please enable BGM first.", 'error');
-        return;
-    }
-    
-    if (!player || !player.currentLocation) {
-        displayMessage("No valid location for music generation.", 'error');
-        return;
-    }
-    
-    try {
-        displayMessage("🎵 Generating background music for " + player.currentLocation + "...", 'info');
-        
-        const gameState = {
-            inCombat: !!player.currentEnemy,
-            hasParty: partyManager ? partyManager.party.length > 0 : false,
-            questActive: player.quests ? player.quests.some(q => !q.completed) : false,
-            recentEvents: []
-        };
-        
-        const musicData = await bgmManager.generateLocationMusic(player, gameState);
-        
-        if (musicData) {
-            await bgmManager.playMusic(musicData);
-            updateBGMStatus();
-            displayMessage("🎶 Background music generated and ready!", 'success');
-        } else {
-            displayMessage("Failed to generate background music.", 'error');
-        }
-    } catch (error) {
-        console.error('Error generating location music:', error);
-        displayMessage("Error generating background music: " + error.message, 'error');
-    }
-}
+            function setupBGMEventListeners() {
+                // BGM enabled/disabled toggle
+                const enabledCheckbox = document.getElementById('bgm-enabled');
+                if (enabledCheckbox) {
+                    enabledCheckbox.addEventListener('change', () => {
+                        saveBGMSettings();
+                        updateBGMStatus();
+                        if (!enabledCheckbox.checked && bgmManager) {
+                            bgmManager.stopMusic();
+                        }
+                    });
+                }
 
-function updateBGMStatus() {
-    const statusElement = document.getElementById('bgm-status');
-    if (!statusElement || !bgmManager) return;
-    
-    const status = bgmManager.getStatus();
-    const enabledCheckbox = document.getElementById('bgm-enabled');
-    const isEnabled = enabledCheckbox ? enabledCheckbox.checked : false;
-    
-    if (!isEnabled) {
-        statusElement.textContent = "BGM: Disabled";
-        statusElement.className = "text-xs text-gray-500 text-center";
-    } else if (status.isPlaying) {
-        statusElement.textContent = `BGM: Playing (${status.location || 'Unknown'})`;
-        statusElement.className = "text-xs text-green-600 text-center";
-    } else {
-        statusElement.textContent = "BGM: Ready";
-        statusElement.className = "text-xs text-amber-600 text-center";
-    }
-}
+                // Volume slider
+                const volumeSlider = document.getElementById('bgm-volume');
+                const volumeDisplay = document.getElementById('bgm-volume-display');
+                if (volumeSlider && volumeDisplay) {
+                    volumeSlider.addEventListener('input', () => {
+                        const volume = parseInt(volumeSlider.value);
+                        volumeDisplay.textContent = volume + '%';
+                        if (bgmManager) {
+                            bgmManager.setVolume(volume / 100);
+                        }
+                        saveBGMSettings();
+                    });
+                }
 
-// Auto-generate music when location changes
-async function handleLocationMusicUpdate() {
-    if (!bgmManager) return;
-    
-    const enabledCheckbox = document.getElementById('bgm-enabled');
-    if (!enabledCheckbox || !enabledCheckbox.checked) return;
-    
-    if (player && player.currentLocation) {
-        const gameState = {
-            inCombat: !!player.currentEnemy,
-            hasParty: partyManager ? partyManager.party.length > 0 : false,
-            questActive: player.quests ? player.quests.some(q => !q.completed) : false,
-            recentEvents: []
-        };
-        
-        try {
-            await bgmManager.updateMusicForLocation(player, gameState);
-            updateBGMStatus();
-        } catch (error) {
-            console.error('Error updating location music:', error);
-        }
-    }
-}
+                // Generate location music button
+                const generateMusicBtn = document.getElementById('generate-location-music-btn');
+                if (generateMusicBtn) {
+                    generateMusicBtn.addEventListener('click', async () => {
+                        await generateLocationMusic();
+                    });
+                }
+
+                // Stop music button
+                const stopMusicBtn = document.getElementById('stop-music-btn');
+                if (stopMusicBtn) {
+                    stopMusicBtn.addEventListener('click', () => {
+                        if (bgmManager) {
+                            bgmManager.stopMusic();
+                            updateBGMStatus();
+                            displayMessage("Background music stopped.", 'info');
+                        }
+                    });
+                }
+            }
+
+            async function generateLocationMusic() {
+                if (!bgmManager) {
+                    displayMessage("BGM system not available.", 'error');
+                    return;
+                }
+
+                const enabledCheckbox = document.getElementById('bgm-enabled');
+                if (!enabledCheckbox || !enabledCheckbox.checked) {
+                    displayMessage("Please enable BGM first.", 'error');
+                    return;
+                }
+
+                if (!player || !player.currentLocation) {
+                    displayMessage("No valid location for music generation.", 'error');
+                    return;
+                }
+
+                try {
+                    displayMessage("🎵 Generating background music for " + player.currentLocation + "...", 'info');
+
+                    const gameState = {
+                        inCombat: !!player.currentEnemy,
+                        hasParty: partyManager ? partyManager.party.length > 0 : false,
+                        questActive: player.quests ? player.quests.some(q => !q.completed) : false,
+                        recentEvents: []
+                    };
+
+                    const musicData = await bgmManager.generateLocationMusic(player, gameState);
+
+                    if (musicData) {
+                        await bgmManager.playMusic(musicData);
+                        updateBGMStatus();
+                        displayMessage("🎶 Background music generated and ready!", 'success');
+                    } else {
+                        displayMessage("Failed to generate background music.", 'error');
+                    }
+                } catch (error) {
+                    console.error('Error generating location music:', error);
+                    displayMessage("Error generating background music: " + error.message, 'error');
+                }
+            }
+
+            function updateBGMStatus() {
+                const statusElement = document.getElementById('bgm-status');
+                if (!statusElement || !bgmManager) return;
+
+                const status = bgmManager.getStatus();
+                const enabledCheckbox = document.getElementById('bgm-enabled');
+                const isEnabled = enabledCheckbox ? enabledCheckbox.checked : false;
+
+                if (!isEnabled) {
+                    statusElement.textContent = "BGM: Disabled";
+                    statusElement.className = "text-xs text-gray-500 text-center";
+                } else if (status.isPlaying) {
+                    statusElement.textContent = `BGM: Playing (${status.location || 'Unknown'})`;
+                    statusElement.className = "text-xs text-green-600 text-center";
+                } else {
+                    statusElement.textContent = "BGM: Ready";
+                    statusElement.className = "text-xs text-amber-600 text-center";
+                }
+            }
+
+            // Auto-generate music when location changes
+            async function handleLocationMusicUpdate() {
+                if (!bgmManager) return;
+
+                const enabledCheckbox = document.getElementById('bgm-enabled');
+                if (!enabledCheckbox || !enabledCheckbox.checked) return;
+
+                if (player && player.currentLocation) {
+                    const gameState = {
+                        inCombat: !!player.currentEnemy,
+                        hasParty: partyManager ? partyManager.party.length > 0 : false,
+                        questActive: player.quests ? player.quests.some(q => !q.completed) : false,
+                        recentEvents: []
+                    };
+
+                    try {
+                        await bgmManager.updateMusicForLocation(player, gameState);
+                        updateBGMStatus();
+                    } catch (error) {
+                        console.error('Error updating location music:', error);
+                    }
+                }
+            }
 
 
             parsedResult = {
@@ -5229,7 +5230,7 @@ async function executeCustomCommand(command) {
             console.log("Processing AI response as simple narrative.");
             displayMessage(aiResponse, 'info');
             addToConversationHistory('assistant', aiResponse);
-            
+
             // Check for transactions in unstructured responses
             if (window.TransactionMiddleware && typeof TransactionMiddleware.detectTransaction === 'function') {
                 console.log("Checking for transactions in unstructured AI response...");
@@ -5304,7 +5305,7 @@ async function parseAndApplyStateChanges(result) {
     if (result.narrative) {
         displayMessage(result.narrative, 'info');
         addToConversationHistory('assistant', result.narrative);
-        
+
         // Only check for transactions in narrative if there are no explicit itemChanges
         // This prevents duplicate processing when the AI provides both structured item changes and narrative transactions
         if (!result.itemChanges && window.TransactionMiddleware && typeof TransactionMiddleware.detectTransaction === 'function') {
@@ -5606,12 +5607,12 @@ function startNewGame() {
 
     // Show character creation screen
     showScreen('character-creation-screen');
-    
+
     // Clear any previous form data
     if (charNameInput) charNameInput.value = '';
     if (charClassSelect) charClassSelect.value = 'warrior';
     if (charBackgroundTextarea) charBackgroundTextarea.value = '';
-    
+
     // Reset gender selection to first option
     const firstGenderRadio = document.querySelector('input[name="char-gender"]');
     if (firstGenderRadio) firstGenderRadio.checked = true;
@@ -5683,7 +5684,9 @@ document.addEventListener('DOMContentLoaded', () => {
     initializePartySystem();
 
     // Initialize BGM system
-    initializeBGMSystem();
+    if (typeof initializeBGMSystem === 'function') {
+        initializeBGMSystem();
+    }
 
     // Make required functions globally available for TransactionMiddleware and other modules
     window.callGeminiAPI = callGeminiAPI;
@@ -5709,8 +5712,19 @@ document.addEventListener('DOMContentLoaded', () => {
     window.manualCompleteQuest = manualCompleteQuest; // <<< ADD THIS LINE
     window.GameActions = typeof GameActions !== 'undefined' ? GameActions : {};
     window.HelpSystem = HelpSystem;
-    window.bgmManager = bgmManager;
-    window.BGMManager = BGMManager;
+    // Error fix: Ensure bgmManager is global before accessing
+    if (typeof bgmManager !== 'undefined') {
+        window.bgmManager = bgmManager;
+    } else {
+        console.warn('bgmManager is not defined');
+    }
+
+    // Error fix: Ensure BGMManager is global before accessing
+    if (typeof BGMManager !== 'undefined') {
+        window.BGMManager = BGMManager;
+    } else {
+        console.warn('BGMManager is not defined');
+    }
     window.debugInventory = typeof debugInventory !== 'undefined' ? debugInventory : function() { /* ... */ };
     window.fixInventory = typeof fixInventory !== 'undefined' ? fixInventory : function() { /* ... */ };
     window.resetCharacterProgression = typeof resetCharacterProgression !== 'undefined' ? resetCharacterProgression : function() { /* ... */ };
@@ -6167,7 +6181,7 @@ function addMainEventListeners() {
         // --- Map Stuff --- //
         showMapBtn?.addEventListener('click', displayMap);
         exitMapBtn?.addEventListener('click', () => mapInterface.classList.add('hidden'));
-        
+
         // --- Quick Action Buttons ---
         document.getElementById('rest-btn')?.addEventListener('click', () => {
             const healAmount = Math.floor(player.maxHp * 0.25) + 10;
@@ -6188,107 +6202,107 @@ function addMainEventListeners() {
         showShopBtn?.addEventListener('click', showShop);
         showBackgroundBtn?.addEventListener('click', displayCharacterBackground);
 
-// Process structured item changes from AI responses
-async function processItemChanges(itemChanges, player) {
-    if (!itemChanges || typeof itemChanges !== 'object') {
-        console.log("No valid itemChanges to process");
-        return;
-    }
-
-    // Process items to add
-    if (itemChanges.itemsToAdd && Array.isArray(itemChanges.itemsToAdd)) {
-        for (const itemData of itemChanges.itemsToAdd) {
-            console.log("Processing item to add:", itemData);
-            
-            // Validate item data
-            if (!itemData || !itemData.name || itemData.name === 'undefined') {
-                console.warn("Skipping invalid item:", itemData);
-                continue;
+        // Process structured item changes from AI responses
+        async function processItemChanges(itemChanges, player) {
+            if (!itemChanges || typeof itemChanges !== 'object') {
+                console.log("No valid itemChanges to process");
+                return;
             }
 
-            try {
-                // Create a proper item using ItemGenerator or fallback
-                let newItem;
-                
-                if (window.ItemGenerator && typeof ItemGenerator.generateItem === 'function') {
-                    const context = {
-                        category: window.itemCategories?.CONSUMABLE || 'consumable',
-                        rarity: itemData.rarity || 'COMMON',
-                        locationContext: player.currentLocation,
-                        playerLevel: player.level,
-                        playerClass: player.class,
-                        narrativeContext: itemData.description
-                    };
-                    
-                    newItem = await ItemGenerator.generateItem(context);
-                    
-                    if (newItem) {
-                        // Override with specific details from itemChanges
-                        newItem.name = itemData.name;
-                        if (itemData.description) newItem.description = itemData.description;
-                        if (itemData.value) newItem.value = itemData.value;
+            // Process items to add
+            if (itemChanges.itemsToAdd && Array.isArray(itemChanges.itemsToAdd)) {
+                for (const itemData of itemChanges.itemsToAdd) {
+                    console.log("Processing item to add:", itemData);
+
+                    // Validate item data
+                    if (!itemData || !itemData.name || itemData.name === 'undefined') {
+                        console.warn("Skipping invalid item:", itemData);
+                        continue;
+                    }
+
+                    try {
+                        // Create a proper item using ItemGenerator or fallback
+                        let newItem;
+
+                        if (window.ItemGenerator && typeof ItemGenerator.generateItem === 'function') {
+                            const context = {
+                                category: window.itemCategories?.CONSUMABLE || 'consumable',
+                                rarity: itemData.rarity || 'COMMON',
+                                locationContext: player.currentLocation,
+                                playerLevel: player.level,
+                                playerClass: player.class,
+                                narrativeContext: itemData.description
+                            };
+
+                            newItem = await ItemGenerator.generateItem(context);
+
+                            if (newItem) {
+                                // Override with specific details from itemChanges
+                                newItem.name = itemData.name;
+                                if (itemData.description) newItem.description = itemData.description;
+                                if (itemData.value) newItem.value = itemData.value;
+                            }
+                        }
+
+                        // Fallback if ItemGenerator fails
+                        if (!newItem) {
+                            newItem = {
+                                id: `structured_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
+                                name: itemData.name,
+                                type: itemData.type || 'consumable',
+                                rarity: itemData.rarity || 'COMMON',
+                                description: itemData.description || `A ${itemData.name.toLowerCase()} obtained during your adventure.`,
+                                value: itemData.value || Math.max(1, Math.floor(Math.random() * 20) + 5),
+                                isUsable: itemData.isUsable || false,
+                                isEquippable: itemData.isEquippable || false
+                            };
+                        }
+
+                        // Add to inventory using ItemManager
+                        if (window.ItemManager && typeof ItemManager.addItemToInventory === 'function') {
+                            ItemManager.addItemToInventory(player, newItem);
+                            displayMessage(`Added to inventory: ${newItem.name}`, 'success');
+                        } else {
+                            // Direct inventory addition as fallback
+                            if (!player.inventory) player.inventory = [];
+                            player.inventory.push(newItem);
+                            displayMessage(`Added to inventory: ${newItem.name}`, 'success');
+                        }
+
+                    } catch (error) {
+                        console.error("Error processing item to add:", error);
+                        displayMessage(`Failed to add item: ${itemData.name}`, 'error');
                     }
                 }
-
-                // Fallback if ItemGenerator fails
-                if (!newItem) {
-                    newItem = {
-                        id: `structured_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
-                        name: itemData.name,
-                        type: itemData.type || 'consumable',
-                        rarity: itemData.rarity || 'COMMON',
-                        description: itemData.description || `A ${itemData.name.toLowerCase()} obtained during your adventure.`,
-                        value: itemData.value || Math.max(1, Math.floor(Math.random() * 20) + 5),
-                        isUsable: itemData.isUsable || false,
-                        isEquippable: itemData.isEquippable || false
-                    };
-                }
-
-                // Add to inventory using ItemManager
-                if (window.ItemManager && typeof ItemManager.addItemToInventory === 'function') {
-                    ItemManager.addItemToInventory(player, newItem);
-                    displayMessage(`Added to inventory: ${newItem.name}`, 'success');
-                } else {
-                    // Direct inventory addition as fallback
-                    if (!player.inventory) player.inventory = [];
-                    player.inventory.push(newItem);
-                    displayMessage(`Added to inventory: ${newItem.name}`, 'success');
-                }
-
-            } catch (error) {
-                console.error("Error processing item to add:", error);
-                displayMessage(`Failed to add item: ${itemData.name}`, 'error');
             }
-        }
-    }
 
-    // Process items to remove
-    if (itemChanges.itemsToRemove && Array.isArray(itemChanges.itemsToRemove)) {
-        for (const itemName of itemChanges.itemsToRemove) {
-            if (!itemName || itemName === 'undefined') continue;
-            
-            const itemIndex = player.inventory?.findIndex(item => 
-                item.name.toLowerCase().includes(itemName.toLowerCase())
-            );
-            
-            if (itemIndex !== -1) {
-                const removedItem = player.inventory.splice(itemIndex, 1)[0];
-                displayMessage(`Removed from inventory: ${removedItem.name}`, 'info');
+            // Process items to remove
+            if (itemChanges.itemsToRemove && Array.isArray(itemChanges.itemsToRemove)) {
+                for (const itemName of itemChanges.itemsToRemove) {
+                    if (!itemName || itemName === 'undefined') continue;
+
+                    const itemIndex = player.inventory?.findIndex(item =>
+                        item.name.toLowerCase().includes(itemName.toLowerCase())
+                    );
+
+                    if (itemIndex !== -1) {
+                        const removedItem = player.inventory.splice(itemIndex, 1)[0];
+                        displayMessage(`Removed from inventory: ${removedItem.name}`, 'info');
+                    }
+                }
             }
+
+            // Process gold changes
+            if (itemChanges.goldChange && typeof itemChanges.goldChange === 'number' && itemChanges.goldChange !== 0) {
+                updateGold(itemChanges.goldChange, 'item transaction');
+            }
+
+            // Save changes
+            if (window.ItemManager && typeof ItemManager.saveInventoryToStorage === 'function') {
+                ItemManager.saveInventoryToStorage(player);
+            }
+            saveGame();
         }
-    }
-
-    // Process gold changes
-    if (itemChanges.goldChange && typeof itemChanges.goldChange === 'number' && itemChanges.goldChange !== 0) {
-        updateGold(itemChanges.goldChange, 'item transaction');
-    }
-
-    // Save changes
-    if (window.ItemManager && typeof ItemManager.saveInventoryToStorage === 'function') {
-        ItemManager.saveInventoryToStorage(player);
-    }
-    saveGame();
-}
 
 
         document.getElementById('show-progression-btn')?.addEventListener('click', displayCharacterProgression);
@@ -6766,7 +6780,7 @@ function buildInventoryItemDisplay(item, index) {
             </div>
         `;
     }
-    
+
     const canEquip = item.slot && (!player.equipment[item.slot] || player.equipment[item.slot].id !== item.id);
     const isConsumable = item.type === 'consumable' || (item.effect && (item.effect.type === 'heal' || item.effect.type === 'mana'));
 
@@ -8038,5 +8052,5 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         console.log("✓ Event delegation setup for inventory items.");
     }
-    
+
 });
