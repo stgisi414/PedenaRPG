@@ -247,23 +247,6 @@ If no actual transaction is detected, return {"hasTransaction": false, "confiden
         return results;
     }
 
-    static createFallbackItem(itemName, player) {
-        const cleanName = (itemName || 'Unknown Item').replace(/^(the|a|an)\s+/i, '').trim();
-        const capitalizedName = cleanName.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
-        
-        return {
-            id: `fallback_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
-            name: capitalizedName || 'Mysterious Item',
-            type: 'trinket',
-            rarity: 'COMMON',
-            description: `A ${(cleanName || 'mysterious item').toLowerCase()} that appeared during your transaction.`,
-            value: Math.max(1, Math.floor(Math.random() * (player.level * 5)) + 10),
-            effects: [],
-            isIdentified: true,
-            slot: null
-        };
-    }
-
     static generateStructuredItem(itemData, player) {
         try {
             // Validate input data
@@ -274,27 +257,13 @@ If no actual transaction is detected, return {"hasTransaction": false, "confiden
 
             // Use ItemGenerator with enhanced context
             const context = {
-                category: itemData.category || 'trinket',
+                category: (typeof window !== 'undefined' && window.itemCategories && window.itemCategories[itemData.category]) || (typeof window !== 'undefined' && window.itemCategories && window.itemCategories.MAGICAL),
                 rarity: itemData.rarity || 'COMMON',
                 locationContext: player.currentLocation,
                 playerLevel: player.level,
                 playerClass: player.class,
-                narrativeContext: itemData.description || itemData.name
+                narrativeContext: itemData.description
             };
-
-            // Generate the item using ItemGenerator
-            let generatedItem;
-            if (typeof window !== 'undefined' && window.ItemGenerator) {
-                generatedItem = window.ItemGenerator.generateItem(context);
-            }
-
-            // Safety check - ensure we always return a valid item
-            if (!generatedItem || !generatedItem.name || generatedItem.name === 'undefined') {
-                console.warn('ItemGenerator failed, creating manual fallback item');
-                generatedItem = this.createFallbackItem(itemData.name || 'Mysterious Item', player);
-            }
-
-            return generatedItem;
 
             const baseItem = (typeof window !== 'undefined' && window.ItemGenerator) ? window.ItemGenerator.generateItem(context) : null;
             if (!baseItem) {
