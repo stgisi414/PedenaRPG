@@ -3927,6 +3927,182 @@ async function pray() {
     }, 1000);
 }
 
+// BGM System Functions
+function initializeBGMSystem() {
+    if (typeof BGMManager !== 'undefined') {
+        bgmManagerR = new BGMManager();
+        console.log('BGM Manager initialized');
+
+        // Load BGM settings
+        loadBGMSettings();
+        setupBGMEventListeners();
+    } else {
+        console.warn('BGMManager class not found - BGM features will be limited');
+    }
+}
+
+function loadBGMSettings() {
+    const bgmSettings = JSON.parse(localStorage.getItem('bgmSettings') || '{"enabled": false, "volume": 50}');
+
+    const enabledCheckbox = document.getElementById('bgm-enabled');
+    const volumeSlider = document.getElementById('bgm-volume');
+    const volumeDisplay = document.getElementById('bgm-volume-display');
+
+    if (enabledCheckbox) enabledCheckbox.checked = bgmSettings.enabled;
+    if (volumeSlider) volumeSlider.value = bgmSettings.volume;
+    if (volumeDisplay) volumeDisplay.textContent = bgmSettings.volume + '%';
+
+    if (bgmManager) {
+        bgmManager.setVolume(bgmSettings.volume / 100);
+    }
+}
+
+function saveBGMSettings() {
+    const enabledCheckbox = document.getElementById('bgm-enabled');
+    const volumeSlider = document.getElementById('bgm-volume');
+
+    const settings = {
+        enabled: enabledCheckbox ? enabledCheckbox.checked : false,
+        volume: volumeSlider ? parseInt(volumeSlider.value) : 50
+    };
+
+    localStorage.setItem('bgmSettings', JSON.stringify(settings));
+}
+
+function setupBGMEventListeners() {
+    // BGM enabled/disabled toggle
+    const enabledCheckbox = document.getElementById('bgm-enabled');
+    if (enabledCheckbox) {
+        enabledCheckbox.addEventListener('change', () => {
+            saveBGMSettings();
+            updateBGMStatus();
+            if (!enabledCheckbox.checked && bgmManager) {
+                bgmManager.stopMusic();
+            }
+        });
+    }
+
+    // Volume slider
+    const volumeSlider = document.getElementById('bgm-volume');
+    const volumeDisplay = document.getElementById('bgm-volume-display');
+    if (volumeSlider && volumeDisplay) {
+        volumeSlider.addEventListener('input', () => {
+            const volume = parseInt(volumeSlider.value);
+            volumeDisplay.textContent = volume + '%';
+            if (bgmManager) {
+                bgmManager.setVolume(volume / 100);
+            }
+            saveBGMSettings();
+        });
+    }
+
+    // Generate location music button
+    const generateMusicBtn = document.getElementById('generate-location-music-btn');
+    if (generateMusicBtn) {
+        generateMusicBtn.addEventListener('click', async () => {
+            await generateLocationMusic();
+        });
+    }
+
+    // Stop music button
+    const stopMusicBtn = document.getElementById('stop-music-btn');
+    if (stopMusicBtn) {
+        stopMusicBtn.addEventListener('click', () => {
+            if (bgmManager) {
+                bgmManager.stopMusic();
+                updateBGMStatus();
+                displayMessage("Background music stopped.", 'info');
+            }
+        });
+    }
+}
+
+async function generateLocationMusic() {
+    if (!bgmManager) {
+        displayMessage("BGM system not available.", 'error');
+        return;
+    }
+
+    const enabledCheckbox = document.getElementById('bgm-enabled');
+    if (!enabledCheckbox || !enabledCheckbox.checked) {
+        displayMessage("Please enable BGM first.", 'error');
+        return;
+    }
+
+    if (!player || !player.currentLocation) {
+        displayMessage("No valid location for music generation.", 'error');
+        return;
+    }
+
+    try {
+        displayMessage("🎵 Generating background music for " + player.currentLocation + "...", 'info');
+
+        const gameState = {
+            inCombat: !!player.currentEnemy,
+            hasParty: partyManager ? partyManager.party.length > 0 : false,
+            questActive: player.quests ? player.quests.some(q => !q.completed) : false,
+            recentEvents: []
+        };
+
+        const musicData = await bgmManager.generateLocationMusic(player, gameState);
+
+        if (musicData) {
+            await bgmManager.playMusic(musicData);
+            updateBGMStatus();
+            displayMessage("🎶 Background music generated and ready!", 'success');
+        } else {
+            displayMessage("Failed to generate background music.", 'error');
+        }
+    } catch (error) {
+        console.error('Error generating location music:', error);
+        displayMessage("Error generating background music: " + error.message, 'error');
+    }
+}
+
+function updateBGMStatus() {
+    const statusElement = document.getElementById('bgm-status');
+    if (!statusElement || !bgmManager) return;
+
+    const status = bgmManager.getStatus();
+    const enabledCheckbox = document.getElementById('bgm-enabled');
+    const isEnabled = enabledCheckbox ? enabledCheckbox.checked : false;
+
+    if (!isEnabled) {
+        statusElement.textContent = "BGM: Disabled";
+        statusElement.className = "text-xs text-gray-500 text-center";
+    } else if (status.isPlaying) {
+        statusElement.textContent = `BGM: Playing (${status.location || 'Unknown'})`;
+        statusElement.className = "text-xs text-green-600 text-center";
+    } else {
+        statusElement.textContent = "BGM: Ready";
+        statusElement.className = "text-xs text-amber-600 text-center";
+    }
+}
+
+// Auto-generate music when location changes
+async function handleLocationMusicUpdate() {
+    if (!bgmManager) return;
+
+    const enabledCheckbox = document.getElementById('bgm-enabled');
+    if (!enabledCheckbox || !enabledCheckbox.checked) return;
+
+    if (player && player.currentLocation) {
+        const gameState = {
+            inCombat: !!player.currentEnemy,
+            hasParty: partyManager ? partyManager.party.length > 0 : false,
+            questActive: player.quests ? player.quests.some(q => !q.completed) : false,
+            recentEvents: []
+        };
+
+        try {
+            await bgmManager.updateMusicForLocation(player, gameState);
+            updateBGMStatus();
+        } catch (error) {
+            console.error('Error updating location music:', error);
+        }
+    }
+}
+
 // Modified explore function to accept 'command'
 async function explore(command) { // 'command' parameter is already being passed
     displayMessage("Exploring the area...", 'info');
@@ -4000,185 +4176,6 @@ Example:
             const interactableMatch = explorationResult.match(/INTERACTABLE:\s*(.+?)$/s);
             const discoveryText = discoveryMatch ? discoveryMatch[1].trim() : explorationResult;
             const interactablesFlat = interactableMatch ? interactableMatch[1].split(',').map(s => s.trim()) : [];
-
-
-
-            // BGM System Functions
-            function initializeBGMSystem() {
-                if (typeof BGMManager !== 'undefined') {
-                    bgmManagerR = new BGMManager();
-                    console.log('BGM Manager initialized');
-
-                    // Load BGM settings
-                    loadBGMSettings();
-                    setupBGMEventListeners();
-                } else {
-                    console.warn('BGMManager class not found - BGM features will be limited');
-                }
-            }
-
-            function loadBGMSettings() {
-                const bgmSettings = JSON.parse(localStorage.getItem('bgmSettings') || '{"enabled": false, "volume": 50}');
-
-                const enabledCheckbox = document.getElementById('bgm-enabled');
-                const volumeSlider = document.getElementById('bgm-volume');
-                const volumeDisplay = document.getElementById('bgm-volume-display');
-
-                if (enabledCheckbox) enabledCheckbox.checked = bgmSettings.enabled;
-                if (volumeSlider) volumeSlider.value = bgmSettings.volume;
-                if (volumeDisplay) volumeDisplay.textContent = bgmSettings.volume + '%';
-
-                if (bgmManager) {
-                    bgmManager.setVolume(bgmSettings.volume / 100);
-                }
-            }
-
-            function saveBGMSettings() {
-                const enabledCheckbox = document.getElementById('bgm-enabled');
-                const volumeSlider = document.getElementById('bgm-volume');
-
-                const settings = {
-                    enabled: enabledCheckbox ? enabledCheckbox.checked : false,
-                    volume: volumeSlider ? parseInt(volumeSlider.value) : 50
-                };
-
-                localStorage.setItem('bgmSettings', JSON.stringify(settings));
-            }
-
-            function setupBGMEventListeners() {
-                // BGM enabled/disabled toggle
-                const enabledCheckbox = document.getElementById('bgm-enabled');
-                if (enabledCheckbox) {
-                    enabledCheckbox.addEventListener('change', () => {
-                        saveBGMSettings();
-                        updateBGMStatus();
-                        if (!enabledCheckbox.checked && bgmManager) {
-                            bgmManager.stopMusic();
-                        }
-                    });
-                }
-
-                // Volume slider
-                const volumeSlider = document.getElementById('bgm-volume');
-                const volumeDisplay = document.getElementById('bgm-volume-display');
-                if (volumeSlider && volumeDisplay) {
-                    volumeSlider.addEventListener('input', () => {
-                        const volume = parseInt(volumeSlider.value);
-                        volumeDisplay.textContent = volume + '%';
-                        if (bgmManager) {
-                            bgmManager.setVolume(volume / 100);
-                        }
-                        saveBGMSettings();
-                    });
-                }
-
-                // Generate location music button
-                const generateMusicBtn = document.getElementById('generate-location-music-btn');
-                if (generateMusicBtn) {
-                    generateMusicBtn.addEventListener('click', async () => {
-                        await generateLocationMusic();
-                    });
-                }
-
-                // Stop music button
-                const stopMusicBtn = document.getElementById('stop-music-btn');
-                if (stopMusicBtn) {
-                    stopMusicBtn.addEventListener('click', () => {
-                        if (bgmManager) {
-                            bgmManager.stopMusic();
-                            updateBGMStatus();
-                            displayMessage("Background music stopped.", 'info');
-                        }
-                    });
-                }
-            }
-
-            async function generateLocationMusic() {
-                if (!bgmManager) {
-                    displayMessage("BGM system not available.", 'error');
-                    return;
-                }
-
-                const enabledCheckbox = document.getElementById('bgm-enabled');
-                if (!enabledCheckbox || !enabledCheckbox.checked) {
-                    displayMessage("Please enable BGM first.", 'error');
-                    return;
-                }
-
-                if (!player || !player.currentLocation) {
-                    displayMessage("No valid location for music generation.", 'error');
-                    return;
-                }
-
-                try {
-                    displayMessage("🎵 Generating background music for " + player.currentLocation + "...", 'info');
-
-                    const gameState = {
-                        inCombat: !!player.currentEnemy,
-                        hasParty: partyManager ? partyManager.party.length > 0 : false,
-                        questActive: player.quests ? player.quests.some(q => !q.completed) : false,
-                        recentEvents: []
-                    };
-
-                    const musicData = await bgmManager.generateLocationMusic(player, gameState);
-
-                    if (musicData) {
-                        await bgmManager.playMusic(musicData);
-                        updateBGMStatus();
-                        displayMessage("🎶 Background music generated and ready!", 'success');
-                    } else {
-                        displayMessage("Failed to generate background music.", 'error');
-                    }
-                } catch (error) {
-                    console.error('Error generating location music:', error);
-                    displayMessage("Error generating background music: " + error.message, 'error');
-                }
-            }
-
-            function updateBGMStatus() {
-                const statusElement = document.getElementById('bgm-status');
-                if (!statusElement || !bgmManager) return;
-
-                const status = bgmManager.getStatus();
-                const enabledCheckbox = document.getElementById('bgm-enabled');
-                const isEnabled = enabledCheckbox ? enabledCheckbox.checked : false;
-
-                if (!isEnabled) {
-                    statusElement.textContent = "BGM: Disabled";
-                    statusElement.className = "text-xs text-gray-500 text-center";
-                } else if (status.isPlaying) {
-                    statusElement.textContent = `BGM: Playing (${status.location || 'Unknown'})`;
-                    statusElement.className = "text-xs text-green-600 text-center";
-                } else {
-                    statusElement.textContent = "BGM: Ready";
-                    statusElement.className = "text-xs text-amber-600 text-center";
-                }
-            }
-
-            // Auto-generate music when location changes
-            async function handleLocationMusicUpdate() {
-                if (!bgmManager) return;
-
-                const enabledCheckbox = document.getElementById('bgm-enabled');
-                if (!enabledCheckbox || !enabledCheckbox.checked) return;
-
-                if (player && player.currentLocation) {
-                    const gameState = {
-                        inCombat: !!player.currentEnemy,
-                        hasParty: partyManager ? partyManager.party.length > 0 : false,
-                        questActive: player.quests ? player.quests.some(q => !q.completed) : false,
-                        recentEvents: []
-                    };
-
-                    try {
-                        await bgmManager.updateMusicForLocation(player, gameState);
-                        updateBGMStatus();
-                    } catch (error) {
-                        console.error('Error updating location music:', error);
-                    }
-                }
-            }
-
 
             parsedResult = {
                 discovery: discoveryText,
