@@ -3930,7 +3930,7 @@ async function pray() {
 // BGM System Functions
 function initializeBGMSystem() {
     if (typeof BGMManager !== 'undefined') {
-        bgmManagerR = new BGMManager();
+        bgmManager = new BGMManager();
         console.log('BGM Manager initialized');
 
         // Load BGM settings
