@@ -2640,7 +2640,22 @@ export class ItemGenerator {
 
     static getRandomItemTemplate(category, subType) {
         // 1. Map the input category to the correct key in itemTemplates.
-        const categoryMap = { 'weapon': 'weapons', 'armor': 'armor' };
+        const categoryMap = { 
+            'weapon': 'weapons', 
+            'armor': 'armor',
+            'consumable': 'magical', // Consumables are stored in magical category
+            'magical': 'magical',
+            'tool': 'tools',
+            'jewelry': 'jewelry',
+            'scroll': 'magical',
+            'book': 'questItems',
+            'artifact': 'questItems',
+            'crafting': 'crafting',
+            'glyph': 'glyphs',
+            'ingredient': 'ingredients',
+            'trinket': 'trinkets',
+            'quest': 'questItems'
+        };
         const categoryKey = categoryMap[category.toLowerCase()];
 
         if (!categoryKey || !itemTemplates[categoryKey]) {
@@ -2651,12 +2666,20 @@ export class ItemGenerator {
         const categoryTemplates = itemTemplates[categoryKey];
         let potentialItems = [];
 
-        // 2. Try to get items from the specific subtype first (e.g., 'staves' within 'weapons').
-        if (subType && categoryTemplates[subType.toLowerCase()]) {
+        // 2. For consumables, look in specific subcategories within magical
+        if (category.toLowerCase() === 'consumable') {
+            const consumableSubTypes = ['potions', 'elixirs', 'tonics'];
+            for (const subTypeKey of consumableSubTypes) {
+                if (categoryTemplates[subTypeKey]) {
+                    potentialItems.push(...categoryTemplates[subTypeKey]);
+                }
+            }
+        } else if (subType && categoryTemplates[subType.toLowerCase()]) {
+            // 3. Try to get items from the specific subtype first (e.g., 'staves' within 'weapons').
             potentialItems = categoryTemplates[subType.toLowerCase()];
         }
 
-        // 3. If no items were found in the specific subtype, create a master list of ALL items in the parent category.
+        // 4. If no items were found in the specific subtype, create a master list of ALL items in the parent category.
         if (potentialItems.length === 0) {
             console.warn(`[ItemGenerator] SubType "${subType}" not found or empty for category "${categoryKey}". Expanding search.`);
             let allItemsInCategory = [];
@@ -2670,13 +2693,13 @@ export class ItemGenerator {
             potentialItems = allItemsInCategory;
         }
 
-        // 4. If we still have no items, log an error and return null.
+        // 5. If we still have no items, create a fallback item
         if (potentialItems.length === 0) {
-            console.error(`[ItemGenerator] No items found for category "${categoryKey}" even after fallback.`);
-            return null;
+            console.warn(`[ItemGenerator] No items found for category "${categoryKey}", creating fallback item.`);
+            return this.createFallbackItemTemplate(category, subType);
         }
 
-        // 5. Select and return a random item object from the final pool.
+        // 6. Select and return a random item object from the final pool.
         const randomTemplate = potentialItems[Math.floor(Math.random() * potentialItems.length)];
         return JSON.parse(JSON.stringify(randomTemplate)); // Return a deep copy
     }
@@ -2728,6 +2751,41 @@ export class ItemGenerator {
             source: 'item_generator_fallback',
             slot: null
         };
+    }
+
+    static createFallbackItemTemplate(category, subType) {
+        const templates = {
+            consumable: {
+                name: "Simple Potion",
+                type: itemCategories.CONSUMABLE,
+                rarity: "COMMON",
+                effects: ["regenerating"],
+                singleUse: true,
+                effect: { type: 'heal', amount: 25 },
+                description: "A basic healing potion that restores health."
+            },
+            weapon: {
+                name: "Simple Blade",
+                type: itemCategories.WEAPON,
+                rarity: "COMMON",
+                damage: "1d6",
+                slot: "mainHand",
+                effects: [],
+                description: "A basic weapon suitable for combat."
+            },
+            armor: {
+                name: "Simple Garment",
+                type: itemCategories.ARMOR,
+                rarity: "COMMON",
+                armor: 1,
+                slot: "chest",
+                effects: [],
+                description: "Basic protective clothing."
+            }
+        };
+
+        const template = templates[category.toLowerCase()] || templates.consumable;
+        return JSON.parse(JSON.stringify(template)); // Return a deep copy
     }
 
 
