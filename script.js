@@ -5730,7 +5730,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Initialize BGM system after all other systems are ready
     try {
-        initializeBGMSystem();
+        if (typeof BGMManager !== 'undefined') {
+            bgmManager = new BGMManager();
+            console.log('BGM Manager initialized');
+            
+            // Load BGM settings
+            loadBGMSettings();
+            setupBGMEventListeners();
+        } else {
+            console.warn('BGMManager class not found - BGM features will be limited');
+        }
     } catch (error) {
         console.error('Failed to initialize BGM system:', error);
     }
