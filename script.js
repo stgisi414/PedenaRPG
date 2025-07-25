@@ -97,6 +97,85 @@ let player = {
     },
     skills: [],
     abilities: [],
+
+// Manual stat fix for characters who missed stat increases during leveling
+function fixCharacterStats() {
+    if (!player || !player.level) {
+        displayMessage("No character loaded to fix stats for.", 'error');
+        return;
+    }
+
+    if (!confirm(`Fix stats for ${player.name} (Level ${player.level})? This will apply missing stat increases.`)) {
+        return;
+    }
+
+    // Ensure stats object exists with minimum values
+    if (!player.stats) {
+        player.stats = {
+            strength: 10,
+            dexterity: 10,
+            intelligence: 10,
+            constitution: 10,
+            wisdom: 10,
+            charisma: 10
+        };
+    }
+
+    // Calculate what stats should be at this level
+    const currentLevel = player.level;
+    const baseStats = 10; // Starting stat value
+    const expectedStatValue = baseStats + (currentLevel - 1); // +1 per level
+
+    // Get class progression for primary stat bonuses
+    let primaryStats = [];
+    if (window.CharacterManager && window.classProgression && player.class) {
+        const progression = window.classProgression[player.class.toLowerCase()];
+        if (progression && progression.primaryStats) {
+            primaryStats = progression.primaryStats;
+        }
+    }
+
+    const statNames = ['strength', 'dexterity', 'intelligence', 'constitution', 'wisdom', 'charisma'];
+    let statsFixed = 0;
+
+    statNames.forEach(statName => {
+        const currentValue = player.stats[statName] || 10;
+        let expectedValue = expectedStatValue;
+        
+        // Add primary stat bonus (+2 at start, +2 more every 4 levels)
+        if (primaryStats.includes(statName)) {
+            expectedValue += 2; // Starting bonus
+            expectedValue += Math.floor(currentLevel / 4) * 2; // Additional bonus every 4 levels
+        }
+
+        if (currentValue < expectedValue) {
+            const oldValue = currentValue;
+            player.stats[statName] = expectedValue;
+            console.log(`Fixed ${statName}: ${oldValue} -> ${expectedValue}`);
+            statsFixed++;
+        }
+    });
+
+    if (statsFixed > 0) {
+        displayMessage(`✅ Fixed ${statsFixed} stats for ${player.name}!`, 'success');
+        displayMessage(`Stats have been updated to match Level ${currentLevel} progression.`, 'info');
+        
+        // Save the fixes
+        saveGame();
+        if (window.CharacterManager) {
+            CharacterManager.saveProgression(player);
+        }
+        
+        // Update displays
+        updatePlayerStatsDisplay();
+    } else {
+        displayMessage("✅ Character stats are already correct for their level.", 'info');
+    }
+}
+
+// Make function globally available
+window.fixCharacterStats = fixCharacterStats;
+
     quests: [],
     relationships: {}, // NPC relationships: { npcName: { status: 'neutral', trust: 50, interactions: 0 } }
     currentLocation: 'Pedena Town Square',
