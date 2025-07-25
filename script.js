@@ -6133,6 +6133,7 @@ document.addEventListener('DOMContentLoaded', () => {
     window.fixInventory = fixInventory;
     window.pray = pray;
     window.gainExperience = gainExperience;
+    window.fixCharacterStats = fixCharacterStats;
 
 
     // <<< --- ADD INVENTORY EVENT LISTENER HERE --- >>>
