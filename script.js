@@ -669,6 +669,8 @@ function fixCharacterStats() {
     } else {
         displayMessage("✅ Character stats are already correct for their level.", 'info');
     }
+    
+    return statsFixed; // Return the number of stats that were fixed
 }
 
 async function checkNPCMentionsAndAdd(aiResponse, playerCommand, gameContextPlayer) {
