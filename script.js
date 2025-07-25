@@ -673,9 +673,28 @@ function fixCharacterStats() {
     }
 }
 
-// Make function globally available immediately
+// Make function globally available immediately with enhanced debugging
 window.fixCharacterStats = fixCharacterStats;
 console.log('✅ fixCharacterStats function is now available globally');
+console.log('✅ window.fixCharacterStats type:', typeof window.fixCharacterStats);
+console.log('✅ window.fixCharacterStats exists:', !!window.fixCharacterStats);
+
+// Also make it available on globalThis as a backup
+if (typeof globalThis !== 'undefined') {
+    globalThis.fixCharacterStats = fixCharacterStats;
+    console.log('✅ fixCharacterStats also added to globalThis');
+}
+
+// Test the function is actually callable
+try {
+    if (typeof window.fixCharacterStats === 'function') {
+        console.log('✅ window.fixCharacterStats is callable');
+    } else {
+        console.error('❌ window.fixCharacterStats is not a function:', typeof window.fixCharacterStats);
+    }
+} catch (error) {
+    console.error('❌ Error testing fixCharacterStats:', error);
+}
 
 
         // Use the middleware to intelligently extract potential NPC names from the AI's narrative
