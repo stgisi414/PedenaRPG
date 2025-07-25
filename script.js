@@ -635,6 +635,11 @@ async function checkNPCMentionsAndAdd(aiResponse, playerCommand, gameContextPlay
     }
 }
 
+// Donation Modal Elements
+const donationModal = document.getElementById('donation-modal');
+const donationModalCloseBtn = document.getElementById('donation-modal-close-btn');
+const donateBtn = document.getElementById('donate-btn');
+
 // DOM Elements
 const startScreen = document.getElementById('start-screen');
 const newGameBtn = document.getElementById('new-game-btn');
@@ -6992,6 +6997,68 @@ function buildEquipmentDisplay() {
             let combatStats = [];
             if (item.damage) combatStats.push(`Damage: ${item.damage}`);
             if (item.armor) combatStats.push(`Armor: +${item.armor}`);
+
+// Donation System Functions
+function openDonationModal() {
+    if (donationModal) {
+        donationModal.classList.remove('hidden');
+    }
+}
+
+function closeDonationModal() {
+    if (donationModal) {
+        donationModal.classList.add('hidden');
+    }
+}
+
+function handleDonation(amount) {
+    // Create Venmo payment URL
+    const venmoUrl = `https://venmo.com/code?user_id=@your-venmo-username&amount=${amount}&note=Support%20Shadowscale%20Chronicles`;
+    
+    // Open Venmo payment in new tab
+    window.open(venmoUrl, '_blank');
+    
+    // Display thank you message
+    displayMessage(`Thank you for your ${amount} donation! Opening Venmo payment...`, 'success');
+    
+    // Close modal after a brief delay
+    setTimeout(() => {
+        closeDonationModal();
+    }, 1500);
+}
+
+// Initialize donation system when DOM is loaded
+document.addEventListener('DOMContentLoaded', function() {
+    // Donation modal event listeners
+    if (donateBtn) {
+        donateBtn.addEventListener('click', openDonationModal);
+    }
+    
+    if (donationModalCloseBtn) {
+        donationModalCloseBtn.addEventListener('click', closeDonationModal);
+    }
+    
+    // Close modal when clicking outside of it
+    if (donationModal) {
+        donationModal.addEventListener('click', function(e) {
+            if (e.target === donationModal) {
+                closeDonationModal();
+            }
+        });
+    }
+    
+    // Event delegation for donation amount buttons
+    document.addEventListener('click', function(e) {
+        if (e.target.classList.contains('donate-amount-btn')) {
+            const amount = e.target.getAttribute('data-amount');
+            if (amount) {
+                handleDonation(amount);
+            }
+        }
+    });
+});
+
+
             if (item.defense) combatStats.push(`Defense: +${item.defense}`);
             if (item.attack) combatStats.push(`Attack: +${item.attack}`);
             if (item.statBonus) {
