@@ -5229,13 +5229,15 @@ async function executeCustomCommand(command) {
             addToConversationHistory('assistant', aiResponse);
 
             // Check for transactions in unstructured responses
-            if (window.TransactionMiddleware && typeof TransactionMiddleware.detectTransaction === 'function') {
+            if (typeof TransactionMiddleware !== 'undefined' && TransactionMiddleware.detectTransaction) {
                 console.log("Checking for transactions in unstructured AI response...");
                 const transactionData = await TransactionMiddleware.detectTransaction(aiResponse, command, player, getConversationContext());
                 if (transactionData && transactionData.hasTransaction) {
                     console.log("Transaction detected in unstructured response:", transactionData);
                     await TransactionMiddleware.processTransaction(transactionData, player);
                 }
+            } else {
+                console.warn("TransactionMiddleware is not defined or is missing detectTransaction function.");
             }
         }
 
