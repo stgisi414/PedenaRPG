@@ -632,16 +632,16 @@ function fixCharacterStats() {
         // Calculate expected value for this stat
         let expectedValue = baseStats; // Start at 10
         
+        // Add level progression (+1 per level from level 2 onwards)
+        expectedValue += (currentLevel - 1);
+        
         // Add class primary stat bonus (+2 at character creation)
         if (primaryStats.includes(statName)) {
             expectedValue += 2;
         }
         
-        // Add level progression (+1 per level from level 1)
-        expectedValue += (currentLevel - 1);
-        
         // Add additional primary stat bonuses every 4 levels (4, 8, 12, 16)
-        if (primaryStats.includes(statName)) {
+        if (primaryStats.includes(statName) && currentLevel >= 4) {
             expectedValue += Math.floor(currentLevel / 4) * 2;
         }
 
