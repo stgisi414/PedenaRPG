@@ -8335,7 +8335,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const donationButtonsContainer = document.getElementById('donation-buttons-container');
 
     if (donateBtn && donationModal) {
-        const donationAmounts = [5, 10, 20, 50];
+        const donationAmounts = [1, 2, 5, 10, 20, 50, 75, 100];
         const venmoUsername = 'Stefan-Worldwide';
 
         // Create the donation buttons

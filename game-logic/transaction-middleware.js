@@ -1,10 +1,10 @@
 // Transaction Detection Middleware - Uses Gemini AI to detect and process transactions
-export export class TransactionMiddleware {
+export class TransactionMiddleware {
 
     static async detectTransaction(aiResponse, command, player, gameContext) {
         console.log(`--- TransactionMiddleware.detectTransaction CALLED ---`); // <<< ADD THIS LINE
         console.log(`Command received: "${command}"`); // <<< ADD THIS LINE
-        
+
         // --- NEW AND IMPROVED DIRECT COMMAND DETECTION ---
         const giveRegex = /^(?:give|pay)\s+(.+?)\s+(\d+)\s+gold/i; // Handles "give [recipient] [amount] gold"
         const donateRegex = /^donate\s+(\d+)\s+gold(?:\s+to\s+(.+))?/i; // Handles "donate [amount] gold to [recipient]"
@@ -192,26 +192,26 @@ If no actual transaction is detected, return {"hasTransaction": false, "confiden
             } else { // Purchases, rewards, loot
                 for (const itemData of transactionData.items) {
                     console.log('[TransactionMiddleware] Processing item data for addition:', JSON.stringify(itemData, null, 2));
-                    
+
                     if (typeof this.generateStructuredItem === 'function' && typeof window.ItemManager !== 'undefined' && typeof window.ItemManager.addItemToInventory === 'function') {
                         const generatedItem = await this.generateStructuredItem(itemData, player);
-                        
+
                         console.log('[TransactionMiddleware] Generated item result:', generatedItem ? {
                             name: generatedItem.name,
                             id: generatedItem.id,
                             type: generatedItem.type,
                             value: generatedItem.value
                         } : 'null');
-                        
+
                         // ENHANCED VALIDATION: Check multiple conditions for valid item
-                        const isValidItem = generatedItem && 
-                                          generatedItem.name && 
-                                          generatedItem.name !== 'undefined' && 
-                                          generatedItem.name !== undefined &&
-                                          typeof generatedItem.name === 'string' &&
-                                          generatedItem.name.trim() !== '' &&
-                                          generatedItem.name.toLowerCase() !== 'undefined';
-                        
+                        const isValidItem = generatedItem &&
+                            generatedItem.name &&
+                            generatedItem.name !== 'undefined' &&
+                            generatedItem.name !== undefined &&
+                            typeof generatedItem.name === 'string' &&
+                            generatedItem.name.trim() !== '' &&
+                            generatedItem.name.toLowerCase() !== 'undefined';
+
                         if (isValidItem) {
                             console.log('[TransactionMiddleware] Adding valid item to inventory:', generatedItem.name);
                             window.ItemManager.addItemToInventory(player, generatedItem);
@@ -233,7 +233,7 @@ If no actual transaction is detected, return {"hasTransaction": false, "confiden
                                 nameIsUndefined: generatedItem?.name === 'undefined',
                                 nameIsUndefinedLower: generatedItem?.name?.toLowerCase?.() === 'undefined'
                             });
-                            
+
                             // Display error message to user
                             if (typeof window.displayMessage === 'function') {
                                 window.displayMessage(`Transaction completed but item could not be properly generated. Please check your inventory.`, 'error');
@@ -331,26 +331,26 @@ If no actual transaction is detected, return {"hasTransaction": false, "confiden
             // Map category names to correct itemCategories values
             const categoryMapping = {
                 'CONSUMABLE': window.itemCategories?.CONSUMABLE || window.itemCategories?.consumable || 'consumable',
-                'WEAPON': window.itemCategories?.WEAPON || window.itemCategories?.weapon || 'weapon', 
+                'WEAPON': window.itemCategories?.WEAPON || window.itemCategories?.weapon || 'weapon',
                 'ARMOR': window.itemCategories?.ARMOR || window.itemCategories?.armor || 'armor',
                 'MAGICAL': window.itemCategories?.MAGICAL || window.itemCategories?.magical || 'magical',
                 'JEWELRY': window.itemCategories?.JEWELRY || window.itemCategories?.jewelry || 'jewelry'
             };
-            
+
             // Use the actual itemCategories values if available
             let mappedCategory;
             if (window.itemCategories) {
                 // Try uppercase first, then lowercase
-                mappedCategory = window.itemCategories[itemData.category] || 
-                               window.itemCategories[itemData.category?.toLowerCase()] ||
-                               categoryMapping[itemData.category] ||
-                               window.itemCategories.CONSUMABLE ||
-                               window.itemCategories.consumable ||
-                               'consumable';
+                mappedCategory = window.itemCategories[itemData.category] ||
+                    window.itemCategories[itemData.category?.toLowerCase()] ||
+                    categoryMapping[itemData.category] ||
+                    window.itemCategories.CONSUMABLE ||
+                    window.itemCategories.consumable ||
+                    'consumable';
             } else {
                 mappedCategory = 'consumable';
             }
-            
+
             const context = {
                 category: mappedCategory,
                 rarity: itemData.rarity || 'COMMON',
@@ -364,7 +364,7 @@ If no actual transaction is detected, return {"hasTransaction": false, "confiden
 
             // Generate item using ItemGenerator
             const baseItem = await window.ItemGenerator.generateItem(context);
-            
+
             console.log('[TransactionMiddleware] ItemGenerator returned:', baseItem ? {
                 name: baseItem.name,
                 id: baseItem.id,
@@ -372,7 +372,7 @@ If no actual transaction is detected, return {"hasTransaction": false, "confiden
                 rarity: baseItem.rarity,
                 value: baseItem.value
             } : 'null/undefined');
-            
+
             // If ItemGenerator failed, create fallback immediately
             if (!baseItem) {
                 console.error('[TransactionMiddleware] ItemGenerator returned null/undefined, using fallback');
@@ -414,7 +414,7 @@ If no actual transaction is detected, return {"hasTransaction": false, "confiden
                 baseItem.type = window.itemCategories.ARMOR || 'armor';
                 console.log('[TransactionMiddleware] Set as equippable in slot:', itemData.slot);
             }
-            
+
             if (baseItem.isEquippable && typeof this.addEquipmentProperties === 'function') {
                 this.addEquipmentProperties(baseItem, itemData);
             }
@@ -434,7 +434,7 @@ If no actual transaction is detected, return {"hasTransaction": false, "confiden
                 value: baseItem.value,
                 description: baseItem.description ? baseItem.description.substring(0, 50) + '...' : 'No description'
             });
-            
+
             return baseItem;
         } catch (error) {
             console.error('[TransactionMiddleware] === ITEM GENERATION ERROR ===');
@@ -451,17 +451,17 @@ If no actual transaction is detected, return {"hasTransaction": false, "confiden
         if (!safeName || safeName === 'undefined' || safeName === undefined || typeof safeName !== 'string' || safeName.trim() === '' || safeName.toLowerCase() === 'undefined') {
             safeName = 'Unknown Item';
         }
-        
+
         const cleanName = safeName.replace(/^(the|a|an)\s+/i, '').trim();
         let capitalizedName = cleanName;
-        
+
         // Only capitalize if we have a valid string
         if (cleanName && cleanName.length > 0) {
             capitalizedName = cleanName.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
         } else {
             capitalizedName = 'Unknown Item';
         }
-        
+
         return {
             id: `fallback_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
             name: capitalizedName,
