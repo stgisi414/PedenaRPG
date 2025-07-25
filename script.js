@@ -261,6 +261,9 @@ async function travelToCity(cityName) {
     }
 }
 
+// Make travelToCity globally accessible
+window.travelToCity = travelToCity;
+
 function showCountryDetails(countryKey) {
     const country = countries[countryKey];
     const countryCities = Object.values(cities).filter(city => city.country === countryKey);
