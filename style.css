@@ -840,8 +840,29 @@ h1, h2, h3, h4 {
 }
 
 .country-btn:hover {
-    background-color: #D2B48C; /* A darker parchment color on hover */
-    transform: scale(1.05);
+    background-color: #92400e;
+    transform: translateY(-2px);
+}
+
+/* Map city list styles */
+#map-info-content ul li {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.25rem;
+    padding: 0.25rem;
+    border-radius: 0.25rem;
+    background-color: rgba(146, 64, 14, 0.1);
+}
+
+#map-info-content ul li:hover {
+    background-color: rgba(146, 64, 14, 0.2);
+}
+
+#map-info-content ul li button {
+    font-size: 0.75rem;
+    padding: 0.25rem 0.5rem;
+    min-width: 60px;
 }
 
 #map-info-panel h5 {
@@ -866,37 +887,37 @@ h1, h2, h3, h4 {
     #map-interface {
         padding: 0 !important; /* Remove padding on mobile */
     }
-    
+
     #map-interface .parchment-bg {
         margin: 0;
         padding: 1rem; /* Minimal padding for content */
         max-height: 100vh;
         border-radius: 0; /* Remove border radius for full screen feel */
     }
-    
+
     #map-content {
         grid-template-columns: 1fr !important; /* Single column on mobile */
         gap: 1rem;
     }
-    
+
     #map-display {
         grid-column: 1;
         grid-cols-2 !important; /* Reduce grid columns for map on mobile */
         aspect-ratio: 2 / 3; /* Taller aspect ratio for mobile */
         gap: 1px; /* Smaller gaps between countries */
     }
-    
+
     .country-btn {
         font-size: 0.7rem;
         padding: 6px;
         min-height: 40px; /* Ensure buttons are tappable */
     }
-    
+
     #map-info-panel {
         order: 2; /* Info panel below map on mobile */
         margin-top: 1rem;
     }
-    
+
     #exit-map-btn {
         top: 0.5rem;
         right: 0.5rem;

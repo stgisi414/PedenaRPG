@@ -235,6 +235,32 @@ function displayMap() {
     }
 }
 
+// Function to handle travel from map
+async function travelToCity(cityName) {
+    if (!player || !player.name) {
+        displayMessage("No character loaded to travel with.", 'error');
+        return;
+    }
+
+    // Close the map interface
+    mapInterface.classList.add('hidden');
+
+    // Use the existing movement system
+    const command = `travel to ${cityName}`;
+    displayMessage(`🗺️ Using map to travel to ${cityName}...`, 'info');
+    
+    // Add to conversation history
+    addToConversationHistory('user', command);
+
+    try {
+        // Use the structured movement handler
+        await handleStructuredMovement(command, cityName);
+    } catch (error) {
+        console.error('Travel error:', error);
+        displayMessage(`Failed to travel to ${cityName}. Please try again.`, 'error');
+    }
+}
+
 function showCountryDetails(countryKey) {
     const country = countries[countryKey];
     const countryCities = Object.values(cities).filter(city => city.country === countryKey);
@@ -251,7 +277,12 @@ function showCountryDetails(countryKey) {
     if (countryCities.length > 0) {
         detailsHTML += `<h6>Cities:</h6><ul>`;
         countryCities.forEach(city => {
-            detailsHTML += `<li>${city.name} (${city.type})</li>`;
+            detailsHTML += `<li class="flex justify-between items-center mb-1">
+                <span>${city.name} (${city.type})</span>
+                <button onclick="travelToCity('${city.name}')" class="btn-parchment text-xs py-1 px-2 ml-2">
+                    <i class="ra ra-compass mr-1"></i>Travel
+                </button>
+            </li>`;
         });
         detailsHTML += `</ul>`;
     }
