@@ -673,11 +673,9 @@ function fixCharacterStats() {
     }
 }
 
-// Make function globally available - ensure this runs after DOM is loaded
-if (typeof window !== 'undefined') {
-    window.fixCharacterStats = fixCharacterStats;
-    console.log('✅ fixCharacterStats function is now available globally');
-}
+// Make function globally available immediately
+window.fixCharacterStats = fixCharacterStats;
+console.log('✅ fixCharacterStats function is now available globally');
 
 
         // Use the middleware to intelligently extract potential NPC names from the AI's narrative
