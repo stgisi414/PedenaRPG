@@ -1,5 +1,5 @@
 // Transaction Detection Middleware - Uses Gemini AI to detect and process transactions
-export class TransactionMiddleware {
+export export class TransactionMiddleware {
 
     static async detectTransaction(aiResponse, command, player, gameContext) {
         console.log(`--- TransactionMiddleware.detectTransaction CALLED ---`); // <<< ADD THIS LINE
@@ -532,5 +532,7 @@ If no actual transaction is detected, return {"hasTransaction": false, "confiden
         return removedItem;
     }
 }
+
+window.TransactionMiddleware = TransactionMiddleware;
 
 window.TransactionMiddleware = TransactionMiddleware
