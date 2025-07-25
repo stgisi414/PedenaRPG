@@ -5461,7 +5461,7 @@ async function executeCustomCommand(command) {
     for (const keyword of enhanceKeywords) {
         if (lowerCommand.includes(keyword)) {
             const result = await handleItemEnhancement(command, lowerCommand);
-            if (result.handled) {
+            if (result && result.handled) { // Added check for result existence
                 return;
             }
         }
@@ -5515,6 +5515,15 @@ async function executeCustomCommand(command) {
         if (parsedResult) {
             console.log("Processing structured AI response:", parsedResult);
             await parseAndApplyStateChanges(parsedResult);
+
+            // Add alignment change handling here
+            if (parsedResult.alignmentChange) {
+                console.log("Processing alignment change from AI response:", parsedResult.alignmentChange);
+                const alignmentResult = AlignmentSystem.updateAlignment(player, parsedResult.alignmentChange);
+                if (alignmentResult.changed) {
+                    displayMessage(`Your alignment has shifted. You are now ${alignmentResult.newType}.`, 'info');
+                }
+            }
         } else {
             console.log("Processing AI response as simple narrative.");
             displayMessage(aiResponse, 'info');
