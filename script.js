@@ -587,17 +587,6 @@ function loadConversationHistory() {
     }
 }
 
-async function checkNPCMentionsAndAdd(aiResponse, playerCommand, gameContextPlayer) {
-    console.log("checkNPCMentionsAndAdd: Scanning AI response for NPC mentions...");
-
-    // Ensure the RelationshipMiddleware is available on the window object
-    if (!window.RelationshipMiddleware) {
-        console.error("RelationshipMiddleware is not available. Cannot process NPC mentions.");
-        return;
-    }
-
-    try {
-
 // Manual stat fix for characters who missed stat increases during leveling
 function fixCharacterStats() {
     if (!player || !player.level) {
@@ -673,30 +662,16 @@ function fixCharacterStats() {
     }
 }
 
-// Make function globally available immediately with enhanced debugging
-window.fixCharacterStats = fixCharacterStats;
-console.log('✅ fixCharacterStats function is now available globally');
-console.log('✅ window.fixCharacterStats type:', typeof window.fixCharacterStats);
-console.log('✅ window.fixCharacterStats exists:', !!window.fixCharacterStats);
+async function checkNPCMentionsAndAdd(aiResponse, playerCommand, gameContextPlayer) {
+    console.log("checkNPCMentionsAndAdd: Scanning AI response for NPC mentions...");
 
-// Also make it available on globalThis as a backup
-if (typeof globalThis !== 'undefined') {
-    globalThis.fixCharacterStats = fixCharacterStats;
-    console.log('✅ fixCharacterStats also added to globalThis');
-}
-
-// Test the function is actually callable
-try {
-    if (typeof window.fixCharacterStats === 'function') {
-        console.log('✅ window.fixCharacterStats is callable');
-    } else {
-        console.error('❌ window.fixCharacterStats is not a function:', typeof window.fixCharacterStats);
+    // Ensure the RelationshipMiddleware is available on the window object
+    if (!window.RelationshipMiddleware) {
+        console.error("RelationshipMiddleware is not available. Cannot process NPC mentions.");
+        return;
     }
-} catch (error) {
-    console.error('❌ Error testing fixCharacterStats:', error);
-}
 
-
+    try {
         // Use the middleware to intelligently extract potential NPC names from the AI's narrative
         const npcNames = await RelationshipMiddleware.extractNPCNames(aiResponse, gameContextPlayer);
 
