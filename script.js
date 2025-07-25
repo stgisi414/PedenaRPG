@@ -613,8 +613,7 @@ function fixCharacterStats() {
     // Calculate what stats should be at this level
     const currentLevel = player.level;
     const baseStats = 10; // Starting stat value
-    const expectedStatValue = baseStats + (currentLevel - 1); // +1 per level
-
+    
     // Get class progression for primary stat bonuses
     let primaryStats = [];
     if (window.CharacterManager && window.classProgression && player.class) {
@@ -629,25 +628,35 @@ function fixCharacterStats() {
 
     statNames.forEach(statName => {
         const currentValue = player.stats[statName] || 10;
-        let expectedValue = expectedStatValue;
         
-        // Add primary stat bonus (+2 at start, +2 more every 4 levels)
+        // Calculate expected value for this stat
+        let expectedValue = baseStats; // Start at 10
+        
+        // Add class primary stat bonus (+2 at character creation)
         if (primaryStats.includes(statName)) {
-            expectedValue += 2; // Starting bonus
-            expectedValue += Math.floor(currentLevel / 4) * 2; // Additional bonus every 4 levels
+            expectedValue += 2;
+        }
+        
+        // Add level progression (+1 per level from level 1)
+        expectedValue += (currentLevel - 1);
+        
+        // Add additional primary stat bonuses every 4 levels (4, 8, 12, 16)
+        if (primaryStats.includes(statName)) {
+            expectedValue += Math.floor(currentLevel / 4) * 2;
         }
 
         if (currentValue < expectedValue) {
             const oldValue = currentValue;
             player.stats[statName] = expectedValue;
-            console.log(`Fixed ${statName}: ${oldValue} -> ${expectedValue}`);
+            console.log(`Fixed ${statName}: ${oldValue} -> ${expectedValue} (Primary: ${primaryStats.includes(statName)})`);
             statsFixed++;
         }
     });
 
     if (statsFixed > 0) {
         displayMessage(`✅ Fixed ${statsFixed} stats for ${player.name}!`, 'success');
-        displayMessage(`Stats have been updated to match Level ${currentLevel} progression.`, 'info');
+        displayMessage(`Stats have been updated to match Level ${currentLevel} progression with class bonuses.`, 'info');
+        displayMessage(`Primary stats (${primaryStats.join(', ')}) include +2 class bonus and additional bonuses every 4 levels.`, 'info');
         
         // Save the fixes
         saveGame();
