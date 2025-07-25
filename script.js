@@ -1797,6 +1797,281 @@ function debouncedSave() {
 // In script.js, REPLACE the old checkRelationshipChanges function with this one.
 async function checkRelationshipChanges(playerCommand, aiResponse) {
     console.log("Running relationship check with Gemini...");
+
+
+// Item Enhancement Handler
+async function handleItemEnhancement(command, lowerCommand) {
+    const enhanceKeywords = ['enhance', 'upgrade', 'improve', 'enchant', 'reinforce', 'strengthen', 'empower'];
+    
+    // Find which enhancement keyword was used
+    const usedKeyword = enhanceKeywords.find(keyword => lowerCommand.includes(keyword));
+    if (!usedKeyword) {
+        return { handled: false };
+    }
+
+    // Extract item name from command
+    const itemNameMatch = command.match(new RegExp(`${usedKeyword}\\s+(?:the\\s+|my\\s+)?(.+?)(?:\\s+(?:with|using|at)\\s+|$)`, 'i'));
+    if (!itemNameMatch) {
+        displayMessage("What item would you like to enhance? Please specify an item name.", 'error');
+        return { handled: true };
+    }
+
+    const itemName = itemNameMatch[1].trim();
+    
+    // Find item in inventory
+    const itemIndex = player.inventory.findIndex(item => 
+        item.name.toLowerCase().includes(itemName.toLowerCase()) ||
+        itemName.toLowerCase().includes(item.name.toLowerCase())
+    );
+
+    if (itemIndex === -1) {
+        displayMessage(`You don't have "${itemName}" in your inventory to enhance.`, 'error');
+        return { handled: true };
+    }
+
+    const item = player.inventory[itemIndex];
+    
+    // Check if item can be enhanced
+    if (!canItemBeEnhanced(item)) {
+        displayMessage(`${item.name} cannot be enhanced further or is not enhanceable.`, 'error');
+        return { handled: true };
+    }
+
+    // Calculate enhancement cost and requirements
+    const enhancementCost = calculateEnhancementCost(item);
+    const enhancementType = determineEnhancementType(usedKeyword, item);
+
+    // Check if player has required resources
+    if (!hasEnhancementResources(enhancementCost)) {
+        displayMessage(`You need ${enhancementCost.gold} gold and ${enhancementCost.materials.join(', ')} to enhance ${item.name}.`, 'error');
+        return { handled: true };
+    }
+
+    // Perform enhancement
+    const enhancementResult = performItemEnhancement(item, enhancementType, enhancementCost);
+    
+    if (enhancementResult.success) {
+        // Deduct resources
+        player.gold -= enhancementCost.gold;
+        
+        // Update item in inventory
+        player.inventory[itemIndex] = enhancementResult.enhancedItem;
+        
+        // Display success message
+        displayMessage(`Successfully ${usedKeyword}ed ${item.name}! ${enhancementResult.description}`, 'success');
+        
+        // Update displays
+        updatePlayerDisplay();
+        
+        // Refresh inventory if open
+        const inventoryInterface = document.getElementById('inventory-interface');
+        if (inventoryInterface && !inventoryInterface.classList.contains('hidden')) {
+            displayInventory();
+        }
+        
+        // Save game
+        saveGame();
+    } else {
+        displayMessage(`Failed to enhance ${item.name}: ${enhancementResult.reason}`, 'error');
+    }
+
+    return { handled: true };
+}
+
+// Check if item can be enhanced
+function canItemBeEnhanced(item) {
+    // Check enhancement level limit
+    const maxEnhancementLevel = getMaxEnhancementLevel(item);
+    const currentLevel = item.enhancementLevel || 0;
+    
+    if (currentLevel >= maxEnhancementLevel) {
+        return false;
+    }
+    
+    // Check if item type is enhanceable
+    const enhanceableTypes = ['weapon', 'armor', 'shield', 'tool', 'jewelry'];
+    return enhanceableTypes.includes(item.type) || item.enhanceable === true;
+}
+
+// Calculate enhancement cost
+function calculateEnhancementCost(item) {
+    const baseValue = item.value || 10;
+    const currentLevel = item.enhancementLevel || 0;
+    const rarity = item.rarity || 'COMMON';
+    
+    // Base cost calculation
+    let goldCost = Math.floor(baseValue * (1 + currentLevel * 0.5));
+    
+    // Rarity multiplier
+    const rarityMultipliers = {
+        'COMMON': 1,
+        'UNCOMMON': 1.5,
+        'RARE': 2.5,
+        'EPIC': 4,
+        'LEGENDARY': 6,
+        'ARTIFACT': 10
+    };
+    
+    goldCost *= (rarityMultipliers[rarity] || 1);
+    
+    // Required materials based on item type
+    const materials = [];
+    if (item.type === 'weapon') {
+        materials.push('Metal Ingot', 'Grinding Stone');
+    } else if (item.type === 'armor') {
+        materials.push('Reinforcement Plate', 'Leather Strips');
+    } else if (item.type === 'jewelry') {
+        materials.push('Gem Dust', 'Precious Metal');
+    } else {
+        materials.push('Enhancement Crystal');
+    }
+    
+    return {
+        gold: goldCost,
+        materials: materials
+    };
+}
+
+// Determine enhancement type based on keyword and item
+function determineEnhancementType(keyword, item) {
+    const enhancementTypes = {
+        'enhance': 'general',
+        'upgrade': 'tier_increase',
+        'improve': 'stat_boost',
+        'enchant': 'magical_enhancement',
+        'reinforce': 'durability_boost',
+        'strengthen': 'damage_boost',
+        'empower': 'special_ability'
+    };
+    
+    return enhancementTypes[keyword] || 'general';
+}
+
+// Check if player has required resources
+function hasEnhancementResources(cost) {
+    if (player.gold < cost.gold) {
+        return false;
+    }
+    
+    // For now, assume player has materials (could be expanded to check actual material inventory)
+    return true;
+}
+
+// Get maximum enhancement level for item
+function getMaxEnhancementLevel(item) {
+    const rarityLimits = {
+        'COMMON': 3,
+        'UNCOMMON': 5,
+        'RARE': 7,
+        'EPIC': 10,
+        'LEGENDARY': 15,
+        'ARTIFACT': 20
+    };
+    
+    return rarityLimits[item.rarity] || 3;
+}
+
+// Perform the actual item enhancement
+function performItemEnhancement(item, enhancementType, cost) {
+    const newItem = JSON.parse(JSON.stringify(item)); // Deep copy
+    const currentLevel = newItem.enhancementLevel || 0;
+    newItem.enhancementLevel = currentLevel + 1;
+    
+    let description = '';
+    let success = true;
+    
+    // Apply enhancement based on type
+    switch (enhancementType) {
+        case 'general':
+            // General stat improvement
+            if (newItem.damage) {
+                const damageIncrease = Math.floor(Math.random() * 3) + 1;
+                newItem.damage += `+${damageIncrease}`;
+                description = `Damage increased by ${damageIncrease}.`;
+            }
+            if (newItem.armor) {
+                newItem.armor += 1;
+                description += ` Armor increased by 1.`;
+            }
+            break;
+            
+        case 'tier_increase':
+            // Increase item tier/quality
+            newItem.value = Math.floor(newItem.value * 1.3);
+            description = 'Item quality significantly improved.';
+            break;
+            
+        case 'stat_boost':
+            // Boost primary stats
+            if (newItem.effects) {
+                newItem.effects.push(`enhancement_level_${newItem.enhancementLevel}`);
+            } else {
+                newItem.effects = [`enhancement_level_${newItem.enhancementLevel}`];
+            }
+            description = 'Item effectiveness improved.';
+            break;
+            
+        case 'magical_enhancement':
+            // Add magical properties
+            const magicalEffects = ['fire_damage_1', 'frost_damage_1', 'lightning_damage_1', 'holy_damage_1'];
+            const randomEffect = magicalEffects[Math.floor(Math.random() * magicalEffects.length)];
+            if (newItem.effects) {
+                newItem.effects.push(randomEffect);
+            } else {
+                newItem.effects = [randomEffect];
+            }
+            description = `Imbued with magical energy (${randomEffect.replace('_', ' ')}).`;
+            break;
+            
+        case 'durability_boost':
+            // Increase durability/resistance
+            newItem.durability = (newItem.durability || 100) + 20;
+            description = 'Item durability increased by 20.';
+            break;
+            
+        case 'damage_boost':
+            // Specifically boost damage
+            if (newItem.damage) {
+                const boost = Math.floor(Math.random() * 4) + 2;
+                newItem.damage += `+${boost}`;
+                description = `Damage significantly increased by ${boost}.`;
+            } else {
+                description = 'Item sharpness improved.';
+            }
+            break;
+            
+        case 'special_ability':
+            // Add special abilities
+            const specialAbilities = ['critical_chance_5', 'life_steal_small', 'mana_regen_tiny', 'luck_boost'];
+            const randomAbility = specialAbilities[Math.floor(Math.random() * specialAbilities.length)];
+            if (newItem.effects) {
+                newItem.effects.push(randomAbility);
+            } else {
+                newItem.effects = [randomAbility];
+            }
+            description = `Gained special ability: ${randomAbility.replace('_', ' ')}.`;
+            break;
+            
+        default:
+            description = 'Item has been enhanced.';
+    }
+    
+    // Update item name to reflect enhancement
+    if (newItem.enhancementLevel === 1) {
+        newItem.name = `Enhanced ${newItem.name}`;
+    } else if (newItem.enhancementLevel >= 5) {
+        newItem.name = newItem.name.replace('Enhanced ', `Masterwork `);
+    } else if (newItem.enhancementLevel >= 10) {
+        newItem.name = newItem.name.replace('Masterwork ', `Legendary `);
+    }
+    
+    return {
+        success: success,
+        enhancedItem: newItem,
+        description: description
+    };
+}
+
     // Await the results from our new Gemini-powered function
     const npcNames = await RelationshipMiddleware.extractNPCNames(aiResponse, player);
 
@@ -5173,7 +5448,20 @@ async function executeCustomCommand(command) {
 
     // --- NEW: Command pre-processing for specific actions ---
     const lowerCommand = command.toLowerCase().trim();
+    
+    // Item enhancement keywords
+    const enhanceKeywords = ['enhance', 'upgrade', 'improve', 'enchant', 'reinforce', 'strengthen', 'empower'];
     const recruitKeywords = ['recruit', 'hire', 'ask to join', 'bring along'];
+
+    // Check for item enhancement command
+    for (const keyword of enhanceKeywords) {
+        if (lowerCommand.includes(keyword)) {
+            const result = await handleItemEnhancement(command, lowerCommand);
+            if (result.handled) {
+                return;
+            }
+        }
+    }
 
     // Check for recruitment command
     for (const keyword of recruitKeywords) {
