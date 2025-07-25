@@ -638,17 +638,17 @@ function fixCharacterStats() {
         // Add class primary stat bonus (+2 at character creation)
         if (primaryStats.includes(statName)) {
             expectedValue += 2;
-        }
-        
-        // Add additional primary stat bonuses every 4 levels (4, 8, 12, 16)
-        if (primaryStats.includes(statName) && currentLevel >= 4) {
-            expectedValue += Math.floor(currentLevel / 4) * 2;
+            
+            // Add additional primary stat bonuses every 4 levels (4, 8, 12, 16)
+            if (currentLevel >= 4) {
+                expectedValue += Math.floor(currentLevel / 4) * 2;
+            }
         }
 
         if (currentValue < expectedValue) {
             const oldValue = currentValue;
             player.stats[statName] = expectedValue;
-            console.log(`Fixed ${statName}: ${oldValue} -> ${expectedValue} (Primary: ${primaryStats.includes(statName)})`);
+            console.log(`Fixed ${statName}: ${oldValue} -> ${expectedValue} (Primary: ${primaryStats.includes(statName)}, Level: ${currentLevel})`);
             statsFixed++;
         }
     });
