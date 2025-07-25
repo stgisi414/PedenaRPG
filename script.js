@@ -587,90 +587,106 @@ function loadConversationHistory() {
     }
 }
 
-// Manual stat fix for characters who missed stat increases during leveling
+// Complete rewrite of character stats fix function
 function fixCharacterStats() {
-    if (!player || !player.level) {
-        displayMessage("No character loaded to fix stats for.", 'error');
-        return;
+    if (!player || !player.level || !player.name) {
+        displayMessage("No valid character loaded to fix stats for.", 'error');
+        return 0;
     }
 
-    if (!confirm(`Fix stats for ${player.name} (Level ${player.level})? This will apply missing stat increases.`)) {
-        return;
+    if (!confirm(`Fix stats for ${player.name} (Level ${player.level} ${player.class})? This will recalculate all stats based on level and class.`)) {
+        return 0;
     }
 
-    // Ensure stats object exists with minimum values
-    if (!player.stats) {
-        player.stats = {
-            strength: 10,
-            dexterity: 10,
-            intelligence: 10,
-            constitution: 10,
-            wisdom: 10,
-            charisma: 10
-        };
+    // Initialize stats object if missing
+    if (!player.stats || typeof player.stats !== 'object') {
+        player.stats = {};
     }
 
-    // Calculate what stats should be at this level
-    const currentLevel = player.level;
-    const baseStats = 10; // Starting stat value
-    
-    // Get class progression for primary stat bonuses
+    // Get class progression data
+    let classData = null;
     let primaryStats = [];
-    if (window.CharacterManager && window.classProgression && player.class) {
-        const progression = window.classProgression[player.class.toLowerCase()];
-        if (progression && progression.primaryStats) {
-            primaryStats = progression.primaryStats;
+    
+    if (player.class && typeof window.classProgression !== 'undefined') {
+        classData = window.classProgression[player.class.toLowerCase()];
+        if (classData && Array.isArray(classData.primaryStats)) {
+            primaryStats = classData.primaryStats;
         }
     }
 
-    const statNames = ['strength', 'dexterity', 'intelligence', 'constitution', 'wisdom', 'charisma'];
-    let statsFixed = 0;
+    // If no class data found, try from character progression
+    if (primaryStats.length === 0 && player.classProgression && player.classProgression.class) {
+        const altClassData = window.classProgression ? window.classProgression[player.classProgression.class.toLowerCase()] : null;
+        if (altClassData && Array.isArray(altClassData.primaryStats)) {
+            primaryStats = altClassData.primaryStats;
+        }
+    }
 
-    statNames.forEach(statName => {
-        const currentValue = player.stats[statName] || 10;
+    console.log(`Fixing stats for ${player.name}: Level ${player.level}, Class: ${player.class}, Primary Stats: [${primaryStats.join(', ')}]`);
+
+    const allStatNames = ['strength', 'dexterity', 'intelligence', 'constitution', 'wisdom', 'charisma'];
+    let changedStats = 0;
+    const baseStatValue = 10;
+    const currentLevel = Math.max(1, parseInt(player.level) || 1);
+
+    allStatNames.forEach(statName => {
+        const originalValue = player.stats[statName] || 0;
         
-        // Calculate expected value for this stat
-        let expectedValue = baseStats; // Start at 10
+        // Calculate correct stat value
+        let correctValue = baseStatValue; // Base value of 10
         
-        // Add level progression (+1 per level from level 2 onwards)
-        expectedValue += (currentLevel - 1);
+        // Add +1 per level starting from level 2
+        if (currentLevel > 1) {
+            correctValue += (currentLevel - 1);
+        }
         
-        // Add class primary stat bonus (+2 at character creation)
+        // Primary stat bonuses
         if (primaryStats.includes(statName)) {
-            expectedValue += 2;
+            // +2 bonus at character creation for primary stats
+            correctValue += 2;
             
-            // Add additional primary stat bonuses every 4 levels (4, 8, 12, 16)
-            if (currentLevel >= 4) {
-                expectedValue += Math.floor(currentLevel / 4) * 2;
+            // Additional +2 every 4 levels for primary stats (levels 4, 8, 12, 16, etc.)
+            const additionalBonuses = Math.floor(currentLevel / 4);
+            if (additionalBonuses > 0) {
+                correctValue += (additionalBonuses * 2);
             }
         }
 
-        if (currentValue < expectedValue) {
-            const oldValue = currentValue;
-            player.stats[statName] = expectedValue;
-            console.log(`Fixed ${statName}: ${oldValue} -> ${expectedValue} (Primary: ${primaryStats.includes(statName)}, Level: ${currentLevel})`);
-            statsFixed++;
+        // Update if different
+        if (originalValue !== correctValue) {
+            player.stats[statName] = correctValue;
+            console.log(`${statName}: ${originalValue} → ${correctValue} (Primary: ${primaryStats.includes(statName)})`);
+            changedStats++;
         }
     });
 
-    if (statsFixed > 0) {
-        displayMessage(`✅ Fixed ${statsFixed} stats for ${player.name}!`, 'success');
-        displayMessage(`Stats have been updated to match Level ${currentLevel} progression with class bonuses.`, 'info');
-        displayMessage(`Primary stats (${primaryStats.join(', ')}) include +2 class bonus and additional bonuses every 4 levels.`, 'info');
+    // Report results
+    if (changedStats > 0) {
+        displayMessage(`✅ Fixed ${changedStats} stats for ${player.name}!`, 'success');
         
-        // Save the fixes
+        if (primaryStats.length > 0) {
+            displayMessage(`Primary stats: ${primaryStats.join(', ')} (+2 base, +2 every 4 levels)`, 'info');
+        } else {
+            displayMessage(`Warning: Could not determine primary stats for class '${player.class}'`, 'error');
+        }
+        
+        displayMessage(`All stats: ${allStatNames.map(s => `${s}: ${player.stats[s]}`).join(', ')}`, 'info');
+        
+        // Save everything
         saveGame();
-        if (window.CharacterManager) {
+        if (window.CharacterManager && typeof CharacterManager.saveProgression === 'function') {
             CharacterManager.saveProgression(player);
         }
         
-        // Update displays
-        updatePlayerStatsDisplay();
+        // Update UI
+        if (typeof updatePlayerStatsDisplay === 'function') {
+            updatePlayerStatsDisplay();
+        }
     } else {
-        displayMessage("✅ Character stats are already correct for their level.", 'info');
+        displayMessage("✅ All stats are already correct for this character's level and class.", 'info');
     }
     
-    return statsFixed; // Return the number of stats that were fixed
+    return changedStats;
 }
 
 async function checkNPCMentionsAndAdd(aiResponse, playerCommand, gameContextPlayer) {
