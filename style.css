@@ -820,28 +820,226 @@ h1, h2, h3, h4 {
 #amulet-slot-icon { background-image: url('./assets/icons/equip-slot-amulet.png'); }
 #ring1-slot-icon, #ring2-slot-icon { background-image: url('./assets/icons/equip-slot-ring.png'); }
 
-/* World Map Styles */
+/* World Map Styles - Artistic Sketch Design */
 #map-display {
-    aspect-ratio: 4 / 3; /* Maintain a good aspect ratio for the map */
+    aspect-ratio: 16 / 10;
+    background: linear-gradient(135deg, #f4f1e8 0%, #e8dcc0 50%, #d4c4a0 100%);
+    position: relative;
+    border: 4px solid #8B4513;
+    border-radius: 12px;
+    box-shadow: inset 0 0 50px rgba(139, 69, 19, 0.3), 0 8px 20px rgba(0, 0, 0, 0.4);
+    overflow: hidden;
+    background-image: 
+        radial-gradient(circle at 20% 30%, rgba(139, 69, 19, 0.1) 2px, transparent 2px),
+        radial-gradient(circle at 70% 80%, rgba(160, 82, 45, 0.1) 1px, transparent 1px),
+        radial-gradient(circle at 40% 60%, rgba(210, 180, 140, 0.2) 3px, transparent 3px);
+    background-size: 100px 100px, 150px 150px, 80px 80px;
 }
 
 .country-btn {
-    padding: 8px;
-    border: 2px solid #8B4513; /* A brown color that fits the parchment theme */
-    background-color: #F5DEB3; /* A light parchment color */
+    position: absolute;
+    padding: 6px 12px;
+    border: 3px solid transparent;
+    background: rgba(245, 222, 179, 0.9);
     cursor: pointer;
-    transition: all 0.2s ease-in-out;
+    transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
     text-align: center;
     font-weight: bold;
-    font-size: 0.8rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    font-size: 0.75rem;
+    border-radius: 20px;
+    box-shadow: 
+        0 2px 8px rgba(0, 0, 0, 0.3),
+        inset 0 1px 2px rgba(255, 255, 255, 0.5);
+    backdrop-filter: blur(2px);
+    color: #4A2000;
+    text-shadow: 1px 1px 2px rgba(255, 255, 255, 0.8);
+    transform-origin: center;
+    border-style: dashed;
+    border-image: url("data:image/svg+xml,%3csvg width='100' height='100' xmlns='http://www.w3.org/2000/svg'%3e%3cpath d='m10,10 q20,5 40,0 t40,0' stroke='%238B4513' stroke-width='3' fill='none'/%3e%3c/svg%3e") 1;
+}
+
+/* Artistic positioning for countries - creating a sketch-like fantasy map */
+.country-btn[data-country="pedena"] {
+    top: 35%;
+    left: 42%;
+    background: linear-gradient(135deg, #FFD700, #FFA500);
+    border-color: #B8860B;
+    box-shadow: 0 0 15px rgba(255, 215, 0, 0.6);
+}
+
+.country-btn[data-country="vaelthara"] {
+    top: 15%;
+    left: 35%;
+    background: linear-gradient(135deg, #708090, #2F4F4F);
+    color: #E0E0E0;
+    border-color: #2F4F4F;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+}
+
+.country-btn[data-country="sylvanmere"] {
+    top: 40%;
+    left: 20%;
+    background: linear-gradient(135deg, #228B22, #32CD32);
+    border-color: #006400;
+    color: #F0FFF0;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.7);
+}
+
+.country-btn[data-country="dustlands"] {
+    top: 65%;
+    left: 50%;
+    background: linear-gradient(135deg, #DEB887, #D2691E);
+    border-color: #A0522D;
+}
+
+.country-btn[data-country="aeria"] {
+    top: 20%;
+    left: 65%;
+    background: linear-gradient(135deg, #87CEEB, #4682B4);
+    border-color: #1E90FF;
+    color: #F0F8FF;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.6);
+    box-shadow: 0 0 20px rgba(135, 206, 235, 0.8);
+}
+
+.country-btn[data-country="deepdelve"] {
+    top: 50%;
+    left: 15%;
+    background: linear-gradient(135deg, #696969, #2F2F2F);
+    border-color: #404040;
+    color: #D3D3D3;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.9);
+}
+
+.country-btn[data-country="frostfell"] {
+    top: 5%;
+    left: 45%;
+    background: linear-gradient(135deg, #E0FFFF, #B0E0E6);
+    border-color: #4682B4;
+    color: #2F4F4F;
+}
+
+.country-btn[data-country="ignisCaldera"] {
+    top: 70%;
+    left: 30%;
+    background: linear-gradient(135deg, #FF4500, #DC143C);
+    border-color: #8B0000;
+    color: #FFF8DC;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+    box-shadow: 0 0 25px rgba(255, 69, 0, 0.7);
+}
+
+.country-btn[data-country="azureIsles"] {
+    top: 75%;
+    left: 70%;
+    background: linear-gradient(135deg, #00CED1, #20B2AA);
+    border-color: #008B8B;
+    color: #F0FFFF;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.6);
+}
+
+.country-btn[data-country="solaraTheocracy"] {
+    top: 60%;
+    left: 75%;
+    background: linear-gradient(135deg, #FFD700, #FF8C00);
+    border-color: #DAA520;
+    box-shadow: 0 0 20px rgba(255, 215, 0, 0.8);
+}
+
+.country-btn[data-country="umbraMarches"] {
+    top: 45%;
+    left: 5%;
+    background: linear-gradient(135deg, #2F2F2F, #1C1C1C);
+    border-color: #000000;
+    color: #C0C0C0;
+    text-shadow: 1px 1px 2px rgba(255, 255, 255, 0.3);
+}
+
+.country-btn[data-country="whisperingSteppes"] {
+    top: 30%;
+    left: 75%;
+    background: linear-gradient(135deg, #9ACD32, #6B8E23);
+    border-color: #556B2F;
+    color: #F5FFFA;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.7);
+}
+
+.country-btn[data-country="serenePeaks"] {
+    top: 25%;
+    left: 80%;
+    background: linear-gradient(135deg, #F0F8FF, #E6E6FA);
+    border-color: #9370DB;
+    color: #4B0082;
+}
+
+.country-btn[data-country="cogsworthy"] {
+    top: 55%;
+    left: 60%;
+    background: linear-gradient(135deg, #CD853F, #A0522D);
+    border-color: #8B4513;
+    color: #FFF8DC;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.6);
+}
+
+.country-btn[data-country="murkwaterFen"] {
+    top: 80%;
+    left: 40%;
+    background: linear-gradient(135deg, #556B2F, #2F4F2F);
+    border-color: #1C3A1C;
+    color: #F0FFF0;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+}
+
+.country-btn[data-country="florencia"] {
+    top: 50%;
+    left: 85%;
+    background: linear-gradient(135deg, #DDA0DD, #DA70D6);
+    border-color: #8B008B;
+    color: #FFF0F5;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
 }
 
 .country-btn:hover {
-    background-color: #92400e;
-    transform: translateY(-2px);
+    transform: scale(1.15) rotate(1deg);
+    z-index: 10;
+    box-shadow: 
+        0 8px 25px rgba(0, 0, 0, 0.4),
+        0 0 30px currentColor,
+        inset 0 2px 4px rgba(255, 255, 255, 0.6);
+    border-width: 4px;
+    filter: brightness(1.2) saturate(1.3);
+}
+
+.country-btn:active {
+    transform: scale(1.05) rotate(0.5deg);
+    transition: all 0.1s ease;
+}
+
+/* Add decorative elements */
+#map-display::before {
+    content: "";
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    right: 10px;
+    bottom: 10px;
+    border: 2px dashed rgba(139, 69, 19, 0.3);
+    border-radius: 8px;
+    pointer-events: none;
+}
+
+#map-display::after {
+    content: "🗺️ The Realm of Adventures";
+    position: absolute;
+    top: 15px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-family: 'Cinzel', serif;
+    font-size: 1.2rem;
+    font-weight: bold;
+    color: #8B4513;
+    text-shadow: 2px 2px 4px rgba(255, 255, 255, 0.8);
+    pointer-events: none;
 }
 
 /* Map city list styles */
@@ -882,39 +1080,90 @@ h1, h2, h3, h4 {
     font-size: 0.9rem;
 }
 
+/* Add entrance animations for map elements */
+@keyframes fadeInScale {
+    from {
+        opacity: 0;
+        transform: scale(0.8) rotate(-2deg);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1) rotate(0deg);
+    }
+}
+
+@keyframes mapReveal {
+    from {
+        opacity: 0;
+        transform: scale(0.95);
+        filter: blur(3px);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+        filter: blur(0px);
+    }
+}
+
+.country-btn {
+    animation: fadeInScale 0.6s ease-out forwards;
+    opacity: 0;
+}
+
+#map-display {
+    animation: mapReveal 0.8s ease-out;
+}
+
 /* Mobile responsive map interface */
 @media (max-width: 768px) {
     #map-interface {
-        padding: 0 !important; /* Remove padding on mobile */
+        padding: 0 !important;
     }
 
     #map-interface .parchment-bg {
         margin: 0;
-        padding: 1rem; /* Minimal padding for content */
+        padding: 1rem;
         max-height: 100vh;
-        border-radius: 0; /* Remove border radius for full screen feel */
+        border-radius: 0;
     }
 
     #map-content {
-        grid-template-columns: 1fr !important; /* Single column on mobile */
+        grid-template-columns: 1fr !important;
         gap: 1rem;
     }
 
     #map-display {
         grid-column: 1;
-        grid-cols-2 !important; /* Reduce grid columns for map on mobile */
-        aspect-ratio: 2 / 3; /* Taller aspect ratio for mobile */
-        gap: 1px; /* Smaller gaps between countries */
+        aspect-ratio: 4 / 5; /* Better mobile ratio */
     }
 
     .country-btn {
-        font-size: 0.7rem;
-        padding: 6px;
-        min-height: 40px; /* Ensure buttons are tappable */
+        font-size: 0.65rem;
+        padding: 4px 8px;
+        min-height: 35px;
+        border-radius: 15px;
     }
 
+    /* Adjust mobile positioning */
+    .country-btn[data-country="pedena"] { top: 40%; left: 40%; }
+    .country-btn[data-country="vaelthara"] { top: 15%; left: 30%; }
+    .country-btn[data-country="sylvanmere"] { top: 45%; left: 15%; }
+    .country-btn[data-country="dustlands"] { top: 70%; left: 45%; }
+    .country-btn[data-country="aeria"] { top: 20%; left: 60%; }
+    .country-btn[data-country="deepdelve"] { top: 55%; left: 10%; }
+    .country-btn[data-country="frostfell"] { top: 5%; left: 40%; }
+    .country-btn[data-country="ignisCaldera"] { top: 75%; left: 25%; }
+    .country-btn[data-country="azureIsles"] { top: 80%; left: 65%; }
+    .country-btn[data-country="solaraTheocracy"] { top: 65%; left: 70%; }
+    .country-btn[data-country="umbraMarches"] { top: 50%; left: 5%; }
+    .country-btn[data-country="whisperingSteppes"] { top: 30%; left: 70%; }
+    .country-btn[data-country="serenePeaks"] { top: 25%; left: 75%; }
+    .country-btn[data-country="cogsworthy"] { top: 60%; left: 55%; }
+    .country-btn[data-country="murkwaterFen"] { top: 85%; left: 35%; }
+    .country-btn[data-country="florencia"] { top: 55%; left: 80%; }
+
     #map-info-panel {
-        order: 2; /* Info panel below map on mobile */
+        order: 2;
         margin-top: 1rem;
     }
 
@@ -922,5 +1171,9 @@ h1, h2, h3, h4 {
         top: 0.5rem;
         right: 0.5rem;
         padding: 0.5rem;
+    }
+
+    .country-btn:hover {
+        transform: scale(1.1);
     }
 }

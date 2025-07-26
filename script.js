@@ -223,16 +223,52 @@ function displayMap() {
     mapInterface.classList.remove('hidden');
     mapDisplay.innerHTML = ''; // Clear previous map
 
-    // Create a button for each country
+    // Create artistic positioned buttons for each country
     for (const countryKey in countries) {
         const country = countries[countryKey];
         const countryBtn = document.createElement('button');
         countryBtn.className = 'country-btn';
-        countryBtn.textContent = country.name;
-        countryBtn.title = country.description;
+        countryBtn.setAttribute('data-country', countryKey);
+        
+        // Create shortened display names for better visual appeal
+        const displayNames = {
+            'pedena': 'Pedena',
+            'vaelthara': 'Vaelthara',
+            'sylvanmere': 'Sylvanmere',
+            'dustlands': 'Dustlands',
+            'aeria': 'Aeria',
+            'deepdelve': 'Deepdelve',
+            'frostfell': 'Frostfell',
+            'ignisCaldera': 'Ignis',
+            'azureIsles': 'Azure Isles',
+            'solaraTheocracy': 'Solara',
+            'umbraMarches': 'Umbra',
+            'whisperingSteppes': 'Steppes',
+            'serenePeaks': 'Serene',
+            'cogsworthy': 'Cogsworth',
+            'murkwaterFen': 'Murkwater',
+            'florencia': 'Florencia'
+        };
+        
+        countryBtn.textContent = displayNames[countryKey] || country.name;
+        countryBtn.title = `${country.name} - ${country.description}`;
         countryBtn.onclick = () => showCountryDetails(countryKey);
+        
+        // Add subtle animation delay for staggered appearance
+        countryBtn.style.animationDelay = `${Object.keys(countries).indexOf(countryKey) * 0.1}s`;
+        
         mapDisplay.appendChild(countryBtn);
     }
+
+    // Add entrance animation
+    mapDisplay.style.opacity = '0';
+    mapDisplay.style.transform = 'scale(0.9)';
+    
+    setTimeout(() => {
+        mapDisplay.style.transition = 'all 0.5s ease-out';
+        mapDisplay.style.opacity = '1';
+        mapDisplay.style.transform = 'scale(1)';
+    }, 100);
 }
 
 function showCountryDetails(countryKey) {
