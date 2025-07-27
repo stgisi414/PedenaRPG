@@ -1,37 +1,15 @@
 
-const express = require('express');
-const path = require('path');
-const http = require('http');
 const WebSocket = require('ws');
 const { v4: uuidv4 } = require('uuid');
 
-const app = express();
-const PORT = process.env.PORT || 5000;
-const server = http.createServer(app);
-
-// Serve static files from the public directory
-app.use(express.static(path.join(__dirname, 'public')));
-
-// Handle all routes by serving index.html (for single-page applications)
-// Fixed the catch-all route to avoid path-to-regexp issues
-app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
-});
-
-// Handle any other routes
-app.use((req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
-});
-
-// WebSocket Multiplayer Server
 class MultiplayerServer {
-    constructor(server) {
-        this.wss = new WebSocket.Server({ server });
+    constructor(port = 5000) {
+        this.wss = new WebSocket.Server({ host: '0.0.0.0', port });
         this.rooms = new Map();
         this.players = new Map();
         
         this.wss.on('connection', this.handleConnection.bind(this));
-        console.log('Multiplayer WebSocket server initialized');
+        console.log(`Multiplayer server running on port ${port}`);
     }
 
     handleConnection(ws, req) {
@@ -284,11 +262,5 @@ class MultiplayerServer {
     }
 }
 
-// Initialize multiplayer server
-const multiplayerServer = new MultiplayerServer(server);
-
-server.listen(PORT, '0.0.0.0', () => {
-  console.log(`Server is running on http://0.0.0.0:${PORT}`);
-  console.log('Your RPG game is now available!');
-  console.log('Multiplayer WebSocket server is ready!');
-});
+// Start server
+const server = new MultiplayerServer(5000);

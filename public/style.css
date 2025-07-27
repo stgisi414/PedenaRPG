@@ -1177,3 +1177,104 @@ h1, h2, h3, h4 {
         transform: scale(1.1);
     }
 }
+
+/* ================================
+   MULTIPLAYER INTERFACE STYLES
+   ================================ */
+
+#multiplayer-interface {
+    background: linear-gradient(135deg, #2c1810, #1a0f08);
+    border: 3px solid #8b6914;
+    border-radius: 10px;
+    padding: 20px;
+    margin: 15px 0;
+}
+
+.interface-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.interface-header h3 {
+    color: #ffd700;
+    font-size: 1.5rem;
+    margin: 0;
+}
+
+.status-connected {
+    color: #28a745;
+    font-weight: bold;
+}
+
+.status-disconnected {
+    color: #dc3545;
+    font-weight: bold;
+}
+
+.player-item {
+    background: rgba(255, 255, 255, 0.1);
+    padding: 8px;
+    margin: 4px 0;
+    border-radius: 4px;
+    border-left: 3px solid #8b6914;
+    color: #f0f0f0;
+}
+
+#turn-order {
+    background: rgba(0, 0, 0, 0.3);
+    padding: 15px;
+    border-radius: 8px;
+    margin-top: 15px;
+}
+
+#current-turn-player {
+    color: #ffd700;
+    font-weight: bold;
+}
+
+#end-turn-btn {
+    background: #28a745;
+    border-color: #28a745;
+}
+
+#end-turn-btn:hover {
+    background: #218838;
+    border-color: #218838;
+}
+
+.form-input {
+    background: rgba(0, 0, 0, 0.4);
+    border: 2px solid #8b6914;
+    border-radius: 6px;
+    padding: 8px 12px;
+    color: #f0f0f0;
+    font-size: 14px;
+}
+
+.form-input:focus {
+    outline: none;
+    border-color: #ffd700;
+    box-shadow: 0 0 10px rgba(255, 215, 0, 0.3);
+}
+
+#room-info h4, #room-info h5 {
+    color: #ffd700;
+    margin: 10px 0 5px 0;
+}
+
+#room-info p {
+    color: #f0f0f0;
+    margin: 5px 0;
+}
+
+#multiplayer-btn {
+    background: linear-gradient(135deg, #4a3c1d, #6b5423);
+    border: 2px solid #8b6914;
+}
+
+#multiplayer-btn:hover {
+    background: linear-gradient(135deg, #6b5423, #8b6914);
+    transform: translateY(-2px);
+}
