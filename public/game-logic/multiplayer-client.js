@@ -290,12 +290,32 @@ export class MultiplayerClient {
             player.currentLocation = message.location;
             console.log(`[MULTIPLAYER CLIENT] Player location updated from "${oldLocation}" to "${player.currentLocation}"`);
             
-            // Force update the player name display which contains the location
+            // FORCE update the player name display - multiple approaches to ensure it works
             const playerNameDisplay = document.getElementById('player-name');
-            if (playerNameDisplay && typeof processRichText !== 'undefined') {
-                const locationText = processRichText(player.currentLocation, 'location');
-                playerNameDisplay.innerHTML = `${player.name} - ${locationText}`;
-                console.log(`[MULTIPLAYER CLIENT] Updated player name display with new location: ${message.location}`);
+            if (playerNameDisplay) {
+                // Method 1: Direct innerHTML update
+                if (typeof processRichText !== 'undefined') {
+                    const locationText = processRichText(player.currentLocation, 'location');
+                    playerNameDisplay.innerHTML = `${player.name} - ${locationText}`;
+                } else {
+                    // Fallback if processRichText not available
+                    playerNameDisplay.innerHTML = `${player.name} - ${player.currentLocation}`;
+                }
+                
+                // Method 2: Force DOM refresh by temporarily removing and re-adding
+                const parent = playerNameDisplay.parentNode;
+                const nextSibling = playerNameDisplay.nextSibling;
+                parent.removeChild(playerNameDisplay);
+                parent.insertBefore(playerNameDisplay, nextSibling);
+                
+                // Method 3: Trigger a style recalculation
+                playerNameDisplay.style.display = 'none';
+                playerNameDisplay.offsetHeight; // Force reflow
+                playerNameDisplay.style.display = '';
+                
+                console.log(`[MULTIPLAYER CLIENT] FORCED player name display update: "${playerNameDisplay.innerHTML}"`);
+            } else {
+                console.error(`[MULTIPLAYER CLIENT] Could not find player-name element!`);
             }
             
             // Update other location elements
@@ -317,10 +337,24 @@ export class MultiplayerClient {
             // Force update all location displays
             this.forceUpdateLocationDisplay(message.location);
             
+            // FORCE updatePlayerStatsDisplay call with multiple attempts
             if (typeof updatePlayerStatsDisplay !== 'undefined') {
                 console.log(`[MULTIPLAYER CLIENT] Calling updatePlayerStatsDisplay()`);
                 updatePlayerStatsDisplay();
-                console.log(`[MULTIPLAYER CLIENT] updatePlayerStatsDisplay() completed`);
+                
+                // Force call again after a brief delay to ensure it takes
+                setTimeout(() => {
+                    updatePlayerStatsDisplay();
+                    console.log(`[MULTIPLAYER CLIENT] Second forced updatePlayerStatsDisplay() call completed`);
+                }, 100);
+                
+                // Third call for good measure
+                setTimeout(() => {
+                    updatePlayerStatsDisplay();
+                    console.log(`[MULTIPLAYER CLIENT] Third forced updatePlayerStatsDisplay() call completed`);
+                }, 500);
+                
+                console.log(`[MULTIPLAYER CLIENT] Multiple updatePlayerStatsDisplay() calls initiated`);
             } else {
                 console.log(`[MULTIPLAYER CLIENT] WARNING: updatePlayerStatsDisplay function not available`);
             }

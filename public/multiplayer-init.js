@@ -61,12 +61,34 @@ function handleLocationChanged(message) {
             const oldLocation = player.currentLocation;
             player.currentLocation = message.location;
 
-            // Update the main player name display first
+            // AGGRESSIVELY update the main player name display
             const playerNameDisplay = document.getElementById('player-name');
-            if (playerNameDisplay && typeof processRichText === 'function') {
-                const locationText = processRichText(player.currentLocation, 'location');
+            if (playerNameDisplay) {
+                let locationText;
+                if (typeof processRichText === 'function') {
+                    locationText = processRichText(player.currentLocation, 'location');
+                } else {
+                    locationText = player.currentLocation;
+                }
+                
+                // Method 1: Direct update
                 playerNameDisplay.innerHTML = `${player.name} - ${locationText}`;
-                console.log('[LOCATION SYNC] Updated player name display with new location');
+                
+                // Method 2: Force immediate DOM update with multiple techniques
+                playerNameDisplay.textContent = ''; // Clear first
+                playerNameDisplay.innerHTML = `${player.name} - ${locationText}`; // Set again
+                
+                // Method 3: Force style recalculation
+                playerNameDisplay.style.visibility = 'hidden';
+                playerNameDisplay.offsetHeight; // Force reflow
+                playerNameDisplay.style.visibility = 'visible';
+                
+                // Method 4: Dispatch custom event to force update
+                playerNameDisplay.dispatchEvent(new Event('locationUpdated', { bubbles: true }));
+                
+                console.log('[LOCATION SYNC] AGGRESSIVELY updated player name display:', playerNameDisplay.innerHTML);
+            } else {
+                console.error('[LOCATION SYNC] player-name element not found!');
             }
 
             // Update all possible location displays
