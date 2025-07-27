@@ -80,8 +80,12 @@ export class MultiplayerClient {
             case 'location_changed':
                 if (typeof player !== 'undefined') {
                     player.currentLocation = message.location;
-                    updatePlayerStatsDisplay();
-                    displayMessage(message.description, 'info');
+                    if (typeof updatePlayerStatsDisplay !== 'undefined') {
+                        updatePlayerStatsDisplay();
+                    }
+                    if (typeof displayMessage !== 'undefined') {
+                        displayMessage(message.description, 'info');
+                    }
                 }
                 this.triggerCallback('locationChanged', message);
                 break;

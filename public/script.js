@@ -6409,6 +6409,7 @@ function handleRoomJoined(data) {
     document.getElementById('room-input').classList.add('hidden');
     updateConnectionStatus(true);
     displayMessage(`Joined room: ${data.roomId}`, 'success');
+    displayMessage('Waiting for location sync from party leader...', 'info');
 }
 
 function handleRoomUpdate(data) {
