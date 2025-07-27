@@ -1183,7 +1183,7 @@ h1, h2, h3, h4 {
    ================================ */
 
 #multiplayer-interface {
-    background: linear-gradient(135deg, #2c1810, #1a0f08);
+    background: linear-gradient(135deg, #ffcba6, #ffeecf);
     border: 3px solid #8b6914;
     border-radius: 10px;
     padding: 20px;
@@ -1198,7 +1198,7 @@ h1, h2, h3, h4 {
 }
 
 .interface-header h3 {
-    color: #ffd700;
+    color: #662d02;
     font-size: 1.5rem;
     margin: 0;
 }
@@ -1230,7 +1230,7 @@ h1, h2, h3, h4 {
 }
 
 #current-turn-player {
-    color: #ffd700;
+    color: #662d02;
     font-weight: bold;
 }
 
@@ -1245,7 +1245,7 @@ h1, h2, h3, h4 {
 }
 
 .form-input {
-    background: rgba(0, 0, 0, 0.4);
+    background: rgba(0, 0, 0, 0.1);
     border: 2px solid #8b6914;
     border-radius: 6px;
     padding: 8px 12px;
@@ -1260,12 +1260,12 @@ h1, h2, h3, h4 {
 }
 
 #room-info h4, #room-info h5 {
-    color: #ffd700;
+    color: #662d02;
     margin: 10px 0 5px 0;
 }
 
 #room-info p {
-    color: #f0f0f0;
+    color: #662d02;
     margin: 5px 0;
 }
 

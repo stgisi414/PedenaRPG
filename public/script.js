@@ -4278,15 +4278,6 @@ function displayQuests() {
             generateQuest();
         });
     }
-
-    // Add event listener for multiplayer button
-    const multiplayerBtn = document.getElementById('multiplayer-btn');
-    if (multiplayerBtn) {
-        multiplayerBtn.addEventListener('click', toggleMultiplayerInterface);
-        console.log('✓ Multiplayer button event listener added');
-    } else {
-        console.error('✗ Multiplayer button not found');
-    }
 }
 
 function displayCharacterProgression() {
@@ -8914,6 +8905,14 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
+
+    // Add event listener for multiplayer button
+const multiplayerBtn = document.getElementById('multiplayer-btn');
+if (multiplayerBtn) {
+        multiplayerBtn.addEventListener('click', toggleMultiplayerInterface);
+        console.log('✓ Multiplayer button event listener added');
+} else { console.error('✗ Multiplayer button not found');
+       }
 
     if (inventoryItemsDisplay) {
         inventoryItemsDisplay.addEventListener('click', function(event) {
