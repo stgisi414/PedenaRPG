@@ -2255,32 +2255,6 @@ async function checkRelationshipChanges(playerCommand, aiResponse) {
     });
 }
 
-// Multiplayer interface functions
-function toggleMultiplayerInterface() {
-    const multiplayerInterface = document.getElementById('multiplayer-interface');
-    const otherInterfaces = ['inventory-interface', 'shop-interface', 'skills-interface', 'quest-interface', 'background-interface', 'progression-interface'];
-    
-    if (multiplayerInterface) {
-        if (multiplayerInterface.classList.contains('hidden')) {
-            // Hide other interfaces
-            otherInterfaces.forEach(id => {
-                const element = document.getElementById(id);
-                if (element) element.classList.add('hidden');
-            });
-            
-            // Show multiplayer interface
-            multiplayerInterface.classList.remove('hidden');
-            setupMultiplayerEventListeners();
-        } else {
-            multiplayerInterface.classList.add('hidden');
-        }
-    }
-}
-
-
-
-
-
 // Debug function to check inventory consistency
 function debugInventory() {
     console.log("=== INVENTORY DEBUG ===");
