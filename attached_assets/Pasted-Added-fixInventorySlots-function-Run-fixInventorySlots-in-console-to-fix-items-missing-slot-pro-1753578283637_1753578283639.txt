@@ -13,7 +13,7 @@ BGM Manager initialized
 ✓ Event delegation setup for inventory items.
 ✓ Event delegation setup for shop items.
 Game settings loaded: 
-Object {apiKey: "AIzaSyDa3aO_Oq75xyUP3f-uN6qBRA91Jn9ngWk", model: "gemini-2.0-flash-lite"}
+Object {apiKey: "GEMINI_API_KEY", model: "gemini-2.0-flash-lite"}
 ✓ Event delegation setup for inventory items.
 loadGame: Raw data from localStorage ('pedenaRPGSave'): {"player":{"name":"Hrothgar","gender":"male","class":"gladiator","background":"Hrothgar is a gladiator who seeks adventure in the realm of Pedena.","stats":{"strength":13,"dexterity":11,"intelligence":11,"constitution":11,"wisdom":11,"charisma":13},"hp":126,"maxHp":136,"level":3,"exp":37,"expToNextLevel":150,"gold":465,"inventory":[{"id":"item_1752515217218_nbzr2pu4j","name":"Grasps of the Void Weaver","armor":3,"rarity":"COMMON","effects":["manipulate_space","pull_from_other_dimensions","touch_...
 loadGame: Parsed saveData.player.gold from localStorage: 465
