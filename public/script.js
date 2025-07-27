@@ -6429,8 +6429,8 @@ function leaveMultiplayer() {
 }
 
 function toggleMultiplayerInterface() {
-    const interface = document.getElementById('multiplayer-interface');
-    interface.classList.toggle('hidden');
+    const interfaceElement = document.getElementById('multiplayer-interface');
+    interfaceElement.classList.toggle('hidden');
     
     // Hide other interfaces
     const interfaces = ['inventory-interface', 'shop-interface', 'skills-interface', 'quest-interface', 'background-interface', 'progression-interface'];
