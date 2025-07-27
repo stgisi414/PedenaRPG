@@ -154,10 +154,15 @@ class MultiplayerServer {
         // Move entire party to new location
         room.gameState.location = message.destination;
         
-        this.broadcastToRoom(playerData.roomId, {
-            type: 'location_changed',
-            location: message.destination,
-            description: message.description
+        // Send location change to all players in the party
+        room.players.forEach(player => {
+            this.sendToClient(player.socket, {
+                type: 'location_changed',
+                location: message.destination,
+                description: player.id === ws.playerId ? 
+                    message.description : 
+                    `Your party leader has moved the group to ${message.destination}. ${message.description}`
+            });
         });
     }
 
