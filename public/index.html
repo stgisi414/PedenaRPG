@@ -316,6 +316,10 @@
                             <span>Settings⚙️</span>
                         </button>
 
+                        <button id="multiplayer-btn" class="btn-parchment bg-blue-600 hover:bg-blue-700 text-white">
+                            <i class="ra ra-players mr-2"></i>Multiplayer
+                        </button>
+
                         <!-- Donate Button -->
                         <button id="donate-btn"
                             class="btn-parchment bg-gradient-to-r from-yellow-600 to-yellow-700 hover:from-yellow-500 hover:to-yellow-600 text-white">
@@ -414,6 +418,51 @@
                         </div>
                     </div>
 
+                    <!-- Multiplayer Interface -->
+                    <div id="multiplayer-interface" class="hidden mt-6">
+                        <div class="interface-header">
+                            <h3><i class="ra ra-players mr-2"></i>Multiplayer</h3>
+                            <button id="exit-multiplayer-btn" class="btn-parchment">Exit</button>
+                        </div>
+
+                        <div id="multiplayer-content">
+                            <!-- Connection Status -->
+                            <div id="connection-status" class="mb-4">
+                                <span id="connection-indicator" class="status-disconnected">Disconnected</span>
+                            </div>
+
+                            <!-- Room Creation/Joining -->
+                            <div id="room-controls" class="mb-4">
+                                <button id="create-room-btn" class="btn-parchment mr-2">Create Room</button>
+                                <button id="join-room-btn" class="btn-parchment">Join Room</button>
+                            </div>
+
+                            <!-- Room Code Input -->
+                            <div id="room-input" class="hidden mb-4">
+                                <input type="text" id="room-code-input" placeholder="Enter room code" class="form-input">
+                                <button id="confirm-join-btn" class="btn-parchment ml-2">Join</button>
+                            </div>
+
+                            <!-- Current Room Info -->
+                            <div id="room-info" class="hidden">
+                                <h4>Room: <span id="current-room-code"></span></h4>
+                                <p id="host-status"></p>
+
+                                <!-- Player List -->
+                                <div id="player-list">
+                                    <h5>Players:</h5>
+                                    <div id="players-container"></div>
+                                </div>
+
+                                <!-- Turn Order -->
+                                <div id="turn-order">
+                                    <h5>Current Turn: <span id="current-turn-player"></span></h5>
+                                    <button id="end-turn-btn" class="btn-parchment hidden">End Turn</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
             </main>
 
             <footer class="text-center mt-8 text-sm">
@@ -424,62 +473,7 @@
         </div>
     </div>
 
-    <!-- Main Game Interface -->
-    <div id="game-interface" class="container mx-auto p-6 max-w-6xl">
-        <!-- Title -->
-        <div class="flex items-center justify-center mb-8">
-            <div class="flex items-center space-x-4">
-                <img src="assets/pedena-logo.png" alt="Pedena Logo" class="w-20 h-20 rounded-full">
-                <h1 class="text-4xl md:text-6xl font-bold bg-gradient-to-r from-yellow-300 via-orange-300 to-red-400 bg-clip-text text-transparent drop-shadow-lg">
-                    The Chronicles of Pedena
-                </h1>
-            </div>
-        </div>
-
-        <!-- Multiplayer Interface -->
-        <div id="multiplayer-interface" class="hidden">
-            <div class="interface-header">
-                <h3><i class="ra ra-players mr-2"></i>Multiplayer</h3>
-                <button id="exit-multiplayer-btn" class="btn-parchment">Exit</button>
-            </div>
-
-            <div id="multiplayer-content">
-                <!-- Connection Status -->
-                <div id="connection-status" class="mb-4">
-                    <span id="connection-indicator" class="status-disconnected">Disconnected</span>
-                </div>
-
-                <!-- Room Creation/Joining -->
-                <div id="room-controls" class="mb-4">
-                    <button id="create-room-btn" class="btn-parchment mr-2">Create Room</button>
-                    <button id="join-room-btn" class="btn-parchment">Join Room</button>
-                </div>
-
-                <!-- Room Code Input -->
-                <div id="room-input" class="hidden mb-4">
-                    <input type="text" id="room-code-input" placeholder="Enter room code" class="form-input">
-                    <button id="confirm-join-btn" class="btn-parchment ml-2">Join</button>
-                </div>
-
-                <!-- Current Room Info -->
-                <div id="room-info" class="hidden">
-                    <h4>Room: <span id="current-room-code"></span></h4>
-                    <p id="host-status"></p>
-
-                    <!-- Player List -->
-                    <div id="player-list">
-                        <h5>Players:</h5>
-                        <div id="players-container"></div>
-                    </div>
-
-                    <!-- Turn Order -->
-                    <div id="turn-order">
-                        <h5>Current Turn: <span id="current-turn-player"></span></h5>
-                        <button id="end-turn-btn" class="btn-parchment hidden">End Turn</button>
-                    </div>
-                </div>
-            </div>
-        </div>
+    
 
     <script type="module" src="script.js"></script>
 
