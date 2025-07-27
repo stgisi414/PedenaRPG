@@ -80,7 +80,7 @@ export class MultiplayerClient {
                 break;
             case 'location_changed':
                 console.log(`[MULTIPLAYER CLIENT] Received location_changed:`, message);
-                // Location processing is now handled by multiplayer-init.js
+                this.processLocationChange(message);
                 break;
             case 'player_action':
                 this.displayPlayerAction(message);

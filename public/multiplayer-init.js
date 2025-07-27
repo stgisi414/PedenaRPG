@@ -48,34 +48,53 @@ function handleLocationChanged(message) {
         return;
     }
 
-    console.log(`[LOCATION SYNC] Updating player location to: ${message.location}`);
+    console.log(`[LOCATION SYNC] Processing location change to: ${message.location}`);
 
-    // Update player location immediately
-    const oldLocation = player.currentLocation;
-    player.currentLocation = message.location;
+    // Wait for player object to be available
+    const waitForPlayer = setInterval(() => {
+        if (typeof player !== 'undefined' && player.currentLocation !== undefined) {
+            clearInterval(waitForPlayer);
+            
+            console.log(`[LOCATION SYNC] Player object ready, updating location to: ${message.location}`);
+            
+            // Update player location immediately
+            const oldLocation = player.currentLocation;
+            player.currentLocation = message.location;
 
-    // Update all possible location displays
-    updateLocationDisplays(message.location);
+            // Update all possible location displays
+            updateLocationDisplays(message.location);
 
-    // Update stats display
-    if (typeof updatePlayerStatsDisplay === 'function') {
-        updatePlayerStatsDisplay();
-    }
+            // Update stats display
+            if (typeof updatePlayerStatsDisplay === 'function') {
+                console.log('[LOCATION SYNC] Calling updatePlayerStatsDisplay');
+                updatePlayerStatsDisplay();
+            }
 
-    // Show message
-    if (typeof displayMessage === 'function') {
-        displayMessage(`Location synchronized: ${message.location}`, 'success');
-        if (message.description) {
-            displayMessage(message.description, 'info');
+            // Show message
+            if (typeof displayMessage === 'function') {
+                if (!message.isSecondarySync) {
+                    displayMessage(`Location synchronized: ${message.location}`, 'success');
+                }
+                if (message.description && !message.isSecondarySync) {
+                    displayMessage(message.description, 'info');
+                }
+            }
+
+            // Save game
+            if (typeof saveGame === 'function') {
+                console.log('[LOCATION SYNC] Saving game');
+                saveGame();
+            }
+
+            console.log(`[LOCATION SYNC] Location updated from "${oldLocation}" to "${player.currentLocation}"`);
         }
-    }
+    }, 50);
 
-    // Save game
-    if (typeof saveGame === 'function') {
-        saveGame();
-    }
-
-    console.log(`[LOCATION SYNC] Location updated from "${oldLocation}" to "${player.currentLocation}"`);
+    // Timeout after 5 seconds if player object never becomes available
+    setTimeout(() => {
+        clearInterval(waitForPlayer);
+        console.log('[LOCATION SYNC] Timeout waiting for player object');
+    }, 5000);
 }
 
 function handleRoomJoined(message) {
@@ -119,12 +138,14 @@ function updateLocationDisplays(location) {
         '.player-location'
     ];
 
+    let elementsUpdated = 0;
     selectors.forEach(selector => {
         const elements = document.querySelectorAll(selector);
         elements.forEach(el => {
             if (el) {
-                console.log(`[LOCATION SYNC] Updated element ${selector}`);
+                console.log(`[LOCATION SYNC] Updated element ${selector} to: ${location}`);
                 el.textContent = location;
+                elementsUpdated++;
             }
         });
     });
@@ -136,9 +157,26 @@ function updateLocationDisplays(location) {
             if (newText !== el.textContent) {
                 el.textContent = newText;
                 console.log('[LOCATION SYNC] Updated location info element');
+                elementsUpdated++;
             }
         }
     });
+
+    console.log(`[LOCATION SYNC] Total elements updated: ${elementsUpdated}`);
+    
+    // Force a manual search for player stats display and update it
+    setTimeout(() => {
+        const statsContainer = document.querySelector('.player-stats, #player-stats, .stats-container');
+        if (statsContainer) {
+            const locationElements = statsContainer.querySelectorAll('*');
+            locationElements.forEach(el => {
+                if (el.textContent && el.textContent.includes('Location:') && !el.textContent.includes(location)) {
+                    el.textContent = el.textContent.replace(/Location:.*/, `Location: ${location}`);
+                    console.log('[LOCATION SYNC] Force updated stats container location');
+                }
+            });
+        }
+    }, 100);
 }
 
 // Initialize immediately if DOM is ready

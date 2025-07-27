@@ -203,21 +203,32 @@ class MultiplayerServer {
         console.log(`[MULTIPLAYER SERVER] Broadcasting room update for room ${message.roomId}`);
         this.broadcastRoomUpdate(message.roomId);
         
-        // Send immediate location sync to joining player
-        console.log(`[MULTIPLAYER SERVER] Sending location sync to ${message.playerName}`);
-        
-        const locationMessage = {
-            type: 'location_changed',
-            location: room.gameState.location,
-            description: `You have joined the party in ${room.gameState.location}`,
-            timestamp: Date.now(),
-            playerId: ws.playerId,
-            playerName: message.playerName
-        };
-        
-        // Send immediately after room update
-        this.sendToClient(ws, locationMessage);
-        console.log(`[MULTIPLAYER SERVER] Location sync sent: ${room.gameState.location}`);
+        // Send immediate location sync to joining player with delay to ensure client is ready
+        console.log(`[MULTIPLAYER SERVER] Scheduling location sync for ${message.playerName}`);
+        setTimeout(() => {
+            const locationMessage = {
+                type: 'location_changed',
+                location: room.gameState.location,
+                description: `You have joined the party in ${room.gameState.location}`,
+                timestamp: Date.now(),
+                playerId: ws.playerId,
+                playerName: message.playerName,
+                forceSync: true
+            };
+            
+            console.log(`[MULTIPLAYER SERVER] Sending forced location sync: ${room.gameState.location}`);
+            this.sendToClient(ws, locationMessage);
+            
+            // Also send a secondary sync message to ensure it gets processed
+            setTimeout(() => {
+                this.sendToClient(ws, {
+                    ...locationMessage,
+                    description: `Location synchronized: ${room.gameState.location}`,
+                    isSecondarySync: true
+                });
+                console.log(`[MULTIPLAYER SERVER] Secondary location sync sent`);
+            }, 200);
+        }, 100);
     }
 
     handleReconnection(ws, message) {
