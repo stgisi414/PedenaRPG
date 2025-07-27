@@ -290,7 +290,15 @@ export class MultiplayerClient {
             player.currentLocation = message.location;
             console.log(`[MULTIPLAYER CLIENT] Player location updated from "${oldLocation}" to "${player.currentLocation}"`);
             
-            // Update the location display in the UI immediately
+            // Force update the player name display which contains the location
+            const playerNameDisplay = document.getElementById('player-name');
+            if (playerNameDisplay && typeof processRichText !== 'undefined') {
+                const locationText = processRichText(player.currentLocation, 'location');
+                playerNameDisplay.innerHTML = `${player.name} - ${locationText}`;
+                console.log(`[MULTIPLAYER CLIENT] Updated player name display with new location: ${message.location}`);
+            }
+            
+            // Update other location elements
             const locationElement = document.querySelector('#current-location, .current-location, [data-location]');
             if (locationElement) {
                 locationElement.textContent = message.location;

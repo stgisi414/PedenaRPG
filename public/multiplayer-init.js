@@ -61,6 +61,14 @@ function handleLocationChanged(message) {
             const oldLocation = player.currentLocation;
             player.currentLocation = message.location;
 
+            // Update the main player name display first
+            const playerNameDisplay = document.getElementById('player-name');
+            if (playerNameDisplay && typeof processRichText === 'function') {
+                const locationText = processRichText(player.currentLocation, 'location');
+                playerNameDisplay.innerHTML = `${player.name} - ${locationText}`;
+                console.log('[LOCATION SYNC] Updated player name display with new location');
+            }
+
             // Update all possible location displays
             updateLocationDisplays(message.location);
 
