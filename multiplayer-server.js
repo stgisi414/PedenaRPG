@@ -25,6 +25,7 @@ class MultiplayerServer {
         ws.playerId = playerId;
         ws.isAlive = true;
         ws.lastPong = Date.now();
+        ws.currentZone = null; // Track player's current zone
         
         ws.on('message', (data) => this.handleMessage(ws, data));
         ws.on('close', () => this.handleDisconnection(ws));
@@ -94,6 +95,12 @@ class MultiplayerServer {
                 case 'end_turn':
                     this.handleEndTurn(ws, message);
                     break;
+                case 'player_move':
+                    this.handlePlayerMove(ws, message);
+                    break;
+                case 'zone_chat':
+                    this.handleZoneChat(ws, message);
+                    break;
             }
         } catch (error) {
             console.error('Message parsing error:', error);
@@ -120,8 +127,12 @@ class MultiplayerServer {
             name: message.playerName,
             character: message.character,
             isHost: true,
-            socket: ws
+            socket: ws,
+            currentZone: room.gameState.location
         });
+        
+        // Set player's zone
+        ws.currentZone = room.gameState.location;
         
         this.rooms.set(roomId, room);
         this.players.set(ws.playerId, { roomId, socket: ws });
@@ -159,8 +170,12 @@ class MultiplayerServer {
             name: message.playerName,
             character: message.character,
             isHost: false,
-            socket: ws
+            socket: ws,
+            currentZone: room.gameState.location
         });
+        
+        // Set player's zone
+        ws.currentZone = room.gameState.location;
         
         room.gameState.turnOrder.push(ws.playerId);
         this.players.set(ws.playerId, { roomId: message.roomId, socket: ws });
@@ -250,19 +265,39 @@ class MultiplayerServer {
             return;
         }
         
-        // Move entire party to new location
-        room.gameState.location = message.destination;
+        const oldZone = room.gameState.location;
+        const newZone = message.destination;
         
-        // Send location change to all players in the party
+        // Update room location
+        room.gameState.location = newZone;
+        
+        // Update all players' zones and notify them
         room.players.forEach(player => {
+            // Update player's zone
+            player.currentZone = newZone;
+            player.socket.currentZone = newZone;
+            
             this.sendToClient(player.socket, {
                 type: 'location_changed',
-                location: message.destination,
+                location: newZone,
+                oldZone: oldZone,
                 description: player.id === ws.playerId ? 
                     message.description : 
-                    `Your party leader has moved the group to ${message.destination}. ${message.description}`
+                    `Your party leader has moved the group to ${newZone}. ${message.description}`
             });
         });
+        
+        // Broadcast to old zone that players left (if any other players remain there)
+        this.broadcastToZone(playerData.roomId, oldZone, {
+            type: 'zone_update',
+            message: `A party has left ${oldZone} for ${newZone}`
+        });
+        
+        // Broadcast to new zone that players arrived (if any other players are there)
+        this.broadcastToZone(playerData.roomId, newZone, {
+            type: 'zone_update',
+            message: `A party has arrived in ${newZone} from ${oldZone}`
+        }, ws.playerId);
     }
 
     handleGameAction(ws, message) {
@@ -271,6 +306,9 @@ class MultiplayerServer {
         
         const room = this.rooms.get(playerData.roomId);
         if (!room) return;
+        
+        const player = room.players.get(ws.playerId);
+        if (!player) return;
         
         // Check if it's player's turn
         if (room.gameState.currentTurn !== ws.playerId) {
@@ -281,13 +319,29 @@ class MultiplayerServer {
             return;
         }
         
-        // Broadcast action to all players in room
-        this.broadcastToRoom(playerData.roomId, {
-            type: 'player_action',
-            playerId: ws.playerId,
-            action: message.action,
-            result: message.result
-        });
+        // Determine if action should be broadcast to zone or entire room
+        const actionScope = message.scope || 'zone'; // 'zone' or 'room'
+        
+        if (actionScope === 'room') {
+            // Broadcast to entire room (for important events)
+            this.broadcastToRoom(playerData.roomId, {
+                type: 'player_action',
+                playerId: ws.playerId,
+                action: message.action,
+                result: message.result,
+                scope: 'room'
+            });
+        } else {
+            // Broadcast only to players in the same zone
+            this.broadcastToZone(playerData.roomId, player.currentZone, {
+                type: 'player_action',
+                playerId: ws.playerId,
+                action: message.action,
+                result: message.result,
+                zone: player.currentZone,
+                scope: 'zone'
+            });
+        }
     }
 
     handleEndTurn(ws, message) {
@@ -307,6 +361,70 @@ class MultiplayerServer {
             type: 'turn_changed',
             currentTurn: room.gameState.currentTurn,
             turnIndex: room.gameState.turnIndex
+        });
+    }
+
+    handlePlayerMove(ws, message) {
+        const playerData = this.players.get(ws.playerId);
+        if (!playerData) return;
+        
+        const room = this.rooms.get(playerData.roomId);
+        if (!room) return;
+        
+        const player = room.players.get(ws.playerId);
+        if (!player) return;
+        
+        const oldZone = player.currentZone;
+        const newZone = message.destination;
+        
+        // Update player's zone
+        player.currentZone = newZone;
+        ws.currentZone = newZone;
+        
+        // Notify player of successful move
+        this.sendToClient(ws, {
+            type: 'player_moved',
+            location: newZone,
+            oldZone: oldZone,
+            description: message.description
+        });
+        
+        // Notify old zone that player left
+        if (oldZone !== newZone) {
+            this.broadcastToZone(playerData.roomId, oldZone, {
+                type: 'player_left_zone',
+                playerId: ws.playerId,
+                playerName: player.name,
+                destination: newZone
+            }, ws.playerId);
+            
+            // Notify new zone that player arrived
+            this.broadcastToZone(playerData.roomId, newZone, {
+                type: 'player_entered_zone',
+                playerId: ws.playerId,
+                playerName: player.name,
+                origin: oldZone
+            }, ws.playerId);
+        }
+    }
+
+    handleZoneChat(ws, message) {
+        const playerData = this.players.get(ws.playerId);
+        if (!playerData) return;
+        
+        const room = this.rooms.get(playerData.roomId);
+        if (!room) return;
+        
+        const player = room.players.get(ws.playerId);
+        if (!player) return;
+        
+        // Broadcast chat message only to players in the same zone
+        this.broadcastToZone(playerData.roomId, player.currentZone, {
+            type: 'zone_chat',
+            playerId: ws.playerId,
+            playerName: player.name,
+            message: message.text,
+            zone: player.currentZone
         });
     }
 
@@ -383,6 +501,24 @@ class MultiplayerServer {
         room.players.forEach(player => {
             this.sendToClient(player.socket, message);
         });
+    }
+
+    broadcastToZone(roomId, zone, message, excludePlayerId = null) {
+        const room = this.rooms.get(roomId);
+        if (!room) return;
+        
+        room.players.forEach(player => {
+            if (player.currentZone === zone && player.id !== excludePlayerId) {
+                this.sendToClient(player.socket, message);
+            }
+        });
+    }
+
+    broadcastToPlayer(playerId, message) {
+        const playerData = this.players.get(playerId);
+        if (playerData && playerData.socket) {
+            this.sendToClient(playerData.socket, message);
+        }
     }
 
     broadcastRoomUpdate(roomId) {

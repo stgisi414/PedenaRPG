@@ -89,6 +89,34 @@ export class MultiplayerClient {
                 this.displayPlayerAction(message);
                 this.triggerCallback('playerAction', message);
                 break;
+            case 'player_moved':
+                if (typeof player !== 'undefined') {
+                    player.currentLocation = message.location;
+                    updatePlayerStatsDisplay();
+                    displayMessage(message.description, 'info');
+                }
+                this.triggerCallback('playerMoved', message);
+                break;
+            case 'player_entered_zone':
+                if (typeof displayMessage !== 'undefined') {
+                    displayMessage(`${message.playerName} enters the area from ${message.origin}`, 'info');
+                }
+                break;
+            case 'player_left_zone':
+                if (typeof displayMessage !== 'undefined') {
+                    displayMessage(`${message.playerName} leaves for ${message.destination}`, 'info');
+                }
+                break;
+            case 'zone_chat':
+                if (typeof displayMessage !== 'undefined') {
+                    displayMessage(`[${message.zone}] ${message.playerName}: ${message.message}`, 'chat');
+                }
+                break;
+            case 'zone_update':
+                if (typeof displayMessage !== 'undefined') {
+                    displayMessage(message.message, 'zone');
+                }
+                break;
             case 'turn_changed':
                 this.currentTurn = message.currentTurn;
                 this.updateTurnDisplay();
@@ -183,11 +211,27 @@ export class MultiplayerClient {
         });
     }
 
-    sendAction(action, result) {
+    sendAction(action, result, scope = 'zone') {
         this.send({
             type: 'game_action',
             action: action,
-            result: result
+            result: result,
+            scope: scope // 'zone' or 'room'
+        });
+    }
+
+    sendPlayerMove(destination, description) {
+        this.send({
+            type: 'player_move',
+            destination: destination,
+            description: description
+        });
+    }
+
+    sendZoneChat(message) {
+        this.send({
+            type: 'zone_chat',
+            text: message
         });
     }
 

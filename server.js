@@ -37,6 +37,7 @@ class MultiplayerServer {
     handleConnection(ws, req) {
         const playerId = uuidv4();
         ws.playerId = playerId;
+        ws.currentZone = null;
         
         ws.on('message', (data) => this.handleMessage(ws, data));
         ws.on('close', () => this.handleDisconnection(ws));
@@ -253,6 +254,17 @@ class MultiplayerServer {
         
         room.players.forEach(player => {
             this.sendToClient(player.socket, message);
+        });
+    }
+
+    broadcastToZone(roomId, zone, message, excludePlayerId = null) {
+        const room = this.rooms.get(roomId);
+        if (!room) return;
+        
+        room.players.forEach(player => {
+            if (player.currentZone === zone && player.id !== excludePlayerId) {
+                this.sendToClient(player.socket, message);
+            }
         });
     }
 
