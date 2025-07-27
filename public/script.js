@@ -2279,59 +2279,7 @@ function toggleMultiplayerInterface() {
 
 
 
-async function createMultiplayerRoom() {
-    try {
-        displayMessage('Connecting to multiplayer server...', 'info');
-        await multiplayerClient.connect();
-        multiplayerClient.createRoom(player.name, {
-            name: player.name,
-            class: player.class,
-            level: player.level
-        });
-        isMultiplayerMode = true;
-        displayMessage('Room created successfully!', 'success');
-    } catch (error) {
-        console.error('Multiplayer connection error:', error);
-        displayMessage('Failed to connect to multiplayer server', 'error');
-    }
-}
 
-function showJoinRoomInput() {
-    const roomInput = document.getElementById('room-input');
-    if (roomInput) {
-        roomInput.classList.remove('hidden');
-    }
-}
-
-async function joinMultiplayerRoom() {
-    const roomCodeInput = document.getElementById('room-code-input');
-    if (!roomCodeInput || !roomCodeInput.value.trim()) {
-        displayMessage('Please enter a room code', 'error');
-        return;
-    }
-
-    try {
-        displayMessage('Joining room...', 'info');
-        await multiplayerClient.connect();
-        multiplayerClient.joinRoom(roomCodeInput.value.trim(), player.name, {
-            name: player.name,
-            class: player.class,
-            level: player.level
-        });
-        isMultiplayerMode = true;
-        displayMessage('Joined room successfully!', 'success');
-    } catch (error) {
-        console.error('Failed to join room:', error);
-        displayMessage('Failed to join room', 'error');
-    }
-}
-
-function endPlayerTurn() {
-    if (multiplayerClient && isMultiplayerMode) {
-        multiplayerClient.endTurn();
-        displayMessage('Turn ended', 'info');
-    }
-}
 
 // Debug function to check inventory consistency
 function debugInventory() {
