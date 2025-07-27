@@ -1,0 +1,73 @@
+Added fixInventorySlots() function. Run fixInventorySlots() in console to fix items missing slot properties.
+Fixed strength: 0 -> 10
+Fixed dexterity: 0 -> 10
+Fixed intelligence: 0 -> 10
+Fixed constitution: 0 -> 10
+Fixed wisdom: 0 -> 10
+Fixed charisma: 0 -> 10
+Stats were fixed for current player
+✓ All main event listeners have been correctly added.
+Party and Multi-Combat systems initialized
+bgmManager is not defined
+BGM Manager initialized
+✓ Event delegation setup for inventory items.
+✓ Event delegation setup for shop items.
+Game settings loaded: 
+Object {apiKey: "AIzaSyDa3aO_Oq75xyUP3f-uN6qBRA91Jn9ngWk", model: "gemini-2.0-flash-lite"}
+✓ Event delegation setup for inventory items.
+loadGame: Raw data from localStorage ('pedenaRPGSave'): {"player":{"name":"Hrothgar","gender":"male","class":"gladiator","background":"Hrothgar is a gladiator who seeks adventure in the realm of Pedena.","stats":{"strength":13,"dexterity":11,"intelligence":11,"constitution":11,"wisdom":11,"charisma":13},"hp":126,"maxHp":136,"level":3,"exp":37,"expToNextLevel":150,"gold":465,"inventory":[{"id":"item_1752515217218_nbzr2pu4j","name":"Grasps of the Void Weaver","armor":3,"rarity":"COMMON","effects":["manipulate_space","pull_from_other_dimensions","touch_...
+loadGame: Parsed saveData.player.gold from localStorage: 465
+[SCRIPT.JS] After loadGame, window.player HP: <span class="math-inline">126/136</span>
+[SCRIPT.JS] After loadGame, is module player === window.player? true
+Character progression loaded
+Party data restored from save
+loadGame: Global player.gold immediately after assignment from saved data: 465
+loadGame: Final player.gold after all loading steps: 465
+[SCRIPT.JS] loadGame: player HP set to <span class="math-inline">126/136</span>
+[SCRIPT.JS] loadGame: window.player HP is now <span class="math-inline">126/136</span>
+[SCRIPT.JS] loadGame: is module player === window.player? true
+Processing structured AI response: 
+Object {narrative: "The player is encountering an error related to a function not being defined. The game is likely…", timePassedMinutes: 5, playerStateChanges: null, itemChanges: null, alignmentChange: null, …}
+Checking for transactions in structured AI response narrative...
+--- TransactionMiddleware.detectTransaction CALLED ---
+Command received: ""
+TransactionMiddleware: No transaction keywords detected, skipping analysis
+Character progression saved
+saveGame: Player object being saved: 
+Object {name: "Hrothgar", gender: "male", class: "gladiator", background: "Hrothgar is a gladiator who seeks adventure in the realm of Pedena.", stats: {…}, …}
+saveGame: Saving player.gold = 465
+Processing structured AI response: 
+Object {narrative: "Hrothgar asks to buy sharpening tools for five gold. The shopkeeper, a stout dwarf with a…", timePassedMinutes: 15, playerStateChanges: {…}, itemChanges: {…}}
+Skipping transaction detection - itemChanges present in structured response
+Processing itemChanges from structured response: 
+Object {add: Array(1)}
+processItemChanges: Processing item changes: {
+  "add": [
+    "Sharpening Tools"
+  ]
+}
+AI is categorizing: "Sharpening Tools"
+AI categorized "Sharpening Tools" as: 
+Object {category: "crafting", rarity: "COMMON", subType: null}
+[DEBUG_ITEM_GEN] Starting generateItem for: Category=crafting, Rarity=COMMON, SubType=null
+[ItemGenerator] SubType "null" not found or empty for category "crafting". Expanding search.
+ItemManager: Added item to inventory: Sharpening Tools item_1753577745743_jaxznld3k
+ItemManager: Current inventory length: 8
+processItemChanges: Added item: Sharpening Tools
+processItemChanges: Item processing completed
+--- updateGold CALLED ---
+Attempting to change gold by -5 for reason: transaction
+Gold BEFORE change: 465
+updateGold: Amount: -5, Reason: transaction, Old Gold: 465, New Gold: 460
+updateGold: About to call saveGame(). Current player.gold is 460
+Character progression saved
+saveGame: Player object being saved: 
+Object {name: "Hrothgar", gender: "male", class: "gladiator", background: "Hrothgar is a gladiator who seeks adventure in the realm of Pedena.", stats: {…}, …}
+saveGame: Saving player.gold = 460
+ItemManager: Added item to inventory: undefined item_1753577746579_dag0wd5qu
+ItemManager: Current inventory length: 9
+Character progression saved
+saveGame: Player object being saved: 
+Object {name: "Hrothgar", gender: "male", class: "gladiator", background: "Hrothgar is a gladiator who seeks adventure in the realm of Pedena.", stats: {…}, …}
+saveGame: Saving player.gold = 460
+displayInventory: Rendering inventory. Items count: 9
