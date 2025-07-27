@@ -3542,16 +3542,32 @@ async function processItemChanges(itemChanges, player) {
                 continue;
             }
 
-            if (newItem) {
-                // Use ItemManager if available, otherwise add directly
-                if (window.ItemManager && typeof ItemManager.addItemToInventory === 'function') {
-                    ItemManager.addItemToInventory(player, newItem);
+            if (newItem && newItem.name && newItem.id) {
+                // Check if item already exists in inventory to prevent duplicates
+                const existingItem = player.inventory.find(item => 
+                    item.name === newItem.name && 
+                    item.id === newItem.id
+                );
+                
+                if (!existingItem) {
+                    // Use ItemManager if available, otherwise add directly
+                    if (window.ItemManager && typeof ItemManager.addItemToInventory === 'function') {
+                        const success = ItemManager.addItemToInventory(player, newItem);
+                        if (success) {
+                            displayMessage(`You obtained: ${newItem.name}!`, 'success');
+                            console.log(`processItemChanges: Added item: ${newItem.name}`);
+                        }
+                    } else {
+                        if (!player.inventory) player.inventory = [];
+                        player.inventory.push(newItem);
+                        displayMessage(`You obtained: ${newItem.name}!`, 'success');
+                        console.log(`processItemChanges: Added item: ${newItem.name}`);
+                    }
                 } else {
-                    player.inventory.push(newItem);
+                    console.log(`processItemChanges: Item ${newItem.name} already exists, skipping duplicate`);
                 }
-
-                displayMessage(`You obtained: ${newItem.name}!`, 'success');
-                console.log(`processItemChanges: Added item: ${newItem.name}`);
+            } else {
+                console.error(`processItemChanges: Generated item is invalid:`, newItem);
             }
         }
     }

@@ -3877,23 +3877,22 @@ export class ItemManager {
 
         // Check for undefined or null items
         if (!item) {
-            console.error("Attempted to add an undefined or null item to inventory. Creating a placeholder.");
-            // Create a placeholder for the unidentified item
-            const unidentifiedItem = {
-                id: `unidentified_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
-                name: "Unidentified Item",
-                description: "A mysterious item shrouded in magic. Its true nature is hidden. Perhaps it can be appraised?",
-                unidentified: true, // Special flag to identify this item later
-                value: 5, // A nominal value
-                rarity: 'COMMON'
-            };
-            if (!player.inventory) {
-                player.inventory = [];
-            }
-            player.inventory.push(unidentifiedItem);
-            displayMessage("You found something, but its form is unclear...", "info");
-            this.saveInventoryToStorage(player);
-            return; // Exit the function to prevent further processing
+            console.error("Attempted to add an undefined or null item to inventory. Rejecting addition.");
+            console.trace("Stack trace for undefined item addition:");
+            return false; // Return false to indicate failure
+        }
+        
+        // Check for missing critical properties
+        if (!item.name || !item.id) {
+            console.error("Attempted to add item with missing critical properties:", item);
+            console.trace("Stack trace for invalid item addition:");
+            return false; // Return false to indicate failure
+        }
+        
+        // Check for duplicate items with same ID
+        if (player.inventory && player.inventory.some(existingItem => existingItem.id === item.id)) {
+            console.warn(`Item with ID ${item.id} already exists in inventory, skipping duplicate`);
+            return false; // Return false to indicate item was not added
         }
         
         if (!player.inventory) {
