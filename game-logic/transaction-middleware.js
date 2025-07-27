@@ -5,6 +5,12 @@ export class TransactionMiddleware {
         console.log(`--- TransactionMiddleware.detectTransaction CALLED ---`); // <<< ADD THIS LINE
         console.log(`Command received: "${command}"`); // <<< ADD THIS LINE
 
+        // Check if this is part of a structured response that already handled transactions
+        if (gameContext && gameContext.structuredResponseProcessed) {
+            console.log("TransactionMiddleware: Structured response already processed, skipping transaction detection");
+            return { hasTransaction: false };
+        }
+
         // --- NEW AND IMPROVED DIRECT COMMAND DETECTION ---
         const giveRegex = /^(?:give|pay)\s+(.+?)\s+(\d+)\s+gold/i; // Handles "give [recipient] [amount] gold"
         const donateRegex = /^donate\s+(\d+)\s+gold(?:\s+to\s+(.+))?/i; // Handles "donate [amount] gold to [recipient]"
@@ -210,7 +216,11 @@ If no actual transaction is detected, return {"hasTransaction": false, "confiden
                             generatedItem.name !== undefined &&
                             typeof generatedItem.name === 'string' &&
                             generatedItem.name.trim() !== '' &&
-                            generatedItem.name.toLowerCase() !== 'undefined';
+                            generatedItem.name.toLowerCase() !== 'undefined' &&
+                            itemData.name && // Ensure original itemData had a valid name
+                            itemData.name !== 'undefined' &&
+                            typeof itemData.name === 'string' &&
+                            itemData.name.trim() !== '';
 
                         if (isValidItem) {
                             console.log('[TransactionMiddleware] Adding valid item to inventory:', generatedItem.name);
