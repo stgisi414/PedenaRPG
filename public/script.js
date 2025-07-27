@@ -1319,6 +1319,22 @@ Please respond as the DM, maintaining consistency with the conversation history 
             }
         }
 
+        // Add multiplayer context if active
+        if (isMultiplayerMode && multiplayerClient) {
+            const multiplayerContext = `
+
+MULTIPLAYER CONTEXT:
+- Room ID: ${multiplayerClient.roomId || 'Unknown'}
+- Current Player Turn: ${multiplayerClient.players.find(p => p.id === multiplayerClient.currentTurn)?.name || 'Unknown'}
+- Is Player's Turn: ${multiplayerClient.isMyTurn()}
+- Party Members: ${multiplayerClient.players.map(p => p.name).join(', ')}
+- Player is Host: ${multiplayerClient.isHost}
+
+Note: This is a multiplayer session. Consider party dynamics and turn-based gameplay in your response.`;
+            
+            fullPrompt += multiplayerContext;
+        }
+
         // Add rich text styling instructions if enabled
         if (richTextEnabled) {
             fullPrompt += `
@@ -5638,12 +5654,21 @@ function createMasterPrompt(command) {
         hp: player.hp,
         maxHp: player.maxHp,
         location: player.currentLocation,
-        statusEffects: player.statusEffects.map(e => e.name), // <-- NEW: List of active status effect names
-        reputation: player.reputation, // <-- NEW: Entire reputation object
-        inventory: player.inventory.slice(-10).map(i => i.name),
+        statusEffects: player.statusEffects?.map(e => e.name) || [], // <-- NEW: List of active status effect names
+        reputation: player.reputation || {}, // <-- NEW: Entire reputation object
+        inventory: player.inventory?.slice(-10).map(i => i.name) || [],
         equipment: player.equipment,
-        activeQuests: player.quests.filter(q => !q.completed).map(q => q.title)
+        activeQuests: player.quests?.filter(q => !q.completed).map(q => q.title) || []
     };
+
+    // Add multiplayer state if active
+    const multiplayerState = isMultiplayerMode && multiplayerClient ? {
+        isMultiplayer: true,
+        isPlayerTurn: multiplayerClient.isMyTurn(),
+        isHost: multiplayerClient.isHost,
+        partyMembers: multiplayerClient.players.map(p => ({ name: p.name, id: p.id })),
+        currentTurnPlayer: multiplayerClient.players.find(p => p.id === multiplayerClient.currentTurn)?.name
+    } : { isMultiplayer: false };
 
     const worldState = {
         timeOfDay: gameWorld.time.toTimeString().split(' ')[0], // Changed 'world' to 'gameWorld'
@@ -5663,6 +5688,9 @@ function createMasterPrompt(command) {
 
         WORLD STATE:
         ${JSON.stringify(worldState, null, 2)}
+
+        MULTIPLAYER STATE:
+        ${JSON.stringify(multiplayerState, null, 2)}
 
         PLAYER COMMAND: "${command}"
 
@@ -5728,6 +5756,14 @@ async function executeCustomCommand(command) {
     }
 
     addToConversationHistory('user', command);
+
+    // Disable input during processing in multiplayer
+    if (isMultiplayerMode) {
+        const inputElement = document.getElementById('custom-command-input');
+        const executeBtn = document.getElementById('execute-command-btn');
+        if (inputElement) inputElement.disabled = true;
+        if (executeBtn) executeBtn.disabled = true;
+    }
 
     // --- NEW: Command pre-processing for specific actions ---
     const lowerCommand = command.toLowerCase().trim();
@@ -5799,6 +5835,14 @@ async function executeCustomCommand(command) {
             // Send action to multiplayer if active
             if (isMultiplayerMode) {
                 multiplayerClient.sendAction(command, parsedResult.narrative || 'performed an action');
+                
+                // Auto-end turn after action in multiplayer
+                setTimeout(() => {
+                    if (multiplayerClient.isMyTurn()) {
+                        multiplayerClient.endTurn();
+                        displayMessage('Your turn has ended automatically', 'info');
+                    }
+                }, 2000);
             }
 
             // Add alignment change handling here
@@ -5817,6 +5861,14 @@ async function executeCustomCommand(command) {
             // Send action to multiplayer if active
             if (isMultiplayerMode) {
                 multiplayerClient.sendAction(command, aiResponse);
+                
+                // Auto-end turn after action in multiplayer
+                setTimeout(() => {
+                    if (multiplayerClient.isMyTurn()) {
+                        multiplayerClient.endTurn();
+                        displayMessage('Your turn has ended automatically', 'info');
+                    }
+                }, 2000);
             }
 
             // Check for transactions in unstructured responses
@@ -5833,6 +5885,14 @@ async function executeCustomCommand(command) {
     } catch (error) {
         console.error("Error processing command:", error);
         displayMessage("You attempt your action, but something goes wrong. The world seems to resist your will.", 'error');
+    } finally {
+        // Re-enable input after processing in multiplayer
+        if (isMultiplayerMode) {
+            const inputElement = document.getElementById('custom-command-input');
+            const executeBtn = document.getElementById('execute-command-btn');
+            if (inputElement) inputElement.disabled = false;
+            if (executeBtn) executeBtn.disabled = false;
+        }
     }
 }
 
@@ -6361,9 +6421,24 @@ function handleTurnChanged(data) {
     
     if (multiplayerClient.isMyTurn()) {
         displayMessage("It's your turn!", 'success');
-        document.getElementById('end-turn-btn').classList.remove('hidden');
+        const endTurnBtn = document.getElementById('end-turn-btn');
+        if (endTurnBtn) endTurnBtn.classList.remove('hidden');
+        
+        // Enable input controls
+        const inputElement = document.getElementById('custom-command-input');
+        const executeBtn = document.getElementById('execute-command-btn');
+        if (inputElement) inputElement.disabled = false;
+        if (executeBtn) executeBtn.disabled = false;
     } else {
-        document.getElementById('end-turn-btn').classList.add('hidden');
+        const endTurnBtn = document.getElementById('end-turn-btn');
+        if (endTurnBtn) endTurnBtn.classList.add('hidden');
+        
+        // Disable input controls when it's not player's turn
+        const inputElement = document.getElementById('custom-command-input');
+        const executeBtn = document.getElementById('execute-command-btn');
+        if (inputElement) inputElement.disabled = true;
+        if (executeBtn) executeBtn.disabled = true;
+        
         const currentPlayer = multiplayerClient.players.find(p => p.id === data.currentTurn);
         displayMessage(`It's ${currentPlayer?.name || 'someone'}'s turn`, 'info');
     }
@@ -6409,7 +6484,15 @@ function updateConnectionStatus(connected) {
 
 function endPlayerTurn() {
     multiplayerClient.endTurn();
-    document.getElementById('end-turn-btn').classList.add('hidden');
+    const endTurnBtn = document.getElementById('end-turn-btn');
+    if (endTurnBtn) endTurnBtn.classList.add('hidden');
+    
+    // Disable input controls after ending turn
+    const inputElement = document.getElementById('custom-command-input');
+    const executeBtn = document.getElementById('execute-command-btn');
+    if (inputElement) inputElement.disabled = true;
+    if (executeBtn) executeBtn.disabled = true;
+    
     displayMessage('You ended your turn', 'info');
 }
 
