@@ -6251,6 +6251,60 @@ function initializeMultiplayerUI() {
     } else {
         console.error('Could not find action buttons container for multiplayer button');
     }
+    
+    // Create multiplayer interface HTML
+    const multiplayerHTML = `
+        <div id="multiplayer-interface" class="interface-layer hidden">
+            <div class="interface-header">
+                <h3><i class="ra ra-players mr-2"></i>Multiplayer</h3>
+                <button id="exit-multiplayer-btn" class="btn-parchment">Exit</button>
+            </div>
+            
+            <div id="multiplayer-content" class="p-4">
+                <!-- Connection Status -->
+                <div id="connection-status" class="mb-4">
+                    <span id="connection-indicator" class="status-disconnected">Disconnected</span>
+                </div>
+                
+                <!-- Room Creation/Joining -->
+                <div id="room-controls" class="mb-4">
+                    <button id="create-room-btn" class="btn-parchment mr-2">Create Room</button>
+                    <button id="join-room-btn" class="btn-parchment">Join Room</button>
+                </div>
+                
+                <!-- Room Code Input -->
+                <div id="room-input" class="hidden mb-4">
+                    <input type="text" id="room-code-input" placeholder="Enter room code" class="form-input mb-2">
+                    <button id="confirm-join-btn" class="btn-parchment">Join</button>
+                </div>
+                
+                <!-- Current Room Info -->
+                <div id="room-info" class="hidden">
+                    <h4 class="font-bold mb-2">Room: <span id="current-room-code"></span></h4>
+                    <p id="host-status" class="mb-3"></p>
+                    
+                    <!-- Player List -->
+                    <div id="player-list" class="mb-4">
+                        <h5 class="font-semibold mb-2">Players:</h5>
+                        <div id="players-container"></div>
+                    </div>
+                    
+                    <!-- Turn Order -->
+                    <div id="turn-order" class="mb-4">
+                        <h5 class="font-semibold mb-2">Current Turn:</h5>
+                        <p id="current-turn-player" class="text-yellow-400 font-bold">None</p>
+                        <button id="end-turn-btn" class="btn-parchment hidden mt-2">End Turn</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Insert multiplayer interface into game screen
+    const gameScreen = document.getElementById('game-play-screen');
+    if (gameScreen) {
+        gameScreen.insertAdjacentHTML('beforeend', multiplayerHTML);
+    }
 }
 
 function toggleMultiplayerInterface() {
