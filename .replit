@@ -6,8 +6,8 @@ channel = "stable-24_11"
 packages = ["static-web-server"]
 
 [deployment]
-publicDir = "/"
-deploymentTarget = "static"
+deploymentTarget = "cloudrun"
+run = ["sh", "-c", "npm run start"]
 
 [workflows]
 runButton = "Run Express Server"
