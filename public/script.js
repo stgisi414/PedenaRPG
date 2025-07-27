@@ -2255,6 +2255,116 @@ async function checkRelationshipChanges(playerCommand, aiResponse) {
     });
 }
 
+// Multiplayer interface functions
+function toggleMultiplayerInterface() {
+    const multiplayerInterface = document.getElementById('multiplayer-interface');
+    const otherInterfaces = ['inventory-interface', 'shop-interface', 'skills-interface', 'quest-interface', 'background-interface', 'progression-interface'];
+    
+    if (multiplayerInterface) {
+        if (multiplayerInterface.classList.contains('hidden')) {
+            // Hide other interfaces
+            otherInterfaces.forEach(id => {
+                const element = document.getElementById(id);
+                if (element) element.classList.add('hidden');
+            });
+            
+            // Show multiplayer interface
+            multiplayerInterface.classList.remove('hidden');
+            setupMultiplayerEventListeners();
+        } else {
+            multiplayerInterface.classList.add('hidden');
+        }
+    }
+}
+
+function setupMultiplayerEventListeners() {
+    // Exit button
+    const exitBtn = document.getElementById('exit-multiplayer-btn');
+    if (exitBtn) {
+        exitBtn.onclick = () => {
+            document.getElementById('multiplayer-interface').classList.add('hidden');
+        };
+    }
+
+    // Create room button
+    const createRoomBtn = document.getElementById('create-room-btn');
+    if (createRoomBtn) {
+        createRoomBtn.onclick = createMultiplayerRoom;
+    }
+
+    // Join room button
+    const joinRoomBtn = document.getElementById('join-room-btn');
+    if (joinRoomBtn) {
+        joinRoomBtn.onclick = showJoinRoomInput;
+    }
+
+    // Confirm join button
+    const confirmJoinBtn = document.getElementById('confirm-join-btn');
+    if (confirmJoinBtn) {
+        confirmJoinBtn.onclick = joinMultiplayerRoom;
+    }
+
+    // End turn button
+    const endTurnBtn = document.getElementById('end-turn-btn');
+    if (endTurnBtn) {
+        endTurnBtn.onclick = endPlayerTurn;
+    }
+}
+
+async function createMultiplayerRoom() {
+    try {
+        displayMessage('Connecting to multiplayer server...', 'info');
+        await multiplayerClient.connect();
+        multiplayerClient.createRoom(player.name, {
+            name: player.name,
+            class: player.class,
+            level: player.level
+        });
+        isMultiplayerMode = true;
+        displayMessage('Room created successfully!', 'success');
+    } catch (error) {
+        console.error('Multiplayer connection error:', error);
+        displayMessage('Failed to connect to multiplayer server', 'error');
+    }
+}
+
+function showJoinRoomInput() {
+    const roomInput = document.getElementById('room-input');
+    if (roomInput) {
+        roomInput.classList.remove('hidden');
+    }
+}
+
+async function joinMultiplayerRoom() {
+    const roomCodeInput = document.getElementById('room-code-input');
+    if (!roomCodeInput || !roomCodeInput.value.trim()) {
+        displayMessage('Please enter a room code', 'error');
+        return;
+    }
+
+    try {
+        displayMessage('Joining room...', 'info');
+        await multiplayerClient.connect();
+        multiplayerClient.joinRoom(roomCodeInput.value.trim(), player.name, {
+            name: player.name,
+            class: player.class,
+            level: player.level
+        });
+        isMultiplayerMode = true;
+        displayMessage('Joined room successfully!', 'success');
+    } catch (error) {
+        console.error('Failed to join room:', error);
+        displayMessage('Failed to join room', 'error');
+    }
+}
+
+function endPlayerTurn() {
+    if (multiplayerClient && isMultiplayerMode) {
+        multiplayerClient.endTurn();
+        displayMessage('Turn ended', 'info');
+    }
+}
+
 // Debug function to check inventory consistency
 function debugInventory() {
     console.log("=== INVENTORY DEBUG ===");
@@ -4277,6 +4387,12 @@ function displayQuests() {
         generateQuestBtn.addEventListener('click', () => {
             generateQuest();
         });
+    }
+
+    // Add event listener for multiplayer button
+    const multiplayerBtn = document.getElementById('multiplayer-btn');
+    if (multiplayerBtn) {
+        multiplayerBtn.addEventListener('click', toggleMultiplayerInterface);
     }
 }
 
