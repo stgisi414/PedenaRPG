@@ -16,6 +16,7 @@ import { RelationshipMiddleware } from './game-logic/relationship-middleware.js'
 import { HelpSystem } from './game-logic/help-system.js';
 import { countries, cities, regions } from './assets/world-data.js';
 import { BGMManager } from './game-logic/bgm-manager.js';
+import { MultiplayerClient } from './game-logic/multiplayer-client.js';
 
 let GEMINI_API_KEY = ''; // We will load this from settings
 let GEMINI_API_URL = ``; // We will build this dynamically
@@ -110,6 +111,10 @@ let multiCombatSystem;
 
 // Initialize BGM Manager
 let bgmManager;
+
+// Initialize Multiplayer System
+let multiplayerClient;
+let isMultiplayerMode = false;
 
 // Utility function to validate and fix character stats
 function validateAndFixStats(player) {
@@ -1630,6 +1635,17 @@ Make the location name proper and descriptive.`;
 
 // Fallback to original movement function for compatibility
 async function handleMovement(command) {
+    // Check multiplayer restrictions
+    if (isMultiplayerMode && !multiplayerClient.canControlTravel()) {
+        displayMessage('Only the party leader can control travel', 'error');
+        return;
+    }
+    
+    if (isMultiplayerMode && !multiplayerClient.isMyTurn()) {
+        displayMessage('Wait for your turn to act', 'error');
+        return;
+    }
+
     // Extract destination from command
     const movementKeywords = ['go to', 'travel to', 'move to', 'head to', 'walk to', 'run to', 'visit', 'enter'];
     let destination = command.toLowerCase();
@@ -1652,6 +1668,12 @@ async function handleMovement(command) {
     if (result.success) {
         player.currentLocation = result.newLocation;
         displayMessage(result.description, 'success');
+
+        // Send to multiplayer if active
+        if (isMultiplayerMode) {
+            multiplayerClient.requestTravel(result.newLocation, result.description);
+            multiplayerClient.sendAction(`traveled to ${result.newLocation}`, result.description);
+        }
 
         // Check for encounters
         if (result.hasEncounter && Math.random() < 0.3) {
@@ -5699,6 +5721,12 @@ function createMasterPrompt(command) {
 async function executeCustomCommand(command) {
     if (!command.trim()) return;
 
+    // Check multiplayer turn restrictions
+    if (isMultiplayerMode && !multiplayerClient.isMyTurn()) {
+        displayMessage('Wait for your turn to act', 'error');
+        return;
+    }
+
     addToConversationHistory('user', command);
 
     // --- NEW: Command pre-processing for specific actions ---
@@ -5768,6 +5796,11 @@ async function executeCustomCommand(command) {
             console.log("Processing structured AI response:", parsedResult);
             await parseAndApplyStateChanges(parsedResult);
 
+            // Send action to multiplayer if active
+            if (isMultiplayerMode) {
+                multiplayerClient.sendAction(command, parsedResult.narrative || 'performed an action');
+            }
+
             // Add alignment change handling here
             if (parsedResult.alignmentChange) {
                 console.log("Processing alignment change from AI response:", parsedResult.alignmentChange);
@@ -5780,6 +5813,11 @@ async function executeCustomCommand(command) {
             console.log("Processing AI response as simple narrative.");
             displayMessage(aiResponse, 'info');
             addToConversationHistory('assistant', aiResponse);
+
+            // Send action to multiplayer if active
+            if (isMultiplayerMode) {
+                multiplayerClient.sendAction(command, aiResponse);
+            }
 
             // Check for transactions in unstructured responses
             if (window.TransactionMiddleware && typeof TransactionMiddleware.detectTransaction === 'function') {
@@ -6167,6 +6205,243 @@ function startNewGame(player) {
     console.log('New game started - character creation screen shown');
 }
 
+// Multiplayer System Functions
+function initializeMultiplayerSystem() {
+    multiplayerClient = new MultiplayerClient();
+    initializeMultiplayerUI();
+    setupMultiplayerEventListeners();
+    console.log('Multiplayer system initialized');
+}
+
+function initializeMultiplayerUI() {
+    const multiplayerBtn = document.createElement('button');
+    multiplayerBtn.id = 'multiplayer-btn';
+    multiplayerBtn.className = 'btn-parchment';
+    multiplayerBtn.innerHTML = '<i class="ra ra-players mr-2"></i>Multiplayer';
+    multiplayerBtn.onclick = toggleMultiplayerInterface;
+    
+    // Add to action buttons container
+    const actionButtons = document.querySelector('#game-play-screen .mb-4.flex.flex-wrap.gap-2');
+    if (actionButtons) {
+        actionButtons.appendChild(multiplayerBtn);
+    }
+    
+    // Create multiplayer interface HTML
+    const multiplayerHTML = `
+        <div id="multiplayer-interface" class="interface-layer hidden">
+            <div class="interface-header">
+                <h3><i class="ra ra-players mr-2"></i>Multiplayer</h3>
+                <button id="exit-multiplayer-btn" class="btn-parchment">Exit</button>
+            </div>
+            
+            <div id="multiplayer-content" class="p-4">
+                <!-- Connection Status -->
+                <div id="connection-status" class="mb-4">
+                    <span id="connection-indicator" class="status-disconnected">Disconnected</span>
+                </div>
+                
+                <!-- Room Creation/Joining -->
+                <div id="room-controls" class="mb-4">
+                    <button id="create-room-btn" class="btn-parchment mr-2">Create Room</button>
+                    <button id="join-room-btn" class="btn-parchment">Join Room</button>
+                </div>
+                
+                <!-- Room Code Input -->
+                <div id="room-input" class="hidden mb-4">
+                    <input type="text" id="room-code-input" placeholder="Enter room code" class="form-input mb-2">
+                    <button id="confirm-join-btn" class="btn-parchment">Join</button>
+                </div>
+                
+                <!-- Current Room Info -->
+                <div id="room-info" class="hidden">
+                    <h4 class="font-bold mb-2">Room: <span id="current-room-code"></span></h4>
+                    <p id="host-status" class="mb-3"></p>
+                    
+                    <!-- Player List -->
+                    <div id="player-list" class="mb-4">
+                        <h5 class="font-semibold mb-2">Players:</h5>
+                        <div id="players-container"></div>
+                    </div>
+                    
+                    <!-- Turn Order -->
+                    <div id="turn-order" class="mb-4">
+                        <h5 class="font-semibold mb-2">Current Turn:</h5>
+                        <p id="current-turn-player" class="text-yellow-400 font-bold">None</p>
+                        <button id="end-turn-btn" class="btn-parchment hidden mt-2">End Turn</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Insert multiplayer interface into game screen
+    const gameScreen = document.getElementById('game-play-screen');
+    if (gameScreen) {
+        gameScreen.insertAdjacentHTML('beforeend', multiplayerHTML);
+    }
+}
+
+function setupMultiplayerEventListeners() {
+    // Connection buttons
+    document.getElementById('create-room-btn').onclick = createMultiplayerRoom;
+    document.getElementById('join-room-btn').onclick = showJoinRoomInput;
+    document.getElementById('confirm-join-btn').onclick = joinMultiplayerRoom;
+    document.getElementById('end-turn-btn').onclick = endPlayerTurn;
+    document.getElementById('exit-multiplayer-btn').onclick = leaveMultiplayer;
+    
+    // Multiplayer client callbacks
+    multiplayerClient.on('roomCreated', handleRoomCreated);
+    multiplayerClient.on('roomJoined', handleRoomJoined);
+    multiplayerClient.on('roomUpdate', handleRoomUpdate);
+    multiplayerClient.on('turnChanged', handleTurnChanged);
+    multiplayerClient.on('playerAction', handlePlayerAction);
+}
+
+async function createMultiplayerRoom() {
+    try {
+        await multiplayerClient.connect();
+        multiplayerClient.createRoom(player.name, {
+            name: player.name,
+            class: player.class,
+            level: player.level
+        });
+        isMultiplayerMode = true;
+    } catch (error) {
+        displayMessage('Failed to connect to multiplayer server', 'error');
+    }
+}
+
+function showJoinRoomInput() {
+    document.getElementById('room-input').classList.remove('hidden');
+}
+
+async function joinMultiplayerRoom() {
+    const roomCode = document.getElementById('room-code-input').value.trim();
+    if (!roomCode) return;
+    
+    try {
+        await multiplayerClient.connect();
+        multiplayerClient.joinRoom(roomCode, player.name, {
+            name: player.name,
+            class: player.class,
+            level: player.level
+        });
+        isMultiplayerMode = true;
+    } catch (error) {
+        displayMessage('Failed to connect to multiplayer server', 'error');
+    }
+}
+
+function handleRoomCreated(data) {
+    document.getElementById('current-room-code').textContent = data.roomId;
+    document.getElementById('host-status').textContent = 'You are the party leader';
+    document.getElementById('room-info').classList.remove('hidden');
+    document.getElementById('room-controls').classList.add('hidden');
+    updateConnectionStatus(true);
+    displayMessage(`Room created! Share code: ${data.roomId}`, 'success');
+}
+
+function handleRoomJoined(data) {
+    document.getElementById('current-room-code').textContent = data.roomId;
+    document.getElementById('host-status').textContent = 'You are a party member';
+    document.getElementById('room-info').classList.remove('hidden');
+    document.getElementById('room-controls').classList.add('hidden');
+    document.getElementById('room-input').classList.add('hidden');
+    updateConnectionStatus(true);
+    displayMessage(`Joined room: ${data.roomId}`, 'success');
+}
+
+function handleRoomUpdate(data) {
+    updatePlayerList(data.players);
+    updateTurnDisplay(data.gameState);
+}
+
+function handleTurnChanged(data) {
+    updateTurnDisplay({ currentTurn: data.currentTurn });
+    
+    if (multiplayerClient.isMyTurn()) {
+        displayMessage("It's your turn!", 'success');
+        document.getElementById('end-turn-btn').classList.remove('hidden');
+    } else {
+        document.getElementById('end-turn-btn').classList.add('hidden');
+        const currentPlayer = multiplayerClient.players.find(p => p.id === data.currentTurn);
+        displayMessage(`It's ${currentPlayer?.name || 'someone'}'s turn`, 'info');
+    }
+}
+
+function handlePlayerAction(data) {
+    const player = multiplayerClient.players.find(p => p.id === data.playerId);
+    displayMessage(`${player?.name || 'Player'} ${data.action}`, 'info');
+    if (data.result) {
+        displayMessage(data.result, 'info');
+    }
+}
+
+function updatePlayerList(players) {
+    const container = document.getElementById('players-container');
+    container.innerHTML = '';
+    
+    players.forEach(player => {
+        const playerDiv = document.createElement('div');
+        playerDiv.className = 'player-item p-2 mb-2 bg-amber-900/20 rounded border border-amber-700/30';
+        playerDiv.innerHTML = `
+            <span class="font-semibold">${player.name} ${player.isHost ? '👑' : ''}</span>
+        `;
+        container.appendChild(playerDiv);
+    });
+}
+
+function updateTurnDisplay(gameState) {
+    const currentPlayer = multiplayerClient.players.find(p => p.id === gameState.currentTurn);
+    document.getElementById('current-turn-player').textContent = currentPlayer?.name || 'Unknown';
+}
+
+function updateConnectionStatus(connected) {
+    const indicator = document.getElementById('connection-indicator');
+    if (connected) {
+        indicator.className = 'status-connected text-green-400 font-bold';
+        indicator.textContent = 'Connected';
+    } else {
+        indicator.className = 'status-disconnected text-red-400 font-bold';
+        indicator.textContent = 'Disconnected';
+    }
+}
+
+function endPlayerTurn() {
+    multiplayerClient.endTurn();
+    document.getElementById('end-turn-btn').classList.add('hidden');
+    displayMessage('You ended your turn', 'info');
+}
+
+function leaveMultiplayer() {
+    isMultiplayerMode = false;
+    if (multiplayerClient.ws) {
+        multiplayerClient.ws.close();
+    }
+    document.getElementById('multiplayer-interface').classList.add('hidden');
+    displayMessage('Left multiplayer session', 'info');
+    
+    // Reset UI
+    document.getElementById('room-info').classList.add('hidden');
+    document.getElementById('room-controls').classList.remove('hidden');
+    document.getElementById('room-input').classList.add('hidden');
+    updateConnectionStatus(false);
+}
+
+function toggleMultiplayerInterface() {
+    const interface = document.getElementById('multiplayer-interface');
+    interface.classList.toggle('hidden');
+    
+    // Hide other interfaces
+    const interfaces = ['inventory-interface', 'shop-interface', 'skills-interface', 'quest-interface', 'background-interface', 'progression-interface'];
+    interfaces.forEach(id => {
+        const element = document.getElementById(id);
+        if (element && id !== 'multiplayer-interface') {
+            element.classList.add('hidden');
+        }
+    });
+}
+
 // Initialize game
 document.addEventListener('DOMContentLoaded', () => {
     // Check if there's a saved game to enable load button
@@ -6229,6 +6504,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Initialize party system
     initializePartySystem();
+
+    // Initialize multiplayer system
+    initializeMultiplayerSystem();
 
     // Make required functions globally available for TransactionMiddleware and other modules
     window.callGeminiAPI = callGeminiAPI;
