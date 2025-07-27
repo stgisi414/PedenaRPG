@@ -1103,6 +1103,8 @@ function displayMessage(message, type = 'info') {
 }
 
 function updatePlayerStatsDisplay() {
+    console.log('[MAIN SCRIPT] updatePlayerStatsDisplay called');
+    console.log('[MAIN SCRIPT] Current player location:', player ? player.currentLocation : 'player undefined');
     // Always process location text through rich text system for consistent formatting/stripping
     const locationText = processRichText(player.currentLocation, 'location');
     playerNameDisplay.innerHTML = `${player.name} - ${locationText}`;

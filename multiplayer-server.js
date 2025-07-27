@@ -147,9 +147,12 @@ class MultiplayerServer {
     }
 
     joinRoom(ws, message) {
+        console.log(`[MULTIPLAYER SERVER] Player ${message.playerName} (${ws.playerId}) attempting to join room ${message.roomId}`);
+        
         const room = this.rooms.get(message.roomId);
         
         if (!room) {
+            console.log(`[MULTIPLAYER SERVER] ERROR: Room ${message.roomId} not found`);
             this.sendToClient(ws, {
                 type: 'error',
                 message: 'Room not found'
@@ -157,7 +160,10 @@ class MultiplayerServer {
             return;
         }
         
+        console.log(`[MULTIPLAYER SERVER] Room ${message.roomId} found with ${room.players.size} players, location: ${room.gameState.location}`);
+        
         if (room.players.size >= room.maxPlayers) {
+            console.log(`[MULTIPLAYER SERVER] ERROR: Room ${message.roomId} is full (${room.players.size}/${room.maxPlayers})`);
             this.sendToClient(ws, {
                 type: 'error',
                 message: 'Room is full'
@@ -165,36 +171,57 @@ class MultiplayerServer {
             return;
         }
         
-        room.players.set(ws.playerId, {
+        const playerData = {
             id: ws.playerId,
             name: message.playerName,
             character: message.character,
             isHost: false,
             socket: ws,
             currentZone: room.gameState.location
-        });
+        };
+        
+        console.log(`[MULTIPLAYER SERVER] Adding player ${message.playerName} to room ${message.roomId} with location: ${room.gameState.location}`);
+        room.players.set(ws.playerId, playerData);
         
         // Set player's zone
         ws.currentZone = room.gameState.location;
+        console.log(`[MULTIPLAYER SERVER] Set player ${message.playerName} currentZone to: ${ws.currentZone}`);
         
         room.gameState.turnOrder.push(ws.playerId);
         this.players.set(ws.playerId, { roomId: message.roomId, socket: ws });
         
+        console.log(`[MULTIPLAYER SERVER] Sending room_joined confirmation to ${message.playerName}`);
         this.sendToClient(ws, {
             type: 'room_joined',
             roomId: message.roomId,
             isHost: false
         });
         
+        console.log(`[MULTIPLAYER SERVER] Broadcasting room update for room ${message.roomId}`);
         this.broadcastRoomUpdate(message.roomId);
         
         // Send location sync to joining player after room update
+        console.log(`[MULTIPLAYER SERVER] Preparing to send location_changed message to ${message.playerName} in 100ms`);
+        console.log(`[MULTIPLAYER SERVER] Target location: ${room.gameState.location}`);
+        
         setTimeout(() => {
-            this.sendToClient(ws, {
+            console.log(`[MULTIPLAYER SERVER] SENDING location_changed to ${message.playerName} (${ws.playerId})`);
+            console.log(`[MULTIPLAYER SERVER] Location data: ${room.gameState.location}`);
+            console.log(`[MULTIPLAYER SERVER] WebSocket readyState: ${ws.readyState}`);
+            
+            const locationMessage = {
                 type: 'location_changed',
                 location: room.gameState.location,
-                description: `You have been moved to ${room.gameState.location} to join the party.`
-            });
+                description: `You have been moved to ${room.gameState.location} to join the party.`,
+                timestamp: Date.now(),
+                playerId: ws.playerId,
+                playerName: message.playerName
+            };
+            
+            console.log(`[MULTIPLAYER SERVER] Full location message:`, JSON.stringify(locationMessage, null, 2));
+            this.sendToClient(ws, locationMessage);
+            
+            console.log(`[MULTIPLAYER SERVER] Location sync message sent to ${message.playerName}`);
         }, 100);
     }
 
@@ -541,8 +568,16 @@ class MultiplayerServer {
     }
 
     sendToClient(ws, message) {
+        console.log(`[MULTIPLAYER SERVER] Attempting to send message type "${message.type}" to player ${ws.playerId}`);
+        console.log(`[MULTIPLAYER SERVER] WebSocket state: ${ws.readyState} (1=OPEN, 2=CLOSING, 3=CLOSED)`);
+        
         if (ws.readyState === WebSocket.OPEN) {
-            ws.send(JSON.stringify(message));
+            const messageStr = JSON.stringify(message);
+            console.log(`[MULTIPLAYER SERVER] Sending message: ${messageStr.substring(0, 200)}${messageStr.length > 200 ? '...' : ''}`);
+            ws.send(messageStr);
+            console.log(`[MULTIPLAYER SERVER] Message sent successfully to ${ws.playerId}`);
+        } else {
+            console.log(`[MULTIPLAYER SERVER] ERROR: Cannot send message to ${ws.playerId}, WebSocket not open (state: ${ws.readyState})`);
         }
     }
 

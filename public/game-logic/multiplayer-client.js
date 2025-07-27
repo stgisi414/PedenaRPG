@@ -48,6 +48,7 @@ export class MultiplayerClient {
     }
 
     handleMessage(message) {
+        console.log(`[MULTIPLAYER CLIENT] Received message type: ${message.type}`, message);
         switch(message.type) {
             case 'connected':
                 this.playerId = message.playerId;
@@ -78,18 +79,48 @@ export class MultiplayerClient {
                 this.triggerCallback('roomUpdate', message);
                 break;
             case 'location_changed':
+                console.log(`[MULTIPLAYER CLIENT] Received location_changed message:`, message);
+                console.log(`[MULTIPLAYER CLIENT] Current player object:`, typeof player !== 'undefined' ? player : 'undefined');
+                console.log(`[MULTIPLAYER CLIENT] Player current location before change:`, typeof player !== 'undefined' ? player.currentLocation : 'N/A');
+                console.log(`[MULTIPLAYER CLIENT] New location from message:`, message.location);
+                
                 if (typeof player !== 'undefined') {
+                    const oldLocation = player.currentLocation;
                     player.currentLocation = message.location;
+                    console.log(`[MULTIPLAYER CLIENT] Player location updated from "${oldLocation}" to "${player.currentLocation}"`);
+                    
                     if (typeof updatePlayerStatsDisplay !== 'undefined') {
+                        console.log(`[MULTIPLAYER CLIENT] Calling updatePlayerStatsDisplay()`);
                         updatePlayerStatsDisplay();
+                        console.log(`[MULTIPLAYER CLIENT] updatePlayerStatsDisplay() completed`);
+                    } else {
+                        console.log(`[MULTIPLAYER CLIENT] WARNING: updatePlayerStatsDisplay function not available`);
                     }
+                    
                     if (typeof displayMessage !== 'undefined') {
+                        console.log(`[MULTIPLAYER CLIENT] Displaying location change messages`);
                         displayMessage(message.description, 'info');
-                        // Additional confirmation message
                         displayMessage(`Location synchronized: ${message.location}`, 'success');
+                        console.log(`[MULTIPLAYER CLIENT] Location change messages displayed`);
+                    } else {
+                        console.log(`[MULTIPLAYER CLIENT] WARNING: displayMessage function not available`);
                     }
+                    
+                    // Force save game to persist location change
+                    if (typeof saveGame !== 'undefined') {
+                        console.log(`[MULTIPLAYER CLIENT] Saving game after location change`);
+                        saveGame();
+                        console.log(`[MULTIPLAYER CLIENT] Game saved`);
+                    } else {
+                        console.log(`[MULTIPLAYER CLIENT] WARNING: saveGame function not available`);
+                    }
+                } else {
+                    console.log(`[MULTIPLAYER CLIENT] ERROR: Player object is undefined, cannot update location`);
                 }
+                
+                console.log(`[MULTIPLAYER CLIENT] Triggering locationChanged callback`);
                 this.triggerCallback('locationChanged', message);
+                console.log(`[MULTIPLAYER CLIENT] locationChanged callback triggered`);
                 break;
             case 'player_action':
                 this.displayPlayerAction(message);
