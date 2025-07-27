@@ -62,6 +62,7 @@ export class MultiplayerClient {
             case 'room_update':
                 this.players = message.players;
                 this.currentTurn = message.gameState.currentTurn;
+                this.updatePartyFromPlayers(message.players);
                 this.triggerCallback('roomUpdate', message);
                 break;
             case 'location_changed':
@@ -73,10 +74,12 @@ export class MultiplayerClient {
                 this.triggerCallback('locationChanged', message);
                 break;
             case 'player_action':
+                this.displayPlayerAction(message);
                 this.triggerCallback('playerAction', message);
                 break;
             case 'turn_changed':
                 this.currentTurn = message.currentTurn;
+                this.updateTurnDisplay();
                 this.triggerCallback('turnChanged', message);
                 break;
             case 'error':
@@ -84,6 +87,52 @@ export class MultiplayerClient {
                     displayMessage(message.message, 'error');
                 }
                 break;
+        }
+    }
+
+    updatePartyFromPlayers(players) {
+        if (typeof partyManager === 'undefined' || typeof player === 'undefined') return;
+        
+        // Add other players to party (excluding self)
+        players.forEach(playerData => {
+            if (playerData.id !== this.playerId) {
+                const existingMember = partyManager.party.find(member => member.id === playerData.id);
+                if (!existingMember) {
+                    const memberData = {
+                        id: playerData.id,
+                        name: playerData.name,
+                        level: playerData.character?.level || 1,
+                        health: 100,
+                        maxHealth: 100,
+                        ac: 12,
+                        damage: '1d6',
+                        description: `${playerData.name} - A fellow adventurer`
+                    };
+                    partyManager.addMember(memberData);
+                    displayMessage(`${playerData.name} joins your party!`, 'success');
+                }
+            }
+        });
+    }
+
+    displayPlayerAction(message) {
+        if (typeof displayMessage !== 'undefined') {
+            const playerName = this.players.find(p => p.id === message.playerId)?.name || 'Unknown Player';
+            displayMessage(`${playerName}: ${message.action}`, 'multiplayer');
+            if (message.result) {
+                displayMessage(message.result, 'info');
+            }
+        }
+    }
+
+    updateTurnDisplay() {
+        if (typeof displayMessage !== 'undefined') {
+            const currentPlayerName = this.players.find(p => p.id === this.currentTurn)?.name || 'Unknown';
+            if (this.isMyTurn()) {
+                displayMessage("It's your turn!", 'success');
+            } else {
+                displayMessage(`It's ${currentPlayerName}'s turn. Please wait...`, 'info');
+            }
         }
     }
 

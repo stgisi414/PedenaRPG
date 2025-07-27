@@ -503,6 +503,13 @@ h1, h2, h3, h4 {
 }
 
 
+/* Multiplayer message styling */
+.message.multiplayer {
+    background: linear-gradient(135deg, #1a472a, #166534);
+    border-left: 4px solid #10b981;
+    color: #d1fae5;
+}
+
 /* Party Management Styles */
 .party-status {
     background: linear-gradient(135deg, #2a2a2a, #1a1a1a);
