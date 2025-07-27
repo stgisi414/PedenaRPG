@@ -90,6 +90,22 @@ export class MultiplayerClient {
                     player.currentLocation = message.location;
                     console.log(`[MULTIPLAYER CLIENT] Player location updated from "${oldLocation}" to "${player.currentLocation}"`);
                     
+                    // Update the location display in the UI immediately
+                    const locationElement = document.querySelector('#current-location, .current-location, [data-location]');
+                    if (locationElement) {
+                        locationElement.textContent = message.location;
+                        console.log(`[MULTIPLAYER CLIENT] Updated location element text to: ${message.location}`);
+                    }
+                    
+                    // Also try to find and update location display in stats
+                    const statsLocationElements = document.querySelectorAll('.player-stats .location, #player-location');
+                    statsLocationElements.forEach(el => {
+                        if (el) {
+                            el.textContent = message.location;
+                            console.log(`[MULTIPLAYER CLIENT] Updated stats location element`);
+                        }
+                    });
+                    
                     if (typeof updatePlayerStatsDisplay !== 'undefined') {
                         console.log(`[MULTIPLAYER CLIENT] Calling updatePlayerStatsDisplay()`);
                         updatePlayerStatsDisplay();

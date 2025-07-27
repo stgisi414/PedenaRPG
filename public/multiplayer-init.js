@@ -91,13 +91,21 @@ function initializeMultiplayerCallbacks() {
             displayMessage('[DEBUG] Room joined, awaiting location sync', 'info');
         }
         
-        // Set up a fallback to request location sync if not received within 2 seconds
+        // Force a location update request if not received within 1 second
         setTimeout(() => {
             console.log('[MULTIPLAYER INIT] Checking if location sync was received...');
             if (typeof displayMessage === 'function') {
-                displayMessage('[DEBUG] Checking location sync status...', 'info');
+                displayMessage('[DEBUG] Requesting location sync from server...', 'info');
             }
-        }, 2000);
+            
+            // Request location sync from server
+            if (multiplayerClient && multiplayerClient.isConnected) {
+                multiplayerClient.send({
+                    type: 'request_location_sync'
+                });
+                console.log('[MULTIPLAYER INIT] Sent location sync request to server');
+            }
+        }, 1000);
     });
 
     // Set up room update callback for additional location sync

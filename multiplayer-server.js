@@ -101,6 +101,9 @@ class MultiplayerServer {
                 case 'zone_chat':
                     this.handleZoneChat(ws, message);
                     break;
+                case 'request_location_sync':
+                    this.handleLocationSyncRequest(ws, message);
+                    break;
             }
         } catch (error) {
             console.error('Message parsing error:', error);
@@ -200,27 +203,29 @@ class MultiplayerServer {
         console.log(`[MULTIPLAYER SERVER] Broadcasting room update for room ${message.roomId}`);
         this.broadcastRoomUpdate(message.roomId);
         
-        // Send location sync to joining player after room update
+        // Send location sync to joining player immediately after room update
         console.log(`[MULTIPLAYER SERVER] Preparing to send location_changed message to ${message.playerName}`);
         console.log(`[MULTIPLAYER SERVER] Target location: ${room.gameState.location}`);
         
-        // Send location synchronization immediately after room update
-        const locationMessage = {
-            type: 'location_changed',
-            location: room.gameState.location,
-            description: `You have been moved to ${room.gameState.location} to join the party.`,
-            timestamp: Date.now(),
-            playerId: ws.playerId,
-            playerName: message.playerName
-        };
-        
-        console.log(`[MULTIPLAYER SERVER] SENDING location_changed to ${message.playerName} (${ws.playerId})`);
-        console.log(`[MULTIPLAYER SERVER] Location data: ${room.gameState.location}`);
-        console.log(`[MULTIPLAYER SERVER] WebSocket readyState: ${ws.readyState}`);
-        console.log(`[MULTIPLAYER SERVER] Full location message:`, JSON.stringify(locationMessage, null, 2));
-        
-        this.sendToClient(ws, locationMessage);
-        console.log(`[MULTIPLAYER SERVER] Location sync message sent to ${message.playerName}`);
+        // Use setTimeout to ensure room_joined message is processed first
+        setTimeout(() => {
+            const locationMessage = {
+                type: 'location_changed',
+                location: room.gameState.location,
+                description: `You have been moved to ${room.gameState.location} to join the party.`,
+                timestamp: Date.now(),
+                playerId: ws.playerId,
+                playerName: message.playerName
+            };
+            
+            console.log(`[MULTIPLAYER SERVER] SENDING location_changed to ${message.playerName} (${ws.playerId})`);
+            console.log(`[MULTIPLAYER SERVER] Location data: ${room.gameState.location}`);
+            console.log(`[MULTIPLAYER SERVER] WebSocket readyState: ${ws.readyState}`);
+            console.log(`[MULTIPLAYER SERVER] Full location message:`, JSON.stringify(locationMessage, null, 2));
+            
+            this.sendToClient(ws, locationMessage);
+            console.log(`[MULTIPLAYER SERVER] Location sync message sent to ${message.playerName}`);
+        }, 100);
     }
 
     handleReconnection(ws, message) {
@@ -452,6 +457,29 @@ class MultiplayerServer {
             playerName: player.name,
             message: message.text,
             zone: player.currentZone
+        });
+    }
+
+    handleLocationSyncRequest(ws, message) {
+        const playerData = this.players.get(ws.playerId);
+        if (!playerData) return;
+        
+        const room = this.rooms.get(playerData.roomId);
+        if (!room) return;
+        
+        const player = room.players.get(ws.playerId);
+        if (!player) return;
+        
+        console.log(`[MULTIPLAYER SERVER] Location sync requested by ${player.name}, sending current location: ${room.gameState.location}`);
+        
+        // Send current room location to requesting player
+        this.sendToClient(ws, {
+            type: 'location_changed',
+            location: room.gameState.location,
+            description: `Location synchronized to ${room.gameState.location}`,
+            timestamp: Date.now(),
+            playerId: ws.playerId,
+            playerName: player.name
         });
     }
 
