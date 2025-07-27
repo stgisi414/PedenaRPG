@@ -3472,6 +3472,103 @@ function handleCombatEnd(result) {
     updatePlayerStatsDisplay();
 }
 
+// Process item changes from structured AI responses
+async function processItemChanges(itemChanges, player) {
+    console.log("processItemChanges: Processing item changes:", JSON.stringify(itemChanges, null, 2));
+    
+    if (!itemChanges) {
+        console.log("processItemChanges: No item changes to process");
+        return;
+    }
+
+    // Ensure inventory exists
+    if (!player.inventory) {
+        player.inventory = [];
+    }
+
+    // Process item removals
+    if (itemChanges.remove && Array.isArray(itemChanges.remove) && itemChanges.remove.length > 0) {
+        for (const itemToRemove of itemChanges.remove) {
+            const itemName = typeof itemToRemove === 'string' ? itemToRemove : itemToRemove.name;
+            const itemIndex = player.inventory.findIndex(item => 
+                item.name.toLowerCase() === itemName.toLowerCase() ||
+                item.name.toLowerCase().includes(itemName.toLowerCase()) ||
+                itemName.toLowerCase().includes(item.name.toLowerCase())
+            );
+            
+            if (itemIndex !== -1) {
+                const removedItem = player.inventory.splice(itemIndex, 1)[0];
+                displayMessage(`${removedItem.name} removed from inventory.`, 'info');
+                console.log(`processItemChanges: Removed item: ${removedItem.name}`);
+            } else {
+                console.log(`processItemChanges: Could not find item to remove: ${itemName}`);
+            }
+        }
+    }
+
+    // Process item additions
+    if (itemChanges.add && Array.isArray(itemChanges.add) && itemChanges.add.length > 0) {
+        for (const itemToAdd of itemChanges.add) {
+            let newItem;
+            
+            if (typeof itemToAdd === 'string') {
+                // Simple string item name - generate a basic item
+                newItem = await generateItemFromDescription(itemToAdd, {
+                    locationContext: player.currentLocation,
+                    playerLevel: player.level,
+                    playerClass: player.class,
+                    storyContext: 'AI generated item'
+                });
+            } else if (typeof itemToAdd === 'object' && itemToAdd.name) {
+                // Structured item object
+                if (window.ItemGenerator && typeof ItemGenerator.enhanceItem === 'function') {
+                    newItem = ItemGenerator.enhanceItem(itemToAdd, { playerLevel: player.level });
+                } else {
+                    // Fallback - use the item as-is but ensure it has required properties
+                    newItem = {
+                        id: itemToAdd.id || Date.now() + Math.random(),
+                        name: itemToAdd.name,
+                        type: itemToAdd.type || 'misc',
+                        rarity: itemToAdd.rarity || 'COMMON',
+                        description: itemToAdd.description || `A ${itemToAdd.name.toLowerCase()} found during your adventures.`,
+                        value: itemToAdd.value || 10,
+                        effects: itemToAdd.effects || [],
+                        ...itemToAdd
+                    };
+                }
+            } else {
+                console.error("processItemChanges: Invalid item data:", itemToAdd);
+                continue;
+            }
+
+            if (newItem) {
+                // Use ItemManager if available, otherwise add directly
+                if (window.ItemManager && typeof ItemManager.addItemToInventory === 'function') {
+                    ItemManager.addItemToInventory(player, newItem);
+                } else {
+                    player.inventory.push(newItem);
+                }
+                
+                displayMessage(`You obtained: ${newItem.name}!`, 'success');
+                console.log(`processItemChanges: Added item: ${newItem.name}`);
+            }
+        }
+    }
+
+    // Save inventory changes
+    if (window.ItemManager && typeof ItemManager.saveInventoryToStorage === 'function') {
+        ItemManager.saveInventoryToStorage(player);
+    }
+
+    // Refresh inventory display if open
+    const inventoryInterface = document.getElementById('inventory-interface');
+    if (inventoryInterface && !inventoryInterface.classList.contains('hidden') && typeof displayInventory === 'function') {
+        displayInventory();
+    }
+
+    console.log("processItemChanges: Item processing completed");
+}
+
 // Enhanced item pickup handler that detects specific items from story context
 async function handleItemPickup(command, storyContext = '') {
     console.log('Processing item pickup:', command);
