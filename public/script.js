@@ -6287,6 +6287,22 @@ function initializeMultiplayerUI() {
     }
 }
 
+function toggleMultiplayerInterface() {
+    const multiplayerInterface = document.getElementById('multiplayer-interface');
+    if (multiplayerInterface) {
+        multiplayerInterface.classList.toggle('hidden');
+        
+        // Hide other interfaces when showing multiplayer
+        if (!multiplayerInterface.classList.contains('hidden')) {
+            const interfacesToHide = ['inventory-interface', 'shop-interface', 'skills-interface', 'quest-interface', 'background-interface', 'progression-interface'];
+            interfacesToHide.forEach(id => {
+                const element = document.getElementById(id);
+                if (element) element.classList.add('hidden');
+            });
+        }
+    }
+}
+
 function setupMultiplayerEventListeners() {
     // Connection buttons
     document.getElementById('create-room-btn').onclick = createMultiplayerRoom;
