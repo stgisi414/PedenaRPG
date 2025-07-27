@@ -186,14 +186,16 @@ class MultiplayerServer {
             isHost: false
         });
         
-        // Send location sync to joining player
-        this.sendToClient(ws, {
-            type: 'location_changed',
-            location: room.gameState.location,
-            description: `You have been moved to ${room.gameState.location} to join the party.`
-        });
-        
         this.broadcastRoomUpdate(message.roomId);
+        
+        // Send location sync to joining player after room update
+        setTimeout(() => {
+            this.sendToClient(ws, {
+                type: 'location_changed',
+                location: room.gameState.location,
+                description: `You have been moved to ${room.gameState.location} to join the party.`
+            });
+        }, 100);
     }
 
     handleReconnection(ws, message) {

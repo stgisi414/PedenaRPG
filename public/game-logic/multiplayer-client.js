@@ -85,6 +85,8 @@ export class MultiplayerClient {
                     }
                     if (typeof displayMessage !== 'undefined') {
                         displayMessage(message.description, 'info');
+                        // Additional confirmation message
+                        displayMessage(`Location synchronized: ${message.location}`, 'success');
                     }
                 }
                 this.triggerCallback('locationChanged', message);
