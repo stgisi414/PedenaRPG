@@ -6226,105 +6226,11 @@ function initializeMultiplayerUI() {
     multiplayerBtn.innerHTML = '<i class="ra ra-players mr-2"></i>Multiplayer';
     multiplayerBtn.onclick = toggleMultiplayerInterface;
     
-    // Add to action buttons container - try multiple selectors to find the right container
-    let actionButtons = document.querySelector('#game-play-screen .mb-4.flex.flex-wrap.gap-2');
-    if (!actionButtons) {
-        actionButtons = document.querySelector('.action-buttons');
-    }
-    if (!actionButtons) {
-        actionButtons = document.querySelector('#action-buttons-container');
-    }
-    if (!actionButtons) {
-        // Fallback: add to game screen directly
-        const gameScreen = document.getElementById('game-play-screen');
-        if (gameScreen) {
-            const buttonContainer = document.createElement('div');
-            buttonContainer.className = 'mb-4 flex flex-wrap gap-2';
-            gameScreen.insertBefore(buttonContainer, gameScreen.firstChild);
-            actionButtons = buttonContainer;
-        }
-    }
-    
+    // Add to action buttons container
+    const actionButtons = document.querySelector('#game-play-screen .mb-4.flex.flex-wrap.gap-2');
     if (actionButtons) {
         actionButtons.appendChild(multiplayerBtn);
-        console.log('Multiplayer button added successfully');
-    } else {
-        console.error('Could not find action buttons container for multiplayer button');
     }
-    
-    // Create multiplayer interface HTML
-    const multiplayerHTML = `
-        <div id="multiplayer-interface" class="interface-layer hidden">
-            <div class="interface-header">
-                <h3><i class="ra ra-players mr-2"></i>Multiplayer</h3>
-                <button id="exit-multiplayer-btn" class="btn-parchment">Exit</button>
-            </div>
-            
-            <div id="multiplayer-content" class="p-4">
-                <!-- Connection Status -->
-                <div id="connection-status" class="mb-4">
-                    <span id="connection-indicator" class="status-disconnected">Disconnected</span>
-                </div>
-                
-                <!-- Room Creation/Joining -->
-                <div id="room-controls" class="mb-4">
-                    <button id="create-room-btn" class="btn-parchment mr-2">Create Room</button>
-                    <button id="join-room-btn" class="btn-parchment">Join Room</button>
-                </div>
-                
-                <!-- Room Code Input -->
-                <div id="room-input" class="hidden mb-4">
-                    <input type="text" id="room-code-input" placeholder="Enter room code" class="form-input mb-2">
-                    <button id="confirm-join-btn" class="btn-parchment">Join</button>
-                </div>
-                
-                <!-- Current Room Info -->
-                <div id="room-info" class="hidden">
-                    <h4 class="font-bold mb-2">Room: <span id="current-room-code"></span></h4>
-                    <p id="host-status" class="mb-3"></p>
-                    
-                    <!-- Player List -->
-                    <div id="player-list" class="mb-4">
-                        <h5 class="font-semibold mb-2">Players:</h5>
-                        <div id="players-container"></div>
-                    </div>
-                    
-                    <!-- Turn Order -->
-                    <div id="turn-order" class="mb-4">
-                        <h5 class="font-semibold mb-2">Current Turn:</h5>
-                        <p id="current-turn-player" class="text-yellow-400 font-bold">None</p>
-                        <button id="end-turn-btn" class="btn-parchment hidden mt-2">End Turn</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    `;
-    
-    // Insert multiplayer interface into game screen
-    const gameScreen = document.getElementById('game-play-screen');
-    if (gameScreen) {
-        gameScreen.insertAdjacentHTML('beforeend', multiplayerHTML);
-    }
-}
-
-function toggleMultiplayerInterface() {
-    const multiplayerInterface = document.getElementById('multiplayer-interface');
-    if (multiplayerInterface) {
-        // Hide other interfaces first
-        const interfacesToHide = ['inventory-interface', 'shop-interface', 'skills-interface', 'quest-interface', 'background-interface', 'progression-interface'];
-        interfacesToHide.forEach(id => {
-            const element = document.getElementById(id);
-            if (element) element.classList.add('hidden');
-        });
-        
-        // Toggle multiplayer interface
-        multiplayerInterface.classList.toggle('hidden');
-        console.log('Multiplayer interface toggled');
-    } else {
-        console.error('Multiplayer interface element not found');
-        displayMessage('Multiplayer interface not available', 'error');
-    }
-}
     
     // Create multiplayer interface HTML
     const multiplayerHTML = `
@@ -6382,23 +6288,12 @@ function toggleMultiplayerInterface() {
 }
 
 function setupMultiplayerEventListeners() {
-    // Use setTimeout to ensure DOM elements are ready
-    setTimeout(() => {
-        // Connection buttons
-        const createRoomBtn = document.getElementById('create-room-btn');
-        const joinRoomBtn = document.getElementById('join-room-btn');
-        const confirmJoinBtn = document.getElementById('confirm-join-btn');
-        const endTurnBtn = document.getElementById('end-turn-btn');
-        const exitMultiplayerBtn = document.getElementById('exit-multiplayer-btn');
-        
-        if (createRoomBtn) createRoomBtn.onclick = createMultiplayerRoom;
-        if (joinRoomBtn) joinRoomBtn.onclick = showJoinRoomInput;
-        if (confirmJoinBtn) confirmJoinBtn.onclick = joinMultiplayerRoom;
-        if (endTurnBtn) endTurnBtn.onclick = endPlayerTurn;
-        if (exitMultiplayerBtn) exitMultiplayerBtn.onclick = leaveMultiplayer;
-        
-        console.log('Multiplayer event listeners setup completed');
-    }, 100);
+    // Connection buttons
+    document.getElementById('create-room-btn').onclick = createMultiplayerRoom;
+    document.getElementById('join-room-btn').onclick = showJoinRoomInput;
+    document.getElementById('confirm-join-btn').onclick = joinMultiplayerRoom;
+    document.getElementById('end-turn-btn').onclick = endPlayerTurn;
+    document.getElementById('exit-multiplayer-btn').onclick = leaveMultiplayer;
     
     // Multiplayer client callbacks
     multiplayerClient.on('roomCreated', handleRoomCreated);
