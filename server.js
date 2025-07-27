@@ -9,7 +9,13 @@ const PORT = process.env.PORT || 5000;
 app.use(express.static(path.join(__dirname, 'public')));
 
 // Handle all routes by serving index.html (for single-page applications)
-app.get('*', (req, res) => {
+// Fixed the catch-all route to avoid path-to-regexp issues
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+// Handle any other routes
+app.use((req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
