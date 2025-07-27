@@ -207,7 +207,7 @@ class MultiplayerServer {
         console.log(`[MULTIPLAYER SERVER] Preparing to send location_changed message to ${message.playerName}`);
         console.log(`[MULTIPLAYER SERVER] Target location: ${room.gameState.location}`);
         
-        // Use setTimeout to ensure room_joined message is processed first
+        // Send multiple location sync attempts to ensure it works
         setTimeout(() => {
             const locationMessage = {
                 type: 'location_changed',
@@ -215,7 +215,8 @@ class MultiplayerServer {
                 description: `You have been moved to ${room.gameState.location} to join the party.`,
                 timestamp: Date.now(),
                 playerId: ws.playerId,
-                playerName: message.playerName
+                playerName: message.playerName,
+                forceSync: true
             };
             
             console.log(`[MULTIPLAYER SERVER] SENDING location_changed to ${message.playerName} (${ws.playerId})`);
@@ -226,6 +227,23 @@ class MultiplayerServer {
             this.sendToClient(ws, locationMessage);
             console.log(`[MULTIPLAYER SERVER] Location sync message sent to ${message.playerName}`);
         }, 100);
+        
+        // Send a second sync attempt after more time for the client to be ready
+        setTimeout(() => {
+            const locationMessage = {
+                type: 'location_changed',
+                location: room.gameState.location,
+                description: `Location synchronized: ${room.gameState.location}`,
+                timestamp: Date.now(),
+                playerId: ws.playerId,
+                playerName: message.playerName,
+                forceSync: true,
+                isSecondarySync: true
+            };
+            
+            console.log(`[MULTIPLAYER SERVER] SENDING secondary location sync to ${message.playerName}`);
+            this.sendToClient(ws, locationMessage);
+        }, 500);
     }
 
     handleReconnection(ws, message) {

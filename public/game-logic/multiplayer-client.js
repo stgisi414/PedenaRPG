@@ -84,60 +84,28 @@ export class MultiplayerClient {
                 console.log(`[MULTIPLAYER CLIENT] Current player object:`, typeof player !== 'undefined' ? player : 'undefined');
                 console.log(`[MULTIPLAYER CLIENT] Player current location before change:`, typeof player !== 'undefined' ? player.currentLocation : 'N/A');
                 console.log(`[MULTIPLAYER CLIENT] New location from message:`, message.location);
+                console.log(`[MULTIPLAYER CLIENT] Force sync flag:`, message.forceSync);
                 
-                if (typeof player !== 'undefined') {
-                    const oldLocation = player.currentLocation;
-                    player.currentLocation = message.location;
-                    console.log(`[MULTIPLAYER CLIENT] Player location updated from "${oldLocation}" to "${player.currentLocation}"`);
-                    
-                    // Update the location display in the UI immediately
-                    const locationElement = document.querySelector('#current-location, .current-location, [data-location]');
-                    if (locationElement) {
-                        locationElement.textContent = message.location;
-                        console.log(`[MULTIPLAYER CLIENT] Updated location element text to: ${message.location}`);
-                    }
-                    
-                    // Also try to find and update location display in stats
-                    const statsLocationElements = document.querySelectorAll('.player-stats .location, #player-location');
-                    statsLocationElements.forEach(el => {
-                        if (el) {
-                            el.textContent = message.location;
-                            console.log(`[MULTIPLAYER CLIENT] Updated stats location element`);
+                // If player object isn't ready yet, wait for it
+                if (typeof player === 'undefined') {
+                    console.log(`[MULTIPLAYER CLIENT] Player object not ready, waiting...`);
+                    let retryCount = 0;
+                    const waitForPlayer = setInterval(() => {
+                        retryCount++;
+                        console.log(`[MULTIPLAYER CLIENT] Retry ${retryCount}: Checking for player object...`);
+                        if (typeof player !== 'undefined') {
+                            console.log(`[MULTIPLAYER CLIENT] Player object now available! Processing location change...`);
+                            clearInterval(waitForPlayer);
+                            this.processLocationChange(message);
+                        } else if (retryCount >= 10) {
+                            console.log(`[MULTIPLAYER CLIENT] Giving up waiting for player object after ${retryCount} attempts`);
+                            clearInterval(waitForPlayer);
                         }
-                    });
-                    
-                    if (typeof updatePlayerStatsDisplay !== 'undefined') {
-                        console.log(`[MULTIPLAYER CLIENT] Calling updatePlayerStatsDisplay()`);
-                        updatePlayerStatsDisplay();
-                        console.log(`[MULTIPLAYER CLIENT] updatePlayerStatsDisplay() completed`);
-                    } else {
-                        console.log(`[MULTIPLAYER CLIENT] WARNING: updatePlayerStatsDisplay function not available`);
-                    }
-                    
-                    if (typeof displayMessage !== 'undefined') {
-                        console.log(`[MULTIPLAYER CLIENT] Displaying location change messages`);
-                        displayMessage(message.description, 'info');
-                        displayMessage(`Location synchronized: ${message.location}`, 'success');
-                        console.log(`[MULTIPLAYER CLIENT] Location change messages displayed`);
-                    } else {
-                        console.log(`[MULTIPLAYER CLIENT] WARNING: displayMessage function not available`);
-                    }
-                    
-                    // Force save game to persist location change
-                    if (typeof saveGame !== 'undefined') {
-                        console.log(`[MULTIPLAYER CLIENT] Saving game after location change`);
-                        saveGame();
-                        console.log(`[MULTIPLAYER CLIENT] Game saved`);
-                    } else {
-                        console.log(`[MULTIPLAYER CLIENT] WARNING: saveGame function not available`);
-                    }
-                } else {
-                    console.log(`[MULTIPLAYER CLIENT] ERROR: Player object is undefined, cannot update location`);
+                    }, 100);
+                    break;
                 }
                 
-                console.log(`[MULTIPLAYER CLIENT] Triggering locationChanged callback`);
-                this.triggerCallback('locationChanged', message);
-                console.log(`[MULTIPLAYER CLIENT] locationChanged callback triggered`);
+                this.processLocationChange(message);
                 break;
             case 'player_action':
                 this.displayPlayerAction(message);
@@ -337,6 +305,93 @@ export class MultiplayerClient {
             this.isHost = false;
             this.players = [];
         }
+    }
+
+    processLocationChange(message) {
+        console.log(`[MULTIPLAYER CLIENT] Processing location change to: ${message.location}`);
+        
+        if (typeof player !== 'undefined') {
+            const oldLocation = player.currentLocation;
+            player.currentLocation = message.location;
+            console.log(`[MULTIPLAYER CLIENT] Player location updated from "${oldLocation}" to "${player.currentLocation}"`);
+            
+            // Update the location display in the UI immediately
+            const locationElement = document.querySelector('#current-location, .current-location, [data-location]');
+            if (locationElement) {
+                locationElement.textContent = message.location;
+                console.log(`[MULTIPLAYER CLIENT] Updated location element text to: ${message.location}`);
+            }
+            
+            // Also try to find and update location display in stats
+            const statsLocationElements = document.querySelectorAll('.player-stats .location, #player-location');
+            statsLocationElements.forEach(el => {
+                if (el) {
+                    el.textContent = message.location;
+                    console.log(`[MULTIPLAYER CLIENT] Updated stats location element`);
+                }
+            });
+            
+            // Force update all location displays
+            this.forceUpdateLocationDisplay(message.location);
+            
+            if (typeof updatePlayerStatsDisplay !== 'undefined') {
+                console.log(`[MULTIPLAYER CLIENT] Calling updatePlayerStatsDisplay()`);
+                updatePlayerStatsDisplay();
+                console.log(`[MULTIPLAYER CLIENT] updatePlayerStatsDisplay() completed`);
+            } else {
+                console.log(`[MULTIPLAYER CLIENT] WARNING: updatePlayerStatsDisplay function not available`);
+            }
+            
+            if (typeof displayMessage !== 'undefined') {
+                console.log(`[MULTIPLAYER CLIENT] Displaying location change messages`);
+                if (!message.isSecondarySync) {
+                    displayMessage(message.description, 'info');
+                    displayMessage(`Location synchronized: ${message.location}`, 'success');
+                }
+                console.log(`[MULTIPLAYER CLIENT] Location change messages displayed`);
+            } else {
+                console.log(`[MULTIPLAYER CLIENT] WARNING: displayMessage function not available`);
+            }
+            
+            // Force save game to persist location change
+            if (typeof saveGame !== 'undefined') {
+                console.log(`[MULTIPLAYER CLIENT] Saving game after location change`);
+                saveGame();
+                console.log(`[MULTIPLAYER CLIENT] Game saved`);
+            } else {
+                console.log(`[MULTIPLAYER CLIENT] WARNING: saveGame function not available`);
+            }
+        } else {
+            console.log(`[MULTIPLAYER CLIENT] ERROR: Player object is undefined, cannot update location`);
+        }
+        
+        console.log(`[MULTIPLAYER CLIENT] Triggering locationChanged callback`);
+        this.triggerCallback('locationChanged', message);
+        console.log(`[MULTIPLAYER CLIENT] locationChanged callback triggered`);
+    }
+
+    forceUpdateLocationDisplay(location) {
+        console.log(`[MULTIPLAYER CLIENT] Force updating all location displays to: ${location}`);
+        
+        // Try multiple selectors to find location displays
+        const selectors = [
+            '#current-location',
+            '.current-location', 
+            '[data-location]',
+            '.player-stats .location',
+            '#player-location',
+            '.location-display'
+        ];
+        
+        selectors.forEach(selector => {
+            const elements = document.querySelectorAll(selector);
+            elements.forEach(el => {
+                if (el && el.textContent !== location) {
+                    console.log(`[MULTIPLAYER CLIENT] Updating element with selector "${selector}" to: ${location}`);
+                    el.textContent = location;
+                }
+            });
+        });
     }
 
     attemptReconnection() {
