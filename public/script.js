@@ -4283,6 +4283,9 @@ function displayQuests() {
     const multiplayerBtn = document.getElementById('multiplayer-btn');
     if (multiplayerBtn) {
         multiplayerBtn.addEventListener('click', toggleMultiplayerInterface);
+        console.log('✓ Multiplayer button event listener added');
+    } else {
+        console.error('✗ Multiplayer button not found');
     }
 }
 
