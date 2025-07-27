@@ -9,6 +9,9 @@ export class MultiplayerClient {
         this.currentTurn = null;
         this.players = [];
         this.callbacks = new Map();
+        this.reconnectAttempts = 0;
+        this.maxReconnectAttempts = 5;
+        this.reconnectTimeout = null;
     }
 
     connect() {
@@ -59,6 +62,15 @@ export class MultiplayerClient {
                 this.isHost = message.isHost;
                 this.triggerCallback('roomJoined', message);
                 break;
+            case 'reconnected':
+                this.roomId = message.roomId;
+                this.isHost = message.isHost;
+                this.reconnectAttempts = 0;
+                if (typeof displayMessage !== 'undefined') {
+                    displayMessage(message.message, 'success');
+                }
+                this.triggerCallback('reconnected', message);
+                break;
             case 'room_update':
                 this.players = message.players;
                 this.currentTurn = message.gameState.currentTurn;
@@ -81,6 +93,16 @@ export class MultiplayerClient {
                 this.currentTurn = message.currentTurn;
                 this.updateTurnDisplay();
                 this.triggerCallback('turnChanged', message);
+                break;
+            case 'player_disconnected':
+                if (typeof displayMessage !== 'undefined') {
+                    displayMessage(message.message, 'warning');
+                }
+                break;
+            case 'player_permanently_left':
+                if (typeof displayMessage !== 'undefined') {
+                    displayMessage(message.message, 'info');
+                }
                 break;
             case 'error':
                 if (typeof displayMessage !== 'undefined') {
@@ -202,12 +224,51 @@ export class MultiplayerClient {
     }
 
     handleDisconnection() {
+        this.isConnected = false;
+        
         if (typeof displayMessage !== 'undefined') {
             displayMessage('Disconnected from multiplayer server', 'error');
         }
-        this.roomId = null;
-        this.isHost = false;
-        this.players = [];
+        
+        // Attempt automatic reconnection if we were in a room
+        if (this.roomId && this.reconnectAttempts < this.maxReconnectAttempts) {
+            this.attemptReconnection();
+        } else {
+            // Give up on reconnection
+            this.roomId = null;
+            this.isHost = false;
+            this.players = [];
+        }
+    }
+
+    attemptReconnection() {
+        this.reconnectAttempts++;
+        
+        if (typeof displayMessage !== 'undefined') {
+            displayMessage(`Attempting to reconnect... (${this.reconnectAttempts}/${this.maxReconnectAttempts})`, 'info');
+        }
+        
+        this.reconnectTimeout = setTimeout(() => {
+            this.connect().then(() => {
+                // Attempt to reconnect to previous session
+                this.send({
+                    type: 'reconnect',
+                    playerName: typeof player !== 'undefined' ? player.name : 'Unknown',
+                    sessionToken: this.playerId
+                });
+            }).catch(() => {
+                if (this.reconnectAttempts < this.maxReconnectAttempts) {
+                    this.attemptReconnection();
+                } else {
+                    if (typeof displayMessage !== 'undefined') {
+                        displayMessage('Failed to reconnect. Please refresh and rejoin manually.', 'error');
+                    }
+                    this.roomId = null;
+                    this.isHost = false;
+                    this.players = [];
+                }
+            });
+        }, 2000 * this.reconnectAttempts); // Exponential backoff
     }
 }
 

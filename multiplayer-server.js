@@ -7,22 +7,65 @@ class MultiplayerServer {
         this.wss = new WebSocket.Server({ host: '0.0.0.0', port });
         this.rooms = new Map();
         this.players = new Map();
+        this.disconnectedPlayers = new Map(); // Store temporarily disconnected players
         
         this.wss.on('connection', this.handleConnection.bind(this));
+        
+        // Start heartbeat interval
+        this.startHeartbeat();
+        
+        // Clean up disconnected players after 60 seconds
+        this.startCleanupInterval();
+        
         console.log(`Multiplayer server running on port ${port}`);
     }
 
     handleConnection(ws, req) {
         const playerId = uuidv4();
         ws.playerId = playerId;
+        ws.isAlive = true;
+        ws.lastPong = Date.now();
         
         ws.on('message', (data) => this.handleMessage(ws, data));
         ws.on('close', () => this.handleDisconnection(ws));
+        ws.on('pong', () => {
+            ws.isAlive = true;
+            ws.lastPong = Date.now();
+        });
         
         this.sendToClient(ws, {
             type: 'connected',
             playerId: playerId
         });
+    }
+
+    startHeartbeat() {
+        setInterval(() => {
+            this.wss.clients.forEach((ws) => {
+                if (ws.isAlive === false) {
+                    console.log(`Terminating dead connection: ${ws.playerId}`);
+                    return ws.terminate();
+                }
+                
+                // Mark as potentially dead and ping
+                ws.isAlive = false;
+                ws.ping();
+            });
+        }, 30000); // Check every 30 seconds
+    }
+
+    startCleanupInterval() {
+        setInterval(() => {
+            const now = Date.now();
+            const cleanupTime = 60000; // 60 seconds
+            
+            for (const [playerId, disconnectedData] of this.disconnectedPlayers.entries()) {
+                if (now - disconnectedData.disconnectedAt > cleanupTime) {
+                    console.log(`Cleaning up permanently disconnected player: ${playerId}`);
+                    this.permanentlyRemovePlayer(playerId);
+                }
+            }
+        }, 30000); // Check every 30 seconds
     }
 
     handleMessage(ws, data) {
@@ -35,6 +78,9 @@ class MultiplayerServer {
                     break;
                 case 'join_room':
                     this.joinRoom(ws, message);
+                    break;
+                case 'reconnect':
+                    this.handleReconnection(ws, message);
                     break;
                 case 'leave_room':
                     this.leaveRoom(ws);
@@ -135,6 +181,59 @@ class MultiplayerServer {
         this.broadcastRoomUpdate(message.roomId);
     }
 
+    handleReconnection(ws, message) {
+        const { playerName, sessionToken } = message;
+        
+        // Check if this player was recently disconnected
+        const disconnectedData = this.disconnectedPlayers.get(sessionToken);
+        if (!disconnectedData) {
+            this.sendToClient(ws, {
+                type: 'error',
+                message: 'No recent session found. Please join a room normally.'
+            });
+            return;
+        }
+        
+        // Restore player state
+        const room = this.rooms.get(disconnectedData.roomId);
+        if (!room) {
+            this.sendToClient(ws, {
+                type: 'error',
+                message: 'Room no longer exists'
+            });
+            this.disconnectedPlayers.delete(sessionToken);
+            return;
+        }
+        
+        // Update WebSocket connection
+        ws.playerId = sessionToken;
+        disconnectedData.playerData.socket = ws;
+        
+        // Restore player to room
+        room.players.set(sessionToken, disconnectedData.playerData);
+        this.players.set(sessionToken, { roomId: disconnectedData.roomId, socket: ws });
+        
+        // Remove from disconnected list
+        this.disconnectedPlayers.delete(sessionToken);
+        
+        this.sendToClient(ws, {
+            type: 'reconnected',
+            roomId: disconnectedData.roomId,
+            isHost: disconnectedData.playerData.isHost,
+            message: 'Successfully reconnected to your previous session'
+        });
+        
+        // Send current location
+        this.sendToClient(ws, {
+            type: 'location_changed',
+            location: room.gameState.location,
+            description: `You have reconnected and are back in ${room.gameState.location}.`
+        });
+        
+        this.broadcastRoomUpdate(disconnectedData.roomId);
+        console.log(`Player ${playerName} successfully reconnected`);
+    }
+
     handleTravelRequest(ws, message) {
         const playerData = this.players.get(ws.playerId);
         if (!playerData) return;
@@ -217,24 +316,64 @@ class MultiplayerServer {
         
         const room = this.rooms.get(playerData.roomId);
         if (room) {
-            room.players.delete(ws.playerId);
-            room.gameState.turnOrder = room.gameState.turnOrder.filter(id => id !== ws.playerId);
-            
-            if (room.host === ws.playerId && room.players.size > 0) {
-                // Transfer host to next player
-                const newHost = room.players.values().next().value;
-                room.host = newHost.id;
-                newHost.isHost = true;
-            }
-            
-            if (room.players.size === 0) {
-                this.rooms.delete(playerData.roomId);
-            } else {
-                this.broadcastRoomUpdate(playerData.roomId);
+            const player = room.players.get(ws.playerId);
+            if (player) {
+                // Store disconnected player data for potential reconnection
+                this.disconnectedPlayers.set(ws.playerId, {
+                    playerData: {
+                        ...player,
+                        socket: null // Clear the old socket
+                    },
+                    roomId: playerData.roomId,
+                    disconnectedAt: Date.now()
+                });
+                
+                // Temporarily remove from active room
+                room.players.delete(ws.playerId);
+                room.gameState.turnOrder = room.gameState.turnOrder.filter(id => id !== ws.playerId);
+                
+                // Handle host transfer if needed
+                if (room.host === ws.playerId && room.players.size > 0) {
+                    const newHost = room.players.values().next().value;
+                    room.host = newHost.id;
+                    newHost.isHost = true;
+                }
+                
+                // Broadcast disconnection message
+                this.broadcastToRoom(playerData.roomId, {
+                    type: 'player_disconnected',
+                    playerId: ws.playerId,
+                    playerName: player.name,
+                    message: `${player.name} has disconnected and may reconnect soon.`
+                });
+                
+                if (room.players.size === 0) {
+                    this.rooms.delete(playerData.roomId);
+                } else {
+                    this.broadcastRoomUpdate(playerData.roomId);
+                }
+                
+                console.log(`Player ${player.name} temporarily disconnected, stored for potential reconnection`);
             }
         }
         
         this.players.delete(ws.playerId);
+    }
+
+    permanentlyRemovePlayer(playerId) {
+        const disconnectedData = this.disconnectedPlayers.get(playerId);
+        if (disconnectedData) {
+            const room = this.rooms.get(disconnectedData.roomId);
+            if (room) {
+                this.broadcastToRoom(disconnectedData.roomId, {
+                    type: 'player_permanently_left',
+                    playerId: playerId,
+                    playerName: disconnectedData.playerData.name,
+                    message: `${disconnectedData.playerData.name} has permanently left the game.`
+                });
+            }
+            this.disconnectedPlayers.delete(playerId);
+        }
     }
 
     broadcastToRoom(roomId, message) {
