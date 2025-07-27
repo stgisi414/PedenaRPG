@@ -203,47 +203,21 @@ class MultiplayerServer {
         console.log(`[MULTIPLAYER SERVER] Broadcasting room update for room ${message.roomId}`);
         this.broadcastRoomUpdate(message.roomId);
         
-        // Send location sync to joining player immediately after room update
-        console.log(`[MULTIPLAYER SERVER] Preparing to send location_changed message to ${message.playerName}`);
-        console.log(`[MULTIPLAYER SERVER] Target location: ${room.gameState.location}`);
+        // Send immediate location sync to joining player
+        console.log(`[MULTIPLAYER SERVER] Sending location sync to ${message.playerName}`);
         
-        // Send multiple location sync attempts to ensure it works
-        setTimeout(() => {
-            const locationMessage = {
-                type: 'location_changed',
-                location: room.gameState.location,
-                description: `You have been moved to ${room.gameState.location} to join the party.`,
-                timestamp: Date.now(),
-                playerId: ws.playerId,
-                playerName: message.playerName,
-                forceSync: true
-            };
-            
-            console.log(`[MULTIPLAYER SERVER] SENDING location_changed to ${message.playerName} (${ws.playerId})`);
-            console.log(`[MULTIPLAYER SERVER] Location data: ${room.gameState.location}`);
-            console.log(`[MULTIPLAYER SERVER] WebSocket readyState: ${ws.readyState}`);
-            console.log(`[MULTIPLAYER SERVER] Full location message:`, JSON.stringify(locationMessage, null, 2));
-            
-            this.sendToClient(ws, locationMessage);
-            console.log(`[MULTIPLAYER SERVER] Location sync message sent to ${message.playerName}`);
-        }, 100);
+        const locationMessage = {
+            type: 'location_changed',
+            location: room.gameState.location,
+            description: `You have joined the party in ${room.gameState.location}`,
+            timestamp: Date.now(),
+            playerId: ws.playerId,
+            playerName: message.playerName
+        };
         
-        // Send a second sync attempt after more time for the client to be ready
-        setTimeout(() => {
-            const locationMessage = {
-                type: 'location_changed',
-                location: room.gameState.location,
-                description: `Location synchronized: ${room.gameState.location}`,
-                timestamp: Date.now(),
-                playerId: ws.playerId,
-                playerName: message.playerName,
-                forceSync: true,
-                isSecondarySync: true
-            };
-            
-            console.log(`[MULTIPLAYER SERVER] SENDING secondary location sync to ${message.playerName}`);
-            this.sendToClient(ws, locationMessage);
-        }, 500);
+        // Send immediately after room update
+        this.sendToClient(ws, locationMessage);
+        console.log(`[MULTIPLAYER SERVER] Location sync sent: ${room.gameState.location}`);
     }
 
     handleReconnection(ws, message) {

@@ -79,33 +79,8 @@ export class MultiplayerClient {
                 this.triggerCallback('roomUpdate', message);
                 break;
             case 'location_changed':
-                console.log(`[MULTIPLAYER CLIENT] Received location_changed message:`, message);
-                console.log(`[MULTIPLAYER CLIENT] Message timestamp:`, new Date(message.timestamp || Date.now()).toISOString());
-                console.log(`[MULTIPLAYER CLIENT] Current player object:`, typeof player !== 'undefined' ? player : 'undefined');
-                console.log(`[MULTIPLAYER CLIENT] Player current location before change:`, typeof player !== 'undefined' ? player.currentLocation : 'N/A');
-                console.log(`[MULTIPLAYER CLIENT] New location from message:`, message.location);
-                console.log(`[MULTIPLAYER CLIENT] Force sync flag:`, message.forceSync);
-                
-                // If player object isn't ready yet, wait for it
-                if (typeof player === 'undefined') {
-                    console.log(`[MULTIPLAYER CLIENT] Player object not ready, waiting...`);
-                    let retryCount = 0;
-                    const waitForPlayer = setInterval(() => {
-                        retryCount++;
-                        console.log(`[MULTIPLAYER CLIENT] Retry ${retryCount}: Checking for player object...`);
-                        if (typeof player !== 'undefined') {
-                            console.log(`[MULTIPLAYER CLIENT] Player object now available! Processing location change...`);
-                            clearInterval(waitForPlayer);
-                            this.processLocationChange(message);
-                        } else if (retryCount >= 10) {
-                            console.log(`[MULTIPLAYER CLIENT] Giving up waiting for player object after ${retryCount} attempts`);
-                            clearInterval(waitForPlayer);
-                        }
-                    }, 100);
-                    break;
-                }
-                
-                this.processLocationChange(message);
+                console.log(`[MULTIPLAYER CLIENT] Received location_changed:`, message);
+                // Location processing is now handled by multiplayer-init.js
                 break;
             case 'player_action':
                 this.displayPlayerAction(message);
