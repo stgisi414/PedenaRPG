@@ -1,0 +1,40 @@
+I don't understand why you can't look at the HTML you're the fucking coding assistant holy moly you suck
+
+<!-- Multiplayer Interface -->
+                <div id="multiplayer-interface" class="hidden mt-6">
+                    <div class="interface-header">
+                        <h3><i class="ra ra-players mr-2"></i>Multiplayer</h3>
+                        <button id="exit-multiplayer-btn" class="btn-parchment">Exit</button>
+                    </div>
+                    <div id="multiplayer-content">
+                        <!-- Connection Status -->
+                        <div id="connection-status" class="mb-4">
+                            <span id="connection-indicator" class="status-disconnected">Disconnected</span>
+                        </div>
+                        <!-- Room Creation/Joining -->
+                        <div id="room-controls" class="mb-4">
+                            <button id="create-room-btn" class="btn-parchment mr-2">Create Room</button>
+                            <button id="join-room-btn" class="btn-parchment">Join Room</button>
+                        </div>
+                        <!-- Room Code Input -->
+                        <div id="room-input" class="hidden mb-4">
+                            <input type="text" id="room-code-input" placeholder="Enter room code" class="form-input">
+                            <button id="confirm-join-btn" class="btn-parchment ml-2">Join</button>
+                        </div>
+                        <!-- Current Room Info -->
+                        <div id="room-info" class="hidden">
+                            <h4>Room: <span id="current-room-code"></span></h4>
+                            <p id="host-status"></p>
+                            <!-- Player List -->
+                            <div id="player-list">
+                                <h5>Players:</h5>
+                                <div id="players-container"></div>
+                            </div>
+                            <!-- Turn Order -->
+                            <div id="turn-order">
+                                <h5>Current Turn: <span id="current-turn-player"></span></h5>
+                                <button id="end-turn-btn" class="btn-parchment hidden">End Turn</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
