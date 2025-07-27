@@ -229,7 +229,7 @@ function displayMap() {
         const countryBtn = document.createElement('button');
         countryBtn.className = 'country-btn';
         countryBtn.setAttribute('data-country', countryKey);
-        
+
         // Create shortened display names for better visual appeal
         const displayNames = {
             'pedena': 'Pedena',
@@ -249,21 +249,21 @@ function displayMap() {
             'murkwaterFen': 'Murkwater',
             'florencia': 'Florencia'
         };
-        
+
         countryBtn.textContent = displayNames[countryKey] || country.name;
         countryBtn.title = `${country.name} - ${country.description}`;
         countryBtn.onclick = () => showCountryDetails(countryKey);
-        
+
         // Add subtle animation delay for staggered appearance
         countryBtn.style.animationDelay = `${Object.keys(countries).indexOf(countryKey) * 0.1}s`;
-        
+
         mapDisplay.appendChild(countryBtn);
     }
 
     // Add entrance animation
     mapDisplay.style.opacity = '0';
     mapDisplay.style.transform = 'scale(0.9)';
-    
+
     setTimeout(() => {
         mapDisplay.style.transition = 'all 0.5s ease-out';
         mapDisplay.style.opacity = '1';
@@ -516,9 +516,10 @@ async function processAlignmentChange(change) {
     try {
         const result = AlignmentSystem.updateAlignment(player, change);
 
-        if (!result || typeof result.changed !== 'boolean' || typeof result.newType !== 'string') {
+        // Add a stronger check
+        if (!result || typeof result.newType !== 'string' || !result.newType) {
             console.error("Invalid object returned from AlignmentSystem.updateAlignment:", result);
-            return;
+            return; // Stop execution to prevent the bad message
         }
 
         if (result.changed) {
@@ -642,7 +643,7 @@ function fixCharacterStats() {
     // Get class progression data
     let classData = null;
     let primaryStats = [];
-    
+
     if (player.class && typeof window.classProgression !== 'undefined') {
         classData = window.classProgression[player.class.toLowerCase()];
         if (classData && Array.isArray(classData.primaryStats)) {
@@ -667,20 +668,20 @@ function fixCharacterStats() {
 
     allStatNames.forEach(statName => {
         const originalValue = player.stats[statName] || 0;
-        
+
         // Calculate correct stat value
         let correctValue = baseStatValue; // Base value of 10
-        
+
         // Add +1 per level starting from level 2
         if (currentLevel > 1) {
             correctValue += (currentLevel - 1);
         }
-        
+
         // Primary stat bonuses
         if (primaryStats.includes(statName)) {
             // +2 bonus at character creation for primary stats
             correctValue += 2;
-            
+
             // Additional +2 every 4 levels for primary stats (levels 4, 8, 12, 16, etc.)
             const additionalBonuses = Math.floor(currentLevel / 4);
             if (additionalBonuses > 0) {
@@ -699,21 +700,21 @@ function fixCharacterStats() {
     // Report results
     if (changedStats > 0) {
         displayMessage(`✅ Fixed ${changedStats} stats for ${player.name}!`, 'success');
-        
+
         if (primaryStats.length > 0) {
             displayMessage(`Primary stats: ${primaryStats.join(', ')} (+2 base, +2 every 4 levels)`, 'info');
         } else {
             displayMessage(`Warning: Could not determine primary stats for class '${player.class}'`, 'error');
         }
-        
+
         displayMessage(`All stats: ${allStatNames.map(s => `${s}: ${player.stats[s]}`).join(', ')}`, 'info');
-        
+
         // Save everything
         saveGame();
         if (window.CharacterManager && typeof CharacterManager.saveProgression === 'function') {
             CharacterManager.saveProgression(player);
         }
-        
+
         // Update UI
         if (typeof updatePlayerStatsDisplay === 'function') {
             updatePlayerStatsDisplay();
@@ -721,7 +722,7 @@ function fixCharacterStats() {
     } else {
         displayMessage("✅ All stats are already correct for this character's level and class.", 'info');
     }
-    
+
     return changedStats;
 }
 
@@ -1956,7 +1957,7 @@ async function handleItemEnhancement(command, lowerCommand) {
     const itemName = itemNameMatch[1].trim();
 
     // Find item in inventory
-    const itemIndex = player.inventory.findIndex(item => 
+    const itemIndex = player.inventory.findIndex(item =>
         item.name.toLowerCase().includes(itemName.toLowerCase()) ||
         itemName.toLowerCase().includes(item.name.toLowerCase())
     );
@@ -3475,7 +3476,7 @@ function handleCombatEnd(result) {
 // Process item changes from structured AI responses
 async function processItemChanges(itemChanges, player) {
     console.log("processItemChanges: Processing item changes:", JSON.stringify(itemChanges, null, 2));
-    
+
     if (!itemChanges) {
         console.log("processItemChanges: No item changes to process");
         return;
@@ -3490,12 +3491,12 @@ async function processItemChanges(itemChanges, player) {
     if (itemChanges.remove && Array.isArray(itemChanges.remove) && itemChanges.remove.length > 0) {
         for (const itemToRemove of itemChanges.remove) {
             const itemName = typeof itemToRemove === 'string' ? itemToRemove : itemToRemove.name;
-            const itemIndex = player.inventory.findIndex(item => 
+            const itemIndex = player.inventory.findIndex(item =>
                 item.name.toLowerCase() === itemName.toLowerCase() ||
                 item.name.toLowerCase().includes(itemName.toLowerCase()) ||
                 itemName.toLowerCase().includes(item.name.toLowerCase())
             );
-            
+
             if (itemIndex !== -1) {
                 const removedItem = player.inventory.splice(itemIndex, 1)[0];
                 displayMessage(`${removedItem.name} removed from inventory.`, 'info');
@@ -3510,7 +3511,7 @@ async function processItemChanges(itemChanges, player) {
     if (itemChanges.add && Array.isArray(itemChanges.add) && itemChanges.add.length > 0) {
         for (const itemToAdd of itemChanges.add) {
             let newItem;
-            
+
             if (typeof itemToAdd === 'string') {
                 // Simple string item name - generate a basic item
                 newItem = await generateItemFromDescription(itemToAdd, {
@@ -3548,7 +3549,7 @@ async function processItemChanges(itemChanges, player) {
                 } else {
                     player.inventory.push(newItem);
                 }
-                
+
                 displayMessage(`You obtained: ${newItem.name}!`, 'success');
                 console.log(`processItemChanges: Added item: ${newItem.name}`);
             }
@@ -5686,10 +5687,10 @@ async function executeCustomCommand(command) {
 
     // --- NEW: Command pre-processing for specific actions ---
     const lowerCommand = command.toLowerCase().trim();
-    
+
     // Item enhancement keywords
     const enhanceKeywords = ['enhance', 'upgrade', 'improve', 'enchant', 'reinforce', 'strengthen', 'empower'];
-    
+
     const recruitKeywords = ['recruit', 'hire', 'ask to join', 'bring along'];
 
     // Check for item enhancement command
@@ -5779,8 +5780,6 @@ async function executeCustomCommand(command) {
         console.error("Error processing command:", error);
         displayMessage("You attempt your action, but something goes wrong. The world seems to resist your will.", 'error');
     }
-
-    saveGame();
 }
 
 // I'll add this new helper function to handle moving the party.
@@ -6075,46 +6074,46 @@ function startNewGame(player) {
     // Reset game state
     if (!player || player == {} || player === "") {
         player = {
-        name: '',
-        gender: '',
-        class: '',
-        background: '',
-        stats: {
-            strength: 10,
-            dexterity: 10,
-            intelligence: 10,
-            constitution: 10,
-            wisdom: 10,
-            charisma: 10
-        },
-        hp: 100,
-        maxHp: 100,
-        level: 1,
-        exp: 0,
-        expToNextLevel: 100,
-        gold: 50,
-        inventory: [],
-        equipment: {
-            head: null,
-            chest: null,
-            hands: null,
-            legs: null,
-            feet: null,
-            mainHand: null,
-            offHand: null,
-            amulet: null,
-            ring1: null,
-            ring2: null,
-            back: null
-        },
-        skills: [],
-        abilities: [],
-        quests: [],
-        relationships: {},
-        currentLocation: 'Pedena Town Square',
-        currentEnemy: null,
-        alignment: null
-    };
+            name: '',
+            gender: '',
+            class: '',
+            background: '',
+            stats: {
+                strength: 10,
+                dexterity: 10,
+                intelligence: 10,
+                constitution: 10,
+                wisdom: 10,
+                charisma: 10
+            },
+            hp: 100,
+            maxHp: 100,
+            level: 1,
+            exp: 0,
+            expToNextLevel: 100,
+            gold: 50,
+            inventory: [],
+            equipment: {
+                head: null,
+                chest: null,
+                hands: null,
+                legs: null,
+                feet: null,
+                mainHand: null,
+                offHand: null,
+                amulet: null,
+                ring1: null,
+                ring2: null,
+                back: null
+            },
+            skills: [],
+            abilities: [],
+            quests: [],
+            relationships: {},
+            currentLocation: 'Pedena Town Square',
+            currentEnemy: null,
+            alignment: null
+        };
     }
 
     // Reset conversation history
@@ -6268,7 +6267,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (typeof BGMManager !== 'undefined') {
             bgmManager = new BGMManager();
             console.log('BGM Manager initialized');
-            
+
             // Load BGM settings
             loadBGMSettings();
             setupBGMEventListeners();
@@ -7242,65 +7241,65 @@ function buildEquipmentDisplay() {
             if (item.damage) combatStats.push(`Damage: ${item.damage}`);
             if (item.armor) combatStats.push(`Armor: +${item.armor}`);
 
-// Donation System Functions
-function openDonationModal() {
-    if (donationModal) {
-        donationModal.classList.remove('hidden');
-    }
-}
-
-function closeDonationModal() {
-    if (donationModal) {
-        donationModal.classList.add('hidden');
-    }
-}
-
-function handleDonation(amount) {
-    // Create Venmo payment URL
-    const venmoUrl = `https://venmo.com/code?user_id=@your-venmo-username&amount=${amount}&note=Support%20Shadowscale%20Chronicles`;
-    
-    // Open Venmo payment in new tab
-    window.open(venmoUrl, '_blank');
-    
-    // Display thank you message
-    displayMessage(`Thank you for your ${amount} donation! Opening Venmo payment...`, 'success');
-    
-    // Close modal after a brief delay
-    setTimeout(() => {
-        closeDonationModal();
-    }, 1500);
-}
-
-// Initialize donation system when DOM is loaded
-document.addEventListener('DOMContentLoaded', function() {
-    // Donation modal event listeners
-    if (donateBtn) {
-        donateBtn.addEventListener('click', openDonationModal);
-    }
-    
-    if (donationModalCloseBtn) {
-        donationModalCloseBtn.addEventListener('click', closeDonationModal);
-    }
-    
-    // Close modal when clicking outside of it
-    if (donationModal) {
-        donationModal.addEventListener('click', function(e) {
-            if (e.target === donationModal) {
-                closeDonationModal();
+            // Donation System Functions
+            function openDonationModal() {
+                if (donationModal) {
+                    donationModal.classList.remove('hidden');
+                }
             }
-        });
-    }
-    
-    // Event delegation for donation amount buttons
-    document.addEventListener('click', function(e) {
-        if (e.target.classList.contains('donate-amount-btn')) {
-            const amount = e.target.getAttribute('data-amount');
-            if (amount) {
-                handleDonation(amount);
+
+            function closeDonationModal() {
+                if (donationModal) {
+                    donationModal.classList.add('hidden');
+                }
             }
-        }
-    });
-});
+
+            function handleDonation(amount) {
+                // Create Venmo payment URL
+                const venmoUrl = `https://venmo.com/code?user_id=@your-venmo-username&amount=${amount}&note=Support%20Shadowscale%20Chronicles`;
+
+                // Open Venmo payment in new tab
+                window.open(venmoUrl, '_blank');
+
+                // Display thank you message
+                displayMessage(`Thank you for your ${amount} donation! Opening Venmo payment...`, 'success');
+
+                // Close modal after a brief delay
+                setTimeout(() => {
+                    closeDonationModal();
+                }, 1500);
+            }
+
+            // Initialize donation system when DOM is loaded
+            document.addEventListener('DOMContentLoaded', function() {
+                // Donation modal event listeners
+                if (donateBtn) {
+                    donateBtn.addEventListener('click', openDonationModal);
+                }
+
+                if (donationModalCloseBtn) {
+                    donationModalCloseBtn.addEventListener('click', closeDonationModal);
+                }
+
+                // Close modal when clicking outside of it
+                if (donationModal) {
+                    donationModal.addEventListener('click', function(e) {
+                        if (e.target === donationModal) {
+                            closeDonationModal();
+                        }
+                    });
+                }
+
+                // Event delegation for donation amount buttons
+                document.addEventListener('click', function(e) {
+                    if (e.target.classList.contains('donate-amount-btn')) {
+                        const amount = e.target.getAttribute('data-amount');
+                        if (amount) {
+                            handleDonation(amount);
+                        }
+                    }
+                });
+            });
 
 
             if (item.defense) combatStats.push(`Defense: +${item.defense}`);
