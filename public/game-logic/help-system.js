@@ -80,6 +80,19 @@ export class HelpSystem {
             examples: ['modules'],
             category: this.helpCategories.BASIC
         },
+        'ooc': {
+            usage: '(OOC: your message)',
+            description: 'Send an Out of Character message to communicate with the AI without affecting the game',
+            examples: [
+                '(OOC: Can you make the next encounter easier?)',
+                '(OOC: I want to focus on roleplay instead of combat)',
+                '(OOC: Please generate a romantic subplot)',
+                '(OOC: Make the NPCs more talkative)',
+                '(OOC: I\'m confused about the quest objective)'
+            ],
+            tips: 'Use OOC messages to give the AI directions about tone, difficulty, story elements, or ask for clarification without breaking character immersion.',
+            category: this.helpCategories.BASIC
+        },
         
         // Movement Commands
         'go': {
@@ -291,10 +304,11 @@ export class HelpSystem {
 
         helpMessages.push(`🎯 **GETTING STARTED:**`);
         helpMessages.push(`1. **Create** a character if you haven't already`);
-        helpMessages.push(`2. **Explore** to discover your surroundings`);
-        helpMessages.push(`3. **Check inventory** to see your starting equipment`);
-        helpMessages.push(`4. **Talk to NPCs** to learn about the world`);
-        helpMessages.push(`5. **Generate quests** for adventure and rewards`);
+        helpMessages.push(`2. **Use OOC messages** to guide the AI: (OOC: make this easier)`);
+        helpMessages.push(`3. **Explore** to discover your surroundings`);
+        helpMessages.push(`4. **Check inventory** to see your starting equipment`);
+        helpMessages.push(`5. **Talk to NPCs** to learn about the world`);
+        helpMessages.push(`6. **Generate quests** for adventure and rewards`);
         helpMessages.push(`---`);
 
         // Show commands by category in bite-sized chunks
@@ -306,6 +320,7 @@ export class HelpSystem {
         });
 
         helpMessages.push(`💡 **PRO TIPS:**`);
+        helpMessages.push(`• Use (OOC: message) to communicate with the AI without breaking immersion`);
         helpMessages.push(`• Be descriptive: "attack goblin" and "fight the goblin" both work`);
         helpMessages.push(`• NPCs remember your interactions and build relationships`);
         helpMessages.push(`• Your moral choices affect alignment and available options`);
@@ -492,6 +507,7 @@ export class HelpSystem {
         
         helpMessages.push(`⚡ **ESSENTIAL COMMANDS:**`);
         helpMessages.push(`• **help** - Show help system`);
+        helpMessages.push(`• **(OOC: message)** - Guide the AI out of character`);
         helpMessages.push(`• **explore** - Discover surroundings`);
         helpMessages.push(`• **inventory** - Check items`);
         helpMessages.push(`• **quests** - View quest log`);
