@@ -1105,11 +1105,47 @@ function displayMessage(message, type = 'info') {
 function updatePlayerStatsDisplay() {
     console.log('[MAIN SCRIPT] updatePlayerStatsDisplay called');
     console.log('[MAIN SCRIPT] Current player location:', player ? player.currentLocation : 'player undefined');
-    // Always process location text through rich text system for consistent formatting/stripping
+    
+    if (!player || !player.name || !player.currentLocation) {
+        console.log('[MAIN SCRIPT] Player data incomplete, skipping update');
+        return;
+    }
+    
+    // Get the elements
+    const playerNameDisplay = document.getElementById('player-name');
+    const playerLevelDisplay = document.getElementById('player-level');
+    const playerHpDisplay = document.getElementById('player-hp');
+    
+    if (!playerNameDisplay || !playerLevelDisplay || !playerHpDisplay) {
+        console.log('[MAIN SCRIPT] Required elements not found');
+        return;
+    }
+    
+    // Process location text through rich text system for consistent formatting/stripping
     const locationText = processRichText(player.currentLocation, 'location');
+    
+    // Force update the player name display with multiple methods to ensure it works
+    console.log(`[MAIN SCRIPT] Updating player name display: ${player.name} - ${locationText}`);
+    
+    // Method 1: Direct update
     playerNameDisplay.innerHTML = `${player.name} - ${locationText}`;
+    
+    // Method 2: Force DOM refresh
+    playerNameDisplay.style.display = 'none';
+    playerNameDisplay.offsetHeight; // Force reflow
+    playerNameDisplay.style.display = '';
+    
+    // Method 3: Set again to ensure it sticks
+    setTimeout(() => {
+        playerNameDisplay.innerHTML = `${player.name} - ${locationText}`;
+        console.log(`[MAIN SCRIPT] Final player name display content: ${playerNameDisplay.innerHTML}`);
+    }, 0);
+    
+    // Update other displays
     playerLevelDisplay.textContent = `Level: ${player.level}`;
     playerHpDisplay.textContent = `HP: ${player.hp}/${player.maxHp}`;
+    
+    console.log('[MAIN SCRIPT] updatePlayerStatsDisplay completed');
 }
 
 function showScreen(screenId) {
