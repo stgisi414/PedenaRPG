@@ -201,28 +201,26 @@ class MultiplayerServer {
         this.broadcastRoomUpdate(message.roomId);
         
         // Send location sync to joining player after room update
-        console.log(`[MULTIPLAYER SERVER] Preparing to send location_changed message to ${message.playerName} in 100ms`);
+        console.log(`[MULTIPLAYER SERVER] Preparing to send location_changed message to ${message.playerName}`);
         console.log(`[MULTIPLAYER SERVER] Target location: ${room.gameState.location}`);
         
-        setTimeout(() => {
-            console.log(`[MULTIPLAYER SERVER] SENDING location_changed to ${message.playerName} (${ws.playerId})`);
-            console.log(`[MULTIPLAYER SERVER] Location data: ${room.gameState.location}`);
-            console.log(`[MULTIPLAYER SERVER] WebSocket readyState: ${ws.readyState}`);
-            
-            const locationMessage = {
-                type: 'location_changed',
-                location: room.gameState.location,
-                description: `You have been moved to ${room.gameState.location} to join the party.`,
-                timestamp: Date.now(),
-                playerId: ws.playerId,
-                playerName: message.playerName
-            };
-            
-            console.log(`[MULTIPLAYER SERVER] Full location message:`, JSON.stringify(locationMessage, null, 2));
-            this.sendToClient(ws, locationMessage);
-            
-            console.log(`[MULTIPLAYER SERVER] Location sync message sent to ${message.playerName}`);
-        }, 100);
+        // Send location synchronization immediately after room update
+        const locationMessage = {
+            type: 'location_changed',
+            location: room.gameState.location,
+            description: `You have been moved to ${room.gameState.location} to join the party.`,
+            timestamp: Date.now(),
+            playerId: ws.playerId,
+            playerName: message.playerName
+        };
+        
+        console.log(`[MULTIPLAYER SERVER] SENDING location_changed to ${message.playerName} (${ws.playerId})`);
+        console.log(`[MULTIPLAYER SERVER] Location data: ${room.gameState.location}`);
+        console.log(`[MULTIPLAYER SERVER] WebSocket readyState: ${ws.readyState}`);
+        console.log(`[MULTIPLAYER SERVER] Full location message:`, JSON.stringify(locationMessage, null, 2));
+        
+        this.sendToClient(ws, locationMessage);
+        console.log(`[MULTIPLAYER SERVER] Location sync message sent to ${message.playerName}`);
     }
 
     handleReconnection(ws, message) {

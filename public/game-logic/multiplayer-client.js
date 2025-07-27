@@ -80,6 +80,7 @@ export class MultiplayerClient {
                 break;
             case 'location_changed':
                 console.log(`[MULTIPLAYER CLIENT] Received location_changed message:`, message);
+                console.log(`[MULTIPLAYER CLIENT] Message timestamp:`, new Date(message.timestamp || Date.now()).toISOString());
                 console.log(`[MULTIPLAYER CLIENT] Current player object:`, typeof player !== 'undefined' ? player : 'undefined');
                 console.log(`[MULTIPLAYER CLIENT] Player current location before change:`, typeof player !== 'undefined' ? player.currentLocation : 'N/A');
                 console.log(`[MULTIPLAYER CLIENT] New location from message:`, message.location);

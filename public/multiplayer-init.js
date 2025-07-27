@@ -85,14 +85,51 @@ function initializeMultiplayerCallbacks() {
         console.log('[MULTIPLAYER INIT] Room joined callback triggered:', message);
         console.log('[MULTIPLAYER INIT] Requesting location synchronization');
         
-        // Small delay to ensure room state is updated
+        // Display immediate feedback
+        if (typeof displayMessage === 'function') {
+            displayMessage('Synchronizing with party location...', 'info');
+            displayMessage('[DEBUG] Room joined, awaiting location sync', 'info');
+        }
+        
+        // Set up a fallback to request location sync if not received within 2 seconds
         setTimeout(() => {
-            console.log('[MULTIPLAYER INIT] Displaying synchronization message');
+            console.log('[MULTIPLAYER INIT] Checking if location sync was received...');
             if (typeof displayMessage === 'function') {
-                displayMessage('Synchronizing with party location...', 'info');
-                displayMessage('[DEBUG] Room joined, awaiting location sync', 'info');
+                displayMessage('[DEBUG] Checking location sync status...', 'info');
             }
-        }, 500);
+        }, 2000);
+    });
+
+    // Set up room update callback for additional location sync
+    multiplayerClient.on('roomUpdate', function(message) {
+        console.log('[MULTIPLAYER INIT] Room update callback triggered:', message);
+        if (message.gameState && message.gameState.location && typeof player !== 'undefined') {
+            const currentLocation = player.currentLocation;
+            const serverLocation = message.gameState.location;
+            
+            console.log('[MULTIPLAYER INIT] Comparing locations:', {
+                current: currentLocation,
+                server: serverLocation
+            });
+            
+            // If locations don't match, update to server location
+            if (currentLocation !== serverLocation) {
+                console.log('[MULTIPLAYER INIT] Location mismatch detected, syncing...');
+                player.currentLocation = serverLocation;
+                
+                if (typeof updatePlayerStatsDisplay === 'function') {
+                    updatePlayerStatsDisplay();
+                }
+                
+                if (typeof displayMessage === 'function') {
+                    displayMessage(`Location synchronized to ${serverLocation}`, 'success');
+                }
+                
+                if (typeof saveGame === 'function') {
+                    saveGame();
+                }
+            }
+        }
     });
 
     console.log('[MULTIPLAYER INIT] Multiplayer callbacks initialized successfully');
