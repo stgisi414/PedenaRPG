@@ -6226,11 +6226,51 @@ function initializeMultiplayerUI() {
     multiplayerBtn.innerHTML = '<i class="ra ra-players mr-2"></i>Multiplayer';
     multiplayerBtn.onclick = toggleMultiplayerInterface;
     
-    // Add to action buttons container
-    const actionButtons = document.querySelector('#game-play-screen .mb-4.flex.flex-wrap.gap-2');
+    // Add to action buttons container - try multiple selectors to find the right container
+    let actionButtons = document.querySelector('#game-play-screen .mb-4.flex.flex-wrap.gap-2');
+    if (!actionButtons) {
+        actionButtons = document.querySelector('.action-buttons');
+    }
+    if (!actionButtons) {
+        actionButtons = document.querySelector('#action-buttons-container');
+    }
+    if (!actionButtons) {
+        // Fallback: add to game screen directly
+        const gameScreen = document.getElementById('game-play-screen');
+        if (gameScreen) {
+            const buttonContainer = document.createElement('div');
+            buttonContainer.className = 'mb-4 flex flex-wrap gap-2';
+            gameScreen.insertBefore(buttonContainer, gameScreen.firstChild);
+            actionButtons = buttonContainer;
+        }
+    }
+    
     if (actionButtons) {
         actionButtons.appendChild(multiplayerBtn);
+        console.log('Multiplayer button added successfully');
+    } else {
+        console.error('Could not find action buttons container for multiplayer button');
     }
+}
+
+function toggleMultiplayerInterface() {
+    const multiplayerInterface = document.getElementById('multiplayer-interface');
+    if (multiplayerInterface) {
+        // Hide other interfaces first
+        const interfacesToHide = ['inventory-interface', 'shop-interface', 'skills-interface', 'quest-interface', 'background-interface', 'progression-interface'];
+        interfacesToHide.forEach(id => {
+            const element = document.getElementById(id);
+            if (element) element.classList.add('hidden');
+        });
+        
+        // Toggle multiplayer interface
+        multiplayerInterface.classList.toggle('hidden');
+        console.log('Multiplayer interface toggled');
+    } else {
+        console.error('Multiplayer interface element not found');
+        displayMessage('Multiplayer interface not available', 'error');
+    }
+}
     
     // Create multiplayer interface HTML
     const multiplayerHTML = `
@@ -6288,12 +6328,23 @@ function initializeMultiplayerUI() {
 }
 
 function setupMultiplayerEventListeners() {
-    // Connection buttons
-    document.getElementById('create-room-btn').onclick = createMultiplayerRoom;
-    document.getElementById('join-room-btn').onclick = showJoinRoomInput;
-    document.getElementById('confirm-join-btn').onclick = joinMultiplayerRoom;
-    document.getElementById('end-turn-btn').onclick = endPlayerTurn;
-    document.getElementById('exit-multiplayer-btn').onclick = leaveMultiplayer;
+    // Use setTimeout to ensure DOM elements are ready
+    setTimeout(() => {
+        // Connection buttons
+        const createRoomBtn = document.getElementById('create-room-btn');
+        const joinRoomBtn = document.getElementById('join-room-btn');
+        const confirmJoinBtn = document.getElementById('confirm-join-btn');
+        const endTurnBtn = document.getElementById('end-turn-btn');
+        const exitMultiplayerBtn = document.getElementById('exit-multiplayer-btn');
+        
+        if (createRoomBtn) createRoomBtn.onclick = createMultiplayerRoom;
+        if (joinRoomBtn) joinRoomBtn.onclick = showJoinRoomInput;
+        if (confirmJoinBtn) confirmJoinBtn.onclick = joinMultiplayerRoom;
+        if (endTurnBtn) endTurnBtn.onclick = endPlayerTurn;
+        if (exitMultiplayerBtn) exitMultiplayerBtn.onclick = leaveMultiplayer;
+        
+        console.log('Multiplayer event listeners setup completed');
+    }, 100);
     
     // Multiplayer client callbacks
     multiplayerClient.on('roomCreated', handleRoomCreated);
