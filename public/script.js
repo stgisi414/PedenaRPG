@@ -2277,39 +2277,7 @@ function toggleMultiplayerInterface() {
     }
 }
 
-function setupMultiplayerEventListeners() {
-    // Exit button
-    const exitBtn = document.getElementById('exit-multiplayer-btn');
-    if (exitBtn) {
-        exitBtn.onclick = () => {
-            document.getElementById('multiplayer-interface').classList.add('hidden');
-        };
-    }
 
-    // Create room button
-    const createRoomBtn = document.getElementById('create-room-btn');
-    if (createRoomBtn) {
-        createRoomBtn.onclick = createMultiplayerRoom;
-    }
-
-    // Join room button
-    const joinRoomBtn = document.getElementById('join-room-btn');
-    if (joinRoomBtn) {
-        joinRoomBtn.onclick = showJoinRoomInput;
-    }
-
-    // Confirm join button
-    const confirmJoinBtn = document.getElementById('confirm-join-btn');
-    if (confirmJoinBtn) {
-        confirmJoinBtn.onclick = joinMultiplayerRoom;
-    }
-
-    // End turn button
-    const endTurnBtn = document.getElementById('end-turn-btn');
-    if (endTurnBtn) {
-        endTurnBtn.onclick = endPlayerTurn;
-    }
-}
 
 async function createMultiplayerRoom() {
     try {
