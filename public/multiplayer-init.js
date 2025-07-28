@@ -61,16 +61,38 @@ function handleLocationChanged(message) {
             const oldLocation = player.currentLocation;
             player.currentLocation = message.location;
 
-            // Call the fixed updatePlayerStatsDisplay function
+            // Direct DOM update approach - bypass the function that might be failing
+            const playerNameDisplay = document.getElementById('player-name');
+            if (playerNameDisplay && player.name) {
+                const newDisplayText = `${player.name} - ${message.location}`;
+                console.log(`[LOCATION SYNC] Direct DOM update: ${newDisplayText}`);
+                
+                // Multiple update methods to ensure it works
+                playerNameDisplay.textContent = newDisplayText;
+                playerNameDisplay.innerHTML = newDisplayText;
+                
+                // Force immediate update
+                requestAnimationFrame(() => {
+                    playerNameDisplay.textContent = newDisplayText;
+                    setTimeout(() => {
+                        playerNameDisplay.textContent = newDisplayText;
+                        console.log(`[LOCATION SYNC] Final DOM content: "${playerNameDisplay.textContent}"`);
+                    }, 100);
+                });
+            }
+
+            // Also call the regular function as backup
             if (typeof updatePlayerStatsDisplay === 'function') {
-                console.log('[LOCATION SYNC] Calling updatePlayerStatsDisplay');
+                console.log('[LOCATION SYNC] Calling updatePlayerStatsDisplay as backup');
                 updatePlayerStatsDisplay();
                 
-                // Call it again after a brief delay to ensure it takes
+                // Multiple calls to ensure it works
                 setTimeout(() => {
                     updatePlayerStatsDisplay();
-                    console.log('[LOCATION SYNC] Second updatePlayerStatsDisplay call completed');
-                }, 100);
+                }, 50);
+                setTimeout(() => {
+                    updatePlayerStatsDisplay();
+                }, 200);
             }
 
             // Show message

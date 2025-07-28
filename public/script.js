@@ -1121,25 +1121,28 @@ function updatePlayerStatsDisplay() {
         return;
     }
     
-    // Process location text through rich text system for consistent formatting/stripping
-    const locationText = processRichText(player.currentLocation, 'location');
+    // Don't process location through rich text - use raw location directly
+    const locationText = player.currentLocation;
+    const displayText = `${player.name} - ${locationText}`;
     
-    // Force update the player name display with multiple methods to ensure it works
-    console.log(`[MAIN SCRIPT] Updating player name display: ${player.name} - ${locationText}`);
+    console.log(`[MAIN SCRIPT] Updating player name display: ${displayText}`);
     
-    // Method 1: Direct update
-    playerNameDisplay.innerHTML = `${player.name} - ${locationText}`;
+    // Aggressive update approach - try multiple methods
+    playerNameDisplay.textContent = displayText; // Use textContent instead of innerHTML
+    playerNameDisplay.setAttribute('data-location', locationText); // Store as attribute too
     
-    // Method 2: Force DOM refresh
-    playerNameDisplay.style.display = 'none';
-    playerNameDisplay.offsetHeight; // Force reflow
-    playerNameDisplay.style.display = '';
-    
-    // Method 3: Set again to ensure it sticks
-    setTimeout(() => {
-        playerNameDisplay.innerHTML = `${player.name} - ${locationText}`;
-        console.log(`[MAIN SCRIPT] Final player name display content: ${playerNameDisplay.innerHTML}`);
-    }, 0);
+    // Force multiple DOM updates to ensure it sticks
+    requestAnimationFrame(() => {
+        playerNameDisplay.textContent = displayText;
+        playerNameDisplay.innerHTML = displayText; // Also try innerHTML
+        
+        // Additional forced update after a brief delay
+        setTimeout(() => {
+            playerNameDisplay.textContent = displayText;
+            console.log(`[MAIN SCRIPT] Final player name display content: "${playerNameDisplay.textContent}"`);
+            console.log(`[MAIN SCRIPT] Final player name display innerHTML: "${playerNameDisplay.innerHTML}"`);
+        }, 50);
+    });
     
     // Update other displays
     playerLevelDisplay.textContent = `Level: ${player.level}`;
