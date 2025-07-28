@@ -435,24 +435,20 @@ export class MultiplayerClient {
     forceUpdateLocationDisplay(location) {
         console.log(`[MULTIPLAYER CLIENT] Force updating all location displays to: ${location}`);
 
-        // Try multiple selectors to find location displays
-        const selectors = [
-            '#current-location',
-            '.current-location', 
-            '[data-location]',
-            '.player-stats .location',
-            '#player-location',
-            '.location-display'
-        ];
+        // Use the correct element selector for player name and location
+        const selector = '#player-name';
+        
+        // Fetch the player name
+        const playerName = typeof player !== 'undefined' ? player.name : 'Unknown Player';
+        const fullText = `${playerName} - ${location}`;
 
-        selectors.forEach(selector => {
-            const elements = document.querySelectorAll(selector);
-            elements.forEach(el => {
-                if (el && el.textContent !== location) {
-                    console.log(`[MULTIPLAYER CLIENT] Updating element with selector "${selector}" to: ${location}`);
-                    el.textContent = location;
-                }
-            });
+        // Update text content for the selected elements
+        const elements = document.querySelectorAll(selector);
+        elements.forEach(el => {
+            if (el && el.textContent !== fullText) {
+                console.log(`[MULTIPLAYER CLIENT] Updating element with selector "${selector}" to: ${fullText}`);
+                el.textContent = fullText;
+            }
         });
     }
 
