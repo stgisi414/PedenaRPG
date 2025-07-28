@@ -1,22 +1,21 @@
-Fix travel command blocking for non-hosts by replacing the travel command handling logic with a stricter version that logs travel attempts and blocks non-host players from initiating travel.
-```
-```javascript
-// Check for travel commands in multiplayer - STRICT BLOCKING
+// Check for travel commands in multiplayer - ABSOLUTE BLOCKING
         if (multiplayerClient && multiplayerClient.roomId) {
             const travelMatch = command.match(/^(?:go to|travel to|move to|enter|head to|walk to|visit)\s+(.+)$/i);
             if (travelMatch) {
-                console.log(`[TRAVEL BLOCK] Travel command detected: ${command}`);
-                console.log(`[TRAVEL BLOCK] Is host: ${multiplayerClient.isHost}`);
-                console.log(`[TRAVEL BLOCK] Can control travel: ${multiplayerClient.canControlTravel()}`);
+                console.log(`[TRAVEL BLOCK] *** TRAVEL COMMAND INTERCEPTED ***`);
+                console.log(`[TRAVEL BLOCK] Command: ${command}`);
+                console.log(`[TRAVEL BLOCK] Player is host: ${multiplayerClient.isHost}`);
+                console.log(`[TRAVEL BLOCK] Room ID: ${multiplayerClient.roomId}`);
 
-                // ABSOLUTE BLOCK for non-hosts
+                // ABSOLUTE BLOCK for non-hosts - NO EXCEPTIONS
                 if (!multiplayerClient.isHost) {
-                    console.log(`[TRAVEL BLOCK] *** BLOCKING NON-HOST TRAVEL ***`);
-                    displayMessage('🚫 Only the party leader can control travel for the group. You must follow the party.', 'error');
-                    return;
+                    console.log(`[TRAVEL BLOCK] *** ABSOLUTELY BLOCKING NON-HOST TRAVEL ***`);
+                    displayMessage('🚫 TRAVEL BLOCKED: Only the party leader can control travel for the group.', 'error');
+                    displayMessage('🚫 You must follow where the party leader takes you.', 'error');
+                    return; // HARD STOP - NO TRAVEL ALLOWED
                 }
 
-                console.log(`[TRAVEL BLOCK] *** HOST TRAVEL APPROVED ***`);
+                console.log(`[TRAVEL BLOCK] *** HOST TRAVEL PROCESSING ***`);
                 const destination = travelMatch[1].trim();
 
                 try {
@@ -26,11 +25,13 @@ Fix travel command blocking for non-hosts by replacing the travel command handli
                         player.currentLocation = result.newLocation;
                         updatePlayerStatsDisplay();
 
-                        // Notify multiplayer server of HOST travel
-                        console.log(`[TRAVEL BLOCK] Host successfully moved to: ${result.newLocation}`);
+                        // Notify multiplayer server that HOST is traveling (this will move everyone)
+                        console.log(`[TRAVEL BLOCK] Host initiating party travel to: ${result.newLocation}`);
                         multiplayerClient.requestTravel(result.newLocation, result.description);
 
                         displayMessage(result.description, 'info');
+                        displayMessage(`Leading party to: ${result.newLocation}`, 'success');
+
                         if (result.hasEncounter) {
                             await handleEncounter(result.encounterType);
                         }
@@ -41,53 +42,7 @@ Fix travel command blocking for non-hosts by replacing the travel command handli
                         return;
                     }
                 } catch (error) {
-                    console.error('Travel error:', error);
-                    displayMessage('Error processing travel command.', 'error');
-                    return;
-                }
-            }
-        }
-```// Check for travel commands in multiplayer - STRICT BLOCKING
-        if (multiplayerClient && multiplayerClient.roomId) {
-            const travelMatch = command.match(/^(?:go to|travel to|move to|enter|head to|walk to|visit)\s+(.+)$/i);
-            if (travelMatch) {
-                console.log(`[TRAVEL BLOCK] Travel command detected: ${command}`);
-                console.log(`[TRAVEL BLOCK] Is host: ${multiplayerClient.isHost}`);
-                console.log(`[TRAVEL BLOCK] Can control travel: ${multiplayerClient.canControlTravel()}`);
-
-                // ABSOLUTE BLOCK for non-hosts
-                if (!multiplayerClient.isHost) {
-                    console.log(`[TRAVEL BLOCK] *** BLOCKING NON-HOST TRAVEL ***`);
-                    displayMessage('🚫 Only the party leader can control travel for the group. You must follow the party.', 'error');
-                    return;
-                }
-
-                console.log(`[TRAVEL BLOCK] *** HOST TRAVEL APPROVED ***`);
-                const destination = travelMatch[1].trim();
-
-                try {
-                    const result = await LocationManager.moveToLocation(player, destination);
-
-                    if (result.success) {
-                        player.currentLocation = result.newLocation;
-                        updatePlayerStatsDisplay();
-
-                        // Notify multiplayer server of HOST travel
-                        console.log(`[TRAVEL BLOCK] Host successfully moved to: ${result.newLocation}`);
-                        multiplayerClient.requestTravel(result.newLocation, result.description);
-
-                        displayMessage(result.description, 'info');
-                        if (result.hasEncounter) {
-                            await handleEncounter(result.encounterType);
-                        }
-                        saveGame();
-                        return;
-                    } else {
-                        displayMessage(result.message, 'error');
-                        return;
-                    }
-                } catch (error) {
-                    console.error('Travel error:', error);
+                    console.error('Host travel error:', error);
                     displayMessage('Error processing travel command.', 'error');
                     return;
                 }

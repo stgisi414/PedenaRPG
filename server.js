@@ -1,4 +1,3 @@
-
 const express = require('express');
 const path = require('path');
 const http = require('http');
@@ -30,15 +29,15 @@ class MultiplayerServer {
         this.rooms = new Map();
         this.players = new Map();
         this.disconnectedPlayers = new Map();
-        
+
         this.wss.on('connection', this.handleConnection.bind(this));
-        
+
         // Start heartbeat interval
         this.startHeartbeat();
-        
+
         // Clean up disconnected players after 60 seconds
         this.startCleanupInterval();
-        
+
         console.log('Multiplayer WebSocket server initialized');
     }
 
@@ -48,14 +47,14 @@ class MultiplayerServer {
         ws.isAlive = true;
         ws.lastPong = Date.now();
         ws.currentZone = null;
-        
+
         ws.on('message', (data) => this.handleMessage(ws, data));
         ws.on('close', () => this.handleDisconnection(ws));
         ws.on('pong', () => {
             ws.isAlive = true;
             ws.lastPong = Date.now();
         });
-        
+
         this.sendToClient(ws, {
             type: 'connected',
             playerId: playerId
@@ -69,7 +68,7 @@ class MultiplayerServer {
                     console.log(`Terminating dead connection: ${ws.playerId}`);
                     return ws.terminate();
                 }
-                
+
                 ws.isAlive = false;
                 ws.ping();
             });
@@ -80,7 +79,7 @@ class MultiplayerServer {
         setInterval(() => {
             const now = Date.now();
             const cleanupTime = 60000;
-            
+
             for (const [playerId, disconnectedData] of this.disconnectedPlayers.entries()) {
                 if (now - disconnectedData.disconnectedAt > cleanupTime) {
                     console.log(`Cleaning up permanently disconnected player: ${playerId}`);
@@ -96,7 +95,7 @@ class MultiplayerServer {
             console.log(`[MULTIPLAYER SERVER] *** MESSAGE RECEIVED ***`);
             console.log(`[MULTIPLAYER SERVER] Message type: ${message.type}`);
             console.log(`[MULTIPLAYER SERVER] Full message:`, message);
-            
+
             switch(message.type) {
                 case 'create_room':
                     this.createRoom(ws, message);
@@ -148,7 +147,7 @@ class MultiplayerServer {
             },
             maxPlayers: 4
         };
-        
+
         room.players.set(ws.playerId, {
             id: ws.playerId,
             name: message.playerName,
@@ -157,18 +156,18 @@ class MultiplayerServer {
             socket: ws,
             currentZone: room.gameState.location
         });
-        
+
         ws.currentZone = room.gameState.location;
-        
+
         this.rooms.set(roomId, room);
         this.players.set(ws.playerId, { roomId, socket: ws });
-        
+
         this.sendToClient(ws, {
             type: 'room_created',
             roomId: roomId,
             isHost: true
         });
-        
+
         this.broadcastRoomUpdate(roomId);
     }
 
@@ -176,9 +175,9 @@ class MultiplayerServer {
         console.log(`[MULTIPLAYER SERVER] *** JOIN ROOM FUNCTION CALLED ***`);
         console.log(`[MULTIPLAYER SERVER] Player ${message.playerName} (${ws.playerId}) attempting to join room ${message.roomId}`);
         console.log(`[MULTIPLAYER SERVER] Available rooms:`, Array.from(this.rooms.keys()));
-        
+
         const room = this.rooms.get(message.roomId);
-        
+
         if (!room) {
             console.log(`[MULTIPLAYER SERVER] ERROR: Room ${message.roomId} not found`);
             this.sendToClient(ws, {
@@ -187,9 +186,9 @@ class MultiplayerServer {
             });
             return;
         }
-        
+
         console.log(`[MULTIPLAYER SERVER] Room ${message.roomId} found with ${room.players.size} players, location: ${room.gameState.location}`);
-        
+
         if (room.players.size >= room.maxPlayers) {
             console.log(`[MULTIPLAYER SERVER] ERROR: Room ${message.roomId} is full`);
             this.sendToClient(ws, {
@@ -198,7 +197,7 @@ class MultiplayerServer {
             });
             return;
         }
-        
+
         const playerData = {
             id: ws.playerId,
             name: message.playerName,
@@ -207,30 +206,30 @@ class MultiplayerServer {
             socket: ws,
             currentZone: room.gameState.location
         };
-        
+
         console.log(`[MULTIPLAYER SERVER] Adding player ${message.playerName} to room ${message.roomId} with location: ${room.gameState.location}`);
         room.players.set(ws.playerId, playerData);
-        
+
         ws.currentZone = room.gameState.location;
         console.log(`[MULTIPLAYER SERVER] Set player ${message.playerName} currentZone to: ${ws.currentZone}`);
-        
+
         room.gameState.turnOrder.push(ws.playerId);
         this.players.set(ws.playerId, { roomId: message.roomId, socket: ws });
-        
+
         console.log(`[MULTIPLAYER SERVER] Sending room_joined confirmation to ${message.playerName}`);
         this.sendToClient(ws, {
             type: 'room_joined',
             roomId: message.roomId,
             isHost: false
         });
-        
+
         console.log(`[MULTIPLAYER SERVER] Broadcasting room update for room ${message.roomId}`);
         this.broadcastRoomUpdate(message.roomId);
-        
+
         // SINGLE LOCATION SYNC - Send one clear location update
         console.log(`[MULTIPLAYER SERVER] *** SENDING SINGLE LOCATION SYNC ***`);
         console.log(`[MULTIPLAYER SERVER] Syncing ${message.playerName} to room location: ${room.gameState.location}`);
-        
+
         this.sendToClient(ws, {
             type: 'location_changed',
             location: room.gameState.location,
@@ -243,99 +242,89 @@ class MultiplayerServer {
 
     handleTravelRequest(ws, message) {
         const playerData = this.players.get(ws.playerId);
-        if (!playerData) {
-            console.log(`[MULTIPLAYER SERVER] ERROR: Player data not found for ${ws.playerId}`);
-            return;
-        }
-        
+        if (!playerData) return;
+
         const room = this.rooms.get(playerData.roomId);
-        if (!room) {
-            console.log(`[MULTIPLAYER SERVER] ERROR: Room not found for ${playerData.roomId}`);
-            return;
-        }
-        
-        // ABSOLUTE HOST-ONLY TRAVEL CONTROL
+        if (!room) return;
+
+        // Only host can initiate travel
         if (room.host !== ws.playerId) {
-            console.log(`[MULTIPLAYER SERVER] *** NON-HOST TRAVEL ATTEMPT ABSOLUTELY BLOCKED ***`);
-            console.log(`[MULTIPLAYER SERVER] Player ${ws.playerId} tried to travel but is not host (${room.host})`);
             this.sendToClient(ws, {
                 type: 'error',
-                message: '🚫 TRAVEL DENIED: Only the party leader can control travel for the entire group'
+                message: 'Only the party leader can control travel'
             });
             return;
         }
-        
+
+        console.log(`[SERVER] *** HOST TRAVEL REQUEST ***`);
+        console.log(`[SERVER] Host ${ws.playerId} requesting travel to: ${message.destination}`);
+        console.log(`[SERVER] Room has ${room.players.size} players`);
+
         const oldZone = room.gameState.location;
         const newZone = message.destination;
-        
-        console.log(`[MULTIPLAYER SERVER] *** HOST TRAVEL REQUEST APPROVED ***`);
-        console.log(`[MULTIPLAYER SERVER] Host ${ws.playerId} traveling from ${oldZone} to ${newZone}`);
-        console.log(`[MULTIPLAYER SERVER] Party has ${room.players.size} members`);
-        
-        // Update room location FIRST
+
+        // Update room location
         room.gameState.location = newZone;
-        console.log(`[MULTIPLAYER SERVER] Room location updated to: ${room.gameState.location}`);
-        
-        // ABSOLUTELY FORCE ALL PARTY MEMBERS TO THE NEW LOCATION
+
+        // Update all players' zones and FORCE them to travel
         room.players.forEach(player => {
-            console.log(`[MULTIPLAYER SERVER] ABSOLUTELY FORCING ${player.name} to location: ${newZone}`);
-            
+            console.log(`[SERVER] Processing travel for player: ${player.name} (ID: ${player.id})`);
+
             // Update player's zone
             player.currentZone = newZone;
-            if (player.socket) {
-                player.socket.currentZone = newZone;
+            player.socket.currentZone = newZone;
+
+            if (player.id === ws.playerId) {
+                // Host gets confirmation
+                console.log(`[SERVER] Sending host confirmation`);
+                this.sendToClient(player.socket, {
+                    type: 'location_changed',
+                    location: newZone,
+                    oldZone: oldZone,
+                    description: message.description,
+                    isHostTravel: true,
+                    playerId: player.id
+                });
+            } else {
+                // Non-host players get FORCED to travel
+                console.log(`[SERVER] FORCING non-host ${player.name} to travel`);
+
+                // Send multiple types of messages to ensure travel happens
+                this.sendToClient(player.socket, {
+                    type: 'force_location_update',
+                    location: newZone,
+                    oldZone: oldZone,
+                    description: `*** PARTY TRAVEL *** Your party leader has moved the group to ${newZone}. ${message.description}`,
+                    isHostTravel: true,
+                    playerId: player.id,
+                    forced: true
+                });
+
+                this.sendToClient(player.socket, {
+                    type: 'location_changed',
+                    location: newZone,
+                    oldZone: oldZone,
+                    description: `Party moved to: ${newZone}`,
+                    isHostTravel: true,
+                    playerId: player.id,
+                    forced: true
+                });
             }
-            
-            const isHost = player.id === ws.playerId;
-            
-            // Send MULTIPLE message types to ensure it works
-            
-            // 1. Force location update
-            this.sendToClient(player.socket, {
-                type: 'force_location_update',
-                location: newZone,
-                oldZone: oldZone,
-                description: isHost ? 
-                    message.description : 
-                    `🚐 PARTY TRAVEL: Your party leader has moved the group to ${newZone}. You are automatically transported with the party.`,
-                playerId: player.id,
-                playerName: player.name,
-                isHostTravel: true,
-                forceUpdate: true,
-                timestamp: Date.now()
-            });
-            
-            // 2. Send regular location changed message as backup
-            this.sendToClient(player.socket, {
-                type: 'location_changed',
-                location: newZone,
-                oldZone: oldZone,
-                description: isHost ? 
-                    `You have moved the party to ${newZone}` : 
-                    `Party moved to ${newZone}`,
-                playerId: player.id,
-                playerName: player.name,
-                isHostTravel: true,
-                forceSync: true,
-                timestamp: Date.now()
-            });
-            
-            console.log(`[MULTIPLAYER SERVER] ✓ DOUBLE-SENT location updates to ${player.name}`);
         });
-        
-        console.log(`[MULTIPLAYER SERVER] *** ALL PARTY MEMBERS ABSOLUTELY FORCED TO NEW LOCATION ***`);
+
+        console.log(`[SERVER] *** HOST TRAVEL COMPLETED ***`);
     }
 
     handleGameAction(ws, message) {
         const playerData = this.players.get(ws.playerId);
         if (!playerData) return;
-        
+
         const room = this.rooms.get(playerData.roomId);
         if (!room) return;
-        
+
         const player = room.players.get(ws.playerId);
         if (!player) return;
-        
+
         if (room.gameState.currentTurn !== ws.playerId) {
             this.sendToClient(ws, {
                 type: 'error',
@@ -343,9 +332,9 @@ class MultiplayerServer {
             });
             return;
         }
-        
+
         const actionScope = message.scope || 'zone';
-        
+
         if (actionScope === 'room') {
             this.broadcastToRoom(playerData.roomId, {
                 type: 'player_action',
@@ -369,15 +358,15 @@ class MultiplayerServer {
     handleEndTurn(ws, message) {
         const playerData = this.players.get(ws.playerId);
         if (!playerData) return;
-        
+
         const room = this.rooms.get(playerData.roomId);
         if (!room) return;
-        
+
         if (room.gameState.currentTurn !== ws.playerId) return;
-        
+
         room.gameState.turnIndex = (room.gameState.turnIndex + 1) % room.gameState.turnOrder.length;
         room.gameState.currentTurn = room.gameState.turnOrder[room.gameState.turnIndex];
-        
+
         this.broadcastToRoom(playerData.roomId, {
             type: 'turn_changed',
             currentTurn: room.gameState.currentTurn,
@@ -388,19 +377,19 @@ class MultiplayerServer {
     handlePlayerMove(ws, message) {
         const playerData = this.players.get(ws.playerId);
         if (!playerData) return;
-        
+
         const room = this.rooms.get(playerData.roomId);
         if (!room) return;
-        
+
         const player = room.players.get(ws.playerId);
         if (!player) return;
-        
+
         const oldZone = player.currentZone;
         const newZone = message.destination;
-        
+
         player.currentZone = newZone;
         ws.currentZone = newZone;
-        
+
         this.sendToClient(ws, {
             type: 'player_moved',
             location: newZone,
@@ -412,13 +401,13 @@ class MultiplayerServer {
     handleZoneChat(ws, message) {
         const playerData = this.players.get(ws.playerId);
         if (!playerData) return;
-        
+
         const room = this.rooms.get(playerData.roomId);
         if (!room) return;
-        
+
         const player = room.players.get(ws.playerId);
         if (!player) return;
-        
+
         this.broadcastToZone(playerData.roomId, player.currentZone, {
             type: 'zone_chat',
             playerId: ws.playerId,
@@ -431,15 +420,15 @@ class MultiplayerServer {
     handleLocationSyncRequest(ws, message) {
         const playerData = this.players.get(ws.playerId);
         if (!playerData) return;
-        
+
         const room = this.rooms.get(playerData.roomId);
         if (!room) return;
-        
+
         const player = room.players.get(ws.playerId);
         if (!player) return;
-        
+
         console.log(`[MULTIPLAYER SERVER] Location sync requested by ${player.name}, sending current location: ${room.gameState.location}`);
-        
+
         this.sendToClient(ws, {
             type: 'location_changed',
             location: room.gameState.location,
@@ -452,7 +441,7 @@ class MultiplayerServer {
 
     handleReconnection(ws, message) {
         const { playerName, sessionToken } = message;
-        
+
         const disconnectedData = this.disconnectedPlayers.get(sessionToken);
         if (!disconnectedData) {
             this.sendToClient(ws, {
@@ -461,7 +450,7 @@ class MultiplayerServer {
             });
             return;
         }
-        
+
         const room = this.rooms.get(disconnectedData.roomId);
         if (!room) {
             this.sendToClient(ws, {
@@ -471,28 +460,28 @@ class MultiplayerServer {
             this.disconnectedPlayers.delete(sessionToken);
             return;
         }
-        
+
         ws.playerId = sessionToken;
         disconnectedData.playerData.socket = ws;
-        
+
         room.players.set(sessionToken, disconnectedData.playerData);
         this.players.set(sessionToken, { roomId: disconnectedData.roomId, socket: ws });
-        
+
         this.disconnectedPlayers.delete(sessionToken);
-        
+
         this.sendToClient(ws, {
             type: 'reconnected',
             roomId: disconnectedData.roomId,
             isHost: disconnectedData.playerData.isHost,
             message: 'Successfully reconnected to your previous session'
         });
-        
+
         this.sendToClient(ws, {
             type: 'location_changed',
             location: room.gameState.location,
             description: `You have reconnected and are back in ${room.gameState.location}.`
         });
-        
+
         this.broadcastRoomUpdate(disconnectedData.roomId);
         console.log(`Player ${playerName} successfully reconnected`);
     }
@@ -500,7 +489,7 @@ class MultiplayerServer {
     handleDisconnection(ws) {
         const playerData = this.players.get(ws.playerId);
         if (!playerData) return;
-        
+
         const room = this.rooms.get(playerData.roomId);
         if (room) {
             const player = room.players.get(ws.playerId);
@@ -513,33 +502,33 @@ class MultiplayerServer {
                     roomId: playerData.roomId,
                     disconnectedAt: Date.now()
                 });
-                
+
                 room.players.delete(ws.playerId);
                 room.gameState.turnOrder = room.gameState.turnOrder.filter(id => id !== ws.playerId);
-                
+
                 if (room.host === ws.playerId && room.players.size > 0) {
                     const newHost = room.players.values().next().value;
                     room.host = newHost.id;
                     newHost.isHost = true;
                 }
-                
+
                 this.broadcastToRoom(playerData.roomId, {
                     type: 'player_disconnected',
                     playerId: ws.playerId,
                     playerName: player.name,
                     message: `${player.name} has disconnected and may reconnect soon.`
                 });
-                
+
                 if (room.players.size === 0) {
                     this.rooms.delete(playerData.roomId);
                 } else {
                     this.broadcastRoomUpdate(playerData.roomId);
                 }
-                
+
                 console.log(`Player ${player.name} temporarily disconnected, stored for potential reconnection`);
             }
         }
-        
+
         this.players.delete(ws.playerId);
     }
 
@@ -562,7 +551,7 @@ class MultiplayerServer {
     broadcastToRoom(roomId, message) {
         const room = this.rooms.get(roomId);
         if (!room) return;
-        
+
         room.players.forEach(player => {
             this.sendToClient(player.socket, message);
         });
@@ -571,7 +560,7 @@ class MultiplayerServer {
     broadcastToZone(roomId, zone, message, excludePlayerId = null) {
         const room = this.rooms.get(roomId);
         if (!room) return;
-        
+
         room.players.forEach(player => {
             if (player.currentZone === zone && player.id !== excludePlayerId) {
                 this.sendToClient(player.socket, message);
@@ -589,13 +578,13 @@ class MultiplayerServer {
     broadcastRoomUpdate(roomId) {
         const room = this.rooms.get(roomId);
         if (!room) return;
-        
+
         const playerList = Array.from(room.players.values()).map(p => ({
             id: p.id,
             name: p.name,
             isHost: p.isHost
         }));
-        
+
         this.broadcastToRoom(roomId, {
             type: 'room_update',
             players: playerList,
@@ -608,11 +597,11 @@ class MultiplayerServer {
             try {
                 const messageStr = JSON.stringify(message);
                 ws.send(messageStr);
-                
+
                 console.log(`[MULTIPLAYER SERVER] *** MESSAGE SENT SUCCESSFULLY ***`);
                 console.log(`[MULTIPLAYER SERVER] Message type: ${message.type}`);
                 console.log(`[MULTIPLAYER SERVER] Player: ${ws.playerId}`);
-                
+
                 if (message.type === 'location_changed' || message.type === 'force_travel_command') {
                     console.log(`[MULTIPLAYER SERVER] *** CRITICAL MESSAGE SENT ***`);
                     console.log(`[MULTIPLAYER SERVER] Type: ${message.type}`);
