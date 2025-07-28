@@ -203,50 +203,63 @@ class MultiplayerServer {
         console.log(`[MULTIPLAYER SERVER] Broadcasting room update for room ${message.roomId}`);
         this.broadcastRoomUpdate(message.roomId);
         
-        // Send IMMEDIATE location sync - the client is clearly ready since it's receiving other messages
-        const locationMessage = {
-            type: 'location_changed',
-            location: room.gameState.location,
-            description: `You have joined the party in ${room.gameState.location}`,
-            timestamp: Date.now(),
-            playerId: ws.playerId,
-            playerName: message.playerName,
-            forceSync: true
-        };
-        
-        console.log(`[MULTIPLAYER SERVER] Sending IMMEDIATE location sync to ${message.playerName}: ${room.gameState.location}`);
-        console.log(`[MULTIPLAYER SERVER] Location message:`, JSON.stringify(locationMessage));
-        
-        // Send immediately - no delays since other messages are working fine
-        this.sendToClient(ws, locationMessage);
-        
-        // Send backup location syncs to ensure delivery
-        setTimeout(() => {
-            console.log(`[MULTIPLAYER SERVER] Sending backup location sync #1`);
-            this.sendToClient(ws, {
-                ...locationMessage,
-                description: `Location sync #1: ${room.gameState.location}`,
-                isSecondarySync: true
-            });
-        }, 50);
-        
-        setTimeout(() => {
-            console.log(`[MULTIPLAYER SERVER] Sending backup location sync #2`);
-            this.sendToClient(ws, {
-                ...locationMessage,
-                description: `Location sync #2: ${room.gameState.location}`,
-                isThirdSync: true
-            });
-        }, 100);
-        
-        setTimeout(() => {
-            console.log(`[MULTIPLAYER SERVER] Sending backup location sync #3`);
-            this.sendToClient(ws, {
-                ...locationMessage,
-                description: `Location sync #3: ${room.gameState.location}`,
-                isFourthSync: true
-            });
-        }, 200);
+        // FORCE IMMEDIATE LOCATION SYNC - Use process.nextTick to ensure it happens after room_joined
+        process.nextTick(() => {
+            const locationMessage = {
+                type: 'location_changed',
+                location: room.gameState.location,
+                description: `You have joined the party in ${room.gameState.location}`,
+                timestamp: Date.now(),
+                playerId: ws.playerId,
+                playerName: message.playerName,
+                forceSync: true
+            };
+            
+            console.log(`[MULTIPLAYER SERVER] FORCE SENDING location_changed to ${message.playerName}: ${room.gameState.location}`);
+            console.log(`[MULTIPLAYER SERVER] Location message JSON:`, JSON.stringify(locationMessage));
+            
+            // Send the location message directly
+            if (ws.readyState === 1) { // WebSocket.OPEN
+                try {
+                    const msgStr = JSON.stringify(locationMessage);
+                    ws.send(msgStr);
+                    console.log(`[MULTIPLAYER SERVER] *** LOCATION MESSAGE SENT SUCCESSFULLY ***`);
+                } catch (error) {
+                    console.log(`[MULTIPLAYER SERVER] *** ERROR SENDING LOCATION MESSAGE ***`, error);
+                }
+            } else {
+                console.log(`[MULTIPLAYER SERVER] *** WEBSOCKET NOT OPEN FOR LOCATION SYNC ***`);
+            }
+            
+            // Send additional backup location messages
+            setTimeout(() => {
+                if (ws.readyState === 1) {
+                    const backup1 = JSON.stringify({
+                        type: 'location_changed',
+                        location: room.gameState.location,
+                        description: `Location sync backup: ${room.gameState.location}`,
+                        playerId: ws.playerId,
+                        isSecondarySync: true
+                    });
+                    ws.send(backup1);
+                    console.log(`[MULTIPLAYER SERVER] Backup location sync #1 sent`);
+                }
+            }, 100);
+            
+            setTimeout(() => {
+                if (ws.readyState === 1) {
+                    const backup2 = JSON.stringify({
+                        type: 'location_changed',
+                        location: room.gameState.location,
+                        description: `Final location sync: ${room.gameState.location}`,
+                        playerId: ws.playerId,
+                        isFinalSync: true
+                    });
+                    ws.send(backup2);
+                    console.log(`[MULTIPLAYER SERVER] Final location sync sent`);
+                }
+            }, 250);
+        });
     }
 
     handleReconnection(ws, message) {

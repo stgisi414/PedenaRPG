@@ -58,7 +58,12 @@ export class MultiplayerClient {
             console.log(`[MULTIPLAYER CLIENT] Description: ${message.description}`);
             console.log(`[MULTIPLAYER CLIENT] Force sync: ${message.forceSync}`);
             console.log(`[MULTIPLAYER CLIENT] Player ID: ${message.playerId}`);
-            console.log(`[MULTIPLAYER CLIENT] THIS SHOULD TRIGGER LOCATION UPDATE`);
+            console.log(`[MULTIPLAYER CLIENT] PROCESSING LOCATION UPDATE NOW`);
+            
+            // IMMEDIATELY process location change
+            this.processLocationChange(message);
+            
+            console.log(`[MULTIPLAYER CLIENT] *** LOCATION PROCESSING COMPLETED ***`);
         } else {
             console.log(`[MULTIPLAYER CLIENT] Not a location_changed message: ${message.type}`);
         }

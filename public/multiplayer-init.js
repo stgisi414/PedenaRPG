@@ -43,83 +43,68 @@ function setupLocationHandlers() {
 }
 
 function handleLocationChanged(message) {
-    if (!message.location) {
-        console.log('[LOCATION SYNC] No location in message');
-        return;
-    }
+    console.log('[LOCATION SYNC] *** LOCATION CHANGED MESSAGE RECEIVED ***');
+    console.log('[LOCATION SYNC] Message:', message);
 
-    console.log(`[LOCATION SYNC] Processing location change to: ${message.location}`);
+    // IMMEDIATE update without waiting for player object
+    if (typeof player !== 'undefined' && player) {
+        console.log(`[LOCATION SYNC] Player object ready, updating location from "${player.currentLocation}" to "${message.location}"`);
 
-    // Wait for player object to be available
-    const waitForPlayer = setInterval(() => {
-        if (typeof player !== 'undefined' && player.currentLocation !== undefined) {
-            clearInterval(waitForPlayer);
-            
-            console.log(`[LOCATION SYNC] Player object ready, updating location to: ${message.location}`);
-            
-            // Update player location
-            const oldLocation = player.currentLocation;
-            player.currentLocation = message.location;
+        // Update player location
+        const oldLocation = player.currentLocation;
+        player.currentLocation = message.location;
 
-            // Direct DOM update approach - bypass the function that might be failing
-            const playerNameDisplay = document.getElementById('player-name');
-            if (playerNameDisplay && player.name) {
-                const newDisplayText = `${player.name} - ${message.location}`;
-                console.log(`[LOCATION SYNC] Direct DOM update: ${newDisplayText}`);
-                
-                // Multiple update methods to ensure it works
-                playerNameDisplay.textContent = newDisplayText;
-                playerNameDisplay.innerHTML = newDisplayText;
-                
-                // Force immediate update
-                requestAnimationFrame(() => {
-                    playerNameDisplay.textContent = newDisplayText;
-                    setTimeout(() => {
-                        playerNameDisplay.textContent = newDisplayText;
-                        console.log(`[LOCATION SYNC] Final DOM content: "${playerNameDisplay.textContent}"`);
-                    }, 100);
-                });
-            }
+        console.log(`[LOCATION SYNC] Player location updated successfully`);
 
-            // Also call the regular function as backup
-            if (typeof updatePlayerStatsDisplay === 'function') {
-                console.log('[LOCATION SYNC] Calling updatePlayerStatsDisplay as backup');
-                updatePlayerStatsDisplay();
-                
-                // Multiple calls to ensure it works
-                setTimeout(() => {
-                    updatePlayerStatsDisplay();
-                }, 50);
-                setTimeout(() => {
-                    updatePlayerStatsDisplay();
-                }, 200);
-            }
-
-            // Show message
-            if (typeof displayMessage === 'function') {
-                if (!message.isSecondarySync) {
-                    displayMessage(`Location synchronized: ${message.location}`, 'success');
-                }
-                if (message.description && !message.isSecondarySync) {
-                    displayMessage(message.description, 'info');
-                }
-            }
-
-            // Save game
-            if (typeof saveGame === 'function') {
-                console.log('[LOCATION SYNC] Saving game');
-                saveGame();
-            }
-
-            console.log(`[LOCATION SYNC] Location updated from "${oldLocation}" to "${player.currentLocation}"`);
+        // Force update the display using multiple methods
+        if (typeof updatePlayerStatsDisplay === 'function') {
+            console.log('[LOCATION SYNC] Calling updatePlayerStatsDisplay');
+            updatePlayerStatsDisplay();
         }
-    }, 50);
 
-    // Timeout after 5 seconds if player object never becomes available
-    setTimeout(() => {
-        clearInterval(waitForPlayer);
-        console.log('[LOCATION SYNC] Timeout waiting for player object');
-    }, 5000);
+        // Force update player name display element IMMEDIATELY
+        const playerNameElements = document.querySelectorAll('#player-name, .player-name');
+        playerNameElements.forEach(element => {
+            if (element) {
+                console.log(`[LOCATION SYNC] Updating element text to: ${player.name} - ${player.currentLocation}`);
+                element.textContent = `${player.name} - ${player.currentLocation}`;
+            }
+        });
+
+        // Show message
+        if (typeof displayMessage === 'function') {
+            if (!message.isSecondarySync) {
+                displayMessage(`Location synchronized: ${message.location}`, 'success');
+            }
+            if (message.description && !message.isSecondarySync) {
+                displayMessage(message.description, 'info');
+            }
+        }
+
+        // Save game
+        if (typeof saveGame === 'function') {
+            console.log('[LOCATION SYNC] Saving game');
+            saveGame();
+        }
+
+        console.log(`[LOCATION SYNC] Location updated from "${oldLocation}" to "${player.currentLocation}"`);
+    } else {
+        console.log('[LOCATION SYNC] Player object not ready, deferring location update');
+
+        // Wait for player object to be ready if it's not available yet
+        const waitForPlayer = setInterval(() => {
+            if (typeof player !== 'undefined' && player && player.name) {
+                clearInterval(waitForPlayer);
+                handleLocationChanged(message); // Recursive call when ready
+            }
+        }, 50);
+
+        // Timeout after 3 seconds
+        setTimeout(() => {
+            clearInterval(waitForPlayer);
+            console.log('[LOCATION SYNC] Timeout waiting for player object');
+        }, 3000);
+    }
 }
 
 function handleRoomJoined(message) {
@@ -188,7 +173,7 @@ function updateLocationDisplays(location) {
     });
 
     console.log(`[LOCATION SYNC] Total elements updated: ${elementsUpdated}`);
-    
+
     // Force a manual search for player stats display and update it
     setTimeout(() => {
         const statsContainer = document.querySelector('.player-stats, #player-stats, .stats-container');
