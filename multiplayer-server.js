@@ -76,6 +76,14 @@ class MultiplayerServer {
             console.log(`[MULTIPLAYER SERVER] Message type: ${message.type}`);
             console.log(`[MULTIPLAYER SERVER] Full message:`, message);
             
+            // IMMEDIATE TEST - Send a test message back to prove server is processing
+            this.sendToClient(ws, {
+                type: 'test_connectivity',
+                originalMessageType: message.type,
+                serverReceived: true,
+                timestamp: Date.now()
+            });
+            
             switch(message.type) {
                 case 'create_room':
                     this.createRoom(ws, message);
