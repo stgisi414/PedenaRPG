@@ -203,30 +203,51 @@ class MultiplayerServer {
         console.log(`[MULTIPLAYER SERVER] Broadcasting room update for room ${message.roomId}`);
         this.broadcastRoomUpdate(message.roomId);
         
-        // FORCE TRAVEL COMMAND - Execute actual travel to sync location
-        console.log(`[MULTIPLAYER SERVER] FORCING TRAVEL COMMAND for ${message.playerName} to ${room.gameState.location}`);
+        // LOCATION SYNC - Wait for WebSocket to be fully ready
+        console.log(`[MULTIPLAYER SERVER] *** INITIATING LOCATION SYNC FOR ${message.playerName} ***`);
+        console.log(`[MULTIPLAYER SERVER] Target location: ${room.gameState.location}`);
+        console.log(`[MULTIPLAYER SERVER] WebSocket ready state: ${ws.readyState}`);
         
-        // Send travel command that will trigger all the proper game logic
-        this.sendToClient(ws, {
-            type: 'force_travel_command',
-            command: `travel to ${room.gameState.location}`,
-            destination: room.gameState.location,
-            description: `You have joined the party and traveled to ${room.gameState.location}`,
-            playerId: ws.playerId,
-            playerName: message.playerName,
-            forceSync: true
+        // Use multiple attempts with delays to ensure message delivery
+        const locationSyncAttempts = [100, 500, 1000]; // milliseconds
+        
+        locationSyncAttempts.forEach((delay, index) => {
+            setTimeout(() => {
+                console.log(`[MULTIPLAYER SERVER] *** LOCATION SYNC ATTEMPT ${index + 1} ***`);
+                console.log(`[MULTIPLAYER SERVER] Sending force_travel_command with ${delay}ms delay`);
+                
+                if (ws.readyState === 1) { // WebSocket.OPEN
+                    const travelMessage = {
+                        type: 'force_travel_command',
+                        command: `travel to ${room.gameState.location}`,
+                        destination: room.gameState.location,
+                        description: `You have joined the party and traveled to ${room.gameState.location}`,
+                        playerId: ws.playerId,
+                        playerName: message.playerName,
+                        forceSync: true,
+                        attempt: index + 1
+                    };
+                    
+                    console.log(`[MULTIPLAYER SERVER] Sending travel message:`, travelMessage);
+                    this.sendToClient(ws, travelMessage);
+                    
+                    // Also send location_changed as backup
+                    const locationMessage = {
+                        type: 'location_changed',
+                        location: room.gameState.location,
+                        description: `Location synchronized to party location: ${room.gameState.location}`,
+                        playerId: ws.playerId,
+                        isBackupSync: true,
+                        attempt: index + 1
+                    };
+                    
+                    console.log(`[MULTIPLAYER SERVER] Sending location message:`, locationMessage);
+                    this.sendToClient(ws, locationMessage);
+                } else {
+                    console.log(`[MULTIPLAYER SERVER] ERROR: WebSocket not ready on attempt ${index + 1}, state: ${ws.readyState}`);
+                }
+            }, delay);
         });
-        
-        // Also send the standard location_changed as backup
-        setTimeout(() => {
-            this.sendToClient(ws, {
-                type: 'location_changed',
-                location: room.gameState.location,
-                description: `Location synchronized to party location: ${room.gameState.location}`,
-                playerId: ws.playerId,
-                isBackupSync: true
-            });
-        }, 100);
     }
 
     handleReconnection(ws, message) {
@@ -600,19 +621,28 @@ class MultiplayerServer {
                 const messageStr = JSON.stringify(message);
                 ws.send(messageStr);
                 
-                if (message.type === 'location_changed') {
-                    console.log(`[MULTIPLAYER SERVER] *** LOCATION_CHANGED SENT ***`);
-                    console.log(`[MULTIPLAYER SERVER] Player: ${ws.playerId}`);
-                    console.log(`[MULTIPLAYER SERVER] Location: ${message.location}`);
-                    console.log(`[MULTIPLAYER SERVER] Message sent successfully`);
+                console.log(`[MULTIPLAYER SERVER] *** MESSAGE SENT SUCCESSFULLY ***`);
+                console.log(`[MULTIPLAYER SERVER] Message type: ${message.type}`);
+                console.log(`[MULTIPLAYER SERVER] Player: ${ws.playerId}`);
+                
+                if (message.type === 'location_changed' || message.type === 'force_travel_command') {
+                    console.log(`[MULTIPLAYER SERVER] *** CRITICAL MESSAGE SENT ***`);
+                    console.log(`[MULTIPLAYER SERVER] Type: ${message.type}`);
+                    console.log(`[MULTIPLAYER SERVER] Location/Destination: ${message.location || message.destination}`);
+                    console.log(`[MULTIPLAYER SERVER] Full message:`, message);
                 }
             } catch (error) {
-                console.error(`[MULTIPLAYER SERVER] Error sending message:`, error);
+                console.error(`[MULTIPLAYER SERVER] *** CRITICAL ERROR SENDING MESSAGE ***`);
+                console.error(`[MULTIPLAYER SERVER] Error:`, error);
                 console.error(`[MULTIPLAYER SERVER] Message type: ${message.type}`);
                 console.error(`[MULTIPLAYER SERVER] Player: ${ws.playerId}`);
+                console.error(`[MULTIPLAYER SERVER] Message:`, message);
             }
         } else {
-            console.error(`[MULTIPLAYER SERVER] WebSocket not open for player ${ws.playerId}, state: ${ws.readyState}`);
+            console.error(`[MULTIPLAYER SERVER] *** WEBSOCKET NOT OPEN ***`);
+            console.error(`[MULTIPLAYER SERVER] Player: ${ws.playerId}`);
+            console.error(`[MULTIPLAYER SERVER] State: ${ws.readyState}`);
+            console.error(`[MULTIPLAYER SERVER] Message type: ${message.type}`);
         }
     }
 
