@@ -1,4 +1,3 @@
-
 export class MultiplayerClient {
     constructor() {
         this.ws = null;
@@ -21,22 +20,22 @@ export class MultiplayerClient {
                 const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
                 const host = window.location.host;
                 this.ws = new WebSocket(`${protocol}//${host}`);
-                
+
                 this.ws.onopen = () => {
                     this.isConnected = true;
                     console.log('Connected to multiplayer server');
                     resolve();
                 };
-                
+
                 this.ws.onmessage = (event) => {
                     this.handleMessage(JSON.parse(event.data));
                 };
-                
+
                 this.ws.onclose = () => {
                     this.isConnected = false;
                     this.handleDisconnection();
                 };
-                
+
                 this.ws.onerror = (error) => {
                     console.error('WebSocket error:', error);
                     reject(error);
@@ -48,7 +47,21 @@ export class MultiplayerClient {
     }
 
     handleMessage(message) {
-        console.log(`[MULTIPLAYER CLIENT] Received message type: ${message.type}`, message);
+        console.log(`[MULTIPLAYER CLIENT] *** MESSAGE RECEIVED ***`);
+        console.log(`[MULTIPLAYER CLIENT] Message type: ${message.type}`);
+        console.log(`[MULTIPLAYER CLIENT] Full message:`, message);
+
+        // IMMEDIATE LOCATION CHECK - CHECK BEFORE SWITCH STATEMENT
+        if (message.type === 'location_changed') {
+            console.log(`[MULTIPLAYER CLIENT] *** LOCATION_CHANGED MESSAGE DETECTED ***`);
+            console.log(`[MULTIPLAYER CLIENT] Location: ${message.location}`);
+            console.log(`[MULTIPLAYER CLIENT] Description: ${message.description}`);
+            console.log(`[MULTIPLAYER CLIENT] Force sync: ${message.forceSync}`);
+            console.log(`[MULTIPLAYER CLIENT] Player ID: ${message.playerId}`);
+            console.log(`[MULTIPLAYER CLIENT] THIS SHOULD TRIGGER LOCATION UPDATE`);
+        } else {
+            console.log(`[MULTIPLAYER CLIENT] Not a location_changed message: ${message.type}`);
+        }
         switch(message.type) {
             case 'connected':
                 this.playerId = message.playerId;
@@ -139,7 +152,7 @@ export class MultiplayerClient {
 
     updatePartyFromPlayers(players) {
         if (typeof partyManager === 'undefined' || typeof player === 'undefined') return;
-        
+
         // Add other players to party (excluding self)
         players.forEach(playerData => {
             if (playerData.id !== this.playerId) {
@@ -266,11 +279,11 @@ export class MultiplayerClient {
 
     handleDisconnection() {
         this.isConnected = false;
-        
+
         if (typeof displayMessage !== 'undefined') {
             displayMessage('Disconnected from multiplayer server', 'error');
         }
-        
+
         // Attempt automatic reconnection if we were in a room
         if (this.roomId && this.reconnectAttempts < this.maxReconnectAttempts) {
             this.attemptReconnection();
@@ -284,17 +297,17 @@ export class MultiplayerClient {
 
     processLocationChange(message) {
         console.log(`[MULTIPLAYER CLIENT] Processing location change to: ${message.location}`);
-        
+
         if (typeof player !== 'undefined') {
             const oldLocation = player.currentLocation;
             player.currentLocation = message.location;
             console.log(`[MULTIPLAYER CLIENT] Player location updated from "${oldLocation}" to "${player.currentLocation}"`);
-            
+
             // Call the fixed updatePlayerStatsDisplay function
             if (typeof updatePlayerStatsDisplay !== 'undefined') {
                 console.log(`[MULTIPLAYER CLIENT] Calling updatePlayerStatsDisplay()`);
                 updatePlayerStatsDisplay();
-                
+
                 // Call again after a brief delay to ensure it takes
                 setTimeout(() => {
                     updatePlayerStatsDisplay();
@@ -303,7 +316,7 @@ export class MultiplayerClient {
             } else {
                 console.log(`[MULTIPLAYER CLIENT] WARNING: updatePlayerStatsDisplay function not available`);
             }
-            
+
             if (typeof displayMessage !== 'undefined') {
                 console.log(`[MULTIPLAYER CLIENT] Displaying location change messages`);
                 if (!message.isSecondarySync) {
@@ -312,7 +325,7 @@ export class MultiplayerClient {
                 }
                 console.log(`[MULTIPLAYER CLIENT] Location change messages displayed`);
             }
-            
+
             // Save game to persist location change
             if (typeof saveGame !== 'undefined') {
                 console.log(`[MULTIPLAYER CLIENT] Saving game after location change`);
@@ -322,7 +335,7 @@ export class MultiplayerClient {
         } else {
             console.log(`[MULTIPLAYER CLIENT] ERROR: Player object is undefined, cannot update location`);
         }
-        
+
         console.log(`[MULTIPLAYER CLIENT] Triggering locationChanged callback`);
         this.triggerCallback('locationChanged', message);
         console.log(`[MULTIPLAYER CLIENT] locationChanged callback triggered`);
@@ -330,7 +343,7 @@ export class MultiplayerClient {
 
     forceUpdateLocationDisplay(location) {
         console.log(`[MULTIPLAYER CLIENT] Force updating all location displays to: ${location}`);
-        
+
         // Try multiple selectors to find location displays
         const selectors = [
             '#current-location',
@@ -340,7 +353,7 @@ export class MultiplayerClient {
             '#player-location',
             '.location-display'
         ];
-        
+
         selectors.forEach(selector => {
             const elements = document.querySelectorAll(selector);
             elements.forEach(el => {
@@ -354,11 +367,11 @@ export class MultiplayerClient {
 
     attemptReconnection() {
         this.reconnectAttempts++;
-        
+
         if (typeof displayMessage !== 'undefined') {
             displayMessage(`Attempting to reconnect... (${this.reconnectAttempts}/${this.maxReconnectAttempts})`, 'info');
         }
-        
+
         this.reconnectTimeout = setTimeout(() => {
             this.connect().then(() => {
                 // Attempt to reconnect to previous session
