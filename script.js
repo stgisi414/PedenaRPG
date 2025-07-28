@@ -30,7 +30,7 @@
                         multiplayerClient.requestTravel(result.newLocation, result.description);
 
                         displayMessage(result.description, 'info');
-                        displayMessage(`Leading party to: ${result.newLocation}`, 'success');
+                        displayMessage(`🎯 Leading party to: ${result.newLocation}`, 'success');
 
                         if (result.hasEncounter) {
                             await handleEncounter(result.encounterType);

@@ -342,36 +342,44 @@ class MultiplayerServer {
         const oldZone = room.gameState.location;
         const newZone = message.destination;
         
+        console.log(`[MULTIPLAYER SERVER] *** HOST TRAVEL REQUEST ***`);
+        console.log(`[MULTIPLAYER SERVER] Host ${playerData.socket.playerId} moving party from ${oldZone} to ${newZone}`);
+        
         // Update room location
         room.gameState.location = newZone;
         
-        // Update all players' zones and notify them
+        // Update all players' zones and FORCE them to follow
         room.players.forEach(player => {
             // Update player's zone
             player.currentZone = newZone;
             player.socket.currentZone = newZone;
             
-            this.sendToClient(player.socket, {
-                type: 'location_changed',
-                location: newZone,
-                oldZone: oldZone,
-                description: player.id === ws.playerId ? 
-                    message.description : 
-                    `Your party leader has moved the group to ${newZone}. ${message.description}`
-            });
+            if (player.id === ws.playerId) {
+                // Host gets normal travel confirmation
+                this.sendToClient(player.socket, {
+                    type: 'location_changed',
+                    location: newZone,
+                    oldZone: oldZone,
+                    description: message.description,
+                    isHostTravel: true,
+                    playerId: player.id
+                });
+            } else {
+                // Non-hosts get FORCED to follow
+                console.log(`[MULTIPLAYER SERVER] FORCING player ${player.name} to follow to ${newZone}`);
+                this.sendToClient(player.socket, {
+                    type: 'location_changed',
+                    location: newZone,
+                    oldZone: oldZone,
+                    description: `🚀 PARTY TRAVEL: Your party leader has moved the group to ${newZone}. ${message.description}`,
+                    isHostTravel: true,
+                    forced: true,
+                    playerId: player.id
+                });
+            }
         });
         
-        // Broadcast to old zone that players left (if any other players remain there)
-        this.broadcastToZone(playerData.roomId, oldZone, {
-            type: 'zone_update',
-            message: `A party has left ${oldZone} for ${newZone}`
-        });
-        
-        // Broadcast to new zone that players arrived (if any other players are there)
-        this.broadcastToZone(playerData.roomId, newZone, {
-            type: 'zone_update',
-            message: `A party has arrived in ${newZone} from ${oldZone}`
-        }, ws.playerId);
+        console.log(`[MULTIPLAYER SERVER] *** PARTY TRAVEL COMPLETED ***`);
     }
 
     handleGameAction(ws, message) {

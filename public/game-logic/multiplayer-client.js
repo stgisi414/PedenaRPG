@@ -340,28 +340,23 @@ export class MultiplayerClient {
                 console.log(`[MULTIPLAYER CLIENT] FORCING updatePlayerStatsDisplay() multiple times`);
                 updatePlayerStatsDisplay();
                 
-                // Force immediate updates
+                // Force immediate updates with delays
                 setTimeout(() => updatePlayerStatsDisplay(), 10);
                 setTimeout(() => updatePlayerStatsDisplay(), 50);
                 setTimeout(() => updatePlayerStatsDisplay(), 100);
                 setTimeout(() => updatePlayerStatsDisplay(), 200);
                 setTimeout(() => updatePlayerStatsDisplay(), 500);
+                setTimeout(() => updatePlayerStatsDisplay(), 1000);
             }
 
             // Display messages 
             if (typeof displayMessage !== 'undefined') {
                 console.log(`[MULTIPLAYER CLIENT] Displaying travel messages`);
+                displayMessage(message.description, message.forced ? 'warning' : 'info');
                 
-                if (message.forced || (message.isHostTravel && message.playerId !== this.playerId)) {
-                    // This is a FORCED party travel
-                    displayMessage(message.description, 'warning');
-                    displayMessage(`*** PARTY TRAVEL: Moved to ${message.location} ***`, 'success');
-                } else if (message.isHostTravel && message.playerId === this.playerId) {
-                    // Host's own travel
-                    displayMessage(message.description, 'info');
-                } else {
-                    // Regular sync
-                    displayMessage(`Location synchronized: ${message.location}`, 'success');
+                // Clear combat state if traveling
+                if (typeof window.CombatSystem !== 'undefined') {
+                    window.CombatSystem.clearCombatState();
                 }
             }
 
