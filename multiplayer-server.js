@@ -203,49 +203,56 @@ class MultiplayerServer {
         console.log(`[MULTIPLAYER SERVER] Broadcasting room update for room ${message.roomId}`);
         this.broadcastRoomUpdate(message.roomId);
         
-        // LOCATION SYNC - Wait for WebSocket to be fully ready
-        console.log(`[MULTIPLAYER SERVER] *** INITIATING LOCATION SYNC FOR ${message.playerName} ***`);
-        console.log(`[MULTIPLAYER SERVER] Target location: ${room.gameState.location}`);
+        // IMMEDIATE DEBUG - Let's see if we even get to this point
+        console.log(`[MULTIPLAYER SERVER] *** REACHED LOCATION SYNC CODE ***`);
+        console.log(`[MULTIPLAYER SERVER] Player ${message.playerName} joining room with location: ${room.gameState.location}`);
         console.log(`[MULTIPLAYER SERVER] WebSocket ready state: ${ws.readyState}`);
+        console.log(`[MULTIPLAYER SERVER] Current time: ${Date.now()}`);
         
-        // Use multiple attempts with delays to ensure message delivery
-        const locationSyncAttempts = [100, 500, 1000]; // milliseconds
+        // IMMEDIATE LOCATION SYNC - Send right away without delay
+        console.log(`[MULTIPLAYER SERVER] *** SENDING IMMEDIATE LOCATION SYNC ***`);
         
+        const travelMessage = {
+            type: 'force_travel_command',
+            command: `travel to ${room.gameState.location}`,
+            destination: room.gameState.location,
+            description: `You have joined the party and traveled to ${room.gameState.location}`,
+            playerId: ws.playerId,
+            playerName: message.playerName,
+            forceSync: true,
+            immediate: true
+        };
+        
+        console.log(`[MULTIPLAYER SERVER] *** SENDING TRAVEL MESSAGE IMMEDIATELY ***`, travelMessage);
+        this.sendToClient(ws, travelMessage);
+        
+        const locationMessage = {
+            type: 'location_changed',
+            location: room.gameState.location,
+            description: `Location synchronized to party location: ${room.gameState.location}`,
+            playerId: ws.playerId,
+            isBackupSync: true,
+            immediate: true
+        };
+        
+        console.log(`[MULTIPLAYER SERVER] *** SENDING LOCATION MESSAGE IMMEDIATELY ***`, locationMessage);
+        this.sendToClient(ws, locationMessage);
+        
+        // Also try with delays as backup
+        const locationSyncAttempts = [100, 500, 1000];
         locationSyncAttempts.forEach((delay, index) => {
             setTimeout(() => {
-                console.log(`[MULTIPLAYER SERVER] *** LOCATION SYNC ATTEMPT ${index + 1} ***`);
-                console.log(`[MULTIPLAYER SERVER] Sending force_travel_command with ${delay}ms delay`);
-                
-                if (ws.readyState === 1) { // WebSocket.OPEN
-                    const travelMessage = {
-                        type: 'force_travel_command',
-                        command: `travel to ${room.gameState.location}`,
-                        destination: room.gameState.location,
-                        description: `You have joined the party and traveled to ${room.gameState.location}`,
-                        playerId: ws.playerId,
-                        playerName: message.playerName,
-                        forceSync: true,
-                        attempt: index + 1
-                    };
-                    
-                    console.log(`[MULTIPLAYER SERVER] Sending travel message:`, travelMessage);
-                    this.sendToClient(ws, travelMessage);
-                    
-                    // Also send location_changed as backup
-                    const locationMessage = {
-                        type: 'location_changed',
-                        location: room.gameState.location,
-                        description: `Location synchronized to party location: ${room.gameState.location}`,
-                        playerId: ws.playerId,
-                        isBackupSync: true,
-                        attempt: index + 1
-                    };
-                    
-                    console.log(`[MULTIPLAYER SERVER] Sending location message:`, locationMessage);
-                    this.sendToClient(ws, locationMessage);
-                } else {
-                    console.log(`[MULTIPLAYER SERVER] ERROR: WebSocket not ready on attempt ${index + 1}, state: ${ws.readyState}`);
-                }
+                console.log(`[MULTIPLAYER SERVER] *** DELAYED SYNC ATTEMPT ${index + 1} ***`);
+                this.sendToClient(ws, {
+                    ...travelMessage,
+                    attempt: index + 1,
+                    immediate: false
+                });
+                this.sendToClient(ws, {
+                    ...locationMessage,
+                    attempt: index + 1,
+                    immediate: false
+                });
             }, delay);
         });
     }
