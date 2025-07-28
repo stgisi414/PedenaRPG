@@ -333,6 +333,47 @@ class MultiplayerServer {
             return;
         }
 
+        // Check for travel commands and handle them specially
+        const travelMatch = message.action.match(/(?:travel to|go to|move to|head to|walk to|visit)\s+(.+)/i);
+        if (travelMatch && room.host === ws.playerId) {
+            const destination = travelMatch[1].trim();
+            console.log(`[SERVER] Host ${player.name} attempting travel via game action: ${destination}`);
+            
+            // Update room location
+            const oldZone = room.gameState.location;
+            room.gameState.location = destination;
+            
+            // Force all players to travel
+            room.players.forEach(roomPlayer => {
+                roomPlayer.currentZone = destination;
+                roomPlayer.socket.currentZone = destination;
+                
+                if (roomPlayer.id === ws.playerId) {
+                    // Host confirmation
+                    this.sendToClient(roomPlayer.socket, {
+                        type: 'location_changed',
+                        location: destination,
+                        description: `You lead the party to ${destination}`,
+                        isHostTravel: true,
+                        playerId: roomPlayer.id
+                    });
+                } else {
+                    // Force non-host players to follow
+                    this.sendToClient(roomPlayer.socket, {
+                        type: 'location_changed',
+                        location: destination,
+                        description: `🚀 PARTY TRAVEL: Your party leader has moved the group to ${destination}`,
+                        isHostTravel: true,
+                        forced: true,
+                        playerId: roomPlayer.id
+                    });
+                }
+            });
+            
+            console.log(`[SERVER] Party travel completed: ${oldZone} -> ${destination}`);
+            return; // Don't process as regular action
+        }
+
         const actionScope = message.scope || 'zone';
 
         if (actionScope === 'room') {
