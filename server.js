@@ -259,21 +259,40 @@ class MultiplayerServer {
         const oldZone = room.gameState.location;
         const newZone = message.destination;
         
+        console.log(`[MULTIPLAYER SERVER] *** HOST TRAVEL REQUEST ***`);
+        console.log(`[MULTIPLAYER SERVER] Host ${ws.playerId} traveling from ${oldZone} to ${newZone}`);
+        console.log(`[MULTIPLAYER SERVER] Party has ${room.players.size} members`);
+        
+        // Update room location
         room.gameState.location = newZone;
         
+        // Update all party members and notify them
         room.players.forEach(player => {
+            console.log(`[MULTIPLAYER SERVER] Updating player ${player.name} location to ${newZone}`);
+            
+            // Update player's zone
             player.currentZone = newZone;
             player.socket.currentZone = newZone;
             
-            this.sendToClient(player.socket, {
+            // Send location change to each player
+            const isHost = player.id === ws.playerId;
+            const locationMessage = {
                 type: 'location_changed',
                 location: newZone,
                 oldZone: oldZone,
-                description: player.id === ws.playerId ? 
+                description: isHost ? 
                     message.description : 
-                    `Your party leader has moved the group to ${newZone}. ${message.description}`
-            });
+                    `Your party leader has moved the group to ${newZone}. ${message.description}`,
+                playerId: player.id,
+                playerName: player.name,
+                isHostTravel: true
+            };
+            
+            console.log(`[MULTIPLAYER SERVER] Sending location update to ${player.name}:`, locationMessage);
+            this.sendToClient(player.socket, locationMessage);
         });
+        
+        console.log(`[MULTIPLAYER SERVER] *** HOST TRAVEL COMPLETED ***`);
     }
 
     handleGameAction(ws, message) {
