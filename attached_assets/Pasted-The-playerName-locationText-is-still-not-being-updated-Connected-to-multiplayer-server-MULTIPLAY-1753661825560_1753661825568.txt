@@ -1,0 +1,31 @@
+The playerName locationText is still not being updated.
+Connected to multiplayer server
+[MULTIPLAYER CLIENT] Received message type: connected
+Object {type: "connected", playerId: "1ce3d2f5-f1c9-4c8e-a9a4-127493d530a7"}
+[MULTIPLAYER CLIENT] Received message type: room_joined
+Object {type: "room_joined", roomId: "YXS2G2", isHost: false}
+[MULTIPLAYER CLIENT] Received message type: room_update
+Object {type: "room_update", players: Array(2), gameState: {…}}
+[MULTIPLAYER CLIENT] Received message type: player_action
+Object {type: "player_action", playerId: "b7931678-2a55-4b37-8132-9a9b18fd79c2", action: "greet Hrothgar", result: "You approach Hrothgar, a sturdy-looking warrior, in the Pedena Town Square. "Greetings,…"}
+[MULTIPLAYER CLIENT] Received message type: turn_changed
+Object {type: "turn_changed", currentTurn: "1ce3d2f5-f1c9-4c8e-a9a4-127493d530a7", turnIndex: 1}
+
+There's no logging in the MULTIPLAYER CLIENT showing anything related to updating the joining player's location either. HOLY FUCK THIS IS 30 FUCKING MESSAGES ABOUT THIS AND THREE HOURS!!!!!!!!!!! THREE FUCKING HOURS AND NO PROGRESS THERE IS NO UPDATE AND THERE'S NO UPDATE LOGGING!!! LET ME REPEAT THAT FOR YOU YOU FUCKING RETARD!!!!!!!!!!!!!!!!!!! THERE IS NOOOOOOOOOOOOOOOOOOO LOCATION UPDATE THERE IS NOOOOOOOOOO SUCCESSFUL LOCATION MESSAGE THERE IS NOOOOOOOOOOO MULTIPLAYER SYNCHRONIZATION edit: You said "The multiplayer client is connecting and receiving messages, but there's no location_changed message being sent when a player joins a room." BUT THAT'S NOT TRUE!!!!!!!!!! THE MULTIPLAYER CLIENT IS NOT UPDATING THE LOCATION AT ALL edit: You said "the WebSocket connection might not be fully established or the client might not be ready to receive them." THEN HOW THE FUCK IS THE ACTUAL MULTIPLAYER WORKING!?!?!?!?!!??! THE ONLY PART OF THE MULTIPLAYER THAT'S NOT WORKING IS THE LOCATION SYNC edit: Connected to multiplayer server
+[MULTIPLAYER CLIENT] Received message type: connected
+Object {type: "connected", playerId: "13060900-ef8e-4234-af88-96f9be26888d"}
+playerId: "13060900-ef8e-4234-af88-96f9be26888d"
+type: "connected"
+[[Prototype]]: Object
+[MULTIPLAYER CLIENT] Received message type: room_joined
+Object {type: "room_joined", roomId: "SGQYVA", isHost: false}
+[MULTIPLAYER CLIENT] Received message type: room_update
+Object {type: "room_update", players: Array(2), gameState: {…}}
+[MULTIPLAYER CLIENT] Received message type: player_action
+Object {type: "player_action", playerId: "61f30b02-e56f-4e17-8252-c9f0f4f38140", action: "Greet Hrothgar", result: "Vilidia approaches Hrothgar, a burly warrior with a weathered face, standing near the fountain in…"}
+[MULTIPLAYER CLIENT] Received message type: turn_changed
+Object {type: "turn_changed", currentTurn: "13060900-ef8e-4234-af88-96f9be26888d", turnIndex: 1}
+Connected to multiplayer server
+[MULTIPLAYER CLIENT] Received message type: connected
+Object {type: "connected", playerId: "c5efd377-70b2-41f9-8b44-70af244d39ec"}
+THE SAME FUCKING THING NO CHANGES TO THE LOGS NO UPDATES TO THE JOINING PLAYER'S location.textinfo in the playername......... you said there would at least be the logs showing that messages were sent but there's nothing at all FUCK YOU YOU GODDAMN SCAMMER

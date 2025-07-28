@@ -1,0 +1,75 @@
+[LOCATION SYNC] Location sync initialization script loaded
+Added fixInventorySlots() function. Run fixInventorySlots() in console to fix items missing slot properties.
+[LOCATION SYNC] Initializing direct location synchronization
+Fixed strength: 0 -> 10
+Fixed dexterity: 0 -> 10
+Fixed intelligence: 0 -> 10
+Fixed constitution: 0 -> 10
+Fixed wisdom: 0 -> 10
+Fixed charisma: 0 -> 10
+Stats were fixed for current player
+[MAIN SCRIPT] updatePlayerStatsDisplay called
+[MAIN SCRIPT] Current player location: Pedena Town Square
+[MAIN SCRIPT] Player data incomplete, skipping update
+✓ All main event listeners have been correctly added.
+Party and Multi-Combat systems initialized
+Multiplayer system initialized
+bgmManager is not defined
+BGM Manager initialized
+✓ Event delegation setup for inventory items.
+✓ Event delegation setup for shop items.
+Game settings loaded: 
+Object {apiKey: "AIzaSyDa3aO_Oq75xyUP3f-uN6qBRA91Jn9ngWk", model: "gemini-2.0-flash-lite"}
+✓ Multiplayer button event listener added
+✓ Event delegation setup for inventory items.
+[LOCATION SYNC] Initializing direct location synchronization
+[LOCATION SYNC] Setting up location handlers
+[LOCATION SYNC] Location sync ready
+[LOCATION SYNC] Setting up location handlers
+[LOCATION SYNC] Location sync ready
+loadGame: Raw data from localStorage ('pedenaRPGSave'): {"player":{"name":"Hrothgar","gender":"male","class":"gladiator","background":"Hrothgar is a gladiator who seeks adventure in the realm of Pedena.","stats":{"strength":13,"dexterity":11,"intelligence":11,"constitution":11,"wisdom":11,"charisma":13},"hp":126,"maxHp":136,"level":3,"exp":92,"expToNextLevel":150,"gold":659,"inventory":[{"id":"item_1752515217218_nbzr2pu4j","name":"Grasps of the Void Weaver","armor":3,"rarity":"COMMON","effects":["manipulate_space","pull_from_other_dimensions","touch_...
+loadGame: Parsed saveData.player.gold from localStorage: 659
+[SCRIPT.JS] After loadGame, window.player HP: <span class="math-inline">126/136</span>
+[SCRIPT.JS] After loadGame, is module player === window.player? true
+Character progression loaded
+Party data restored from save
+loadGame: Global player.gold immediately after assignment from saved data: 659
+loadGame: Final player.gold after all loading steps: 659
+[SCRIPT.JS] loadGame: player HP set to <span class="math-inline">126/136</span>
+[SCRIPT.JS] loadGame: window.player HP is now <span class="math-inline">126/136</span>
+[SCRIPT.JS] loadGame: is module player === window.player? true
+[MAIN SCRIPT] updatePlayerStatsDisplay called
+[MAIN SCRIPT] Current player location: Pedena General Store
+[MAIN SCRIPT] Updating player name display: Hrothgar - Pedena General Store
+[MAIN SCRIPT] updatePlayerStatsDisplay completed
+[MAIN SCRIPT] Final player name display content: "Hrothgar - Pedena General Store"
+[MAIN SCRIPT] Final player name display innerHTML: "Hrothgar - Pedena General Store"
+Connected to multiplayer server
+[MULTIPLAYER CLIENT] *** MESSAGE RECEIVED ***
+[MULTIPLAYER CLIENT] Message type: connected
+[MULTIPLAYER CLIENT] Full message: 
+Object {type: "connected", playerId: "b03fbd3b-89ab-4cac-8b6e-e700a25e34ee"}
+playerId: "b03fbd3b-89ab-4cac-8b6e-e700a25e34ee"
+type: "connected"
+[[Prototype]]: Object
+[MULTIPLAYER CLIENT] Not a location_changed message: connected
+[MULTIPLAYER CLIENT] *** MESSAGE RECEIVED ***
+[MULTIPLAYER CLIENT] Message type: room_joined
+[MULTIPLAYER CLIENT] Full message: 
+Object {type: "room_joined", roomId: "1MYB1P", isHost: false}
+[MULTIPLAYER CLIENT] Not a location_changed message: room_joined
+[MULTIPLAYER CLIENT] *** MESSAGE RECEIVED ***
+[MULTIPLAYER CLIENT] Message type: room_update
+[MULTIPLAYER CLIENT] Full message: 
+Object {type: "room_update", players: Array(2), gameState: {…}}
+[MULTIPLAYER CLIENT] Not a location_changed message: room_update
+[MULTIPLAYER CLIENT] *** MESSAGE RECEIVED ***
+[MULTIPLAYER CLIENT] Message type: player_action
+[MULTIPLAYER CLIENT] Full message: 
+Object {type: "player_action", playerId: "9f3a758e-5ce0-4053-bd2d-da9edc3c94b1", action: "greet Hrothgar", result: "Vilidia approaches Hrothgar, a burly warrior with a scarred face, standing near the fountain in the…"}
+[MULTIPLAYER CLIENT] Not a location_changed message: player_action
+[MULTIPLAYER CLIENT] *** MESSAGE RECEIVED ***
+[MULTIPLAYER CLIENT] Message type: turn_changed
+[MULTIPLAYER CLIENT] Full message: 
+Object {type: "turn_changed", currentTurn: "b03fbd3b-89ab-4cac-8b6e-e700a25e34ee", turnIndex: 1}
+[MULTIPLAYER CLIENT] Not a location_changed message: turn_changed
