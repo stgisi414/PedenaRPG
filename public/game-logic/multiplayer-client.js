@@ -96,6 +96,12 @@ export class MultiplayerClient {
                 this.updatePartyFromPlayers(message.players);
                 this.triggerCallback('roomUpdate', message);
                 break;
+            case 'force_travel_command':
+                console.log(`[MULTIPLAYER CLIENT] *** FORCE TRAVEL COMMAND RECEIVED ***`);
+                console.log(`[MULTIPLAYER CLIENT] Command: ${message.command}`);
+                console.log(`[MULTIPLAYER CLIENT] Destination: ${message.destination}`);
+                this.executeForcedTravel(message);
+                break;
             case 'location_changed':
                 console.log(`[MULTIPLAYER CLIENT] Received location_changed:`, message);
                 this.processLocationChange(message);
@@ -352,6 +358,62 @@ export class MultiplayerClient {
         console.log(`[MULTIPLAYER CLIENT] Triggering locationChanged callback`);
         this.triggerCallback('locationChanged', message);
         console.log(`[MULTIPLAYER CLIENT] locationChanged callback triggered`);
+    }
+
+    executeForcedTravel(message) {
+        console.log(`[MULTIPLAYER CLIENT] *** EXECUTING FORCED TRAVEL ***`);
+        console.log(`[MULTIPLAYER CLIENT] Travel command: ${message.command}`);
+        console.log(`[MULTIPLAYER CLIENT] Destination: ${message.destination}`);
+        
+        // Execute the actual travel command through the game's command processing system
+        if (typeof processCommand !== 'undefined') {
+            console.log(`[MULTIPLAYER CLIENT] Calling processCommand with: ${message.command}`);
+            
+            // Execute the travel command
+            processCommand(message.command).then(() => {
+                console.log(`[MULTIPLAYER CLIENT] Travel command executed successfully`);
+                
+                // Force update player location
+                if (typeof player !== 'undefined') {
+                    player.currentLocation = message.destination;
+                    console.log(`[MULTIPLAYER CLIENT] Player location force-updated to: ${player.currentLocation}`);
+                    
+                    // Update displays
+                    if (typeof updatePlayerStatsDisplay !== 'undefined') {
+                        updatePlayerStatsDisplay();
+                    }
+                    
+                    // Display success message
+                    if (typeof displayMessage !== 'undefined') {
+                        displayMessage(message.description, 'success');
+                        displayMessage(`Successfully synchronized to party location: ${message.destination}`, 'info');
+                    }
+                    
+                    // Save game state
+                    if (typeof saveGame !== 'undefined') {
+                        saveGame();
+                    }
+                }
+            }).catch(error => {
+                console.error(`[MULTIPLAYER CLIENT] Error executing travel command:`, error);
+                
+                // Fallback to direct location update
+                this.processLocationChange({
+                    type: 'location_changed',
+                    location: message.destination,
+                    description: message.description
+                });
+            });
+        } else {
+            console.error(`[MULTIPLAYER CLIENT] processCommand function not available, falling back to location change`);
+            
+            // Fallback to direct location update
+            this.processLocationChange({
+                type: 'location_changed',
+                location: message.destination,
+                description: message.description
+            });
+        }
     }
 
     forceUpdateLocationDisplay(location) {

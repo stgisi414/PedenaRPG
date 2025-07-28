@@ -203,40 +203,30 @@ class MultiplayerServer {
         console.log(`[MULTIPLAYER SERVER] Broadcasting room update for room ${message.roomId}`);
         this.broadcastRoomUpdate(message.roomId);
         
-        // IMMEDIATE LOCATION SYNC - Send location_changed message right after room_joined
-        const locationMessage = {
-            type: 'location_changed',
-            location: room.gameState.location,
-            description: `You have joined the party in ${room.gameState.location}`,
-            timestamp: Date.now(),
+        // FORCE TRAVEL COMMAND - Execute actual travel to sync location
+        console.log(`[MULTIPLAYER SERVER] FORCING TRAVEL COMMAND for ${message.playerName} to ${room.gameState.location}`);
+        
+        // Send travel command that will trigger all the proper game logic
+        this.sendToClient(ws, {
+            type: 'force_travel_command',
+            command: `travel to ${room.gameState.location}`,
+            destination: room.gameState.location,
+            description: `You have joined the party and traveled to ${room.gameState.location}`,
             playerId: ws.playerId,
             playerName: message.playerName,
             forceSync: true
-        };
+        });
         
-        console.log(`[MULTIPLAYER SERVER] SENDING location_changed to ${message.playerName}: ${room.gameState.location}`);
-        this.sendToClient(ws, locationMessage);
-        
-        // Send backup location messages with slight delays
+        // Also send the standard location_changed as backup
         setTimeout(() => {
             this.sendToClient(ws, {
                 type: 'location_changed',
                 location: room.gameState.location,
-                description: `Location sync: ${room.gameState.location}`,
+                description: `Location synchronized to party location: ${room.gameState.location}`,
                 playerId: ws.playerId,
-                isSecondarySync: true
+                isBackupSync: true
             });
-        }, 50);
-        
-        setTimeout(() => {
-            this.sendToClient(ws, {
-                type: 'location_changed',
-                location: room.gameState.location,
-                description: `Final location sync: ${room.gameState.location}`,
-                playerId: ws.playerId,
-                isFinalSync: true
-            });
-        }, 150);
+        }, 100);
     }
 
     handleReconnection(ws, message) {
