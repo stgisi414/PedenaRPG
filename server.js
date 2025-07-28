@@ -97,14 +97,6 @@ class MultiplayerServer {
             console.log(`[MULTIPLAYER SERVER] Message type: ${message.type}`);
             console.log(`[MULTIPLAYER SERVER] Full message:`, message);
             
-            // IMMEDIATE TEST - Send a test message back to prove server is processing
-            this.sendToClient(ws, {
-                type: 'test_connectivity',
-                originalMessageType: message.type,
-                serverReceived: true,
-                timestamp: Date.now()
-            });
-            
             switch(message.type) {
                 case 'create_room':
                     this.createRoom(ws, message);
@@ -235,34 +227,18 @@ class MultiplayerServer {
         console.log(`[MULTIPLAYER SERVER] Broadcasting room update for room ${message.roomId}`);
         this.broadcastRoomUpdate(message.roomId);
         
-        // LOCATION SYNC - Send travel command immediately
-        console.log(`[MULTIPLAYER SERVER] *** SENDING IMMEDIATE LOCATION SYNC ***`);
+        // SINGLE LOCATION SYNC - Send one clear location update
+        console.log(`[MULTIPLAYER SERVER] *** SENDING SINGLE LOCATION SYNC ***`);
+        console.log(`[MULTIPLAYER SERVER] Syncing ${message.playerName} to room location: ${room.gameState.location}`);
         
-        const travelMessage = {
-            type: 'force_travel_command',
-            command: `travel to ${room.gameState.location}`,
-            destination: room.gameState.location,
+        this.sendToClient(ws, {
+            type: 'location_changed',
+            location: room.gameState.location,
             description: `You have joined the party and traveled to ${room.gameState.location}`,
             playerId: ws.playerId,
             playerName: message.playerName,
-            forceSync: true,
-            immediate: true
-        };
-        
-        console.log(`[MULTIPLAYER SERVER] *** SENDING TRAVEL MESSAGE ***`, travelMessage);
-        this.sendToClient(ws, travelMessage);
-        
-        const locationMessage = {
-            type: 'location_changed',
-            location: room.gameState.location,
-            description: `Location synchronized to party location: ${room.gameState.location}`,
-            playerId: ws.playerId,
-            isBackupSync: true,
-            immediate: true
-        };
-        
-        console.log(`[MULTIPLAYER SERVER] *** SENDING LOCATION MESSAGE ***`, locationMessage);
-        this.sendToClient(ws, locationMessage);
+            forceSync: true
+        });
     }
 
     handleTravelRequest(ws, message) {
