@@ -96,6 +96,11 @@ export class MultiplayerClient {
                 this.updatePartyFromPlayers(message.players);
                 this.triggerCallback('roomUpdate', message);
                 break;
+            case 'force_location_update':
+                console.log(`[MULTIPLAYER CLIENT] *** FORCED LOCATION UPDATE RECEIVED ***`);
+                console.log(`[MULTIPLAYER CLIENT] Being forced to location: ${message.location}`);
+                this.processForcedLocationUpdate(message);
+                break;
             case 'force_travel_command':
                 console.log(`[MULTIPLAYER CLIENT] *** FORCE TRAVEL COMMAND RECEIVED ***`);
                 console.log(`[MULTIPLAYER CLIENT] Command: ${message.command}`);
@@ -459,6 +464,59 @@ export class MultiplayerClient {
                     el.textContent = location;
                 }
             });
+        });
+    }
+
+    processForcedLocationUpdate(message) {
+        console.log(`[MULTIPLAYER CLIENT] *** PROCESSING FORCED LOCATION UPDATE ***`);
+        console.log(`[MULTIPLAYER CLIENT] FORCED to location: ${message.location}`);
+        
+        if (typeof player !== 'undefined' && player) {
+            const oldLocation = player.currentLocation;
+            console.log(`[MULTIPLAYER CLIENT] FORCING player location from "${oldLocation}" to "${message.location}"`);
+            
+            // FORCE update player location immediately
+            player.currentLocation = message.location;
+            
+            // Update UI multiple times to ensure it sticks
+            if (typeof updatePlayerStatsDisplay !== 'undefined') {
+                updatePlayerStatsDisplay();
+                setTimeout(() => updatePlayerStatsDisplay(), 100);
+                setTimeout(() => updatePlayerStatsDisplay(), 500);
+            }
+            
+            // Display forced movement message
+            if (typeof displayMessage !== 'undefined') {
+                displayMessage(message.description, 'warning');
+                displayMessage(`*** PARTY TRAVEL: Moved to ${message.location} ***`, 'success');
+            }
+            
+            // Save the forced location change
+            if (typeof saveGame !== 'undefined') {
+                saveGame();
+            }
+            
+            this.forceUpdateLocationDisplay(message.location);
+        }
+        
+        console.log(`[MULTIPLAYER CLIENT] *** FORCED LOCATION UPDATE COMPLETED ***`);
+    }
+
+    requestTravel(destination, description) {
+        // BLOCK NON-HOST TRAVEL ATTEMPTS
+        if (!this.isHost) {
+            console.log(`[MULTIPLAYER CLIENT] *** TRAVEL BLOCKED - NOT HOST ***`);
+            if (typeof displayMessage !== 'undefined') {
+                displayMessage('Only the party leader can control travel for the group', 'error');
+            }
+            return;
+        }
+        
+        console.log(`[MULTIPLAYER CLIENT] *** HOST INITIATING TRAVEL ***`);
+        this.send({
+            type: 'travel_request',
+            destination: destination,
+            description: description
         });
     }
 
