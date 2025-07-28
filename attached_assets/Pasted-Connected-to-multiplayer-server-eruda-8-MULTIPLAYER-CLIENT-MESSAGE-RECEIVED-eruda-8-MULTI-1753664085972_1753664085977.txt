@@ -1,0 +1,35 @@
+Connected to multiplayer server
+eruda:8 [MULTIPLAYER CLIENT] *** MESSAGE RECEIVED ***
+eruda:8 [MULTIPLAYER CLIENT] Message type: connected
+eruda:8 [MULTIPLAYER CLIENT] Full message: {type: 'connected', playerId: 'c6fa1979-f13e-4cb5-8107-052288b3c046'}
+eruda:8 [MULTIPLAYER CLIENT] Not a location_changed message: connected
+eruda:8 [MULTIPLAYER CLIENT] *** MESSAGE RECEIVED ***
+eruda:8 [MULTIPLAYER CLIENT] Message type: error
+eruda:8 [MULTIPLAYER CLIENT] Full message: {type: 'error', message: 'Room not found'}
+eruda:8 [MULTIPLAYER CLIENT] Not a location_changed message: error
+eruda:8 Connected to multiplayer server
+eruda:8 [MULTIPLAYER CLIENT] *** MESSAGE RECEIVED ***
+eruda:8 [MULTIPLAYER CLIENT] Message type: connected
+eruda:8 [MULTIPLAYER CLIENT] Full message: {type: 'connected', playerId: '040f6789-52a4-462d-900a-554df358eed8'}
+eruda:8 [MULTIPLAYER CLIENT] Not a location_changed message: connected
+eruda:8 [MULTIPLAYER CLIENT] *** MESSAGE RECEIVED ***
+eruda:8 [MULTIPLAYER CLIENT] Message type: error
+eruda:8 [MULTIPLAYER CLIENT] Full message: {type: 'error', message: 'Room not found'}
+eruda:8 [MULTIPLAYER CLIENT] Not a location_changed message: error
+eruda:8 Connected to multiplayer server
+eruda:8 [MULTIPLAYER CLIENT] *** MESSAGE RECEIVED ***
+eruda:8 [MULTIPLAYER CLIENT] Message type: connected
+eruda:8 [MULTIPLAYER CLIENT] Full message: {type: 'connected', playerId: '27b8cbcb-94d5-4209-bb92-f7b3135f0648'}
+eruda:8 [MULTIPLAYER CLIENT] Not a location_changed message: connected
+eruda:8 [MULTIPLAYER CLIENT] *** MESSAGE RECEIVED ***
+eruda:8 [MULTIPLAYER CLIENT] Message type: room_joined
+eruda:8 [MULTIPLAYER CLIENT] Full message: {type: 'room_joined', roomId: 'I72WG3', isHost: false}
+eruda:8 [MULTIPLAYER CLIENT] Not a location_changed message: room_joined
+eruda:8 [MULTIPLAYER CLIENT] *** MESSAGE RECEIVED ***
+eruda:8 [MULTIPLAYER CLIENT] Message type: room_update
+eruda:8 [MULTIPLAYER CLIENT] Full message: {type: 'room_update', players: Array(2), gameState: {…}}
+eruda:8 [MULTIPLAYER CLIENT] Not a location_changed message: room_update
+eruda:8 [MULTIPLAYER CLIENT] *** MESSAGE RECEIVED ***
+eruda:8 [MULTIPLAYER CLIENT] Message type: room_update
+eruda:8 [MULTIPLAYER CLIENT] Full message: {type: 'room_update', players: Array(1), gameState: {…}}
+eruda:8 [MULTIPLAYER CLIENT] Not a location_changed message: room_update
