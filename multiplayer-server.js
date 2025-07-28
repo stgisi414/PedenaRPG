@@ -72,6 +72,9 @@ class MultiplayerServer {
     handleMessage(ws, data) {
         try {
             const message = JSON.parse(data);
+            console.log(`[MULTIPLAYER SERVER] *** MESSAGE RECEIVED ***`);
+            console.log(`[MULTIPLAYER SERVER] Message type: ${message.type}`);
+            console.log(`[MULTIPLAYER SERVER] Full message:`, message);
             
             switch(message.type) {
                 case 'create_room':
@@ -150,7 +153,9 @@ class MultiplayerServer {
     }
 
     joinRoom(ws, message) {
+        console.log(`[MULTIPLAYER SERVER] *** JOIN ROOM FUNCTION CALLED ***`);
         console.log(`[MULTIPLAYER SERVER] Player ${message.playerName} (${ws.playerId}) attempting to join room ${message.roomId}`);
+        console.log(`[MULTIPLAYER SERVER] Available rooms:`, Array.from(this.rooms.keys()));
         
         const room = this.rooms.get(message.roomId);
         
