@@ -337,18 +337,18 @@ class MultiplayerServer {
         const travelMatch = message.action.match(/(?:travel to|go to|move to|head to|walk to|visit)\s+(.+)/i);
         if (travelMatch && room.host === ws.playerId) {
             const destination = travelMatch[1].trim();
-            
+
             console.log(`[SERVER] Host ${player.name} attempting travel via game action: ${destination}`);
-            
+
             // Update room location
             const oldZone = room.gameState.location;
             room.gameState.location = destination;
-            
+
             // Force all players to travel
             room.players.forEach(roomPlayer => {
                 roomPlayer.currentZone = destination;
                 roomPlayer.socket.currentZone = destination;
-                
+
                 if (roomPlayer.id === ws.playerId) {
                     // Host confirmation
                     this.sendToClient(roomPlayer.socket, {
@@ -370,7 +370,7 @@ class MultiplayerServer {
                     });
                 }
             });
-            
+
             console.log(`[SERVER] Party travel completed: ${oldZone} -> ${destination}`);
             return; // Don't process as regular action
         }
@@ -509,6 +509,20 @@ class MultiplayerServer {
         room.players.set(sessionToken, disconnectedData.playerData);
         this.players.set(sessionToken, { roomId: disconnectedData.roomId, socket: ws });
 
+        // Restore player to turn order if not already present
+        if (!room.gameState.turnOrder.includes(sessionToken)) {
+            room.gameState.turnOrder.push(sessionToken);
+        }
+
+        // Fix current turn if it's pointing to a disconnected player
+        if (!room.players.has(room.gameState.currentTurn)) {
+            // Reset to first available player
+            room.gameState.currentTurn = room.gameState.turnOrder[0];
+            room.gameState.turnIndex = 0;
+            console.log(`Fixed broken turn, set to ${room.gameState.currentTurn}`);
+        }
+
+        // Remove from disconnected list
         this.disconnectedPlayers.delete(sessionToken);
 
         this.sendToClient(ws, {
@@ -545,14 +559,37 @@ class MultiplayerServer {
                     disconnectedAt: Date.now()
                 });
 
+                // Temporarily remove from active room
                 room.players.delete(ws.playerId);
-                room.gameState.turnOrder = room.gameState.turnOrder.filter(id => id !== ws.playerId);
 
-                if (room.host === ws.playerId && room.players.size > 0) {
-                    const newHost = room.players.values().next().value;
-                    room.host = newHost.id;
-                    newHost.isHost = true;
+                // Don't remove from turn order - keep them for potential reconnection
+                // But fix current turn if it was pointing to the disconnected player
+                if (room.gameState.currentTurn === ws.playerId) {
+                    // Advance to next available player
+                    let nextIndex = (room.gameState.turnIndex + 1) % room.gameState.turnOrder.length;
+                    let attempts = 0;
+
+                    // Find next connected player
+                    while (attempts < room.gameState.turnOrder.length) {
+                        const nextPlayerId = room.gameState.turnOrder[nextIndex];
+                        if (room.players.has(nextPlayerId)) {
+                            room.gameState.currentTurn = nextPlayerId;
+                            room.gameState.turnIndex = nextIndex;
+                            break;
+                        }
+                        nextIndex = (nextIndex + 1) % room.gameState.turnOrder.length;
+                        attempts++;
+                    }
+
+                    // If no connected players found, reset to first available
+                    if (attempts >= room.gameState.turnOrder.length && room.players.size > 0) {
+                        const firstAvailable = room.players.keys().next().value;
+                        room.gameState.currentTurn = firstAvailable;
+                        room.gameState.turnIndex = room.gameState.turnOrder.indexOf(firstAvailable);
+                    }
                 }
+
+                // Handle host transfer if needed
 
                 this.broadcastToRoom(playerData.roomId, {
                     type: 'player_disconnected',
@@ -560,6 +597,12 @@ class MultiplayerServer {
                     playerName: player.name,
                     message: `${player.name} has disconnected and may reconnect soon.`
                 });
+
+                if (room.host === ws.playerId && room.players.size > 0) {
+                    const newHost = room.players.values().next().value;
+                    room.host = newHost.id;
+                    newHost.isHost = true;
+                }
 
                 if (room.players.size === 0) {
                     this.rooms.delete(playerData.roomId);
