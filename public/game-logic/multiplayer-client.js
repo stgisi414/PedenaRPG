@@ -315,33 +315,51 @@ export class MultiplayerClient {
     }
 
     processLocationChange(message) {
-        console.log(`[MULTIPLAYER CLIENT] Processing location change to: ${message.location}`);
+        console.log(`[MULTIPLAYER CLIENT] *** PROCESSING LOCATION CHANGE ***`);
+        console.log(`[MULTIPLAYER CLIENT] Target location: ${message.location}`);
+        console.log(`[MULTIPLAYER CLIENT] Is host travel: ${message.isHostTravel}`);
+        console.log(`[MULTIPLAYER CLIENT] Message:`, message);
 
-        if (typeof player !== 'undefined') {
+        if (typeof player !== 'undefined' && player) {
             const oldLocation = player.currentLocation;
+            console.log(`[MULTIPLAYER CLIENT] Updating player location from "${oldLocation}" to "${message.location}"`);
+            
+            // Update player location
             player.currentLocation = message.location;
-            console.log(`[MULTIPLAYER CLIENT] Player location updated from "${oldLocation}" to "${player.currentLocation}"`);
-
-            // Call the fixed updatePlayerStatsDisplay function
+            
+            // Force update the UI immediately
             if (typeof updatePlayerStatsDisplay !== 'undefined') {
                 console.log(`[MULTIPLAYER CLIENT] Calling updatePlayerStatsDisplay()`);
                 updatePlayerStatsDisplay();
-
-                // Call again after a brief delay to ensure it takes
+                
+                // Force multiple updates to ensure it sticks
                 setTimeout(() => {
                     updatePlayerStatsDisplay();
                     console.log(`[MULTIPLAYER CLIENT] Second updatePlayerStatsDisplay() call completed`);
-                }, 100);
+                }, 50);
+                
+                setTimeout(() => {
+                    updatePlayerStatsDisplay();
+                    console.log(`[MULTIPLAYER CLIENT] Third updatePlayerStatsDisplay() call completed`);
+                }, 200);
             } else {
                 console.log(`[MULTIPLAYER CLIENT] WARNING: updatePlayerStatsDisplay function not available`);
             }
 
+            // Display messages for host travel
             if (typeof displayMessage !== 'undefined') {
                 console.log(`[MULTIPLAYER CLIENT] Displaying location change messages`);
-                if (!message.isSecondarySync) {
+                
+                if (message.isHostTravel && message.playerId !== this.playerId) {
+                    // This is a party member being moved by the host
+                    displayMessage(message.description, 'info');
+                    displayMessage(`Party moved to: ${message.location}`, 'success');
+                } else if (!message.isSecondarySync && !message.isBackupSync) {
+                    // Regular location change
                     displayMessage(message.description, 'info');
                     displayMessage(`Location synchronized: ${message.location}`, 'success');
                 }
+                
                 console.log(`[MULTIPLAYER CLIENT] Location change messages displayed`);
             }
 
@@ -351,13 +369,17 @@ export class MultiplayerClient {
                 saveGame();
                 console.log(`[MULTIPLAYER CLIENT] Game saved`);
             }
+            
+            // Force update location display in UI
+            this.forceUpdateLocationDisplay(message.location);
+            
         } else {
             console.log(`[MULTIPLAYER CLIENT] ERROR: Player object is undefined, cannot update location`);
         }
 
         console.log(`[MULTIPLAYER CLIENT] Triggering locationChanged callback`);
         this.triggerCallback('locationChanged', message);
-        console.log(`[MULTIPLAYER CLIENT] locationChanged callback triggered`);
+        console.log(`[MULTIPLAYER CLIENT] *** LOCATION CHANGE PROCESSING COMPLETED ***`);
     }
 
     executeForcedTravel(message) {

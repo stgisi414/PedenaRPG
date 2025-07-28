@@ -243,10 +243,16 @@ class MultiplayerServer {
 
     handleTravelRequest(ws, message) {
         const playerData = this.players.get(ws.playerId);
-        if (!playerData) return;
+        if (!playerData) {
+            console.log(`[MULTIPLAYER SERVER] ERROR: Player data not found for ${ws.playerId}`);
+            return;
+        }
         
         const room = this.rooms.get(playerData.roomId);
-        if (!room) return;
+        if (!room) {
+            console.log(`[MULTIPLAYER SERVER] ERROR: Room not found for ${playerData.roomId}`);
+            return;
+        }
         
         if (room.host !== ws.playerId) {
             this.sendToClient(ws, {
@@ -263,34 +269,60 @@ class MultiplayerServer {
         console.log(`[MULTIPLAYER SERVER] Host ${ws.playerId} traveling from ${oldZone} to ${newZone}`);
         console.log(`[MULTIPLAYER SERVER] Party has ${room.players.size} members`);
         
-        // Update room location
+        // Update room location FIRST
         room.gameState.location = newZone;
+        console.log(`[MULTIPLAYER SERVER] Room location updated to: ${room.gameState.location}`);
+        
+        // Get list of all players to update
+        const playersToUpdate = Array.from(room.players.values());
+        console.log(`[MULTIPLAYER SERVER] Players to update:`, playersToUpdate.map(p => p.name));
         
         // Update all party members and notify them
-        room.players.forEach(player => {
-            console.log(`[MULTIPLAYER SERVER] Updating player ${player.name} location to ${newZone}`);
-            
-            // Update player's zone
-            player.currentZone = newZone;
-            player.socket.currentZone = newZone;
-            
-            // Send location change to each player
-            const isHost = player.id === ws.playerId;
-            const locationMessage = {
-                type: 'location_changed',
-                location: newZone,
-                oldZone: oldZone,
-                description: isHost ? 
-                    message.description : 
-                    `Your party leader has moved the group to ${newZone}. ${message.description}`,
-                playerId: player.id,
-                playerName: player.name,
-                isHostTravel: true
-            };
-            
-            console.log(`[MULTIPLAYER SERVER] Sending location update to ${player.name}:`, locationMessage);
-            this.sendToClient(player.socket, locationMessage);
+        playersToUpdate.forEach(player => {
+            try {
+                console.log(`[MULTIPLAYER SERVER] Processing player ${player.name} (${player.id})`);
+                
+                // Update player's zone
+                player.currentZone = newZone;
+                if (player.socket) {
+                    player.socket.currentZone = newZone;
+                }
+                
+                // Create location message
+                const isHost = player.id === ws.playerId;
+                const locationMessage = {
+                    type: 'location_changed',
+                    location: newZone,
+                    oldZone: oldZone,
+                    description: isHost ? 
+                        message.description : 
+                        `Your party leader has moved the group to ${newZone}. ${message.description}`,
+                    playerId: player.id,
+                    playerName: player.name,
+                    isHostTravel: true,
+                    timestamp: Date.now()
+                };
+                
+                console.log(`[MULTIPLAYER SERVER] Sending location update to ${player.name}:`, locationMessage);
+                
+                // Send location change with error handling
+                if (player.socket && player.socket.readyState === 1) { // WebSocket.OPEN = 1
+                    this.sendToClient(player.socket, locationMessage);
+                    console.log(`[MULTIPLAYER SERVER] ✓ Location update sent to ${player.name}`);
+                } else {
+                    console.log(`[MULTIPLAYER SERVER] ⚠️ Player ${player.name} socket not ready, state: ${player.socket?.readyState}`);
+                }
+                
+            } catch (error) {
+                console.error(`[MULTIPLAYER SERVER] Error updating player ${player.name}:`, error);
+            }
         });
+        
+        // Broadcast room update to ensure everyone has the latest state
+        setTimeout(() => {
+            console.log(`[MULTIPLAYER SERVER] Broadcasting room update after travel`);
+            this.broadcastRoomUpdate(playerData.roomId);
+        }, 100);
         
         console.log(`[MULTIPLAYER SERVER] *** HOST TRAVEL COMPLETED ***`);
     }
