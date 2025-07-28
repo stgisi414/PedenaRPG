@@ -301,6 +301,19 @@ class MultiplayerServer {
         room.players.set(sessionToken, disconnectedData.playerData);
         this.players.set(sessionToken, { roomId: disconnectedData.roomId, socket: ws });
 
+        // Restore player to turn order if not already present
+        if (!room.gameState.turnOrder.includes(sessionToken)) {
+            room.gameState.turnOrder.push(sessionToken);
+        }
+
+        // Fix current turn if it's pointing to a disconnected player
+        if (!room.players.has(room.gameState.currentTurn)) {
+            // Reset to first available player
+            room.gameState.currentTurn = room.gameState.turnOrder[0];
+            room.gameState.turnIndex = 0;
+            console.log(`Fixed broken turn, set to ${room.gameState.currentTurn}`);
+        }
+
         // Remove from disconnected list
         this.disconnectedPlayers.delete(sessionToken);
 
@@ -318,8 +331,15 @@ class MultiplayerServer {
             description: `You have reconnected and are back in ${room.gameState.location}.`
         });
 
+        // Send turn update to ensure UI is synchronized
+        this.broadcastToRoom(disconnectedData.roomId, {
+            type: 'turn_changed',
+            currentTurn: room.gameState.currentTurn,
+            turnIndex: room.gameState.turnIndex
+        });
+
         this.broadcastRoomUpdate(disconnectedData.roomId);
-        console.log(`Player ${playerName} successfully reconnected`);
+        console.log(`Player ${playerName} successfully reconnected and turn order restored`);
     }
 
     handleTravelRequest(ws, message) {
@@ -598,7 +618,33 @@ class MultiplayerServer {
 
                 // Temporarily remove from active room
                 room.players.delete(ws.playerId);
-                room.gameState.turnOrder = room.gameState.turnOrder.filter(id => id !== ws.playerId);
+                
+                // Don't remove from turn order - keep them for potential reconnection
+                // But fix current turn if it was pointing to the disconnected player
+                if (room.gameState.currentTurn === ws.playerId) {
+                    // Advance to next available player
+                    let nextIndex = (room.gameState.turnIndex + 1) % room.gameState.turnOrder.length;
+                    let attempts = 0;
+                    
+                    // Find next connected player
+                    while (attempts < room.gameState.turnOrder.length) {
+                        const nextPlayerId = room.gameState.turnOrder[nextIndex];
+                        if (room.players.has(nextPlayerId)) {
+                            room.gameState.currentTurn = nextPlayerId;
+                            room.gameState.turnIndex = nextIndex;
+                            break;
+                        }
+                        nextIndex = (nextIndex + 1) % room.gameState.turnOrder.length;
+                        attempts++;
+                    }
+                    
+                    // If no connected players found, reset to first available
+                    if (attempts >= room.gameState.turnOrder.length && room.players.size > 0) {
+                        const firstAvailable = room.players.keys().next().value;
+                        room.gameState.currentTurn = firstAvailable;
+                        room.gameState.turnIndex = room.gameState.turnOrder.indexOf(firstAvailable);
+                    }
+                }
 
                 // Handle host transfer if needed
                 if (room.host === ws.playerId && room.players.size > 0) {
@@ -618,6 +664,12 @@ class MultiplayerServer {
                 if (room.players.size === 0) {
                     this.rooms.delete(playerData.roomId);
                 } else {
+                    // Send turn update to remaining players
+                    this.broadcastToRoom(playerData.roomId, {
+                        type: 'turn_changed',
+                        currentTurn: room.gameState.currentTurn,
+                        turnIndex: room.gameState.turnIndex
+                    });
                     this.broadcastRoomUpdate(playerData.roomId);
                 }
 
