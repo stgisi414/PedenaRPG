@@ -336,13 +336,9 @@ class MultiplayerServer {
         // Check for travel commands and handle them specially
         const travelMatch = message.action.match(/(?:travel to|go to|move to|head to|walk to|visit)\s+(.+)/i);
         if (travelMatch && room.host === ws.playerId) {
-            const rawDestination = travelMatch[1].trim();
-            // Format destination with proper capitalization (same as what the host would see)
-            const destination = rawDestination.split(' ').map(word => 
-                word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
-            ).join(' ');
+            const destination = travelMatch[1].trim();
             
-            console.log(`[SERVER] Host ${player.name} attempting travel via game action: ${rawDestination} -> ${destination}`);
+            console.log(`[SERVER] Host ${player.name} attempting travel via game action: ${destination}`);
             
             // Update room location
             const oldZone = room.gameState.location;
