@@ -298,7 +298,9 @@ export class MultiplayerClient {
     }
 
     canControlTravel() {
-        return this.isHost;
+        const canTravel = this.isHost && this.roomId && this.isConnected;
+        console.log(`[MULTIPLAYER CLIENT] canControlTravel check: isHost=${this.isHost}, roomId=${this.roomId}, connected=${this.isConnected}, result=${canTravel}`);
+        return canTravel;
     }
 
     handleDisconnection() {

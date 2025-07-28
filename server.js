@@ -254,13 +254,13 @@ class MultiplayerServer {
             return;
         }
         
-        // STRICT HOST-ONLY TRAVEL CONTROL
+        // ABSOLUTE HOST-ONLY TRAVEL CONTROL
         if (room.host !== ws.playerId) {
-            console.log(`[MULTIPLAYER SERVER] *** NON-HOST TRAVEL ATTEMPT BLOCKED ***`);
+            console.log(`[MULTIPLAYER SERVER] *** NON-HOST TRAVEL ATTEMPT ABSOLUTELY BLOCKED ***`);
             console.log(`[MULTIPLAYER SERVER] Player ${ws.playerId} tried to travel but is not host (${room.host})`);
             this.sendToClient(ws, {
                 type: 'error',
-                message: 'Only the party leader can control travel for the entire group'
+                message: '🚫 TRAVEL DENIED: Only the party leader can control travel for the entire group'
             });
             return;
         }
@@ -276,9 +276,9 @@ class MultiplayerServer {
         room.gameState.location = newZone;
         console.log(`[MULTIPLAYER SERVER] Room location updated to: ${room.gameState.location}`);
         
-        // FORCE ALL PARTY MEMBERS TO THE NEW LOCATION
+        // ABSOLUTELY FORCE ALL PARTY MEMBERS TO THE NEW LOCATION
         room.players.forEach(player => {
-            console.log(`[MULTIPLAYER SERVER] FORCING ${player.name} to location: ${newZone}`);
+            console.log(`[MULTIPLAYER SERVER] ABSOLUTELY FORCING ${player.name} to location: ${newZone}`);
             
             // Update player's zone
             player.currentZone = newZone;
@@ -288,14 +288,16 @@ class MultiplayerServer {
             
             const isHost = player.id === ws.playerId;
             
-            // Send FORCED location change to each player
+            // Send MULTIPLE message types to ensure it works
+            
+            // 1. Force location update
             this.sendToClient(player.socket, {
                 type: 'force_location_update',
                 location: newZone,
                 oldZone: oldZone,
                 description: isHost ? 
                     message.description : 
-                    `Your party leader has moved the group to ${newZone}. You are transported along with the party.`,
+                    `🚐 PARTY TRAVEL: Your party leader has moved the group to ${newZone}. You are automatically transported with the party.`,
                 playerId: player.id,
                 playerName: player.name,
                 isHostTravel: true,
@@ -303,10 +305,25 @@ class MultiplayerServer {
                 timestamp: Date.now()
             });
             
-            console.log(`[MULTIPLAYER SERVER] ✓ FORCED location update sent to ${player.name}`);
+            // 2. Send regular location changed message as backup
+            this.sendToClient(player.socket, {
+                type: 'location_changed',
+                location: newZone,
+                oldZone: oldZone,
+                description: isHost ? 
+                    `You have moved the party to ${newZone}` : 
+                    `Party moved to ${newZone}`,
+                playerId: player.id,
+                playerName: player.name,
+                isHostTravel: true,
+                forceSync: true,
+                timestamp: Date.now()
+            });
+            
+            console.log(`[MULTIPLAYER SERVER] ✓ DOUBLE-SENT location updates to ${player.name}`);
         });
         
-        console.log(`[MULTIPLAYER SERVER] *** ALL PARTY MEMBERS FORCED TO NEW LOCATION ***`);
+        console.log(`[MULTIPLAYER SERVER] *** ALL PARTY MEMBERS ABSOLUTELY FORCED TO NEW LOCATION ***`);
     }
 
     handleGameAction(ws, message) {
