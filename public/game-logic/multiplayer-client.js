@@ -142,6 +142,14 @@ export class MultiplayerClient {
                     displayMessage(message.message, 'info');
                 }
                 break;
+            case 'test_connectivity':
+                console.log(`[MULTIPLAYER CLIENT] *** TEST CONNECTIVITY MESSAGE RECEIVED ***`);
+                console.log(`[MULTIPLAYER CLIENT] Original message type was: ${message.originalMessageType}`);
+                console.log(`[MULTIPLAYER CLIENT] This proves WebSocket connection is working!`);
+                if (message.originalMessageType === 'location_changed') {
+                    console.log(`[MULTIPLAYER CLIENT] *** LOCATION MESSAGE SHOULD HAVE BEEN RECEIVED BUT WASN'T ***`);
+                }
+                break;
             case 'error':
                 if (typeof displayMessage !== 'undefined') {
                     displayMessage(message.message, 'error');

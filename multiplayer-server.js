@@ -628,18 +628,53 @@ class MultiplayerServer {
         }
         
         if (ws.readyState === WebSocket.OPEN) {
-            const messageStr = JSON.stringify(message);
-            console.log(`[MULTIPLAYER SERVER] Sending message of length: ${messageStr.length}`);
-            
             try {
+                // Validate message can be serialized
+                const messageStr = JSON.stringify(message);
+                console.log(`[MULTIPLAYER SERVER] Serialized message length: ${messageStr.length}`);
+                
+                // Attempt to send
                 ws.send(messageStr);
-                console.log(`[MULTIPLAYER SERVER] *** MESSAGE SENT SUCCESSFULLY ***`);
+                console.log(`[MULTIPLAYER SERVER] *** ws.send() called successfully ***`);
+                
+                // Force flush the WebSocket buffer if possible
+                if (ws._socket && ws._socket.flush) {
+                    ws._socket.flush();
+                    console.log(`[MULTIPLAYER SERVER] Socket buffer flushed`);
+                }
                 
                 if (message.type === 'location_changed') {
-                    console.log(`[MULTIPLAYER SERVER] *** LOCATION MESSAGE CONFIRMED SENT ***`);
+                    console.log(`[MULTIPLAYER SERVER] *** LOCATION MESSAGE TRANSMISSION ATTEMPTED ***`);
+                    
+                    // Send a test message immediately after to verify connection
+                    setTimeout(() => {
+                        try {
+                            const testMessage = JSON.stringify({
+                                type: 'test_connectivity',
+                                timestamp: Date.now(),
+                                originalMessageType: 'location_changed'
+                            });
+                            ws.send(testMessage);
+                            console.log(`[MULTIPLAYER SERVER] *** TEST MESSAGE SENT AFTER LOCATION ***`);
+                        } catch (testError) {
+                            console.log(`[MULTIPLAYER SERVER] *** TEST MESSAGE FAILED ***`, testError);
+                        }
+                    }, 10);
                 }
+                
             } catch (error) {
-                console.log(`[MULTIPLAYER SERVER] *** ERROR SENDING MESSAGE ***`, error);
+                console.log(`[MULTIPLAYER SERVER] *** CRITICAL ERROR SENDING MESSAGE ***`);
+                console.log(`[MULTIPLAYER SERVER] Error type:`, error.constructor.name);
+                console.log(`[MULTIPLAYER SERVER] Error message:`, error.message);
+                console.log(`[MULTIPLAYER SERVER] Error stack:`, error.stack);
+                
+                // Try to send a simpler message
+                try {
+                    ws.send('{"type":"error","message":"Message send failed"}');
+                    console.log(`[MULTIPLAYER SERVER] Fallback error message sent`);
+                } catch (fallbackError) {
+                    console.log(`[MULTIPLAYER SERVER] Even fallback message failed:`, fallbackError);
+                }
             }
         } else {
             console.log(`[MULTIPLAYER SERVER] *** ERROR: WEBSOCKET NOT OPEN ***`);
