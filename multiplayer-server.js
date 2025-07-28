@@ -203,63 +203,40 @@ class MultiplayerServer {
         console.log(`[MULTIPLAYER SERVER] Broadcasting room update for room ${message.roomId}`);
         this.broadcastRoomUpdate(message.roomId);
         
-        // FORCE IMMEDIATE LOCATION SYNC - Use process.nextTick to ensure it happens after room_joined
-        process.nextTick(() => {
-            const locationMessage = {
+        // IMMEDIATE LOCATION SYNC - Send location_changed message right after room_joined
+        const locationMessage = {
+            type: 'location_changed',
+            location: room.gameState.location,
+            description: `You have joined the party in ${room.gameState.location}`,
+            timestamp: Date.now(),
+            playerId: ws.playerId,
+            playerName: message.playerName,
+            forceSync: true
+        };
+        
+        console.log(`[MULTIPLAYER SERVER] SENDING location_changed to ${message.playerName}: ${room.gameState.location}`);
+        this.sendToClient(ws, locationMessage);
+        
+        // Send backup location messages with slight delays
+        setTimeout(() => {
+            this.sendToClient(ws, {
                 type: 'location_changed',
                 location: room.gameState.location,
-                description: `You have joined the party in ${room.gameState.location}`,
-                timestamp: Date.now(),
+                description: `Location sync: ${room.gameState.location}`,
                 playerId: ws.playerId,
-                playerName: message.playerName,
-                forceSync: true
-            };
-            
-            console.log(`[MULTIPLAYER SERVER] FORCE SENDING location_changed to ${message.playerName}: ${room.gameState.location}`);
-            console.log(`[MULTIPLAYER SERVER] Location message JSON:`, JSON.stringify(locationMessage));
-            
-            // Send the location message directly
-            if (ws.readyState === 1) { // WebSocket.OPEN
-                try {
-                    const msgStr = JSON.stringify(locationMessage);
-                    ws.send(msgStr);
-                    console.log(`[MULTIPLAYER SERVER] *** LOCATION MESSAGE SENT SUCCESSFULLY ***`);
-                } catch (error) {
-                    console.log(`[MULTIPLAYER SERVER] *** ERROR SENDING LOCATION MESSAGE ***`, error);
-                }
-            } else {
-                console.log(`[MULTIPLAYER SERVER] *** WEBSOCKET NOT OPEN FOR LOCATION SYNC ***`);
-            }
-            
-            // Send additional backup location messages
-            setTimeout(() => {
-                if (ws.readyState === 1) {
-                    const backup1 = JSON.stringify({
-                        type: 'location_changed',
-                        location: room.gameState.location,
-                        description: `Location sync backup: ${room.gameState.location}`,
-                        playerId: ws.playerId,
-                        isSecondarySync: true
-                    });
-                    ws.send(backup1);
-                    console.log(`[MULTIPLAYER SERVER] Backup location sync #1 sent`);
-                }
-            }, 100);
-            
-            setTimeout(() => {
-                if (ws.readyState === 1) {
-                    const backup2 = JSON.stringify({
-                        type: 'location_changed',
-                        location: room.gameState.location,
-                        description: `Final location sync: ${room.gameState.location}`,
-                        playerId: ws.playerId,
-                        isFinalSync: true
-                    });
-                    ws.send(backup2);
-                    console.log(`[MULTIPLAYER SERVER] Final location sync sent`);
-                }
-            }, 250);
-        });
+                isSecondarySync: true
+            });
+        }, 50);
+        
+        setTimeout(() => {
+            this.sendToClient(ws, {
+                type: 'location_changed',
+                location: room.gameState.location,
+                description: `Final location sync: ${room.gameState.location}`,
+                playerId: ws.playerId,
+                isFinalSync: true
+            });
+        }, 150);
     }
 
     handleReconnection(ws, message) {
@@ -628,70 +605,24 @@ class MultiplayerServer {
     }
 
     sendToClient(ws, message) {
-        console.log(`[MULTIPLAYER SERVER] *** ATTEMPTING TO SEND MESSAGE ***`);
-        console.log(`[MULTIPLAYER SERVER] Message type: "${message.type}"`);
-        console.log(`[MULTIPLAYER SERVER] Target player: ${ws.playerId}`);
-        console.log(`[MULTIPLAYER SERVER] WebSocket state: ${ws.readyState} (1=OPEN, 2=CLOSING, 3=CLOSED)`);
-        
-        if (message.type === 'location_changed') {
-            console.log(`[MULTIPLAYER SERVER] *** LOCATION_CHANGED MESSAGE ***`);
-            console.log(`[MULTIPLAYER SERVER] Location: ${message.location}`);
-            console.log(`[MULTIPLAYER SERVER] Description: ${message.description}`);
-            console.log(`[MULTIPLAYER SERVER] Full message:`, JSON.stringify(message, null, 2));
-        }
-        
         if (ws.readyState === WebSocket.OPEN) {
             try {
-                // Validate message can be serialized
                 const messageStr = JSON.stringify(message);
-                console.log(`[MULTIPLAYER SERVER] Serialized message length: ${messageStr.length}`);
-                
-                // Attempt to send
                 ws.send(messageStr);
-                console.log(`[MULTIPLAYER SERVER] *** ws.send() called successfully ***`);
-                
-                // Force flush the WebSocket buffer if possible
-                if (ws._socket && ws._socket.flush) {
-                    ws._socket.flush();
-                    console.log(`[MULTIPLAYER SERVER] Socket buffer flushed`);
-                }
                 
                 if (message.type === 'location_changed') {
-                    console.log(`[MULTIPLAYER SERVER] *** LOCATION MESSAGE TRANSMISSION ATTEMPTED ***`);
-                    
-                    // Send a test message immediately after to verify connection
-                    setTimeout(() => {
-                        try {
-                            const testMessage = JSON.stringify({
-                                type: 'test_connectivity',
-                                timestamp: Date.now(),
-                                originalMessageType: 'location_changed'
-                            });
-                            ws.send(testMessage);
-                            console.log(`[MULTIPLAYER SERVER] *** TEST MESSAGE SENT AFTER LOCATION ***`);
-                        } catch (testError) {
-                            console.log(`[MULTIPLAYER SERVER] *** TEST MESSAGE FAILED ***`, testError);
-                        }
-                    }, 10);
+                    console.log(`[MULTIPLAYER SERVER] *** LOCATION_CHANGED SENT ***`);
+                    console.log(`[MULTIPLAYER SERVER] Player: ${ws.playerId}`);
+                    console.log(`[MULTIPLAYER SERVER] Location: ${message.location}`);
+                    console.log(`[MULTIPLAYER SERVER] Message sent successfully`);
                 }
-                
             } catch (error) {
-                console.log(`[MULTIPLAYER SERVER] *** CRITICAL ERROR SENDING MESSAGE ***`);
-                console.log(`[MULTIPLAYER SERVER] Error type:`, error.constructor.name);
-                console.log(`[MULTIPLAYER SERVER] Error message:`, error.message);
-                console.log(`[MULTIPLAYER SERVER] Error stack:`, error.stack);
-                
-                // Try to send a simpler message
-                try {
-                    ws.send('{"type":"error","message":"Message send failed"}');
-                    console.log(`[MULTIPLAYER SERVER] Fallback error message sent`);
-                } catch (fallbackError) {
-                    console.log(`[MULTIPLAYER SERVER] Even fallback message failed:`, fallbackError);
-                }
+                console.error(`[MULTIPLAYER SERVER] Error sending message:`, error);
+                console.error(`[MULTIPLAYER SERVER] Message type: ${message.type}`);
+                console.error(`[MULTIPLAYER SERVER] Player: ${ws.playerId}`);
             }
         } else {
-            console.log(`[MULTIPLAYER SERVER] *** ERROR: WEBSOCKET NOT OPEN ***`);
-            console.log(`[MULTIPLAYER SERVER] Cannot send ${message.type} to ${ws.playerId}, WebSocket state: ${ws.readyState}`);
+            console.error(`[MULTIPLAYER SERVER] WebSocket not open for player ${ws.playerId}, state: ${ws.readyState}`);
         }
     }
 
